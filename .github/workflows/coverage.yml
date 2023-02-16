@@ -1,0 +1,61 @@
+# This workflow runs tests and reports code coverage.
+
+# We need a workflow name to be able to schedule it from Github UI
+name: TestCoverage
+
+on:
+  # Triggers the workflow on push to main
+  push:
+    branches:
+      - main
+  # Triggers the workflow on any PR
+  pull_request:
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  # The job ID has to match repo settings for PR required checks
+  TestCoverage:
+    runs-on: ${{ matrix.os }}
+
+    # Run jobs for a couple of Python versions and OSes.
+    strategy:
+      matrix:
+        os: ["ubuntu-latest"]
+        python: ["3.8", "3.9"]
+
+    name: Coverage - Python ${{ matrix.python }} - ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v2
+
+      # Load a specific version of Python
+      - name: Setup python
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python }}
+          architecture: x64
+
+      - uses: julia-actions/setup-julia@v1
+        with:
+          version: '1.8'
+
+      - name: Install Julia deps 
+        shell: bash
+        run: julia -e 'using Pkg; Pkg.add("JSON"); Pkg.add("Jabalizer")'
+
+      - name: Install deps
+        shell: bash
+        run: make github_actions
+
+      - name: Run tests and gather coverage stats
+        shell: bash
+        run: make coverage
+      
+      - name: Comment with code coverage
+        uses: zapatacomputing/command-pr-comment@baca4fb9246eaaee3e47f35f296764acc394fae7
+        with:
+          command: make show-coverage-text-report
+          template: "🚀 Code Coverage\n```\n%command%```"
+          update-text: "🚀 Code Coverage"

@@ -1,0 +1,53 @@
+# This workflow runs automatic code style checks.
+
+# We need a workflow name to be able to schedule it from Github UI
+name: style
+
+on:
+  # Triggers the workflow on push to main
+  push:
+    branches:
+      - main
+  # Triggers the workflow on any PR
+  pull_request:
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  # The job ID has to match repo settings for PR required checks
+  style:
+    runs-on: ubuntu-latest
+
+    # Run jobs for a couple of Python versions.
+    strategy:
+      matrix:
+        python: ["3.8", "3.9"]
+
+    name: Style - Python ${{ matrix.python }}
+
+    steps:
+      - uses: actions/checkout@v2
+
+      # ---------------------------------------------------------------------------------
+      # Clones a repository.
+      # If it's private, it also requires ssh-key and adding it to repo secrets on GitHub
+      # ---------------------------------------------------------------------------------
+      # - name: Get orquestra-quantum
+      #   uses: actions/checkout@v2
+      #   with:
+      #     repository: zapatacomputing/orquestra-quantum
+      #     path: orquestra-quantum
+      #     ssh-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      # ------------------------------------------------------------------------
+      # Loads private SSH key to the SSH agent. Allows to install dependencies
+      # from private git repos, but requires setting `secrets.SSH_PRIVATE_KEY`
+      # in repo settings.
+      # ------------------------------------------------------------------------
+      # - uses: ./subtrees/z_quantum_actions/actions/ssh_setup
+      #   with:
+      #     ssh_key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      # Installs project, checks codestyle
+      - uses: ./subtrees/z_quantum_actions/actions/style
