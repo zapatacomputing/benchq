@@ -9,7 +9,6 @@ import pytest
 from examples.advanced_estimates import main as advanced_estimates_main
 from examples.h_chain_from_qasm import main as h_chain_from_qasm_main
 from examples.h_chain_trotter import main as h_chain_main
-from examples.h_chain_with_substrate_scheduler import main as ss_main
 from examples.qsp_vlasov import main as qsp_vlasov_main
 
 MAIN_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -41,11 +40,6 @@ def test_h_chain_from_qasm_example():
 
 def test_qsp_vlasov_example():
     qsp_vlasov_main()
-
-
-def test_substrate_scheduler_example():
-    file_path = os.path.join("examples", "h_chain_circuit.qasm")
-    ss_main(file_path)
 
 
 # def test_advanced_estimates():

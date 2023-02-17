@@ -1,13 +1,20 @@
 ################################################################################
 # © Copyright 2022-2023 Zapata Computing Inc.
 ################################################################################
-from typing import Any
+import json
+import warnings
+from typing import Any, List
 
+import more_itertools
+import networkx as nx
 import numpy as np
+from graph_state_generation.optimizers import greedy_stabilizer_measurement_scheduler
+from graph_state_generation.substrate_scheduler import TwoRowSubstrateScheduler
 from orquestra.quantum.circuits import Circuit
-from orquestra.quantum.decompositions import decompose_orquestra_circuit
+from pbq.vizualization_tools import plot_graph_state_with_measurement_steps
 
 from ..compilation import get_algorithmic_graph, pyliqtr_transpile_to_clifford_t
+from ..data_structures import QuantumProgram
 
 CLIFFORD_GATES = [
     "X",
@@ -129,12 +136,18 @@ def find_min_viable_distance(
 
 
 def get_resource_estimations_for_graph(
-    n_nodes,
+    graph: nx.Graph,
     architecture_model: Any,
-    tolerable_logical_error_rate=0.5,
+    tolerable_logical_error_rate: float = 0.5,
+    verbose: bool = False,
 ):
+    n_nodes = len(graph.nodes)
     physical_gate_error_rate = architecture_model.physical_gate_error_rate
     physical_gate_time_in_seconds = architecture_model.physical_gate_time_in_seconds
+
+    (n_measurement_steps, measurement_steps, connected_graph) = substrate_scheduler(
+        graph, verbose
+    )
 
     min_viable_distance = find_min_viable_distance(
         n_nodes,
@@ -157,20 +170,55 @@ def get_resource_estimations_for_graph(
         n_nodes,
         physical_gate_time_in_seconds,
     )
+
     physical_qubit_count = 12 * n_nodes * 2 * min_viable_distance**2
     resources_in_cells = get_logical_st_volume(n_nodes, synthesis_error_rate)
-    return {
+    results_dict = {
         "logical_error_rate": final_logical_error_rate,
         "total_time": total_time,
         "physical_qubit_count": physical_qubit_count,
         "min_viable_distance": min_viable_distance,
         "synthesis_error_rate": synthesis_error_rate,
         "resources_in_cells": resources_in_cells,
+        "n_measurement_steps": n_measurement_steps,
+        "graph_degree": max([degree for node, degree in graph.degree()]),
     }
+
+    if verbose:
+        results_dict["graph"] = connected_graph
+        results_dict["measurement_steps"] = measurement_steps
+        plot_graph_state_with_measurement_steps(connected_graph, measurement_steps)
+
+    return results_dict
+
+
+def substrate_scheduler(graph: nx.Graph, verbose: bool = False):
+    connected_graph = graph.copy()
+    connected_graph.remove_nodes_from(list(nx.isolates(graph)))  # remove isolated nodes
+    connected_graph = nx.convert_node_labels_to_integers(connected_graph)
+
+    scheduler_only_compiler = TwoRowSubstrateScheduler(
+        connected_graph, stabilizer_scheduler=greedy_stabilizer_measurement_scheduler
+    )
+    scheduler_only_compiler.run()
+
+    if verbose:
+        try:
+            scheduler_only_compiler.visualization()
+        except NotImplementedError:
+            warnings.warn("Graph is too large to be ascii visualized.")
+
+    measurement_steps = scheduler_only_compiler.measurement_steps
+
+    return (len(measurement_steps), measurement_steps, connected_graph)
 
 
 def get_resource_estimations_for_program(
-    quantum_program, error_budget, architecture_model
+    quantum_program,
+    error_budget,
+    architecture_model,
+    use_full_program_graph: bool = False,
+    verbose: bool = False,
 ):
     """_summary_
 
@@ -179,7 +227,8 @@ def get_resource_estimations_for_program(
         error_budget: _description_
         architecture_model: _description_
     """
-    n_nodes_list = []
+    graphs_list = []
+    data_qubits_map_list = []
     # We assign the same amount of error budget to gate synthesis and error correction.
     synthesis_error_budget = error_budget / 2
     ec_error_budget = error_budget / 2
@@ -189,29 +238,151 @@ def get_resource_estimations_for_program(
         clifford_t_circuit = pyliqtr_transpile_to_clifford_t(
             circuit, synthesis_accuracy=synthesis_error_budget
         )
-        graph = get_algorithmic_graph(clifford_t_circuit)
-        n_nodes_list.append(len(graph))
+        graphs_list.append(get_algorithmic_graph(clifford_t_circuit, verbose))
+        with open("icm_output.json", "r") as f:
+            output_dict = json.load(f)
+            data_qubits_map = output_dict["data_qubits_map"]
+        data_qubits_map_list.append(data_qubits_map)
 
     return resource_estimations_for_subcomponents(
-        n_nodes_list,
+        graphs_list,
+        data_qubits_map_list,
         quantum_program,
         architecture_model,
         ec_error_budget,
+        use_full_program_graph=use_full_program_graph,
+        verbose=verbose,
     )
 
 
 def resource_estimations_for_subcomponents(
-    n_nodes_list, quantum_program, architecture_model, tolerable_circuit_error_rate
+    graphs_list,
+    data_qubits_map_list,
+    quantum_program,
+    architecture_model,
+    tolerable_circuit_error_rate,
+    use_full_program_graph: bool = False,
+    verbose: bool = False,
 ):
-    total_n_nodes = sum(
-        n_nodes * mult
-        for n_nodes, mult in zip(n_nodes_list, quantum_program.multiplicities)
+    n_nodes = sum(
+        len(graph) * multiplicity
+        for graph, multiplicity in zip(graphs_list, quantum_program.multiplicities)
+    )
+    # account for double counting of data qubits coming from each graph
+    n_nodes -= quantum_program.num_data_qubits * (
+        len(quantum_program.subroutine_sequence) - 1
     )
 
-    resource_estimates = get_resource_estimations_for_graph(
-        total_n_nodes, architecture_model, tolerable_circuit_error_rate
-    )
-    resource_estimates["n_nodes"] = n_nodes_list
+    if use_full_program_graph:
+        program_graph = combine_subcomponent_graphs(
+            graphs_list, data_qubits_map_list, quantum_program
+        )
+        resource_estimates = get_resource_estimations_for_graph(
+            program_graph, architecture_model, tolerable_circuit_error_rate, verbose
+        )
+    else:
+        # use dummy graph
+        resource_estimates = get_resource_estimations_for_graph(
+            nx.path_graph(n_nodes),
+            architecture_model,
+            tolerable_circuit_error_rate,
+            verbose=False,
+        )
+        resource_estimates = get_substrate_scheduler_estimates_for_subcomponents(
+            graphs_list,
+            quantum_program,
+            data_qubits_map_list,
+            resource_estimates,
+            verbose,
+        )
+
+    resource_estimates["n_nodes"] = n_nodes
     resource_estimates["steps"] = quantum_program.steps
 
+    return resource_estimates
+
+
+def combine_subcomponent_graphs(
+    graphs_list: List[nx.Graph],
+    data_qubits_map_list: List[List[int]],
+    quantum_program: QuantumProgram,
+):
+    """Given a list of graphs for each of the subcomponents, combine those graphs
+    into single graph representing the entire quantum program.
+
+    Args:
+        graphs_list (List[nx.Graph]): _description_
+        data_qubits_map_list (List[List[int]]): _description_
+        quantum_program (QuantumProgram): _description_
+
+    Returns:
+        _type_: _description_
+    """
+    program_graph = graphs_list[quantum_program.subroutine_sequence[0]]
+    node_relabeling = {}
+    prev_graph_size = 0
+    for prev, curr in more_itertools.windowed(quantum_program.subroutine_sequence, 2):
+        data_qubits = data_qubits_map_list[prev]  # type: ignore
+        curr_graph = graphs_list[curr]  # type: ignore
+
+        # shift labels so curr_graph has no labels in common with program_graph
+        curr_graph = nx.relabel_nodes(
+            curr_graph,
+            lambda x: str(int(x) + len(program_graph)),
+        )
+        # keep track of which nodes should be contracted to connect data qubits
+        for i, data_qubit in enumerate(data_qubits):
+            node_relabeling[data_qubit + prev_graph_size] = i + len(program_graph)
+
+        prev_graph_size = len(program_graph)
+        program_graph = nx.compose(program_graph, curr_graph)
+
+    for node_1, node_2 in node_relabeling.items():
+        program_graph = nx.contracted_nodes(program_graph, str(node_2), str(node_1))
+
+    program_graph = nx.convert_node_labels_to_integers(program_graph)
+
+    return program_graph
+
+
+def get_substrate_scheduler_estimates_for_subcomponents(
+    graphs_list,
+    quantum_program,
+    data_qubits_map_list=None,
+    resource_estimates={},
+    verbose: bool = False,
+):
+    if data_qubits_map_list is None:
+        data_qubits_map_list = [[] * len(graphs_list)]
+
+    # sum substrate scheduler resource estimates for each subcomponent
+    total_n_measurement_steps = 0
+    total_measurement_steps = []
+    total_connected_graph = nx.Graph()
+    graph_degree = 0
+    for graph, data_qubits, multiplicity in zip(
+        graphs_list, data_qubits_map_list, quantum_program.multiplicities
+    ):
+        (
+            n_measurement_steps,
+            measurement_steps,
+            connected_graph,
+        ) = substrate_scheduler(graph, verbose)
+        total_n_measurement_steps += n_measurement_steps * multiplicity
+        total_measurement_steps += [measurement_steps]
+        graph_degree = max(graph_degree, *[degree for node, degree in graph.degree()])
+        if graph.degree(data_qubits) == graph_degree:
+            warnings.warn(
+                "Node with largest degree lies on an edge. "
+                "Graph degree might be an underestimate. "
+                "If this message is triggered, Simon owes Athena a bottle of whiskey."
+            )
+
+    resource_estimates["n_measurement_steps"] = total_n_measurement_steps
+    resource_estimates["graph_degree"] = graph_degree
+    if verbose:
+        resource_estimates["measurement_steps"] = total_measurement_steps
+        plot_graph_state_with_measurement_steps(
+            total_connected_graph, total_measurement_steps
+        )
     return resource_estimates

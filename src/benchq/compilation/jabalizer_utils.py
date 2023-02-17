@@ -22,7 +22,7 @@ def load_algorithmic_graph(filename):
     return graph
 
 
-def _run_quietly(cmd: t.Sequence[str]):
+def _run_quietly(cmd: t.Sequence[str], verbose=False):
     """
     Runs ``cmd`` in a subprocess. Directs the child's stdout to a logger. Stderr is
     printed to the parent's process output.
@@ -35,6 +35,8 @@ def _run_quietly(cmd: t.Sequence[str]):
     for line in iter(pipe.readline, b""):
         line_str = line.decode().strip()
         LOGGER.info(line_str)
+        if verbose:
+            print(line_str)
 
     # TODO: is there a sensible timeout for the jabalizer task?
     proc.wait()
@@ -42,7 +44,7 @@ def _run_quietly(cmd: t.Sequence[str]):
     assert proc.returncode == 0, f"Running {cmd} returned error code: {proc.returncode}"
 
 
-def get_algorithmic_graph(circuit):
+def get_algorithmic_graph(circuit, verbose=False):
     n_qubits = circuit.n_qubits
     icm_input_circuit = translate_circuit_to_icm_input(circuit)
     icm_input_circuit.append(n_qubits)
@@ -55,7 +57,7 @@ def get_algorithmic_graph(circuit):
 
     julia_file = os.path.join(exec_path, exec_name)
     # jl.evalfile(julia_file)
-    _run_quietly(["julia", julia_file])
+    _run_quietly(["julia", julia_file], verbose)
 
     return load_algorithmic_graph("adjacency_list.nxl")
 

@@ -135,3 +135,5 @@ chromedriver
 icm_input_circuit.json
 icm_output.json
 adjacency_list.nxl
+avas_localized_orbitals.molden
+measurement_steps_plot.pdf
