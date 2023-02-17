@@ -11,7 +11,8 @@ import numpy as np
 from graph_state_generation.optimizers import greedy_stabilizer_measurement_scheduler
 from graph_state_generation.substrate_scheduler import TwoRowSubstrateScheduler
 from orquestra.quantum.circuits import Circuit
-from pbq.vizualization_tools import plot_graph_state_with_measurement_steps
+
+from benchq.vizualization_tools import plot_graph_state_with_measurement_steps
 
 from ..compilation import get_algorithmic_graph, pyliqtr_transpile_to_clifford_t
 from ..data_structures import QuantumProgram
