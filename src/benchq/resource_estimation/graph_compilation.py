@@ -17,6 +17,9 @@ from benchq.vizualization_tools import plot_graph_state_with_measurement_steps
 from ..compilation import get_algorithmic_graph, pyliqtr_transpile_to_clifford_t
 from ..data_structures import QuantumProgram
 
+LOGGER = logging.getLogger(__name__)
+
+
 CLIFFORD_GATES = [
     "X",
     "H",
@@ -140,15 +143,13 @@ def get_resource_estimations_for_graph(
     graph: nx.Graph,
     architecture_model: Any,
     tolerable_logical_error_rate: float = 0.5,
-    verbose: bool = False,
+    plot: bool = False,
 ):
     n_nodes = len(graph.nodes)
     physical_gate_error_rate = architecture_model.physical_gate_error_rate
     physical_gate_time_in_seconds = architecture_model.physical_gate_time_in_seconds
 
-    (n_measurement_steps, measurement_steps, connected_graph) = substrate_scheduler(
-        graph, verbose
-    )
+    scheduler_only_compiler = substrate_scheduler(graph)
 
     min_viable_distance = find_min_viable_distance(
         n_nodes,
@@ -181,19 +182,21 @@ def get_resource_estimations_for_graph(
         "min_viable_distance": min_viable_distance,
         "synthesis_error_rate": synthesis_error_rate,
         "resources_in_cells": resources_in_cells,
-        "n_measurement_steps": n_measurement_steps,
+        "n_measurement_steps": len(scheduler_only_compiler.measurement_steps),
         "graph_degree": max([degree for node, degree in graph.degree()]),
     }
+    LOGGER.debug(scheduler_only_compiler.measurement_steps)
 
-    if verbose:
-        results_dict["graph"] = connected_graph
-        results_dict["measurement_steps"] = measurement_steps
-        plot_graph_state_with_measurement_steps(connected_graph, measurement_steps)
+    if plot:
+        plot_graph_state_with_measurement_steps(
+            scheduler_only_compiler.connected_graph,
+            scheduler_only_compiler.measurement_steps,
+        )
 
     return results_dict
 
 
-def substrate_scheduler(graph: nx.Graph, verbose: bool = False):
+def substrate_scheduler(graph: nx.Graph):
     connected_graph = graph.copy()
     connected_graph.remove_nodes_from(list(nx.isolates(graph)))  # remove isolated nodes
     connected_graph = nx.convert_node_labels_to_integers(connected_graph)
@@ -203,15 +206,7 @@ def substrate_scheduler(graph: nx.Graph, verbose: bool = False):
     )
     scheduler_only_compiler.run()
 
-    if verbose:
-        try:
-            scheduler_only_compiler.visualization()
-        except NotImplementedError:
-            warnings.warn("Graph is too large to be ascii visualized.")
-
-    measurement_steps = scheduler_only_compiler.measurement_steps
-
-    return (len(measurement_steps), measurement_steps, connected_graph)
+    return scheduler_only_compiler
 
 
 def get_resource_estimations_for_program(
@@ -219,14 +214,20 @@ def get_resource_estimations_for_program(
     error_budget,
     architecture_model,
     use_full_program_graph: bool = False,
-    verbose: bool = False,
+    plot: bool = False,
 ):
-    """_summary_
-
+    """
     Args:
-        quantum_program: _description_
-        error_budget: _description_
-        architecture_model: _description_
+        quantum_program (QuantumProgram): The program we wish toestimate resources for.
+        error_budget (float): maximum allowable error in program.
+        architecture_model (ArchetectureModel): Parameters describing th e performance of the
+            architecture.
+        use_full_program_graph (bool, optional): Choose whether to perform resource
+            estimations using the graph of the full program or with the subcomponents.
+            For large programs generating the graph may take too much time.
+            Defaults to False.
+        plot (bool, optional): Whether or not to plot the full graph with colors
+            corresponding to measurement steps. Defaults to False.
     """
     graphs_list = []
     data_qubits_map_list = []
@@ -239,7 +240,7 @@ def get_resource_estimations_for_program(
         clifford_t_circuit = pyliqtr_transpile_to_clifford_t(
             circuit, synthesis_accuracy=synthesis_error_budget
         )
-        graphs_list.append(get_algorithmic_graph(clifford_t_circuit, verbose))
+        graphs_list.append(get_algorithmic_graph(clifford_t_circuit, plot))
         with open("icm_output.json", "r") as f:
             output_dict = json.load(f)
             data_qubits_map = output_dict["data_qubits_map"]
@@ -252,19 +253,35 @@ def get_resource_estimations_for_program(
         architecture_model,
         ec_error_budget,
         use_full_program_graph=use_full_program_graph,
-        verbose=verbose,
+        plot=plot,
     )
 
 
 def resource_estimations_for_subcomponents(
-    graphs_list,
-    data_qubits_map_list,
+    graphs_list: List[nx.Graph],
+    data_qubits_map_list: List[List[int]],
     quantum_program,
     architecture_model,
     tolerable_circuit_error_rate,
     use_full_program_graph: bool = False,
-    verbose: bool = False,
+    plot: bool = False,
 ):
+    """
+    Args:
+        graphs_list (List[nx.Graph]): A list of graphs for each subcomponent of the program.
+        data_qubits_map_list (List[List[int]]): A list of lists describing wherethe data qubits
+            are after each subroutine is called.
+        quantum_program (QuantumProgram): The program we wish toestimate resources for.
+        architecture_model (ArchetectureModel): Parameters describing th e performance of the
+            archetecture.
+        tolerable_circuit_error_rate (float): Error rate of the circuit.
+        use_full_program_graph (bool, optional): Choose whether to perform resource
+            estimations using the graph of the full program or with the subcomponents.
+            For large programs generating the graph may take too much time.
+            Defaults to False.
+        plot (bool, optional): Whether or not to plot the full graph with colors
+            corresponding to measurement steps. Defaults to False.
+    """
     n_nodes = sum(
         len(graph) * multiplicity
         for graph, multiplicity in zip(graphs_list, quantum_program.multiplicities)
@@ -279,22 +296,23 @@ def resource_estimations_for_subcomponents(
             graphs_list, data_qubits_map_list, quantum_program
         )
         resource_estimates = get_resource_estimations_for_graph(
-            program_graph, architecture_model, tolerable_circuit_error_rate, verbose
+            program_graph, architecture_model, tolerable_circuit_error_rate, plot=plot
         )
     else:
+        if plot:
+            warnings.warn("Cannot plot graph when estimating from subcomponents.")
         # use dummy graph
         resource_estimates = get_resource_estimations_for_graph(
             nx.path_graph(n_nodes),
             architecture_model,
             tolerable_circuit_error_rate,
-            verbose=False,
+            plot=False,
         )
         resource_estimates = get_substrate_scheduler_estimates_for_subcomponents(
             graphs_list,
             quantum_program,
             data_qubits_map_list,
             resource_estimates,
-            verbose,
         )
 
     resource_estimates["n_nodes"] = n_nodes
@@ -322,9 +340,11 @@ def combine_subcomponent_graphs(
     program_graph = graphs_list[quantum_program.subroutine_sequence[0]]
     node_relabeling = {}
     prev_graph_size = 0
-    for prev, curr in more_itertools.windowed(quantum_program.subroutine_sequence, 2):
-        data_qubits = data_qubits_map_list[prev]  # type: ignore
-        curr_graph = graphs_list[curr]  # type: ignore
+    for prev_i, curr_i in more_itertools.windowed(
+        quantum_program.subroutine_sequence, 2
+    ):
+        data_qubits = data_qubits_map_list[prev_i]  # type: ignore
+        curr_graph = graphs_list[curr_i]  # type: ignore
 
         # shift labels so curr_graph has no labels in common with program_graph
         curr_graph = nx.relabel_nodes(
@@ -332,8 +352,8 @@ def combine_subcomponent_graphs(
             lambda x: str(int(x) + len(program_graph)),
         )
         # keep track of which nodes should be contracted to connect data qubits
-        for i, data_qubit in enumerate(data_qubits):
-            node_relabeling[data_qubit + prev_graph_size] = i + len(program_graph)
+        for j, data_qubit in enumerate(data_qubits):
+            node_relabeling[data_qubit + prev_graph_size] = j + len(program_graph)
 
         prev_graph_size = len(program_graph)
         program_graph = nx.compose(program_graph, curr_graph)
@@ -351,7 +371,6 @@ def get_substrate_scheduler_estimates_for_subcomponents(
     quantum_program,
     data_qubits_map_list=None,
     resource_estimates={},
-    verbose: bool = False,
 ):
     if data_qubits_map_list is None:
         data_qubits_map_list = [[] * len(graphs_list)]
@@ -359,18 +378,15 @@ def get_substrate_scheduler_estimates_for_subcomponents(
     # sum substrate scheduler resource estimates for each subcomponent
     total_n_measurement_steps = 0
     total_measurement_steps = []
-    total_connected_graph = nx.Graph()
     graph_degree = 0
     for graph, data_qubits, multiplicity in zip(
         graphs_list, data_qubits_map_list, quantum_program.multiplicities
     ):
-        (
-            n_measurement_steps,
-            measurement_steps,
-            connected_graph,
-        ) = substrate_scheduler(graph, verbose)
-        total_n_measurement_steps += n_measurement_steps * multiplicity
-        total_measurement_steps += [measurement_steps]
+        scheduler_only_compiler = substrate_scheduler(graph)
+        total_n_measurement_steps += (
+            len(scheduler_only_compiler.n_measurement_steps) * multiplicity
+        )
+        total_measurement_steps += [scheduler_only_compiler.measurement_steps]
         graph_degree = max(graph_degree, *[degree for node, degree in graph.degree()])
         if graph.degree(data_qubits) == graph_degree:
             warnings.warn(
@@ -381,9 +397,6 @@ def get_substrate_scheduler_estimates_for_subcomponents(
 
     resource_estimates["n_measurement_steps"] = total_n_measurement_steps
     resource_estimates["graph_degree"] = graph_degree
-    if verbose:
-        resource_estimates["measurement_steps"] = total_measurement_steps
-        plot_graph_state_with_measurement_steps(
-            total_connected_graph, total_measurement_steps
-        )
+    LOGGER.debug(total_measurement_steps)
+
     return resource_estimates

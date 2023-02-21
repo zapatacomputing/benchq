@@ -145,7 +145,7 @@ def main():
                 quantum_program,
                 remaining_error_budget,
                 architecture_model,
-                verbose=True,
+                plot=True,
             )
             end = time.time()
             print("Graph State Compilation estimation time:", end - start)

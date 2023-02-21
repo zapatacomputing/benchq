@@ -15,12 +15,13 @@ Objectives:
 """
 import time
 
+from qiskit.circuit import QuantumCircuit
+
 from benchq import BasicArchitectureModel
 from benchq.compilation import get_algorithmic_graph, pyliqtr_transpile_to_clifford_t
 from benchq.resource_estimation.graph_compilation import (
     get_resource_estimations_for_graph,
 )
-from qiskit.circuit import QuantumCircuit
 
 
 def main(file_name="h_chain_circuit.qasm"):
@@ -44,7 +45,7 @@ def main(file_name="h_chain_circuit.qasm"):
     synthesis_accuracy = 1e-3
     start = time.time()
     resource_estimates = get_resource_estimations_for_graph(
-        graph, architecture_model, synthesis_accuracy, verbose=True
+        graph, architecture_model, synthesis_accuracy, plot=True
     )
     end = time.time()
     print("Resource estimation time:", end - start)

@@ -72,7 +72,7 @@ def main():
 
         start = time.time()
         gsc_resource_estimates = get_resource_estimations_for_program(
-            quantum_program, remaining_error_budget, architecture_model, verbose=True
+            quantum_program, remaining_error_budget, architecture_model, plot=True
         )
         end = time.time()
         print("Resource estimation time:", end - start)
