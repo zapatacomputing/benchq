@@ -17,13 +17,14 @@ import logging
 import time
 
 import numpy as np
-from pyLIQTR.QSP import gen_qsp as qspFuncs
-
 from benchq import BasicArchitectureModel
 from benchq.algorithms import get_qsp_circuit
 from benchq.compilation import get_algorithmic_graph, pyliqtr_transpile_to_clifford_t
 from benchq.problem_ingestion import get_vlasov_hamiltonian
-from benchq.resource_estimation.graph_compilation import get_resource_estimations_for_graph
+from benchq.resource_estimation.graph_compilation import (
+    get_resource_estimations_for_graph,
+)
+from pyLIQTR.QSP import gen_qsp as qspFuncs
 
 
 def main():
@@ -68,7 +69,7 @@ def main():
         synthesis_accuracy = 1e-3
         start = time.time()
         resource_estimates = get_resource_estimations_for_graph(
-            len(graph.nodes), architecture_model, synthesis_accuracy
+            graph, architecture_model, synthesis_accuracy
         )
         end = time.time()
         print("Resource estimation time:", end - start)

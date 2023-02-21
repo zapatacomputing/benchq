@@ -18,7 +18,7 @@ LOGGER = logging.getLogger(__name__)
 def load_algorithmic_graph(filename):
     t1 = time.time()
     graph = nx.read_adjlist(filename)
-    print("nx.read_adjlist: ", time.time() - t1)
+    LOGGER.info("nx.read_adjlist: ", time.time() - t1)
     return graph
 
 
@@ -36,7 +36,6 @@ def _run_quietly(cmd: t.Sequence[str]):
         line_str = line.decode().strip()
         LOGGER.info(line_str)
 
-    # TODO: is there a sensible timeout for the jabalizer task?
     proc.wait()
 
     assert proc.returncode == 0, f"Running {cmd} returned error code: {proc.returncode}"

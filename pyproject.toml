@@ -37,6 +37,7 @@ module = [
     'qiskit_qir.*',
     'azure.quantum.qiskit.*',
     'graph_state_generation.*',
+    'matplotlib.*',
 ]
 ignore_missing_imports = true
 

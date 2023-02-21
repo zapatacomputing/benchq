@@ -117,13 +117,32 @@ def get_qsp_program(
         import_from_cirq(_sanitize_cirq_circuit(circuit)) for circuit in circuits
     ]
 
-    def multiplicities_for_qsp(steps):
-        return [2, steps + 1, steps]
+    # pad with identity so all subroutines have same number of qubits
+    total_n_qubits = max(circuit.n_qubits for circuit in sanitized_circuits)
+    padded_sanitized_circuits = []
+    for circuit in sanitized_circuits:
+        new_circuit = Circuit()
+        n_qubits = circuit.n_qubits
+        shift = total_n_qubits - n_qubits
+        # in this case we know qubits only need to be moved up.
+        for op in circuit.operations:
+            new_circuit += op.gate(*[shift + index for index in op.qubit_indices])
+        padded_sanitized_circuits.append(new_circuit)
+
+    def subroutine_sequence_for_qsp(steps):
+        my_subroutines = []
+        my_subroutines.append(0)
+        for i in range(steps):
+            my_subroutines.append(1)
+            my_subroutines.append(2)
+        my_subroutines.append(1)
+        my_subroutines.append(0)
+        return my_subroutines
 
     return QuantumProgram(
-        subroutines=sanitized_circuits,
+        subroutines=padded_sanitized_circuits,
         steps=steps,
-        calculate_multiplicities=multiplicities_for_qsp,
+        calculate_subroutine_sequence=subroutine_sequence_for_qsp,
     )
 
 

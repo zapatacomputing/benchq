@@ -131,22 +131,25 @@ def main():
                 )
                 end = time.time()
                 print("Microsoft estimation time:", end - start)
-                print("Microsfot estimates:")
+                print("Microsoft estimates:")
                 print(msft_resource_estimates)
             except Exception as e:
                 print(
-                    "If you don't have Microsoft resource estimation tool configured, unfortunately you can't run it."
+                    "Microsoft estimation tools is not configured, aborting estimation. "
+                    "Expect better documentation on how to get the access in the future."
                 )
-                print("Expect better documentation on how to get the access in future.")
                 # print("Original exception message", e)
 
             start = time.time()
             gsc_resource_estimates = get_resource_estimations_for_program(
-                quantum_program, remaining_error_budget, architecture_model
+                quantum_program,
+                remaining_error_budget,
+                architecture_model,
+                plot=True,
             )
             end = time.time()
             print("Graph State Compilation estimation time:", end - start)
-            print("Microsfot estimates:")
+            print("Microsoft estimates:")
             print(gsc_resource_estimates)
 
             #### END OF STUFF FOR SUBCIRCUITS
