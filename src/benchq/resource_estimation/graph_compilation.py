@@ -2,6 +2,7 @@
 # © Copyright 2022-2023 Zapata Computing Inc.
 ################################################################################
 import json
+import logging
 import warnings
 from typing import Any, List
 
@@ -220,8 +221,8 @@ def get_resource_estimations_for_program(
     Args:
         quantum_program (QuantumProgram): The program we wish toestimate resources for.
         error_budget (float): maximum allowable error in program.
-        architecture_model (ArchetectureModel): Parameters describing th e performance of the
-            architecture.
+        architecture_model (ArchetectureModel): Parameters describing th e performance
+            of the architecture.
         use_full_program_graph (bool, optional): Choose whether to perform resource
             estimations using the graph of the full program or with the subcomponents.
             For large programs generating the graph may take too much time.
@@ -240,7 +241,7 @@ def get_resource_estimations_for_program(
         clifford_t_circuit = pyliqtr_transpile_to_clifford_t(
             circuit, synthesis_accuracy=synthesis_error_budget
         )
-        graphs_list.append(get_algorithmic_graph(clifford_t_circuit, plot))
+        graphs_list.append(get_algorithmic_graph(clifford_t_circuit))
         with open("icm_output.json", "r") as f:
             output_dict = json.load(f)
             data_qubits_map = output_dict["data_qubits_map"]
@@ -268,12 +269,13 @@ def resource_estimations_for_subcomponents(
 ):
     """
     Args:
-        graphs_list (List[nx.Graph]): A list of graphs for each subcomponent of the program.
-        data_qubits_map_list (List[List[int]]): A list of lists describing wherethe data qubits
-            are after each subroutine is called.
+        graphs_list (List[nx.Graph]): A list of graphs for each subcomponent of the
+            program.
+        data_qubits_map_list (List[List[int]]): A list of lists describing where the
+            data qubits are after each subroutine is called.
         quantum_program (QuantumProgram): The program we wish toestimate resources for.
-        architecture_model (ArchetectureModel): Parameters describing th e performance of the
-            archetecture.
+        architecture_model (ArchetectureModel): Parameters describing th e performance
+            of the archetecture.
         tolerable_circuit_error_rate (float): Error rate of the circuit.
         use_full_program_graph (bool, optional): Choose whether to perform resource
             estimations using the graph of the full program or with the subcomponents.
@@ -384,7 +386,7 @@ def get_substrate_scheduler_estimates_for_subcomponents(
     ):
         scheduler_only_compiler = substrate_scheduler(graph)
         total_n_measurement_steps += (
-            len(scheduler_only_compiler.n_measurement_steps) * multiplicity
+            len(scheduler_only_compiler.measurement_steps) * multiplicity
         )
         total_measurement_steps += [scheduler_only_compiler.measurement_steps]
         graph_degree = max(graph_degree, *[degree for node, degree in graph.degree()])

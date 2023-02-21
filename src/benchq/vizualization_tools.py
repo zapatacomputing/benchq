@@ -7,7 +7,10 @@ import numpy as np
 
 
 def plot_graph_state_with_measurement_steps(
-    graph_state_graph, measurement_steps, cmap=plt.cm.rainbow, name="measurement_steps_plot"
+    graph_state_graph,
+    measurement_steps,
+    cmap=plt.cm.rainbow,
+    name="measurement_steps_plot",
 ):
     node_measurement_groupings = [
         [node[0] for node in row] for row in measurement_steps
