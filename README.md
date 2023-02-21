@@ -9,7 +9,7 @@
 ## Installation
 
 To install `benchq` run `pip install .` from the main directory.
-It's been tested with Python 3.8-3.9 on macOS and Linux.
+It's been tested with Python 3.8-3.9 on macOS and Linux. Requires Jabalizer 0.4.3.
 
 Known limitation: installation can fail because of a problem with `pyscf`, one of our transitive dependencies.
 If you're a Windows user, please consider using [WSL](https://learn.microsoft.com/en-us/windows/wsl/install). On other systems you can try installing `pyscf` directly from its git repo: `pip install git+https://github.com/pyscf/pyscf@v2.0.1`.
