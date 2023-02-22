@@ -30,7 +30,7 @@ def get_resource_estimations_for_circuit(
         }
 
     provider = AzureQuantumProvider(
-        resource_id=os.getenv("AZURE_RESOURCE_ID"), location="East US"
+        resource_id=os.environ.get("AZURE_RESOURCE_ID"), location="East US"
     )
 
     backend = provider.get_backend("microsoft.simulator.resources-estimator")
