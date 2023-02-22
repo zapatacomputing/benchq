@@ -75,7 +75,7 @@ def get_resource_estimations_for_graph_task(
     graph, architecture_model, synthesis_accuracy
 ):
     return get_resource_estimations_for_graph(
-        len(graph.nodes), architecture_model, synthesis_accuracy
+        graph, architecture_model, synthesis_accuracy
     )
 
 
