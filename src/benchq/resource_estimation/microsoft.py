@@ -33,7 +33,7 @@ def get_resource_estimations_for_circuit(
         resource_id=os.getenv("AZURE_RESOURCE_ID"), location="East US"
     )
 
-    backend = provider.get_backend("microsoft.simulator.resources-estimator")
+    backend = provider.get_backend("microsoft.estimator")
 
     if architecture_model is None and error_budget is None:
         job = backend.run(qiskit_circuit)
@@ -95,16 +95,16 @@ def _combine_estimates(estimates_per_subroutine, subroutine_multiplicities):
             re["errorBudget"]["logical"]
         )
         combined_resource_estimates["distance"].append(
-            re["logicalQubit"]["eccDistance"]
+            re["logicalQubit"]["codeDistance"]
         )
         combined_resource_estimates["number_of_logical_qubits"].append(
-            re["physicalCounts"]["breakdown"]["logicalQubits"]
+            re["physicalCounts"]["breakdown"]["algorithmicLogicalQubits"]
         )
         combined_resource_estimates["cycle_time"].append(
             re["logicalQubit"]["logicalCycleTime"]
         )
         combined_resource_estimates["depth"].append(
-            re["physicalCounts"]["breakdown"]["logicalDepth"]
+            re["physicalCounts"]["breakdown"]["algorithmicLogicalDepth"]
         )
         combined_resource_estimates["T_state_error_rate"].append(
             re["physicalCounts"]["breakdown"]["requiredLogicalTstateErrorRate"]
