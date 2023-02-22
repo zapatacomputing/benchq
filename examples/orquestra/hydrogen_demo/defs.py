@@ -18,33 +18,10 @@ from benchq.resource_estimation.graph_compilation import (
     get_resource_estimations_for_graph,
 )
 
-standard_task = sdk.task(
-    source_import=sdk.GitImport.infer(),
-    # source_import=sdk.GitImport(
-    #     repo_url="git@github.com:zapatacomputing/proto-benchq.git",
-    #     git_ref="mstechly/workflows",
-    # ),
-    # dependency_imports=[
-    #     sdk.GitImport(
-    #         repo_url="git@github.com:zapatacomputing/proto-benchq.git",
-    #         git_ref="mstechly/workflows",
-    #     ),
-    # ],
-)
+standard_task = sdk.task(source_import=sdk.GitImport.infer())
 
 task_with_julia = sdk.task(
-    source_import=sdk.GitImport.infer(),
-    # source_import=sdk.GitImport(
-    #     repo_url="git@github.com:zapatacomputing/proto-benchq.git",
-    #     git_ref="mstechly/workflows",
-    # ),
-    custom_image="mstechly/ta2-julia-test"
-    # dependency_imports=[
-    #     sdk.GitImport(
-    #         repo_url="git@github.com:zapatacomputing/proto-benchq.git",
-    #         git_ref="mstechly/workflows",
-    #     ),
-    # ],
+    source_import=sdk.GitImport.infer(), custom_image="mstechly/ta2-julia-test"
 )
 
 
