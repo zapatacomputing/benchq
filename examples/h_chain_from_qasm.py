@@ -24,7 +24,7 @@ from benchq.resource_estimation.graph_compilation import (
 )
 
 
-def main(file_name="h_chain_circuit.qasm"):
+def main(file_name="circuits/h_chain_circuit.qasm"):
     # Uncomment to see Jabalizer output
     # logging.getLogger().setLevel(logging.INFO)
 
