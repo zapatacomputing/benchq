@@ -1,2 +1,0 @@
-orquestra-quantum==0.5.0
-julia-call==0.9.5
