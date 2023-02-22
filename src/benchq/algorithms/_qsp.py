@@ -78,7 +78,8 @@ def get_qsp_program(
 
     if mode == "gse":
         # TODO: explain where this formula comes from
-        steps = int(np.ceil(np.pi * (pyliqtr_operator.alpha) / (gse_accuracy * 2)))
+        n_block_encodings = int(np.ceil(np.pi * (pyliqtr_operator.alpha) / (gse_accuracy * 2)))
+        steps = n_block_encodings*2 + 3 # *2 for each layer consisting of 2 blocks, +2 for rotation layers, +1 for extra select-V
     elif mode == "time_evolution":
         timestep_vec = np.arange(0, tmax + dt, sclf * dt)  # Define array of timesteps
 
@@ -95,6 +96,8 @@ def get_qsp_program(
     # number of steps needs to be odd for QSP
     if not (steps % 2):
         steps += 1
+
+        n_block_encodings = int((steps - 3) / 2)
 
     angles = np.random.random(steps)
 
@@ -129,10 +132,10 @@ def get_qsp_program(
             new_circuit += op.gate(*[shift + index for index in op.qubit_indices])
         padded_sanitized_circuits.append(new_circuit)
 
-    def subroutine_sequence_for_qsp(steps):
+    def subroutine_sequence_for_qsp(n_block_encodings):
         my_subroutines = []
         my_subroutines.append(0)
-        for i in range(steps):
+        for i in range(n_block_encodings):
             my_subroutines.append(1)
             my_subroutines.append(2)
         my_subroutines.append(1)
@@ -141,7 +144,7 @@ def get_qsp_program(
 
     return QuantumProgram(
         subroutines=padded_sanitized_circuits,
-        steps=steps,
+        steps=n_block_encodings,
         calculate_subroutine_sequence=subroutine_sequence_for_qsp,
     )
 

@@ -33,7 +33,7 @@ def get_resource_estimations_for_circuit(
         resource_id=os.getenv("AZURE_RESOURCE_ID"), location="East US"
     )
 
-    backend = provider.get_backend("microsoft.simulator.resources-estimator")
+    backend = provider.get_backend("microsoft.estimator")
 
     if architecture_model is None and error_budget is None:
         job = backend.run(qiskit_circuit)

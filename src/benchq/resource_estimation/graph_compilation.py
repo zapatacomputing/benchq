@@ -92,7 +92,6 @@ def find_min_viable_distance(
                     n_nodes,
                 )
 
-        print(distance, logical_error_rate)
         if (
             logical_error_rate < tolerable_logical_error_rate
             and min_viable_distance is None
@@ -150,7 +149,8 @@ def get_resource_estimations_for_graph(
         "min_viable_distance": min_viable_distance,
         "resources_in_cells": resources_in_cells,
         "n_measurement_steps": n_measurements_steps,
-        "max_graph_degree": max_graph_degree
+        "max_graph_degree": max_graph_degree,
+        "n_nodes": n_nodes
     }
     LOGGER.debug(scheduler_only_compiler.measurement_steps)
 
