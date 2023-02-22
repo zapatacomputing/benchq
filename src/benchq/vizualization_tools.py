@@ -23,5 +23,6 @@ def plot_graph_state_with_measurement_steps(
                 color_map.append(colors[i])
                 break
     nx.draw(graph_state_graph, node_color=color_map, node_size=10)
-    plt.savefig(name + ".pdf")
-    plt.clf()
+    # plt.savefig(name + ".pdf")
+    # plt.clf()
+    plt.show()
