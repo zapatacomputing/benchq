@@ -1,5 +1,7 @@
 """
 Workflow & task defs.
+
+To run this on Orquestra see the ``run.py`` script in the same directory.
 """
 from orquestra import sdk
 
@@ -17,6 +19,7 @@ from benchq.resource_estimation.graph_compilation import (
 )
 
 standard_task = sdk.task(
+    source_import=sdk.GitImport.infer(),
     # source_import=sdk.GitImport(
     #     repo_url="git@github.com:zapatacomputing/proto-benchq.git",
     #     git_ref="mstechly/workflows",
@@ -30,11 +33,12 @@ standard_task = sdk.task(
 )
 
 task_with_julia = sdk.task(
+    source_import=sdk.GitImport.infer(),
     # source_import=sdk.GitImport(
     #     repo_url="git@github.com:zapatacomputing/proto-benchq.git",
     #     git_ref="mstechly/workflows",
     # ),
-    # custom_image="mstechly/ta2-julia-test"
+    custom_image="mstechly/ta2-julia-test"
     # dependency_imports=[
     #     sdk.GitImport(
     #         repo_url="git@github.com:zapatacomputing/proto-benchq.git",
