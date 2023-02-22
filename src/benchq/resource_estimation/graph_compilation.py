@@ -39,14 +39,9 @@ CLIFFORD_GATES = [
 def _get_max_graph_degree(graph):
     return max(*[degree for _, degree in graph.degree()])
 
+
 def calculate_wall_time(distance, n_measurements, physical_gate_time):
-    return (
-        240
-        * n_measurements
-        * distance
-        * 6
-        * physical_gate_time
-    )
+    return 240 * n_measurements * distance * 6 * physical_gate_time
 
 
 def is_circuit_in_the_right_format(circuit: Circuit) -> bool:
@@ -70,12 +65,11 @@ def logical_operation_error_rate(distance, physical_gate_error_rate):
 
 
 # This is total error rate due to imperfection of the hardware
-def calculate_total_logical_error_rate(
-    distance, physical_gate_error_rate, n_nodes
-):
+def calculate_total_logical_error_rate(distance, physical_gate_error_rate, n_nodes):
     return logical_operation_error_rate(
         distance, physical_gate_error_rate
     ) * get_logical_st_volume(n_nodes)
+
 
 def find_min_viable_distance(
     n_nodes,
@@ -87,10 +81,10 @@ def find_min_viable_distance(
     min_viable_distance = None
     for distance in range(min_d, max_d):
         logical_error_rate = calculate_total_logical_error_rate(
-                    distance,
-                    physical_gate_error_rate,
-                    n_nodes,
-                )
+            distance,
+            physical_gate_error_rate,
+            n_nodes,
+        )
 
         if (
             logical_error_rate < tolerable_logical_error_rate
@@ -125,10 +119,10 @@ def get_resource_estimations_for_graph(
     )
 
     logical_error_rate = calculate_total_logical_error_rate(
-                min_viable_distance,
-                physical_gate_error_rate,
-                n_nodes,
-            )
+        min_viable_distance,
+        physical_gate_error_rate,
+        n_nodes,
+    )
 
     n_measurements_steps = len(scheduler_only_compiler.measurement_steps)
     total_time = calculate_wall_time(
@@ -150,7 +144,7 @@ def get_resource_estimations_for_graph(
         "resources_in_cells": resources_in_cells,
         "n_measurement_steps": n_measurements_steps,
         "max_graph_degree": max_graph_degree,
-        "n_nodes": n_nodes
+        "n_nodes": n_nodes,
     }
     LOGGER.debug(scheduler_only_compiler.measurement_steps)
 
@@ -357,11 +351,14 @@ def get_substrate_scheduler_estimates_for_subcomponents(
         total_n_measurement_steps += (
             len(scheduler_only_compiler.measurement_steps) * multiplicity
         )
-        total_time += calculate_wall_time(
-            resource_estimates["min_viable_distance"],
-            len(scheduler_only_compiler.measurement_steps),
-            architecture_model.physical_gate_time_in_seconds,
-        ) * multiplicity
+        total_time += (
+            calculate_wall_time(
+                resource_estimates["min_viable_distance"],
+                len(scheduler_only_compiler.measurement_steps),
+                architecture_model.physical_gate_time_in_seconds,
+            )
+            * multiplicity
+        )
 
         total_measurement_steps += [scheduler_only_compiler.measurement_steps]
         max_graph_degree = max(max_graph_degree, _get_max_graph_degree(graph))

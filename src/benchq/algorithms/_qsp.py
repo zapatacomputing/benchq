@@ -31,14 +31,12 @@ def get_qsp_circuit(
     occ_state[0] = 1
 
     if use_random_angles:
-
         steps = gen_qsp.get_phis(
             pyliqtr_operator,
             simtime=timestep_vec[1],
             req_prec=required_precision,
             steps_only=True,
         )
-        # NOT SURE ABOUT THIS!
         if not (steps % 2):
             steps += 1
 
@@ -77,9 +75,14 @@ def get_qsp_program(
     pyliqtr_operator = openfermion_to_pyliqtr(to_openfermion(operator))
 
     if mode == "gse":
-        # TODO: explain where this formula comes from
-        n_block_encodings = int(np.ceil(np.pi * (pyliqtr_operator.alpha) / (gse_accuracy * 2)))
-        steps = n_block_encodings*2 + 3 # *2 for each layer consisting of 2 blocks, +2 for rotation layers, +1 for extra select-V
+        n_block_encodings = int(
+            np.ceil(np.pi * (pyliqtr_operator.alpha) / (gse_accuracy))
+        )
+        # *2 for each layer consisting of 2 blocks,
+        # +2 for rotation layers,
+        # #+1 for extra select-V
+        steps = n_block_encodings * 2 + 3
+
     elif mode == "time_evolution":
         timestep_vec = np.arange(0, tmax + dt, sclf * dt)  # Define array of timesteps
 
