@@ -35,19 +35,13 @@ CLIFFORD_GATES = [
     "Z",
 ]
 
-# Starting point for the optimization of synthesis gate cost
-INITIAL_SYNTHESIS_ERROR_RATE = 0.0001
+
+def _get_max_graph_degree(graph):
+    return max(*[degree for _, degree in graph.degree()])
 
 
-def calculate_wall_time(synthesis_error_rate, distance, n_nodes, physical_gate_time):
-    return (
-        2880
-        * n_nodes
-        * np.log2(1 / synthesis_error_rate)
-        * distance
-        * 6
-        * physical_gate_time
-    )
+def calculate_wall_time(distance, n_measurements, physical_gate_time):
+    return 240 * n_measurements * distance * 6 * physical_gate_time
 
 
 def is_circuit_in_the_right_format(circuit: Circuit) -> bool:
@@ -59,13 +53,8 @@ def is_circuit_in_the_right_format(circuit: Circuit) -> bool:
     return True
 
 
-def get_logical_st_volume(n_nodes, synthesis_error_rate):
-    return 12 * n_nodes * 2880 * n_nodes * np.ceil(np.log2(1 / synthesis_error_rate))
-
-
-# class BaseCellModel:
-#     def get_failure_rate(self, distance, physical_gate_error_rate):
-#         return distance * 0.3 * (70 * physical_gate_error_rate) ** ((distance + 1) /2)
+def get_logical_st_volume(n_nodes):
+    return 12 * n_nodes * 240 * n_nodes
 
 
 # We called it "base cell failure rate" before.
@@ -76,40 +65,10 @@ def logical_operation_error_rate(distance, physical_gate_error_rate):
 
 
 # This is total error rate due to imperfection of the hardware
-def calculate_total_logical_error_rate(
-    distance, physical_gate_error_rate, n_nodes, synthesis_error_rate
-):
+def calculate_total_logical_error_rate(distance, physical_gate_error_rate, n_nodes):
     return logical_operation_error_rate(
         distance, physical_gate_error_rate
-    ) * get_logical_st_volume(n_nodes, synthesis_error_rate)
-
-
-# TODO: We need to make sure it's doing scientifically what it should be doing
-def balance_logical_and_synthesis_error_rates(
-    n_nodes, distance, physical_gate_error_rate
-):
-    """
-    This function is basically finding such a value of synthesis error rate, that it is
-    1/(12*N) smaller than circuit error rate, where N is the number of nodes
-    in the graph.
-    """
-    current_synthesis_error_rate = INITIAL_SYNTHESIS_ERROR_RATE
-    for _ in range(20):
-        logical_error_rate = calculate_total_logical_error_rate(
-            distance,
-            physical_gate_error_rate,
-            n_nodes,
-            current_synthesis_error_rate,
-        )
-        new_synthesis_error_rate = (1 / (12 * n_nodes)) * logical_error_rate
-        # This is for cases where the algorithm diverges terribly, to avoid
-        # "divide by 0" and similar warnings.
-        # TODO: Hacky! We should come up with a more stable solution in future!
-        if new_synthesis_error_rate <= 0 or np.isnan(new_synthesis_error_rate):
-            return np.inf, np.inf
-
-        current_synthesis_error_rate = new_synthesis_error_rate
-    return current_synthesis_error_rate, logical_error_rate
+    ) * get_logical_st_volume(n_nodes)
 
 
 def find_min_viable_distance(
@@ -121,13 +80,12 @@ def find_min_viable_distance(
 ):
     min_viable_distance = None
     for distance in range(min_d, max_d):
-        (
-            synthesis_error_rate,
-            logical_error_rate,
-        ) = balance_logical_and_synthesis_error_rates(
-            n_nodes, distance, physical_gate_error_rate
+        logical_error_rate = calculate_total_logical_error_rate(
+            distance,
+            physical_gate_error_rate,
+            n_nodes,
         )
-        print(distance, logical_error_rate)
+
         if (
             logical_error_rate < tolerable_logical_error_rate
             and min_viable_distance is None
@@ -145,8 +103,10 @@ def get_resource_estimations_for_graph(
     architecture_model: Any,
     tolerable_logical_error_rate: float = 0.5,
     plot: bool = False,
+    use_max_graph_degree=True,
 ):
     n_nodes = len(graph.nodes)
+    max_graph_degree = _get_max_graph_degree(graph)
     physical_gate_error_rate = architecture_model.physical_gate_error_rate
     physical_gate_time_in_seconds = architecture_model.physical_gate_time_in_seconds
 
@@ -158,33 +118,33 @@ def get_resource_estimations_for_graph(
         tolerable_logical_error_rate,
     )
 
-    (
-        synthesis_error_rate,
-        final_logical_error_rate,
-    ) = balance_logical_and_synthesis_error_rates(
-        n_nodes,
+    logical_error_rate = calculate_total_logical_error_rate(
         min_viable_distance,
         physical_gate_error_rate,
+        n_nodes,
     )
 
+    n_measurements_steps = len(scheduler_only_compiler.measurement_steps)
     total_time = calculate_wall_time(
-        synthesis_error_rate,
         min_viable_distance,
         n_nodes,
         physical_gate_time_in_seconds,
     )
 
-    physical_qubit_count = 12 * n_nodes * 2 * min_viable_distance**2
-    resources_in_cells = get_logical_st_volume(n_nodes, synthesis_error_rate)
+    if use_max_graph_degree:
+        physical_qubit_count = 12 * max_graph_degree * 2 * min_viable_distance**2
+    else:
+        physical_qubit_count = 12 * n_nodes * 2 * min_viable_distance**2
+    resources_in_cells = get_logical_st_volume(n_nodes)
     results_dict = {
-        "logical_error_rate": final_logical_error_rate,
+        "logical_error_rate": logical_error_rate,
         "total_time": total_time,
         "physical_qubit_count": physical_qubit_count,
         "min_viable_distance": min_viable_distance,
-        "synthesis_error_rate": synthesis_error_rate,
         "resources_in_cells": resources_in_cells,
-        "n_measurement_steps": len(scheduler_only_compiler.measurement_steps),
-        "graph_degree": max([degree for node, degree in graph.degree()]),
+        "n_measurement_steps": n_measurements_steps,
+        "max_graph_degree": max_graph_degree,
+        "n_nodes": n_nodes,
     }
     LOGGER.debug(scheduler_only_compiler.measurement_steps)
 
@@ -313,6 +273,7 @@ def resource_estimations_for_subcomponents(
         resource_estimates = get_substrate_scheduler_estimates_for_subcomponents(
             graphs_list,
             quantum_program,
+            architecture_model,
             data_qubits_map_list,
             resource_estimates,
         )
@@ -371,6 +332,7 @@ def combine_subcomponent_graphs(
 def get_substrate_scheduler_estimates_for_subcomponents(
     graphs_list,
     quantum_program,
+    architecture_model,
     data_qubits_map_list=None,
     resource_estimates={},
 ):
@@ -380,7 +342,8 @@ def get_substrate_scheduler_estimates_for_subcomponents(
     # sum substrate scheduler resource estimates for each subcomponent
     total_n_measurement_steps = 0
     total_measurement_steps = []
-    graph_degree = 0
+    total_time = 0
+    max_graph_degree = 0
     for graph, data_qubits, multiplicity in zip(
         graphs_list, data_qubits_map_list, quantum_program.multiplicities
     ):
@@ -388,9 +351,18 @@ def get_substrate_scheduler_estimates_for_subcomponents(
         total_n_measurement_steps += (
             len(scheduler_only_compiler.measurement_steps) * multiplicity
         )
+        total_time += (
+            calculate_wall_time(
+                resource_estimates["min_viable_distance"],
+                len(scheduler_only_compiler.measurement_steps),
+                architecture_model.physical_gate_time_in_seconds,
+            )
+            * multiplicity
+        )
+
         total_measurement_steps += [scheduler_only_compiler.measurement_steps]
-        graph_degree = max(graph_degree, *[degree for node, degree in graph.degree()])
-        if graph.degree(data_qubits) == graph_degree:
+        max_graph_degree = max(max_graph_degree, _get_max_graph_degree(graph))
+        if graph.degree(data_qubits) == max_graph_degree:
             warnings.warn(
                 "Node with largest degree lies on an edge. "
                 "Graph degree might be an underestimate. "
@@ -398,7 +370,8 @@ def get_substrate_scheduler_estimates_for_subcomponents(
             )
 
     resource_estimates["n_measurement_steps"] = total_n_measurement_steps
-    resource_estimates["graph_degree"] = graph_degree
+    resource_estimates["max_graph_degree"] = max_graph_degree
+    resource_estimates["total_time"] = total_time
     LOGGER.debug(total_measurement_steps)
 
     return resource_estimates

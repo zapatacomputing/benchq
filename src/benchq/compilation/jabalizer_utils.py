@@ -18,7 +18,7 @@ LOGGER = logging.getLogger(__name__)
 def load_algorithmic_graph(filename):
     t1 = time.time()
     graph = nx.read_adjlist(filename)
-    LOGGER.info("nx.read_adjlist: ", time.time() - t1)
+    LOGGER.info(f"nx.read_adjlist: {time.time() - t1}")
     return graph
 
 
