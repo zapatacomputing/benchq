@@ -150,7 +150,7 @@ def get_resource_estimations_for_graph(
 
     if plot:
         plot_graph_state_with_measurement_steps(
-            scheduler_only_compiler.connected_graph,
+            scheduler_only_compiler.input_graph,
             scheduler_only_compiler.measurement_steps,
         )
 
