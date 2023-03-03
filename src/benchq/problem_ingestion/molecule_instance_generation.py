@@ -49,16 +49,15 @@ class ChemistryApplicationInstance:
 
     def get_avas_meanfield_object(self) -> scf.hf.SCF:
         """Generates a meanfield object from the instance data."""
-        return generate_mean_field_object_from_molecule(
-            self.generate_molecular_data(),
+        return truncate_with_avas(
+            self.get_molecular_data()._pyscf_data["scf"],
             self.avas_atomic_orbitals,
             self.avas_minao,
         )
 
 
-def generate_mean_field_object_from_molecule(molecule, ao_list, minao="ccpvtz"):
+def truncate_with_avas(mean_field_object: scf.hf.SCF, ao_list: List[str], minao: str="ccpvtz"):
     ### TODO: Consider passing the HF method as an argument in the function
-    mean_field_object = scf.ROHF(molecule)
     mean_field_object.verbose = 4
     mean_field_object.kernel()  # run the SCF
 
