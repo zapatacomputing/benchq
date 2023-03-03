@@ -1,8 +1,9 @@
-from benchq.problem_ingestion import (
-    generate_hydrogen_chain_instance,
-    ChemistryApplicationInstance,
-)
 import pytest
+
+from benchq.problem_ingestion import (
+    ChemistryApplicationInstance,
+    generate_hydrogen_chain_instance,
+)
 
 
 @pytest.mark.parametrize(
