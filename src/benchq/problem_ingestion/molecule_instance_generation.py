@@ -11,6 +11,49 @@ from openfermion.resource_estimates.molecule import (
 )
 from openfermionpyscf import run_pyscf
 from pyscf import gto, scf
+from typing import List, Tuple, Optional
+
+from dataclasses import dataclass
+
+
+@dataclass
+class ChemistryApplicationInstance:
+    """Class for representing chemistry application instances."""
+
+    geometry: List[Tuple[str, Tuple[float, float, float]]]
+    basis: str
+    multiplicity: int
+    charge: int
+    avas_atomic_orbital_list: Optional[List[str]] = None
+    avas_minao: Optional[str] = None
+    n_active_electrons: Optional[int] = None
+    n_active_orbitals: Optional[int] = None
+
+    def get_molecular_data(self) -> MolecularData:
+        """Generates a molecular data object from the instance data."""
+        return run_pyscf(
+            MolecularData(
+                self.geometry,
+                self.basis,
+                self.multiplicity,
+                self.charge,
+            )
+        )
+
+    def get_molecular_hamiltonian(self) -> openfermion.InteractionOperator:
+        """Generates an interaction operator from the instance data."""
+        return self.get_molecular_data().get_molecular_hamiltonian(
+            n_active_electrons=self.n_active_electrons,
+            n_active_orbitals=self.n_active_orbitals,
+        )
+
+    def get_avas_meanfield_object(self) -> scf.hf.SCF:
+        """Generates a meanfield object from the instance data."""
+        return generate_mean_field_object_from_molecule(
+            self.generate_molecular_data(),
+            self.avas_atomic_orbital_list,
+            self.avas_minao,
+        )
 
 
 def generate_mean_field_object_from_molecule(molecule, ao_list, minao="ccpvtz"):
@@ -37,46 +80,23 @@ def generate_mean_field_object_from_molecule(molecule, ao_list, minao="ccpvtz"):
     return mean_field_object
 
 
-def generate_mol_data_for_h_chain(
+def generate_hydrogen_chain_instance(
     number_of_hydrogens: int,
     basis: str = "6-31g",
     bond_distance: float = 1.3,
-) -> MolecularData:
-    # Could be updated to include active space truncation
-
-    geometry = [("H", (0, 0, i * bond_distance)) for i in range(number_of_hydrogens)]
-    charge = 0
-    multiplicity = number_of_hydrogens + 1
-    # run_pyscf seems necessary in order to set the appropriate value
-    # for the constant term in the Hamiltonian
-    molecular_data = run_pyscf(MolecularData(geometry, basis, multiplicity, charge))
-
-    return molecular_data
-
-
-def generate_mol_object_for_h_chain(
-    number_of_hydrogens: int,
-    basis: str = "6-31g",
-    bond_distance: float = 1.3,
-) -> MolecularData:
-    # Could be updated to include active space truncation
-
-    geometry = [("H", (0, 0, i * bond_distance)) for i in range(number_of_hydrogens)]
-    charge = 0
-    # multiplicity = number_of_hydrogens + 1
-    # run_pyscf seems necessary in order to set the appropriate value
-    # for the constant term in the Hamiltonian
-    # molecular_data = run_pyscf(MolecularData(geometry, basis, multiplicity, charge))
-
-    h_chain_mol_object = gto.M(
-        atom=geometry,
+) -> ChemistryApplicationInstance:
+    return ChemistryApplicationInstance(
+        geometry=[("H", (0, 0, i * bond_distance)) for i in range(number_of_hydrogens)],
         basis=basis,
-        # symmetry=False,
-        charge=charge,
-        spin=number_of_hydrogens % 2,
+        charge=0,
+        multiplicity=number_of_hydrogens + 1,
+        avas_atomic_orbital_list=[
+            "H 1s",
+            "H 2s",
+        ]
+        * number_of_hydrogens,
+        avas_minao="sto-3g",
     )
-
-    return h_chain_mol_object
 
 
 def generate_h2o_mean_field_object():
