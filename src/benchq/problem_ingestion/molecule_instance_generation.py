@@ -1,6 +1,9 @@
 ################################################################################
 # © Copyright 2022 Zapata Computing Inc.
 ################################################################################
+from dataclasses import dataclass
+from typing import Iterable, List, Optional, Tuple
+
 import numpy as np
 import openfermion
 from openfermion import MolecularData
@@ -9,11 +12,8 @@ from openfermion.resource_estimates.molecule import (
     localize,
     stability,
 )
-from openfermionpyscf import run_pyscf, PyscfMolecularData
+from openfermionpyscf import PyscfMolecularData, run_pyscf
 from pyscf import scf
-from typing import List, Tuple, Optional
-
-from dataclasses import dataclass
 
 
 @dataclass
@@ -24,10 +24,10 @@ class ChemistryApplicationInstance:
     basis: str
     multiplicity: int
     charge: int
-    avas_atomic_orbitals: Optional[List[str]] = None
+    avas_atomic_orbitals: Optional[Iterable[str]] = None
     avas_minao: Optional[str] = None
-    occupied_indices: Optional[List[int]] = None
-    active_indices: Optional[List[int]] = None
+    occupied_indices: Optional[Iterable[int]] = None
+    active_indices: Optional[Iterable[int]] = None
 
     def get_molecular_data(self) -> PyscfMolecularData:
         """Generates a molecular data object from the instance data."""
@@ -56,7 +56,11 @@ class ChemistryApplicationInstance:
         )
 
 
-def truncate_with_avas(mean_field_object: scf.hf.SCF, ao_list: List[str], minao: str="ccpvtz"):
+def truncate_with_avas(
+    mean_field_object: scf.hf.SCF,
+    ao_list: Optional[Iterable[str]] = None,
+    minao: Optional[str] = None,
+):
     ### TODO: Consider passing the HF method as an argument in the function
     mean_field_object.verbose = 4
     mean_field_object.kernel()  # run the SCF
@@ -108,6 +112,7 @@ WATER_MOLECULE = ChemistryApplicationInstance(
     avas_atomic_orbitals=["H 1s", "O 2s", "O 2p", "O 3s", "O 3p"],
 )
 
+
 def get_cyclic_ozone_geometry() -> List[Tuple[str, Tuple[float, float, float]]]:
     bond_len = 1.465  # Angstroms
     bond_angle = np.deg2rad(59.9)
@@ -117,28 +122,29 @@ def get_cyclic_ozone_geometry() -> List[Tuple[str, Tuple[float, float, float]]]:
 
     return [("O", (x, -y / 2, 0)), ("O", (-x, -y / 2, 0)), ("O", (0, y / 2, 0))]
 
+
 CYCLIC_OZONE_MOLECULE = ChemistryApplicationInstance(
-        geometry=get_cyclic_ozone_geometry(),
-        basis="cc-pvtz",
-        multiplicity=3,
-        charge=0,
-        avas_atomic_orbitals=[
-            "O 1s",
-            "O 2s",
-            "O 2p",
-            "O 3s",
-            "O 3p",
-            "O 1s",
-            "O 2s",
-            "O 2p",
-            "O 3s",
-            "O 3p",
-            "O 1s",
-            "O 2s",
-            "O 2p",
-            "O 3s",
-            "O 3p",
-        ],
-        occupied_indices=range(3),
-        active_indices=range(3, 15),
-    )
+    geometry=get_cyclic_ozone_geometry(),
+    basis="cc-pvtz",
+    multiplicity=3,
+    charge=0,
+    avas_atomic_orbitals=[
+        "O 1s",
+        "O 2s",
+        "O 2p",
+        "O 3s",
+        "O 3p",
+        "O 1s",
+        "O 2s",
+        "O 2p",
+        "O 3s",
+        "O 3p",
+        "O 1s",
+        "O 2s",
+        "O 2p",
+        "O 3s",
+        "O 3p",
+    ],
+    occupied_indices=range(3),
+    active_indices=range(3, 15),
+)

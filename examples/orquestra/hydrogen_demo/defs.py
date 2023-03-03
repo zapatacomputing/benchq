@@ -3,9 +3,9 @@ Workflow & task defs.
 
 To run this on Orquestra see the ``run.py`` script in the same directory.
 """
-from orquestra import sdk
-
 import time
+
+from orquestra import sdk
 from orquestra.quantum.evolution import time_evolution
 
 from benchq import BasicArchitectureModel

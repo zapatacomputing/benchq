@@ -18,8 +18,8 @@ import time
 from benchq import BasicArchitectureModel
 from benchq.algorithms import get_trotter_program
 from benchq.problem_ingestion import (
-    generate_jw_qubit_hamiltonian_from_mol_data,
     generate_hydrogen_chain_instance,
+    generate_jw_qubit_hamiltonian_from_mol_data,
 )
 from benchq.resource_estimation.graph_compilation import (
     get_resource_estimations_for_program,
