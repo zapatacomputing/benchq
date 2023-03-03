@@ -1,17 +1,11 @@
 ################################################################################
 # © Copyright 2022 Zapata Computing Inc.
 ################################################################################
-import random
-from itertools import combinations
-from typing import Tuple
-
-import networkx as nx
 import openfermion as of
-from openfermionpyscf import generate_molecular_hamiltonian
 from orquestra.integrations.cirq.conversions._openfermion_conversions import (
     from_openfermion,
 )
-from orquestra.quantum.operators import PauliSum, PauliTerm
+from orquestra.quantum.operators import PauliSum
 
 # TODO: export openfermion to cirq
 ### General generators
