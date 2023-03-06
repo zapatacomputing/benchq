@@ -36,7 +36,7 @@ def print_re(resource_estimates, label):
 def get_of_resource_estimates(n_hydrogens):
     mean_field_object = generate_hydrogen_chain_instance(
         n_hydrogens
-    ).get_avas_meanfield_object()
+    ).get_active_space_meanfield_object()
 
     # Running resource estimation with OpenFermion tools
 

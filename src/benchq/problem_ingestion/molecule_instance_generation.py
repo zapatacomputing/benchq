@@ -40,15 +40,25 @@ class ChemistryApplicationInstance:
             )
         )
 
-    def get_molecular_hamiltonian(self) -> openfermion.InteractionOperator:
+    def get_active_space_hamiltonian(self) -> openfermion.InteractionOperator:
         """Generates an interaction operator from the instance data."""
+        if self.avas_atomic_orbitals or self.avas_minao:
+            raise ValueError(
+                "Generating the active space Hamiltonian for application instances"
+                "with AVAS is not currently supported."
+            )
         return self.get_molecular_data().get_molecular_hamiltonian(
             occupied_indices=self.occupied_indices,
             active_indices=self.active_indices,
         )
 
-    def get_avas_meanfield_object(self) -> scf.hf.SCF:
+    def get_active_space_meanfield_object(self) -> scf.hf.SCF:
         """Generates a meanfield object from the instance data."""
+        if self.active_indices or self.occupied_indices:
+            raise ValueError(
+                "Generating the meanfield object for application instances with"
+                "active and occupied indices is not currently supported."
+            )
         return truncate_with_avas(
             self.get_molecular_data()._pyscf_data["scf"],
             self.avas_atomic_orbitals,
@@ -61,7 +71,6 @@ def truncate_with_avas(
     ao_list: Optional[Iterable[str]] = None,
     minao: Optional[str] = None,
 ):
-    ### TODO: Consider passing the HF method as an argument in the function
     mean_field_object.verbose = 4
     mean_field_object.kernel()  # run the SCF
 
@@ -91,12 +100,6 @@ def generate_hydrogen_chain_instance(
         basis=basis,
         charge=0,
         multiplicity=number_of_hydrogens + 1,
-        avas_atomic_orbitals=[
-            "H 1s",
-            "H 2s",
-        ]
-        * number_of_hydrogens,
-        avas_minao="sto-3g",
     )
 
 
@@ -106,10 +109,11 @@ WATER_MOLECULE = ChemistryApplicationInstance(
         ("H", (0.866811829, 0.601435779, 0.000000)),
         ("H", (-0.866811829, 0.601435779, 0.000000)),
     ],
-    basis="augccpvtz",
+    basis="6-31g",
     charge=0,
     multiplicity=1,
     avas_atomic_orbitals=["H 1s", "O 2s", "O 2p", "O 3s", "O 3p"],
+    avas_minao="STO-3G",
 )
 
 
@@ -128,23 +132,6 @@ CYCLIC_OZONE_MOLECULE = ChemistryApplicationInstance(
     basis="cc-pvtz",
     multiplicity=3,
     charge=0,
-    avas_atomic_orbitals=[
-        "O 1s",
-        "O 2s",
-        "O 2p",
-        "O 3s",
-        "O 3p",
-        "O 1s",
-        "O 2s",
-        "O 2p",
-        "O 3s",
-        "O 3p",
-        "O 1s",
-        "O 2s",
-        "O 2p",
-        "O 3s",
-        "O 3p",
-    ],
     occupied_indices=range(3),
     active_indices=range(3, 15),
 )
