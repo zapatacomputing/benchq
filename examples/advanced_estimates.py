@@ -6,13 +6,8 @@ import time
 from benchq import BasicArchitectureModel
 from benchq.algorithms import get_qsp_program
 from benchq.problem_ingestion import (
+    generate_hydrogen_chain_instance,
     generate_jw_qubit_hamiltonian_from_mol_data,
-    generate_mol_data_for_h_chain,
-)
-from benchq.problem_ingestion.molecule_instance_generation import (
-    generate_mean_field_object_from_molecule,
-    generate_mol_data_for_h_chain,
-    generate_mol_object_for_h_chain,
 )
 from benchq.resource_estimation import get_qpe_resource_estimates_from_mean_field_object
 
@@ -39,20 +34,9 @@ def print_re(resource_estimates, label):
 
 
 def get_of_resource_estimates(n_hydrogens):
-    mol_object = generate_mol_object_for_h_chain(n_hydrogens)
-    ao_list = [
-        "H 1s",
-        "H 2s",
-        # "H 2p",
-        # "H 3s",
-        # "H 3p",
-    ] * n_hydrogens
-    mean_field_object = generate_mean_field_object_from_molecule(
-        mol_object,
-        ao_list,
-        # minao="6-31g",
-        minao="sto-3g",
-    )
+    mean_field_object = generate_hydrogen_chain_instance(
+        n_hydrogens
+    ).get_active_space_meanfield_object()
 
     # Running resource estimation with OpenFermion tools
 
@@ -82,7 +66,7 @@ def main():
         # TA 1 part: specify the core computational capability
         start = time.time()
         # Generate instance
-        mol_data = generate_mol_data_for_h_chain(n_hydrogens)
+        mol_data = generate_hydrogen_chain_instance(n_hydrogens).get_molecular_data()
 
         # Convert instance to core computational problem instance
         operator = generate_jw_qubit_hamiltonian_from_mol_data(mol_data)
@@ -92,6 +76,7 @@ def main():
         ### OPENFERMION ESTIMATES
         start = time.time()
         of_resource_estimates = get_of_resource_estimates(n_hydrogens)
+        print(of_resource_estimates)
         end = time.time()
         print("OF resource estimation took:", end - start, "seconds")
         ### END OPENFERMION ESTIMATES

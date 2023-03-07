@@ -1,17 +1,11 @@
 ################################################################################
 # © Copyright 2022 Zapata Computing Inc.
 ################################################################################
-import random
-from itertools import combinations
-from typing import Tuple
-
-import networkx as nx
 import openfermion as of
-from openfermionpyscf import generate_molecular_hamiltonian
 from orquestra.integrations.cirq.conversions._openfermion_conversions import (
     from_openfermion,
 )
-from orquestra.quantum.operators import PauliSum, PauliTerm
+from orquestra.quantum.operators import PauliSum
 
 # TODO: export openfermion to cirq
 ### General generators
@@ -45,7 +39,7 @@ def generate_jw_qubit_hamiltonian_from_mol_data(
     molecular_data, occupied_indices=None, active_indices=None
 ) -> PauliSum:
 
-    hamiltonian = molecular_data.get_molecular_hamiltonian(
+    hamiltonian = molecular_data.get_active_space_hamiltonian(
         occupied_indices=occupied_indices, active_indices=active_indices
     )
 
