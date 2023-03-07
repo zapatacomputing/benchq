@@ -18,7 +18,26 @@ from pyscf import scf
 
 @dataclass
 class ChemistryApplicationInstance:
-    """Class for representing chemistry application instances."""
+    """Class for representing chemistry application instances.
+
+    A chemistry application instance is a specification of how to generate a fermionic
+    Hamiltonian, including information such as the molecular geometry and choice of
+    active space. Note that the active space can be specified either through the use of
+    Atomic Valence Active Space (AVAS) or by specifying the indices of the occupied and
+    active orbitals.
+
+    Attributes:
+        geometry: A list of tuples of the form (atom, (x, y, z)) where atom is the
+            atom type and (x, y, z) are the coordinates of the atom.
+        basis: The basis set to use for the calculation.
+        multiplicity: The spin multiplicity of the molecule.
+        charge: The charge of the molecule.
+        avas_atomic_orbitals: A list of atomic orbitals to use for  (AVAS).
+        avas_minao: The minimum active orbital to use for AVAS.
+        occupied_indices: A list of molecular orbitals not in the active space that
+            should be assumed to be fully occupied.
+        active_indices: A list of molecular orbitals to include in the active space.
+    """
 
     geometry: List[Tuple[str, Tuple[float, float, float]]]
     basis: str
