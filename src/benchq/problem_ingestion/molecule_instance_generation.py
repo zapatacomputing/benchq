@@ -26,13 +26,13 @@ class ChemistryApplicationInstance:
     Atomic Valence Active Space (AVAS) or by specifying the indices of the occupied and
     active orbitals.
 
-    Attributes:
+    Args:
         geometry: A list of tuples of the form (atom, (x, y, z)) where atom is the
-            atom type and (x, y, z) are the coordinates of the atom.
+            atom type and (x, y, z) are the coordinates of the atom in Angstroms.
         basis: The basis set to use for the calculation.
         multiplicity: The spin multiplicity of the molecule.
         charge: The charge of the molecule.
-        avas_atomic_orbitals: A list of atomic orbitals to use for  (AVAS).
+        avas_atomic_orbitals: A list of atomic orbitals to use for (AVAS).
         avas_minao: The minimum active orbital to use for AVAS.
         occupied_indices: A list of molecular orbitals not in the active space that
             should be assumed to be fully occupied.
@@ -49,7 +49,8 @@ class ChemistryApplicationInstance:
     active_indices: Optional[Iterable[int]] = None
 
     def get_molecular_data(self) -> PyscfMolecularData:
-        """Generates a molecular data object from the instance data."""
+        """Run an SCF calculation using PySCF and return the results as a MolecularData
+        object."""
         return run_pyscf(
             MolecularData(
                 self.geometry,
@@ -60,7 +61,8 @@ class ChemistryApplicationInstance:
         )
 
     def get_active_space_hamiltonian(self) -> openfermion.InteractionOperator:
-        """Generates an interaction operator from the instance data."""
+        """Generate the fermionic Hamiltonian corresponding to the instance's
+        active space."""
         if self.avas_atomic_orbitals or self.avas_minao:
             raise ValueError(
                 "Generating the active space Hamiltonian for application instances"
@@ -72,7 +74,8 @@ class ChemistryApplicationInstance:
         )
 
     def get_active_space_meanfield_object(self) -> scf.hf.SCF:
-        """Generates a meanfield object from the instance data."""
+        """Run an SCF calculation using PySCF and return the results as a meanfield
+        object."""
         if self.active_indices or self.occupied_indices:
             raise ValueError(
                 "Generating the meanfield object for application instances with"
@@ -90,6 +93,14 @@ def truncate_with_avas(
     ao_list: Optional[Iterable[str]] = None,
     minao: Optional[str] = None,
 ):
+    """Truncates a meanfield object to a specific active space that captures the
+    essential chemistry.
+
+    Args:
+        mean_field_object: The meanfield object to be truncated.
+        ao_list: A list of atomic orbitals to use for AVAS.
+        minao: The minimum active orbital to use for AVAS.
+    """
     mean_field_object.verbose = 4
     mean_field_object.kernel()  # run the SCF
 
@@ -114,6 +125,13 @@ def generate_hydrogen_chain_instance(
     basis: str = "6-31g",
     bond_distance: float = 1.3,
 ) -> ChemistryApplicationInstance:
+    """Generate a hydrogen chain application instance.
+
+    Args:
+        number_of_hydrogens: The number of hydrogen atoms in the chain.
+        basis: The basis set to use for the calculation.
+        bond_distance: The distance between the hydrogen atoms (Angstrom).
+    """
     return ChemistryApplicationInstance(
         geometry=[("H", (0, 0, i * bond_distance)) for i in range(number_of_hydrogens)],
         basis=basis,
@@ -137,6 +155,7 @@ WATER_MOLECULE = ChemistryApplicationInstance(
 
 
 def get_cyclic_ozone_geometry() -> List[Tuple[str, Tuple[float, float, float]]]:
+    """Get the geometry of a cyclic ozone molecule."""
     bond_len = 1.465  # Angstroms
     bond_angle = np.deg2rad(59.9)
 
