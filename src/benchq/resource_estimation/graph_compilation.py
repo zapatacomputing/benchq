@@ -127,21 +127,18 @@ def get_resource_estimations_for_graph(
     n_measurements_steps = len(scheduler_only_compiler.measurement_steps)
     total_time = calculate_wall_time(
         min_viable_distance,
-        n_nodes,
+        n_measurements_steps,
         physical_gate_time_in_seconds,
     )
 
-    if use_max_graph_degree:
-        physical_qubit_count = 12 * max_graph_degree * 2 * min_viable_distance**2
-    else:
-        physical_qubit_count = 12 * n_nodes * 2 * min_viable_distance**2
-    resources_in_cells = get_logical_st_volume(n_nodes)
+    physical_qubit_count = 12 * max_graph_degree * 2 * min_viable_distance**2
+    # resources_in_cells = get_logical_st_volume(n_nodes)
     results_dict = {
         "logical_error_rate": logical_error_rate,
         "total_time": total_time,
         "physical_qubit_count": physical_qubit_count,
         "min_viable_distance": min_viable_distance,
-        "resources_in_cells": resources_in_cells,
+        # "resources_in_cells": resources_in_cells,
         "n_measurement_steps": n_measurements_steps,
         "max_graph_degree": max_graph_degree,
         "n_nodes": n_nodes,
