@@ -43,8 +43,8 @@ from benchq.resource_estimation.graph_compilation import (
 # program and subcircuits. For each subcircuit it creats a graph and then joins all
 # the graphs together to recreate the graph of the full circuit. Ideally,
 # the recreated graph should exactly match the ful graph from the previous
-# example (up to LC transformations). However, at this point the method for recreating
-# graph is imperfect, so it might introduce some approximations.
+# example (up to local clifford transformations). However, at this point the method
+# for recreating graph is imperfect, so it might introduce some approximations.
 
 # The third method creates only the subgraphs for each subroutine in a quantum program,
 # and the creates resource estimation based on them, without explicitly recreating
