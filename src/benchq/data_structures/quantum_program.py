@@ -52,6 +52,13 @@ class QuantumProgram:
     def subroutine_sequence(self) -> Sequence[int]:
         return self.calculate_subroutine_sequence(self.steps)
 
+    @property
+    def full_circuit(self) -> Circuit:
+        recreated_circuit = Circuit()
+        for i in self.subroutine_sequence:
+            recreated_circuit += self.subroutines[i]
+        return recreated_circuit
+
 
 def get_number_of_copies_of_element_in_list(element, list):
     return len([i for i in list if i == element])
