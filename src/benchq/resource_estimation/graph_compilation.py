@@ -343,7 +343,7 @@ def get_substrate_scheduler_estimates_for_subcomponents(
     total_n_measurement_steps = 0
     total_measurement_steps = []
     total_time = 0
-    max_graph_degree = 0
+    sum_max_graph_degree = 0
     for graph, data_qubits, multiplicity in zip(
         graphs_list, data_qubits_map_list, quantum_program.multiplicities
     ):
@@ -361,16 +361,10 @@ def get_substrate_scheduler_estimates_for_subcomponents(
         )
 
         total_measurement_steps += [scheduler_only_compiler.measurement_steps]
-        max_graph_degree = max(max_graph_degree, _get_max_graph_degree(graph))
-        if graph.degree(data_qubits) == max_graph_degree:
-            warnings.warn(
-                "Node with largest degree lies on an edge. "
-                "Graph degree might be an underestimate. "
-                "If this message is triggered, Simon owes Athena a bottle of whiskey."
-            )
+        sum_max_graph_degree += _get_max_graph_degree(graph)
 
     resource_estimates["n_measurement_steps"] = total_n_measurement_steps
-    resource_estimates["max_graph_degree"] = max_graph_degree
+    resource_estimates["max_graph_degree"] = sum_max_graph_degree
     resource_estimates["total_time"] = total_time
     LOGGER.debug(total_measurement_steps)
 
