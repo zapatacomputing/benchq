@@ -60,7 +60,6 @@ class QuantumProgram:
         return recreated_circuit
 
 
-
 def get_number_of_copies_of_element_in_list(element, list):
     return len([i for i in list if i == element])
 
