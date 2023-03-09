@@ -103,7 +103,7 @@ def get_resource_estimations_for_graph(
     architecture_model: Any,
     tolerable_logical_error_rate: float = 0.5,
     plot: bool = False,
-    use_max_graph_degree=True,
+    is_subgraph=False,
 ):
     n_nodes = len(graph.nodes)
     max_graph_degree = _get_max_graph_degree(graph)
@@ -125,20 +125,27 @@ def get_resource_estimations_for_graph(
     )
 
     n_measurements_steps = len(scheduler_only_compiler.measurement_steps)
-    total_time = calculate_wall_time(
-        min_viable_distance,
-        n_measurements_steps,
-        physical_gate_time_in_seconds,
-    )
+    if is_subgraph:
+        total_time = calculate_wall_time(
+            min_viable_distance,
+            n_measurements_steps,
+            physical_gate_time_in_seconds,
+        )
+    else:
+        total_time = calculate_wall_time(
+            min_viable_distance,
+            n_nodes,
+            physical_gate_time_in_seconds,
+        )
 
     physical_qubit_count = 12 * max_graph_degree * 2 * min_viable_distance**2
-    # resources_in_cells = get_logical_st_volume(n_nodes)
+    logical_st_volume = get_logical_st_volume(n_nodes)
     results_dict = {
         "logical_error_rate": logical_error_rate,
         "total_time": total_time,
         "physical_qubit_count": physical_qubit_count,
         "min_viable_distance": min_viable_distance,
-        # "resources_in_cells": resources_in_cells,
+        "logical_st_volume": logical_st_volume,
         "n_measurement_steps": n_measurements_steps,
         "max_graph_degree": max_graph_degree,
         "n_nodes": n_nodes,
@@ -266,12 +273,12 @@ def resource_estimations_for_subcomponents(
             architecture_model,
             tolerable_circuit_error_rate,
             plot=False,
+            is_subgraph=True,
         )
         resource_estimates = get_substrate_scheduler_estimates_for_subcomponents(
             graphs_list,
             quantum_program,
             architecture_model,
-            data_qubits_map_list,
             resource_estimates,
         )
 
@@ -330,20 +337,15 @@ def get_substrate_scheduler_estimates_for_subcomponents(
     graphs_list,
     quantum_program,
     architecture_model,
-    data_qubits_map_list=None,
     resource_estimates={},
 ):
-    if data_qubits_map_list is None:
-        data_qubits_map_list = [[] * len(graphs_list)]
 
     # sum substrate scheduler resource estimates for each subcomponent
     total_n_measurement_steps = 0
     total_measurement_steps = []
     total_time = 0
     sum_max_graph_degree = 0
-    for graph, data_qubits, multiplicity in zip(
-        graphs_list, data_qubits_map_list, quantum_program.multiplicities
-    ):
+    for graph, multiplicity in zip(graphs_list, quantum_program.multiplicities):
         scheduler_only_compiler = substrate_scheduler(graph)
         total_n_measurement_steps += (
             len(scheduler_only_compiler.measurement_steps) * multiplicity
