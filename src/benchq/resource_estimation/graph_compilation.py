@@ -8,7 +8,6 @@ from typing import Any, List
 
 import more_itertools
 import networkx as nx
-import numpy as np
 from graph_state_generation.optimizers import greedy_stabilizer_measurement_scheduler
 from graph_state_generation.substrate_scheduler import TwoRowSubstrateScheduler
 from orquestra.quantum.circuits import Circuit
