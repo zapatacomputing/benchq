@@ -60,14 +60,12 @@ def test_get_resource_estimations_for_program_gives_correct_results(
         physical_gate_time_in_seconds=1e-6,
     )
     error_budget = 1e-3
-    print(quantum_program.subroutines[0])
     gsc_resource_estimates = get_resource_estimations_for_program(
         quantum_program,
         error_budget,
         architecture_model,
         plot=True,
     )
-    print(gsc_resource_estimates)
     for key in expected_results.keys():
         assert gsc_resource_estimates[key] == expected_results[key]
 
