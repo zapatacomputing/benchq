@@ -11,7 +11,9 @@ from openfermion.resource_estimates.molecule import (
     localize,
     stability,
 )
-from openfermionpyscf import PyscfMolecularData, compute_integrals
+from openfermion import MolecularData
+from openfermionpyscf import PyscfMolecularData
+from openfermionpyscf._run_pyscf import compute_integrals
 from pyscf import scf, gto
 
 
@@ -57,7 +59,7 @@ class ChemistryApplicationInstance:
         pyscf_molecule.symmetry = False
         pyscf_molecule.build()
         return pyscf_molecule
-    
+
     def _run_pyscf(self) -> Tuple[gto.Mole, scf.hf.SCF]:
         """Run an SCF calculation using PySCF and return the results as a meanfield
         object.
@@ -69,11 +71,10 @@ class ChemistryApplicationInstance:
             Tuple whose first element is the PySCF molecule object after AVAS reduction
                 and whose second is the meanfield object containing the SCF solution.
         """
-        
-        mean_field_object = scf.RHF if self.multiplicity == 1 else scf.ROHF
         molecule = self.get_pyscf_molecule()
-        mean_field_object.run(molecule)
-        if (self.avas_atomic_orbitals or self.avas_minao):
+        mean_field_object = (scf.RHF if self.multiplicity == 1 else scf.ROHF)(molecule)
+        mean_field_object.run()
+        if self.avas_atomic_orbitals or self.avas_minao:
             molecule, mean_field_object = truncate_with_avas(
                 mean_field_object,
                 self.avas_atomic_orbitals,
@@ -84,13 +85,13 @@ class ChemistryApplicationInstance:
     def get_active_space_hamiltonian(self) -> openfermion.InteractionOperator:
         """Generate the fermionic Hamiltonian corresponding to the instance's
         active space.
-        
+
         Returns:
             The fermionic Hamiltonian corresponding to the instance's active space. Note
                 that the active space will account for both AVAS and the
                 occupied_indices/active_indices attributes.
         """
-        return get_molecular_data_from_meanfield_object(self._run_pyscf()).get_molecular_hamiltonian(
+        return self._get_molecular_data().get_molecular_hamiltonian(
             occupied_indices=self.occupied_indices,
             active_indices=self.active_indices,
         )
@@ -101,7 +102,7 @@ class ChemistryApplicationInstance:
 
         Currently, this method does not support the occupied_indices and active_indices
         attributes and will raise an exception if they are set.
-        
+
         Returns:
             A meanfield object corresponding to the instance's active space, accounting
                 for AVAS."""
@@ -112,37 +113,47 @@ class ChemistryApplicationInstance:
             )
         return self._run_pyscf()[1]
 
-def get_molecular_data_from_meanfield_object(mean_field_object, molecule):
-    """Given a PySCF meanfield object and molecule, return a PyscfMolecularData object.
-    
-    Args:
-        mean_field_object: The meanfield object representing the SCF solution.
-        molecule: The PySCF molecule object.
-    
-    Returns:
-        A PyscfMolecularData object corresponding to the meanfield object and molecule.
-    """
-    molecular_data = PyscfMolecularData()
-    molecular_data.n_orbitals = int(molecule.nao_nr())
-    molecular_data.n_qubits = 2 * molecular_data.n_orbitals
-    molecular_data.nuclear_repulsion = float(molecule.energy_nuc())
+    def _get_molecular_data(self):
+        """Given a PySCF meanfield object and molecule, return a PyscfMolecularData object.
 
-    molecular_data.hf_energy = float(mean_field_object.e_tot)
+        Args:
+            molecule: The PySCF molecule object.
+            mean_field_object: The meanfield object representing the SCF solution.
 
-    molecular_data._pyscf_data = pyscf_data = {}
-    pyscf_data['mol'] = molecule
-    pyscf_data['scf'] = mean_field_object
+        Returns:
+            A PyscfMolecularData object corresponding to the meanfield object and molecule.
+        """
+        molecular_data = MolecularData(
+            geometry=self.geometry,
+            basis=self.basis,
+            multiplicity=self.multiplicity,
+            charge=self.charge,
+        )
+        molecule, mean_field_object = self._run_pyscf()
+        molecular_data.n_orbitals = int(molecule.nao_nr())
+        molecular_data.n_qubits = 2 * molecular_data.n_orbitals
+        molecular_data.nuclear_repulsion = float(molecule.energy_nuc())
 
-    molecular_data.canonical_orbitals = mean_field_object.mo_coeff.astype(float)
-    molecular_data.orbital_energies = mean_field_object.mo_energy.astype(float)
+        molecular_data.hf_energy = float(mean_field_object.e_tot)
 
-    one_body_integrals, two_body_integrals = compute_integrals(
-        molecule, mean_field_object)
-    molecular_data.one_body_integrals = one_body_integrals
-    molecular_data.two_body_integrals = two_body_integrals
-    molecular_data.overlap_integrals = mean_field_object.get_ovlp()
+        molecular_data._pyscf_data = pyscf_data = {}
+        pyscf_data["mol"] = molecule
+        pyscf_data["scf"] = mean_field_object
 
-    return molecular_data
+        molecular_data.canonical_orbitals = mean_field_object.mo_coeff.astype(float)
+        molecular_data.orbital_energies = mean_field_object.mo_energy.astype(float)
+
+        one_body_integrals, two_body_integrals = compute_integrals(
+            molecule, mean_field_object
+        )
+        molecular_data.one_body_integrals = one_body_integrals
+        molecular_data.two_body_integrals = two_body_integrals
+        molecular_data.overlap_integrals = mean_field_object.get_ovlp()
+
+
+        pyscf_molecular_data = PyscfMolecularData.__new__(PyscfMolecularData)
+        pyscf_molecular_data.__dict__.update(molecule.__dict__)
+        return molecular_data
 
 
 def truncate_with_avas(
@@ -168,9 +179,7 @@ def truncate_with_avas(
         mean_field_object, loc_type="pm"
     )  # default is loc_type ='pm' (Pipek-Mezey)
 
-    return avas_active_space(
-        mean_field_object, ao_list=ao_list, minao=minao
-    )
+    return avas_active_space(mean_field_object, ao_list=ao_list, minao=minao)
 
 
 def generate_hydrogen_chain_instance(
