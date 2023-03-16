@@ -11,6 +11,7 @@ from benchq.problem_ingestion import (
     [
         (generate_hydrogen_chain_instance(1), 2 * 2 * 1),
         (generate_hydrogen_chain_instance(2), 2 * 2 * 2),
+        (generate_hydrogen_chain_instance(13, basis="STO-3G"), 2 * 1 * 13),
     ],
 )
 def test_hamiltonian_has_correct_number_of_qubits(
