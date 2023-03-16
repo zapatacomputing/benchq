@@ -6,13 +6,12 @@ from typing import Iterable, List, Optional, Tuple
 
 import numpy as np
 import openfermion
-from openfermion import MolecularData
 from openfermion.resource_estimates.molecule import (
     avas_active_space,
     localize,
     stability,
 )
-from openfermionpyscf import PyscfMolecularData, run_pyscf
+from openfermionpyscf import PyscfMolecularData, compute_integrals
 from pyscf import scf, gto
 
 
@@ -49,6 +48,7 @@ class ChemistryApplicationInstance:
     active_indices: Optional[Iterable[int]] = None
 
     def get_pyscf_molecule(self) -> gto.Mole:
+        "Generate the PySCF molecule object describing the system to be calculated."
         pyscf_molecule = gto.Mole()
         pyscf_molecule.atom = self.geometry
         pyscf_molecule.basis = self.basis
@@ -58,7 +58,18 @@ class ChemistryApplicationInstance:
         pyscf_molecule.build()
         return pyscf_molecule
     
-    def get_mean_field_object(self) -> scf.hf.SCF:
+    def _run_pyscf(self) -> Tuple[gto.Mole, scf.hf.SCF]:
+        """Run an SCF calculation using PySCF and return the results as a meanfield
+        object.
+
+        Note that this method will apply AVAS but does not account for occupied_indices
+        and active_indices.
+
+        Returns:
+            Tuple whose first element is the PySCF molecule object after AVAS reduction
+                and whose second is the meanfield object containing the SCF solution.
+        """
+        
         mean_field_object = scf.RHF if self.multiplicity == 1 else scf.ROHF
         molecule = self.get_pyscf_molecule()
         mean_field_object.run(molecule)
@@ -69,34 +80,48 @@ class ChemistryApplicationInstance:
                 self.avas_minao,
             )
         return molecule, mean_field_object
-    
-    def get_molecular_data(self) -> PyscfMolecularData:
-
-        return get_molecular_data_from_meanfield_object(mean_field_object, molecule)
 
     def get_active_space_hamiltonian(self) -> openfermion.InteractionOperator:
         """Generate the fermionic Hamiltonian corresponding to the instance's
-        active space."""
-        return self.get_molecular_data().get_molecular_hamiltonian(
+        active space.
+        
+        Returns:
+            The fermionic Hamiltonian corresponding to the instance's active space. Note
+                that the active space will account for both AVAS and the
+                occupied_indices/active_indices attributes.
+        """
+        return get_molecular_data_from_meanfield_object(self._run_pyscf()).get_molecular_hamiltonian(
             occupied_indices=self.occupied_indices,
             active_indices=self.active_indices,
         )
 
     def get_active_space_meanfield_object(self) -> scf.hf.SCF:
         """Run an SCF calculation using PySCF and return the results as a meanfield
-        object."""
+        object.
+
+        Currently, this method does not support the occupied_indices and active_indices
+        attributes and will raise an exception if they are set.
+        
+        Returns:
+            A meanfield object corresponding to the instance's active space, accounting
+                for AVAS."""
         if self.active_indices or self.occupied_indices:
             raise ValueError(
                 "Generating the meanfield object for application instances with"
                 "active and occupied indices is not currently supported."
             )
-        return truncate_with_avas(
-            self.get_molecular_data()._pyscf_data["scf"],
-            self.avas_atomic_orbitals,
-            self.avas_minao,
-        )
+        return self._run_pyscf()[1]
 
 def get_molecular_data_from_meanfield_object(mean_field_object, molecule):
+    """Given a PySCF meanfield object and molecule, return a PyscfMolecularData object.
+    
+    Args:
+        mean_field_object: The meanfield object representing the SCF solution.
+        molecule: The PySCF molecule object.
+    
+    Returns:
+        A PyscfMolecularData object corresponding to the meanfield object and molecule.
+    """
     molecular_data = PyscfMolecularData()
     molecular_data.n_orbitals = int(molecule.nao_nr())
     molecular_data.n_qubits = 2 * molecular_data.n_orbitals
