@@ -157,7 +157,7 @@ def truncate_with_avas(
     mean_field_object: scf.hf.SCF,
     ao_list: Optional[Iterable[str]] = None,
     minao: Optional[str] = None,
-) -> Tuple[gto.Mol, scf.hf.SCF]:
+) -> Tuple[gto.Mole, scf.hf.SCF]:
     """Truncates a meanfield object to a specific active space that captures the
     essential chemistry.
 
