@@ -144,7 +144,7 @@ class ChemistryApplicationInstance:
         molecular_data.orbital_energies = mean_field_object.mo_energy.astype(float)
 
         one_body_integrals, two_body_integrals = compute_integrals(
-            molecule, mean_field_object
+            mean_field_object._eri, mean_field_object
         )
         molecular_data.one_body_integrals = one_body_integrals
         molecular_data.two_body_integrals = two_body_integrals

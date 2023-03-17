@@ -8,7 +8,7 @@ from benchq.problem_ingestion import (
 
 
 avas_hydrogen_chain_instance = generate_hydrogen_chain_instance(2)
-avas_hydrogen_chain_instance.avas_atomic_orbitals = ["H 1s", "H 2s"]
+avas_hydrogen_chain_instance.avas_atomic_orbitals = ["H 1s"]
 avas_hydrogen_chain_instance.avas_minao = "sto-3g"
 @pytest.mark.parametrize(
     "instance,expected_number_of_qubits",
