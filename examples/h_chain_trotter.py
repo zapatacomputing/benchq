@@ -34,7 +34,7 @@ def main():
 
         begtime = time.time()
         start = begtime
-        mol_data = generate_hydrogen_chain_instance(n_hydrogens).get_molecular_data()
+        mol_data = generate_hydrogen_chain_instance(n_hydrogens)
         print("Generate instance:", time.time() - start)
 
         # Convert instance to core computational problem instance
