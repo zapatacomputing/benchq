@@ -5,9 +5,12 @@ from benchq.problem_ingestion.molecule_instance_generation import (
     generate_hydrogen_chain_instance,
 )
 
-avas_hydrogen_chain_instance = generate_hydrogen_chain_instance(2)
-avas_hydrogen_chain_instance.avas_atomic_orbitals = ["H 1s"]
-avas_hydrogen_chain_instance.avas_minao = "sto-3g"
+
+def _generate_avas_hydrogen_chain_instance(n_hydrogens):
+    avas_hydrogen_chain_instance = generate_hydrogen_chain_instance(n_hydrogens)
+    avas_hydrogen_chain_instance.avas_atomic_orbitals = ["H 1s"]
+    avas_hydrogen_chain_instance.avas_minao = "sto-3g"
+    return avas_hydrogen_chain_instance
 
 
 @pytest.mark.parametrize(
@@ -16,7 +19,7 @@ avas_hydrogen_chain_instance.avas_minao = "sto-3g"
         (generate_hydrogen_chain_instance(1), 2 * 2 * 1),
         (generate_hydrogen_chain_instance(2), 2 * 2 * 2),
         (generate_hydrogen_chain_instance(13, basis="STO-3G"), 2 * 1 * 13),
-        (avas_hydrogen_chain_instance, 4),
+        (_generate_avas_hydrogen_chain_instance(2), 4),
     ],
 )
 def test_hamiltonian_has_correct_number_of_qubits(
