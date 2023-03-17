@@ -78,8 +78,13 @@ class ChemistryApplicationInstance:
         object."""
         if self.active_indices or self.occupied_indices:
             raise ValueError(
-                "Generating the meanfield object for application instances with"
+                "Generating the meanfield object for application instances with "
                 "active and occupied indices is not currently supported."
+            )
+        if not self.avas_atomic_orbitals or not self.avas_minao:
+            raise ValueError(
+                "Generating the meanfield object for application instances without "
+                "avas_atomic_orbitals and avas_minao is not currently supported."
             )
         return truncate_with_avas(
             self.get_molecular_data()._pyscf_data["scf"],
