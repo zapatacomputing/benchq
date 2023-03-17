@@ -1,6 +1,6 @@
 import pytest
 
-from benchq.problem_ingestion import (
+from benchq.problem_ingestion.molecule_instance_generation import (
     ChemistryApplicationInstance,
     generate_hydrogen_chain_instance,
 )
@@ -15,7 +15,8 @@ avas_hydrogen_chain_instance.avas_minao = "sto-3g"
     [
         (generate_hydrogen_chain_instance(1), 2 * 2 * 1),
         (generate_hydrogen_chain_instance(2), 2 * 2 * 2),
-        (avas_hydrogen_chain_instance, 4)
+        (generate_hydrogen_chain_instance(13, basis="STO-3G"), 2 * 1 * 13),
+        (avas_hydrogen_chain_instance, 4),
     ],
 )
 def test_hamiltonian_has_correct_number_of_qubits(

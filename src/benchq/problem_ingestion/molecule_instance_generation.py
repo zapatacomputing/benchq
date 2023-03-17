@@ -108,7 +108,7 @@ class ChemistryApplicationInstance:
                 for AVAS."""
         if self.active_indices or self.occupied_indices:
             raise ValueError(
-                "Generating the meanfield object for application instances with"
+                "Generating the meanfield object for application instances with "
                 "active and occupied indices is not currently supported."
             )
         return self._run_pyscf()[1]
@@ -198,7 +198,7 @@ def generate_hydrogen_chain_instance(
         geometry=[("H", (0, 0, i * bond_distance)) for i in range(number_of_hydrogens)],
         basis=basis,
         charge=0,
-        multiplicity=number_of_hydrogens + 1,
+        multiplicity=number_of_hydrogens % 2 + 1,
     )
 
 
