@@ -39,9 +39,7 @@ def generate_jw_qubit_hamiltonian_from_mol_data(
     molecular_data, occupied_indices=None, active_indices=None
 ) -> PauliSum:
 
-    hamiltonian = molecular_data.get_active_space_hamiltonian(
-        occupied_indices=occupied_indices, active_indices=active_indices
-    )
+    hamiltonian = molecular_data.get_active_space_hamiltonian()
 
     # # Convert to a FermionOperator
     # hamiltonian_ferm_op = of.get_fermion_operator(hamiltonian)
