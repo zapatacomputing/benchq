@@ -85,6 +85,10 @@ class ChemistryApplicationInstance:
     def get_active_space_hamiltonian(self) -> openfermion.InteractionOperator:
         """Generate the fermionic Hamiltonian corresponding to the instance's
         active space.
+        
+        The active space will be reduced with AVAS if the instance has AVAS attributes
+        set, and further reduced to the orbitals specified by occupied_indices and
+        active_indices attributes if they are set.
 
         Returns:
             The fermionic Hamiltonian corresponding to the instance's active space. Note
