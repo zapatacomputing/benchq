@@ -11,8 +11,8 @@ from orquestra.quantum.evolution import time_evolution
 from benchq import BasicArchitectureModel
 from benchq.compilation import get_algorithmic_graph, pyliqtr_transpile_to_clifford_t
 from benchq.problem_ingestion import (
+    generate_hydrogen_chain_instance,
     generate_jw_qubit_hamiltonian_from_mol_data,
-    generate_mol_data_for_h_chain,
 )
 from benchq.resource_estimation.graph_compilation import (
     get_resource_estimations_for_graph,
@@ -28,7 +28,7 @@ task_with_julia = sdk.task(
 @standard_task
 def get_operator(n_hydrogens):
     return generate_jw_qubit_hamiltonian_from_mol_data(
-        generate_mol_data_for_h_chain(n_hydrogens)
+        generate_hydrogen_chain_instance(n_hydrogens)
     )
 
 
@@ -85,7 +85,7 @@ def original_main():
         # TA 1 part: specify the core computational capability
 
         # Generate instance
-        mol_data = generate_mol_data_for_h_chain(n_hydrogens)
+        mol_data = generate_hydrogen_chain_instance(n_hydrogens)
 
         # Convert instance to core computational problem instance
         operator = generate_jw_qubit_hamiltonian_from_mol_data(mol_data)

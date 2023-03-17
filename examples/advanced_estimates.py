@@ -66,7 +66,7 @@ def main():
         # TA 1 part: specify the core computational capability
         start = time.time()
         # Generate instance
-        mol_data = generate_hydrogen_chain_instance(n_hydrogens).get_molecular_data()
+        mol_data = generate_hydrogen_chain_instance(n_hydrogens)
 
         # Convert instance to core computational problem instance
         operator = generate_jw_qubit_hamiltonian_from_mol_data(mol_data)
