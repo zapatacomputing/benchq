@@ -6,11 +6,16 @@ from benchq.problem_ingestion import (
 )
 
 
+
+avas_hydrogen_chain_instance = generate_hydrogen_chain_instance(2)
+avas_hydrogen_chain_instance.avas_atomic_orbitals = ["H 1s", "H 2s"]
+avas_hydrogen_chain_instance.avas_minao = "sto-3g"
 @pytest.mark.parametrize(
     "instance,expected_number_of_qubits",
     [
         (generate_hydrogen_chain_instance(1), 2 * 2 * 1),
         (generate_hydrogen_chain_instance(2), 2 * 2 * 2),
+        (avas_hydrogen_chain_instance, 4)
     ],
 )
 def test_hamiltonian_has_correct_number_of_qubits(
@@ -18,14 +23,6 @@ def test_hamiltonian_has_correct_number_of_qubits(
 ):
     hamiltonian = instance.get_active_space_hamiltonian()
     assert hamiltonian.n_qubits == expected_number_of_qubits
-
-
-def test_get_active_space_hamiltonian_raises_error_for_unsupported_instance():
-    instance = generate_hydrogen_chain_instance(2)
-    instance.avas_atomic_orbitals = ["H 1s", "H 2s"]
-    instance.avas_minao = "sto-3g"
-    with pytest.raises(ValueError):
-        instance.get_active_space_hamiltonian()
 
 
 def test_active_space_mean_field_object_has_valid_number_of_orbitals_with_avas_():
