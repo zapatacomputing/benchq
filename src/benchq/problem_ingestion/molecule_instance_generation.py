@@ -6,15 +6,15 @@ from typing import Iterable, List, Optional, Tuple
 
 import numpy as np
 import openfermion
+from openfermion import MolecularData
 from openfermion.resource_estimates.molecule import (
     avas_active_space,
     localize,
     stability,
 )
-from openfermion import MolecularData
 from openfermionpyscf import PyscfMolecularData
 from openfermionpyscf._run_pyscf import compute_integrals
-from pyscf import scf, gto
+from pyscf import gto, scf
 
 
 @dataclass
@@ -114,14 +114,12 @@ class ChemistryApplicationInstance:
         return self._run_pyscf()[1]
 
     def _get_molecular_data(self):
-        """Given a PySCF meanfield object and molecule, return a PyscfMolecularData object.
-
-        Args:
-            molecule: The PySCF molecule object.
-            mean_field_object: The meanfield object representing the SCF solution.
+        """Given a PySCF meanfield object and molecule, return a PyscfMolecularData
+        object.
 
         Returns:
-            A PyscfMolecularData object corresponding to the meanfield object and molecule.
+            A PyscfMolecularData object corresponding to the meanfield object and
+                molecule.
         """
         molecular_data = MolecularData(
             geometry=self.geometry,
@@ -150,7 +148,6 @@ class ChemistryApplicationInstance:
         molecular_data.two_body_integrals = two_body_integrals
         molecular_data.overlap_integrals = mean_field_object.get_ovlp()
 
-
         pyscf_molecular_data = PyscfMolecularData.__new__(PyscfMolecularData)
         pyscf_molecular_data.__dict__.update(molecule.__dict__)
         return molecular_data
@@ -160,7 +157,7 @@ def truncate_with_avas(
     mean_field_object: scf.hf.SCF,
     ao_list: Optional[Iterable[str]] = None,
     minao: Optional[str] = None,
-):
+) -> Tuple[gto.Mol, scf.hf.SCF]:
     """Truncates a meanfield object to a specific active space that captures the
     essential chemistry.
 
