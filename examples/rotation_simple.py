@@ -13,8 +13,10 @@ Objectives:
     - This is mostly for completeness and illustratory purposes
     - Software can be quite crappy
 """
+import logging
 import time
 
+from orquestra.integrations.qiskit.conversions import import_from_qiskit
 from qiskit.circuit import QuantumCircuit
 
 from benchq import BasicArchitectureModel
@@ -29,9 +31,6 @@ from benchq.resource_estimation.graph_compilation import (
 from benchq.resource_estimation.graph_compilation_rotations import (
     get_resource_estimations_for_graph as get_resource_estimations_for_graph_with_rotations,
 )
-from orquestra.integrations.qiskit.conversions import import_from_qiskit
-import logging
-
 
 # This demo shows how to get resource estimation for a circuit in two ways:
 # First, with explicit transpilation of rotations into Clifford + T

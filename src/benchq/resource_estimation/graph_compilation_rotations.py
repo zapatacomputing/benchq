@@ -1,22 +1,22 @@
 ################################################################################
 # © Copyright 2022-2023 Zapata Computing Inc.
 ################################################################################
+import json
+import logging
+import warnings
 from typing import Any, List
 
-import json
+import more_itertools
 import networkx as nx
 import numpy as np
 from orquestra.quantum.circuits import Circuit
 from orquestra.quantum.decompositions import decompose_orquestra_circuit
-import warnings
-import more_itertools
-import logging
+
 from ..compilation import get_algorithmic_graph, simplify_rotations
 from ..data_structures import QuantumProgram
-
 from .graph_compilation import (
-    plot_graph_state_with_measurement_steps,
     _get_max_graph_degree,
+    plot_graph_state_with_measurement_steps,
     substrate_scheduler,
 )
 
