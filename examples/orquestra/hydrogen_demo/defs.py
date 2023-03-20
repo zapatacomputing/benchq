@@ -10,14 +10,13 @@ from orquestra.quantum.evolution import time_evolution
 
 from benchq import BasicArchitectureModel
 from benchq.compilation import get_algorithmic_graph, pyliqtr_transpile_to_clifford_t
-from benchq.problem_ingestion import (
-    generate_hydrogen_chain_instance,
-    generate_jw_qubit_hamiltonian_from_mol_data,
-)
+from benchq.problem_ingestion import generate_jw_qubit_hamiltonian_from_mol_data
 from benchq.resource_estimation.graph_compilation import (
     get_resource_estimations_for_graph,
 )
-
+from benchq.problem_ingestion.molecule_instance_generation import (
+    generate_hydrogen_chain_instance,
+)
 standard_task = sdk.task(source_import=sdk.GitImport.infer())
 
 task_with_julia = sdk.task(

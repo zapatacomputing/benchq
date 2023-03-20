@@ -7,14 +7,14 @@ from typing import Union
 from cirq.circuits import Circuit as CirqCircuit
 from orquestra.quantum.circuits import Circuit as OrquestraCircuit
 from pyLIQTR.gate_decomp.cirq_transforms import clifford_plus_t_direct_transform
-from pyquil.quil import Program as PyquilCircuit
+#from pyquil.quil import Program as PyquilCircuit
 from qiskit.circuit import QuantumCircuit as QiskitCircuit
 
 from ..conversions import export_circuit, import_circuit
 
 
 def pyliqtr_transpile_to_clifford_t(
-    circuit: Union[OrquestraCircuit, CirqCircuit, PyquilCircuit, QiskitCircuit],
+    circuit: Union[OrquestraCircuit, CirqCircuit, QiskitCircuit],
     synthesis_accuracy: float,
 ) -> OrquestraCircuit:
     """Compile a circuit into clifford + T using pyLIQTR. The only non-clifford + T
