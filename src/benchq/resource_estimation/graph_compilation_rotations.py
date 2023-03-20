@@ -56,7 +56,7 @@ def calculate_wall_time(
 def is_circuit_in_the_right_format(circuit: Circuit) -> bool:
     for operation in circuit.operations:
         # TODO: refactor to be less hacky
-        if operation.gate.name not in CLIFFORD_GATES + ["T", "RZ", "RX"]:
+        if operation.gate.name not in CLIFFORD_GATES + ["T", "RZ", "RY", "RX"]:
             return False
 
     return True
