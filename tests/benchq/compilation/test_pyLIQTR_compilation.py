@@ -34,7 +34,7 @@ two_qubit_qiskit_circuit.h(0)
 )
 def test_clifford_circuit_produces_correct_output(circuit):
     """Tests that clifford circuits are unchanged"""
-    pyliqtr_transpile_to_clifford_t(circuit, 0.001) == OrquestraCircuit(
+    pyliqtr_transpile_to_clifford_t(circuit, gate_accuracy=0.001) == OrquestraCircuit(
         [OrquestraCNOT(0, 1), OrquestraH(0)]
     )
 
@@ -56,18 +56,26 @@ def test_non_clifford_gates_compile(circuit, gate_accuracy):
     )  # normalize with 2 because we are using the 2 norm rather than diamond norm
     assert distance_from_target < gate_accuracy ** (1 / len(circuit.operations))
 
-@pytest.mark.parametrize("gate_accuracy", [1e-3,], circuit_accuracy=[1e-3])
+
 @pytest.mark.parametrize(
-    "circuit",
+    "circuit, gate_accuracy, circuit_accuracy",
     [
-        OrquestraCircuit([RZ(0.1)(0)]),
-        OrquestraCircuit([RZ(0.1)(0), OrquestraCNOT(0, 1), RX(0.3)(0)]),
+        (OrquestraCircuit([RZ(0.1)(0)]), 1e-3, 1e-3)
     ],
 )
 def test_user_cant_specify_both_gate_and_circuit_accuracy(circuit, gate_accuracy, circuit_accuracy):
-        with pytest.raises(AssertionError):
+        with pytest.raises(ValueError):
             compiled_circuit = pyliqtr_transpile_to_clifford_t(circuit, gate_accuracy=gate_accuracy, circuit_accuracy=circuit_accuracy)
 
+@pytest.mark.parametrize(
+    "circuit, gate_accuracy, circuit_accuracy",
+    [
+        (OrquestraCircuit([RZ(0.1)(0)]), None, None)
+    ],
+)
+def test_user_didnt_specify_both_gate_or_circuit_accuracy(circuit, gate_accuracy, circuit_accuracy):
+        with pytest.raises(ValueError):
+            compiled_circuit = pyliqtr_transpile_to_clifford_t(circuit, gate_accuracy=gate_accuracy, circuit_accuracy=circuit_accuracy)
 
 def mod_out_phase(matrix):
     return matrix / np.exp(1j * np.angle(matrix[0][0]))

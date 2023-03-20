@@ -39,15 +39,16 @@ def pyliqtr_transpile_to_clifford_t(
         OrquestraCircuit: circuit decomposed to Clifford + T using pyLIQTR.
     """
     cirq_circuit = export_circuit(CirqCircuit, import_circuit(circuit))
-    try:
-        if gate_accuracy is not None:
-            gate_precision = ceil(-log10(gate_accuracy))  # number accurate of digits
-        if circuit_accuracy is not None:
-            circuit_precision = ceil(-log10(circuit_accuracy))
+    gate_precision, circuit_precision = None, None
+    if gate_accuracy is not None and circuit_accuracy is None:
+        gate_precision = ceil(-log10(gate_accuracy))  # number accurate of digits
+    elif circuit_accuracy is not None and gate_accuracy is None:
+        circuit_precision = ceil(-log10(circuit_accuracy))
+    elif circuit_accuracy and gate_accuracy is None:
+        raise ValueError("Please supply accuracy either for the gates or for the circuit")
+    else:
+        raise ValueError("Please supply gate or circuit accuracy not both")
 
-        assert circuit_accuracy and gate_accuracy is (not None) # User should not specify both gate and circuit accuracy
-    except AssertionError as msg:
-        print(msg)
 
     compiled_cirq_circuit = clifford_plus_t_direct_transform(cirq_circuit, precision=gate_precision, 
                             circuit_precision=circuit_precision
