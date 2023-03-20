@@ -66,7 +66,7 @@ def hydrogen_workflow():
         physical_gate_time_in_seconds=1e-8,
     )
     workflow_results = []
-    for n_hydrogens in [1]:
+    for n_hydrogens in [3]:
         operator = get_operator(n_hydrogens)
         evolution_time = 1
         circuit = time_evolution_task(operator, evolution_time)

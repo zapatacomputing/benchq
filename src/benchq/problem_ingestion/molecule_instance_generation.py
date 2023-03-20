@@ -12,8 +12,9 @@ from openfermion.resource_estimates.molecule import (
     localize,
     stability,
 )
-from openfermionpyscf import PyscfMolecularData, run_pyscf
-from pyscf import scf
+from openfermionpyscf import PyscfMolecularData
+from openfermionpyscf._run_pyscf import compute_integrals
+from pyscf import gto, scf
 
 
 @dataclass
@@ -48,56 +49,119 @@ class ChemistryApplicationInstance:
     occupied_indices: Optional[Iterable[int]] = None
     active_indices: Optional[Iterable[int]] = None
 
-    def get_molecular_data(self) -> PyscfMolecularData:
-        """Run an SCF calculation using PySCF and return the results as a MolecularData
-        object."""
-        return run_pyscf(
-            MolecularData(
-                self.geometry,
-                self.basis,
-                self.multiplicity,
-                self.charge,
+    def get_pyscf_molecule(self) -> gto.Mole:
+        "Generate the PySCF molecule object describing the system to be calculated."
+        pyscf_molecule = gto.Mole()
+        pyscf_molecule.atom = self.geometry
+        pyscf_molecule.basis = self.basis
+        pyscf_molecule.spin = self.multiplicity - 1
+        pyscf_molecule.charge = self.charge
+        pyscf_molecule.symmetry = False
+        pyscf_molecule.build()
+        return pyscf_molecule
+
+    def _run_pyscf(self) -> Tuple[gto.Mole, scf.hf.SCF]:
+        """Run an SCF calculation using PySCF and return the results as a meanfield
+        object.
+
+        Note that this method will apply AVAS but does not account for occupied_indices
+        and active_indices.
+
+        Returns:
+            Tuple whose first element is the PySCF molecule object after AVAS reduction
+                and whose second is the meanfield object containing the SCF solution.
+        """
+        molecule = self.get_pyscf_molecule()
+        mean_field_object = (scf.RHF if self.multiplicity == 1 else scf.ROHF)(molecule)
+        mean_field_object.run()
+        if self.avas_atomic_orbitals or self.avas_minao:
+            molecule, mean_field_object = truncate_with_avas(
+                mean_field_object,
+                self.avas_atomic_orbitals,
+                self.avas_minao,
             )
-        )
+        return molecule, mean_field_object
 
     def get_active_space_hamiltonian(self) -> openfermion.InteractionOperator:
         """Generate the fermionic Hamiltonian corresponding to the instance's
-        active space."""
-        if self.avas_atomic_orbitals or self.avas_minao:
-            raise ValueError(
-                "Generating the active space Hamiltonian for application instances"
-                "with AVAS is not currently supported."
-            )
-        return self.get_molecular_data().get_molecular_hamiltonian(
+        active space.
+
+        The active space will be reduced with AVAS if the instance has AVAS attributes
+        set, and further reduced to the orbitals specified by occupied_indices and
+        active_indices attributes if they are set.
+
+        Returns:
+            The fermionic Hamiltonian corresponding to the instance's active space. Note
+                that the active space will account for both AVAS and the
+                occupied_indices/active_indices attributes.
+        """
+        return self._get_molecular_data().get_molecular_hamiltonian(
             occupied_indices=self.occupied_indices,
             active_indices=self.active_indices,
         )
 
     def get_active_space_meanfield_object(self) -> scf.hf.SCF:
         """Run an SCF calculation using PySCF and return the results as a meanfield
-        object."""
+        object.
+
+        Currently, this method does not support the occupied_indices and active_indices
+        attributes and will raise an exception if they are set.
+
+        Returns:
+            A meanfield object corresponding to the instance's active space, accounting
+                for AVAS."""
         if self.active_indices or self.occupied_indices:
             raise ValueError(
                 "Generating the meanfield object for application instances with "
                 "active and occupied indices is not currently supported."
             )
-        if not self.avas_atomic_orbitals or not self.avas_minao:
-            raise ValueError(
-                "Generating the meanfield object for application instances without "
-                "avas_atomic_orbitals and avas_minao is not currently supported."
-            )
-        return truncate_with_avas(
-            self.get_molecular_data()._pyscf_data["scf"],
-            self.avas_atomic_orbitals,
-            self.avas_minao,
+        return self._run_pyscf()[1]
+
+    def _get_molecular_data(self):
+        """Given a PySCF meanfield object and molecule, return a PyscfMolecularData
+        object.
+
+        Returns:
+            A PyscfMolecularData object corresponding to the meanfield object and
+                molecule.
+        """
+        molecular_data = MolecularData(
+            geometry=self.geometry,
+            basis=self.basis,
+            multiplicity=self.multiplicity,
+            charge=self.charge,
         )
+        molecule, mean_field_object = self._run_pyscf()
+        molecular_data.n_orbitals = int(molecule.nao_nr())
+        molecular_data.n_qubits = 2 * molecular_data.n_orbitals
+        molecular_data.nuclear_repulsion = float(molecule.energy_nuc())
+
+        molecular_data.hf_energy = float(mean_field_object.e_tot)
+
+        molecular_data._pyscf_data = pyscf_data = {}
+        pyscf_data["mol"] = molecule
+        pyscf_data["scf"] = mean_field_object
+
+        molecular_data.canonical_orbitals = mean_field_object.mo_coeff.astype(float)
+        molecular_data.orbital_energies = mean_field_object.mo_energy.astype(float)
+
+        one_body_integrals, two_body_integrals = compute_integrals(
+            mean_field_object._eri, mean_field_object
+        )
+        molecular_data.one_body_integrals = one_body_integrals
+        molecular_data.two_body_integrals = two_body_integrals
+        molecular_data.overlap_integrals = mean_field_object.get_ovlp()
+
+        pyscf_molecular_data = PyscfMolecularData.__new__(PyscfMolecularData)
+        pyscf_molecular_data.__dict__.update(molecule.__dict__)
+        return molecular_data
 
 
 def truncate_with_avas(
     mean_field_object: scf.hf.SCF,
     ao_list: Optional[Iterable[str]] = None,
     minao: Optional[str] = None,
-):
+) -> Tuple[gto.Mole, scf.hf.SCF]:
     """Truncates a meanfield object to a specific active space that captures the
     essential chemistry.
 
@@ -107,7 +171,6 @@ def truncate_with_avas(
         minao: The minimum active orbital to use for AVAS.
     """
     mean_field_object.verbose = 4
-    mean_field_object.kernel()  # run the SCF
 
     # make sure wave function is stable before we proceed
     mean_field_object = stability(mean_field_object)
@@ -117,12 +180,7 @@ def truncate_with_avas(
         mean_field_object, loc_type="pm"
     )  # default is loc_type ='pm' (Pipek-Mezey)
 
-    # Truncates to a specific active space that captures the essential chemistry
-    molecule, mean_field_object = avas_active_space(
-        mean_field_object, ao_list=ao_list, minao=minao
-    )
-
-    return mean_field_object
+    return avas_active_space(mean_field_object, ao_list=ao_list, minao=minao)
 
 
 def generate_hydrogen_chain_instance(
