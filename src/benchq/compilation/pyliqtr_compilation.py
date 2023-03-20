@@ -15,24 +15,40 @@ from ..conversions import export_circuit, import_circuit
 
 def pyliqtr_transpile_to_clifford_t(
     circuit: Union[OrquestraCircuit, CirqCircuit, PyquilCircuit, QiskitCircuit],
-    synthesis_accuracy: float,
+    gate_accuracy: Union[float, None] = None,
+    circuit_accuracy: Union[float, None] = None,
 ) -> OrquestraCircuit:
     """Compile a circuit into clifford + T using pyLIQTR. The only non-clifford + T
-    gates that can be compiled are X, Y, and Z rotations.
+    gates that can be compiled are X, Y, and Z rotations. 
+    Note that while we are using accuracy pyLIQTR requires specifying precision
 
     Args:
         circuit (Union[OrquestraCircuit, CirqCircuit, PyquilCircuit, QiskitCircuit]):
             Circuit to be compiled to clifford + T Gates.
-        synthesis_accuracy (float): accuracy of each gate decomposition (not accuracy
+        gate_accuracy (float): accuracy of each gate decomposition (not accuracy
             of total circuit decomposition). Accuracy must be converted into a number
             of significant figures. When this is done, the number of significant
             figures is always rounded up.
+        circuit_accuracy (float): Accuracy required for a whole circuit
+            Each gate will be bounded by either `circuit_precision` divided by 
+            the number of rotation gates (if given a float),
+            or 10^{-circuit_precision} (if given an int)
+
 
     Returns:
         OrquestraCircuit: circuit decomposed to Clifford + T using pyLIQTR.
     """
     cirq_circuit = export_circuit(CirqCircuit, import_circuit(circuit))
-    precision = ceil(-log10(synthesis_accuracy))  # number accurate of digits
-    compiled_cirq_circuit = clifford_plus_t_direct_transform(cirq_circuit, precision)
+    if gate_accuracy is not None:
+        gate_precision = ceil(-log10(gate_accuracy))  # number accurate of digits
+    if circuit_accuracy is not None:
+        circuit_precision = ceil(-log10(circuit_accuracy))
+
+    if circuit_accuracy and gate_accuracy is not None:
+        raise ValueError("gate accuracy and circuit accuracy can not both be specified")
+
+    compiled_cirq_circuit = clifford_plus_t_direct_transform(cirq_circuit, precision=gate_precision, 
+                            circuit_precision=circuit_precision
+                            )
 
     return import_circuit(compiled_cirq_circuit)
