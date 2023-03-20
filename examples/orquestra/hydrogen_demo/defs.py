@@ -17,10 +17,13 @@ from benchq.resource_estimation.graph_compilation import (
 from benchq.problem_ingestion.molecule_instance_generation import (
     generate_hydrogen_chain_instance,
 )
-standard_task = sdk.task(source_import=sdk.GitImport.infer())
+
+task_deps = [sdk.PythonImports("pyscf==2.1.0", "openfermionpyscf==0.5")]
+standard_task = sdk.task(source_import=sdk.GitImport.infer(),
+                         dependency_imports=task_deps)
 
 task_with_julia = sdk.task(
-    source_import=sdk.GitImport.infer(), custom_image="mstechly/ta2-julia-test"
+    source_import=sdk.GitImport.infer(), dependency_imports=task_deps, custom_image="mstechly/ta2-julia-test"
 )
 
 
