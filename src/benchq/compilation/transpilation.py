@@ -58,9 +58,9 @@ class DecomposeStandardRZ(DecompositionRule[GateOperation]):
             -np.pi / 2,
             -np.pi,
         ]
-        theta = float(operation.params[0]) if len(operation.params) > 0 else None
+        theta = float(operation.params[0]) if len(operation.params) > 0 else None  # type: ignore # noqa: E501
         return bool(
-            (operation.gate.name in ["RZ"] and np.isclose(theta, special_angles).any())
+            (operation.gate.name in ["RZ"] and np.isclose(theta, special_angles).any())  # type: ignore # noqa: E501
         )
 
     def production(self, operation: GateOperation) -> Iterable[GateOperation]:
