@@ -18,8 +18,10 @@ import time
 from benchq import BasicArchitectureModel
 from benchq.algorithms import get_trotter_program
 from benchq.problem_ingestion import (
-    generate_hydrogen_chain_instance,
     generate_jw_qubit_hamiltonian_from_mol_data,
+)
+from benchq.problem_ingestion.molecule_instance_generation import (
+    generate_hydrogen_chain_instance,
 )
 from benchq.resource_estimation.graph_compilation import (
     get_resource_estimations_for_program,
@@ -32,7 +34,7 @@ def main():
 
         begtime = time.time()
         start = begtime
-        mol_data = generate_hydrogen_chain_instance(n_hydrogens).get_molecular_data()
+        mol_data = generate_hydrogen_chain_instance(n_hydrogens)
         print("Generate instance:", time.time() - start)
 
         # Convert instance to core computational problem instance

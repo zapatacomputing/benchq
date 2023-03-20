@@ -1,6 +1,6 @@
 import pytest
 
-from benchq.problem_ingestion import (
+from benchq.problem_ingestion.molecule_instance_generation import (
     ChemistryApplicationInstance,
     generate_hydrogen_chain_instance,
 )
