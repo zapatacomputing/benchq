@@ -12,10 +12,10 @@ from orquestra.quantum.circuits import (
     Dagger,
     GateOperation,
     H,
+    I,
     S,
     T,
     Z,
-    I,
 )
 from orquestra.quantum.decompositions import decompose_orquestra_circuit
 from orquestra.quantum.decompositions._decomposition import DecompositionRule
@@ -25,7 +25,8 @@ from ..conversions._circuit_translations import import_circuit
 
 def simplify_rotations(circuit) -> Circuit:
     """Changes RX and RY to RZ.
-    Also, translates rotations with some characteristic angles (-pi, -pi/2, -pi/4, 0, pi/4, pi/2, pi) to simpler gates
+    Also, translates rotations with some characteristic angles
+    (-pi, -pi/2, -pi/4, 0, pi/4, pi/2, pi) to simpler gates.
     """
     circuit = import_circuit(circuit)
     return decompose_orquestra_circuit(
@@ -57,13 +58,13 @@ class DecomposeStandardRZ(DecompositionRule[GateOperation]):
             -np.pi / 2,
             -np.pi,
         ]
-        return (
-            operation.gate.name in ["RZ"]
-            and np.isclose(operation.params[0], special_angles).any()
+        theta = float(operation.params[0])  # type: ignore
+        return bool(
+            (operation.gate.name in ["RZ"] and np.isclose(theta, special_angles).any())
         )
 
     def production(self, operation: GateOperation) -> Iterable[GateOperation]:
-        theta = operation.params[0]
+        theta = float(operation.params[0])  # type: ignore
         if np.isclose(theta, 0):
             return [I(*operation.qubit_indices)]
         elif np.isclose(theta, np.pi / 4):
@@ -77,8 +78,9 @@ class DecomposeStandardRZ(DecompositionRule[GateOperation]):
         elif np.isclose(theta, -np.pi / 2):
             return [Dagger(S)(*operation.qubit_indices)]
         else:
-            raise Exception(
-                "This shouldn't happen! It means there's a bug in DecomposeStandardRZ function."
+            raise RuntimeError(
+                "This shouldn't happen! It means there's a bug in "
+                "DecomposeStandardRZ function."
             )
 
 
@@ -94,7 +96,7 @@ class RXtoRZ(DecompositionRule[GateOperation]):
         )
 
     def production(self, operation: GateOperation) -> Iterable[GateOperation]:
-        theta = operation.params
+        theta = operation.params[0]
 
         gate_decomposition = [H, RZ(theta), H]
 
@@ -125,7 +127,7 @@ class RYtoRZ(DecompositionRule[GateOperation]):
         )
 
     def production(self, operation: GateOperation) -> Iterable[GateOperation]:
-        theta = operation.params
+        theta = operation.params[0]
 
         gate_decomposition = [Dagger(S), H, RZ(theta), H, S]
 
