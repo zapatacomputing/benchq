@@ -20,7 +20,7 @@ def main():
 
     # Run locally, sequentially, in a single Python process. Useful for debugging, but
     # doesn't use Orquestra to its full potential.
-    wf_run = wf.run("in_process")
+    wf_run = wf.run("ray")
 
     # Run remotely on Orquestra Platform.
     # wf_run = wf.run("prod-d")
@@ -36,6 +36,7 @@ def main():
 
         time.sleep(1)
 
+    print(wf_run.get_results())
 
 if __name__ == "__main__":
     main()
