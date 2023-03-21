@@ -17,7 +17,7 @@ function icm_input(filename)
     n_qubits, circuit
 end
 
-icm_compile(circuit, n_qubits) = Jabalizer.compile(circuit, n_qubits, ["T"])
+icm_compile(circuit, n_qubits) = Jabalizer.compile(circuit, n_qubits, ["T", "RX", "RY", "RZ"])
 
 function icm_output_circuit(filename, circuit, data_qubits_map)
     dict = Dict()
@@ -37,7 +37,7 @@ const debug_flag = Ref(true)
 function out_cnt(opcnt, prevcnt, tn, pt, t0)
     print("  Ops: $opcnt ($(opcnt-prevcnt)), ")
     print("elapsed: $(round((tn-t0)/60_000_000_000, digits=2)) min (")
-    println(round((tn-pt)/1_000_000_000, digits=2), " s)")
+    println(round((tn - pt) / 1_000_000_000, digits=2), " s)")
 end
 
 function map_qubits(num_qubits, icm_output)
@@ -59,16 +59,17 @@ end
 
 function prepare(num_qubits, qubit_map, icm_output)
     gate_map = Dict("I" => Jabalizer.Id,
-                    "H" => Jabalizer.H,
-                    "X" => Jabalizer.X,
-                    "Y" => Jabalizer.Y,
-                    "Z" => Jabalizer.Z,
-                    "CNOT" => Jabalizer.CNOT,
-                    "SWAP" => Jabalizer.SWAP,
-                    "S" => Jabalizer.P,
-                    "CZ" => Jabalizer.CZ)
-    
-    print("zero_state: ") ; @time state = zero_state(num_qubits)
+        "H" => Jabalizer.H,
+        "X" => Jabalizer.X,
+        "Y" => Jabalizer.Y,
+        "Z" => Jabalizer.Z,
+        "CNOT" => Jabalizer.CNOT,
+        "SWAP" => Jabalizer.SWAP,
+        "S" => Jabalizer.P,
+        "CZ" => Jabalizer.CZ)
+
+    print("zero_state: ")
+    @time state = zero_state(num_qubits)
 
     chkcnt = prevbits = prevop = opcnt = 0
     pt = t0 = time_ns()
