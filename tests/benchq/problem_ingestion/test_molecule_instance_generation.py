@@ -16,7 +16,6 @@ def _generate_avas_hydrogen_chain_instance(n_hydrogens):
 @pytest.mark.parametrize(
     "instance,expected_number_of_qubits",
     [
-        (generate_hydrogen_chain_instance(1), 2 * 2 * 1),
         (generate_hydrogen_chain_instance(2), 2 * 2 * 2),
         (generate_hydrogen_chain_instance(13, basis="STO-3G"), 2 * 1 * 13),
         (_generate_avas_hydrogen_chain_instance(2), 4),

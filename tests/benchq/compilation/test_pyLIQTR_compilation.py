@@ -12,9 +12,6 @@ from orquestra.quantum.circuits import CNOT as OrquestraCNOT
 from orquestra.quantum.circuits import RX, RZ
 from orquestra.quantum.circuits import Circuit as OrquestraCircuit
 from orquestra.quantum.circuits import H as OrquestraH
-from pyquil.gates import CNOT as PyquilCNOT
-from pyquil.gates import H as PyquilH
-from pyquil.quil import Program as PyquilCircuit
 from qiskit.circuit import QuantumCircuit as QiskitCircuit
 
 from benchq.compilation import pyliqtr_transpile_to_clifford_t
@@ -27,7 +24,6 @@ two_qubit_qiskit_circuit.h(0)
 @pytest.mark.parametrize(
     "circuit",
     [
-        PyquilCircuit(PyquilCNOT(0, 1), PyquilH(0)),
         two_qubit_qiskit_circuit,
         CirqCircuit([CirqCNOT(LineQubit(0), LineQubit(1)), CirqH(LineQubit(0))]),
     ],

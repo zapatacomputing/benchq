@@ -5,10 +5,6 @@ from functools import singledispatch
 
 from cirq.circuits import Circuit as CirqCircuit
 from orquestra.integrations.cirq.conversions import export_to_cirq, import_from_cirq
-from orquestra.integrations.forest.conversions import (
-    export_to_pyquil,
-    import_from_pyquil,
-)
 from orquestra.integrations.qiskit.conversions import (
     export_to_qiskit,
     import_from_qiskit,
@@ -16,7 +12,6 @@ from orquestra.integrations.qiskit.conversions import (
 from orquestra.quantum.circuits import Circuit as OrquestraCircuit
 from orquestra.quantum.evolution import time_evolution as old_time_evolution
 from orquestra.quantum.operators import PauliRepresentation
-from pyquil.quil import Program as PyquilCircuit
 from qiskit.circuit import QuantumCircuit as QiskitCircuit
 
 
@@ -37,11 +32,6 @@ def _(circuit: CirqCircuit):
 
 
 @import_circuit.register
-def _(circuit: PyquilCircuit):
-    return import_from_pyquil(circuit)
-
-
-@import_circuit.register
 def _(circuit: OrquestraCircuit):
     return circuit
 
@@ -54,8 +44,6 @@ def export_circuit(circuit_type, circuit: OrquestraCircuit):
         return export_to_qiskit(circuit)
     elif circuit_type == CirqCircuit:
         return export_to_cirq(circuit)
-    elif circuit_type == PyquilCircuit:
-        return export_to_pyquil(circuit)
     else:
         raise NotImplementedError(f"Circuit type {circuit_type} not supported")
 

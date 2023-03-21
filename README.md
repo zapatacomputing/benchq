@@ -17,9 +17,13 @@ If you're a Windows user, please consider using [WSL](https://learn.microsoft.co
 ### Extra dependencies
 
 Graph compilation requires non-Python dependencies to be installed.
+Either:
 1. Install a recent Julia version from the [Julia website](https://julialang.org/downloads/).
 2. Make sure `julia` executable is on your `$PATH`. You can test it by running `julia` in a new terminal window.
 3. Install Julia dependencies: open `julia` REPL, press `]`, run `add JSON` and `add Jabalizer`.
+
+Or:
+1. Run `python setup_julia.py` in repo root.
 
 If you plan to use PySCF to generate Hamiltonians, use the `pyscf` install extra:
 ```bash

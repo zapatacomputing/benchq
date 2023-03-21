@@ -36,6 +36,7 @@ def main():
 
         time.sleep(1)
 
+    print(wf_run.get_results())
 
 if __name__ == "__main__":
     main()

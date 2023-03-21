@@ -10,18 +10,21 @@ from orquestra.quantum.evolution import time_evolution
 
 from benchq import BasicArchitectureModel
 from benchq.compilation import get_algorithmic_graph, pyliqtr_transpile_to_clifford_t
-from benchq.problem_ingestion import (
-    generate_hydrogen_chain_instance,
-    generate_jw_qubit_hamiltonian_from_mol_data,
-)
+from benchq.problem_ingestion import generate_jw_qubit_hamiltonian_from_mol_data
 from benchq.resource_estimation.graph_compilation import (
     get_resource_estimations_for_graph,
 )
+from benchq.problem_ingestion.molecule_instance_generation import (
+    generate_hydrogen_chain_instance,
+)
+from benchq.resource_estimation import get_qpe_resource_estimates_from_mean_field_object
 
-standard_task = sdk.task(source_import=sdk.GitImport.infer())
+task_deps = [sdk.PythonImports("pyscf==2.1.0", "openfermionpyscf==0.5")]
+standard_task = sdk.task(source_import=sdk.GitImport.infer(),
+                         dependency_imports=task_deps)
 
 task_with_julia = sdk.task(
-    source_import=sdk.GitImport.infer(), custom_image="mstechly/ta2-julia-test"
+    source_import=sdk.GitImport.infer(), dependency_imports=task_deps, custom_image="mstechly/ta2-julia-test"
 )
 
 
@@ -55,6 +58,25 @@ def get_resource_estimations_for_graph_task(
         graph, architecture_model, synthesis_accuracy
     )
 
+@standard_task
+def get_of_resource_estimates(n_hydrogens):
+    instance = generate_hydrogen_chain_instance(n_hydrogens)
+    instance.avas_atomic_orbitals = ["H 1s", "H 2s"]
+    instance.avas_minao = "STO-3G"
+    mean_field_object = instance.get_active_space_meanfield_object()
+
+    # Running resource estimation with OpenFermion tools
+
+    # Set number of bits of precision in ancilla state preparation
+    bits_precision_state_prep = 4 * (n_hydrogens - 2) - n_hydrogens
+    chemical_accuracy = 1e-3
+    of_resource_estimates = get_qpe_resource_estimates_from_mean_field_object(
+        mean_field_object,
+        target_accuracy=chemical_accuracy,
+        bits_precision_state_prep=bits_precision_state_prep,
+    )
+
+    return of_resource_estimates
 
 @sdk.workflow
 def hydrogen_workflow():
@@ -64,7 +86,9 @@ def hydrogen_workflow():
         physical_gate_time_in_seconds=1e-8,
     )
     workflow_results = []
-    for n_hydrogens in [1]:
+    for n_hydrogens in [2]:
+        of_estimates = get_of_resource_estimates(n_hydrogens)
+        workflow_results.append(of_estimates)
         operator = get_operator(n_hydrogens)
         evolution_time = 1
         circuit = time_evolution_task(operator, evolution_time)
