@@ -12,7 +12,6 @@ from examples.h_chain_from_qasm import main as h_chain_from_qasm_main
 from examples.h_chain_trotter import main as h_chain_main
 from examples.qsp_vlasov import main as qsp_vlasov_main
 from examples.orquestra.hydrogen_demo.defs import hydrogen_workflow
-import orquestra.sdk as sdk
 from orquestra.sdk.schema.workflow_run import State
 
 MAIN_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -47,13 +46,14 @@ def test_orquestra_example():
         status = wf_run.get_status()
         if status not in {State.WAITING, State.RUNNING}:
             break
-        if loops > 180: # 3 minutes should be enough to finish workflow.
+        if loops > 180:  # 3 minutes should be enough to finish workflow.
             pytest.fail("WF didn't finish in 150 secs.")
 
         time.sleep(1)
         loops += 1
 
-    wf_run.get_results() # this will throw an exception on failed workflow
+    wf_run.get_results()  # this will throw an exception on failed workflow
+
 
 @pytest.mark.skip(reason="Temporary skip to facilitate development")
 def test_h_chain_example():
