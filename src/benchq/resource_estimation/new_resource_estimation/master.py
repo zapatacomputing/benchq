@@ -1,5 +1,7 @@
 import numpy as np
 
+from .transformers import default_transformer
+
 
 class GraphResourceEstimator:
     def __init__(self, hw_model, error_budget, specs):
@@ -150,3 +152,21 @@ def re_with_subgraphs(program, error_budget, hardware_model, decoder_model, spec
 
     # get resource estimations – with subgraphs will be different
     return resource_estimator.estimate_from_subgraphs(graph)
+
+
+### Idea:
+### Use this function that sort of puts the whole pipeline together
+### If we later think that it is too complicate for scientists to use,
+### we will provide a topl level function with more familiar arguments
+### i.e.
+### def get_resource_estimation(quantum_program, arch_model, use_full_graph):
+###     ...
+def run_resource_estimation_pipeline(
+    program_or_circuit,
+    error_budget,
+    use_full_program,
+    estimator,
+    transformer=default_transformer,
+):
+    transformed = transformer(program_or_circuit, error_budget)
+    return estimator.estimate(transformed, error_budget, use_full_program)

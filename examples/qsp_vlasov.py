@@ -21,9 +21,14 @@ from benchq import BasicArchitectureModel
 from benchq.algorithms import get_qsp_circuit, get_qsp_program
 from benchq.compilation import get_algorithmic_graph, pyliqtr_transpile_to_clifford_t
 from benchq.problem_ingestion import get_vlasov_hamiltonian
-from benchq.resource_estimation.graph_compilation import (
-    get_resource_estimations_for_graph,
-    get_resource_estimations_for_program,
+from benchq.resource_estimation.new_resource_estimation.estimators import (
+    GraphResourceEstimator,
+)
+from benchq.resource_estimation.new_resource_estimation.transformers import (
+    default_transformer,
+)
+from benchq.resource_estimation.new_resource_estimation.master import (
+    run_resource_estimation_pipeline,
 )
 
 
@@ -79,6 +84,20 @@ def main():
     error_correction_error_budget = (
         tolerable_logical_error_rate - qsp_required_precision
     ) / 3
+    error_budget = {
+        "qsp_required_precision": qsp_required_precision,
+        "tolerable_circuit_error_rate": tolerable_logical_error_rate,
+        "total_error": 1e-2,
+        "synthesis_error_rate": 0.5,
+        "ec_error_rate": 0.5,
+    }
+    specs = {
+        "gate_synthesis": True,
+    }
+    architecture_model = BasicArchitectureModel(
+        physical_gate_error_rate=1e-3,
+        physical_gate_time_in_seconds=1e-6,
+    )
 
     for N in [2]:
         # TA 1 part: specify the core computational capability
@@ -87,33 +106,9 @@ def main():
         end = time.time()
         print("Operator generation time:", end - start)
 
-        ### METHOD 1: Full graph creation
-        # TA 1.5 part: model algorithmic circuit
-        start = time.time()
-        circuit = get_qsp_circuit(
-            operator, qsp_required_precision, dt, tmax, sclf, use_random_angles=True
+        estimator = GraphResourceEstimator(
+            architecture_model, error_budget=error_budget, specs=specs
         )
-        end = time.time()
-        print("Circuit generation time:", end - start)
-        # TA 2 part: FTQC compilation
-        clifford_t_circuit = pyliqtr_transpile_to_clifford_t(
-            circuit, gate_synthesis_error_budget
-        )
-        graph = get_algorithmic_graph(clifford_t_circuit)
-
-        # TA 2 part: model hardware resources
-        architecture_model = BasicArchitectureModel(
-            physical_gate_error_rate=1e-3,
-            physical_gate_time_in_seconds=1e-6,
-        )
-        start = time.time()
-        resource_estimates = get_resource_estimations_for_graph(
-            graph, architecture_model, error_correction_error_budget
-        )
-        end = time.time()
-
-        print("Resource estimation time:", end - start)
-        print(resource_estimates)
 
         ### METHOD 2: Estimation from quantum program, without recreating full graph
         # TA 1.5 part: model algorithmic circuit
@@ -126,28 +121,15 @@ def main():
         print("Circuit generation time:", end - start)
         # TA 2 part: model hardware resources
         start = time.time()
-        resource_estimates = get_resource_estimations_for_program(
+        gsc_resource_estimates = run_resource_estimation_pipeline(
             program,
-            gate_synthesis_error_budget + error_correction_error_budget,
-            architecture_model,
-            use_full_program_graph=False,
+            error_budget,
+            estimator=GraphResourceEstimator(architecture_model, error_budget, specs),
+            use_full_program=True,  # ?
         )
         end = time.time()
         print("Resource estimation time:", end - start)
-        print(resource_estimates)
-
-        ### METHOD 3: Estimation from quantum program, with recreating the full graph
-        start = time.time()
-        resource_estimates = get_resource_estimations_for_program(
-            program,
-            gate_synthesis_error_budget + error_correction_error_budget,
-            architecture_model,
-            use_full_program_graph=True,
-            plot=False,
-        )
-        end = time.time()
-        print("Resource estimation time:", end - start)
-        print(resource_estimates)
+        print(gsc_resource_estimates)
 
 
 if __name__ == "__main__":
