@@ -14,7 +14,7 @@ from openfermion.resource_estimates.molecule import (
 )
 from openfermionpyscf import PyscfMolecularData
 from openfermionpyscf._run_pyscf import compute_integrals
-from pyscf import gto, scf
+from pyscf import gto, scf, mp
 
 
 @dataclass
@@ -48,6 +48,7 @@ class ChemistryApplicationInstance:
     avas_minao: Optional[str] = None
     occupied_indices: Optional[Iterable[int]] = None
     active_indices: Optional[Iterable[int]] = None
+    use_fno: Optional[bool] = False
 
     def get_pyscf_molecule(self) -> gto.Mole:
         "Generate the PySCF molecule object describing the system to be calculated."
@@ -82,6 +83,120 @@ class ChemistryApplicationInstance:
             )
         return molecule, mean_field_object
 
+    def get_occupied_and_active_indicies_with_frozen_natural_orbitals(
+        self,
+        freeze_core: Optional[bool] = False,
+        fno_threshold: Optional[float] = 1e-06,
+        percentage_occupation_number: Optional[float] = None,
+        n_virtual_natural_orbitals: Optional[int] = None,
+    ) -> Tuple[List[int], List[int]]:
+        """
+        Reduce the virtual space with the frozen natural orbital (FNO)
+        approach and get occupied and active orbital indicies needed for
+        computing the fermionic Hamiltonian.
+
+        Args:
+            freeze_core: Perform calculations with frozen core orbitals. Default: False.
+            fno_threshold: Threshold on NO occupation numbers. Default is 1e-6.
+            n_virtual_natural_orbitals: Number of virtual NOs to keep. Default is None.
+                                        If present, overrides `thresh` and `pct_occ`.
+
+        Returns:
+            occupied_indices: A list of molecular orbitals not in the active space.
+            active_indicies: A list of molecular orbitals to include in the active space.
+
+        """
+        molecular_data = self._get_molecular_data()
+        mean_field_object = molecular_data._pyscf_data["scf"]
+
+        # if molecular_data.multiplicity != 1:
+        #    raise ValueError("RO-MP2 is not available.")
+
+        n_frozen_core_orbitals = 0
+        if freeze_core:
+            mp2 = mp.MP2(mean_field_object).set_frozen()
+            n_frozen_core_orbitals = mp2.frozen
+
+        else:
+            mp2 = mp.MP2(mean_field_object)
+
+        mp2.verbose = 4
+        mp2.run()
+        mp2_energy = mean_field_object.e_tot + mp2.e_corr
+        # molecular_data["mp2"] = mp2_energy
+
+        frozen_natural_orbitals, natural_orbital_coefficients = mp2.make_fno(
+            fno_threshold, percentage_occupation_number, n_virtual_natural_orbitals
+        )
+
+        molecular_data.canonical_orbitals = natural_orbital_coefficients[
+            :, n_frozen_core_orbitals : -len(frozen_natural_orbitals)
+        ]
+
+        one_body_integrals, two_body_integrals = compute_integrals(
+            mean_field_object._eri, natural_orbital_coefficients
+        )
+        molecular_data.one_body_integrals = one_body_integrals
+        molecular_data.two_body_integrals = two_body_integrals
+        molecular_data.overlap_integrals = molecular_data.get_ovlp()
+
+        all_orbital_indicies = list(range(molecular_data.n_orbitals))
+        occupied_indices = list(range(n_frozen_core_orbitals))
+        active_indicies = all_orbital_indicies[
+            len(occupied_indices) : -len(frozen_natural_orbitals)
+        ]
+
+        return molecular_data, occupied_indices, active_indicies
+
+    """
+    def truncate_with_frozen_natural_orbitals(
+        self,
+        freeze_core=True,
+        fno_threshold=1e-06,
+        percentage_occupation_number=None,
+        n_virtual_nos=None,
+    ):
+        molecular_data = self._get_molecular_data()
+
+        if molecular_data.multiplicity != 1:
+            raise ValueError("RO-MP2 is not available.")
+
+        n_frozen_core_orbitals = 0
+        if freeze_core:
+            mp2 = mp.MP2(molecular_data.mf).set_frozen()
+            n_frozen_core_orbitals = mp2.frozen
+            print(f"Number of core orbital frozen: {n_frozen_core_orbitals}")
+
+        else:
+            mp2 = mp.MP2(molecular_data.mf)
+
+        mp2.verbose = 4
+        mp2.run()
+        mp2_energy = molecular_data.mf.e_tot + mp2.e_corr
+        molecular_data["mp2"] = mp2_energy
+
+        frozen_natural_orbital_list, natural_orbital_coefficients = mp2.make_fno(
+            fno_threshold, percentage_occupation_number, n_virtual_nos
+        )
+
+        if len(frozen_natural_orbital_list) == 0:
+            molecular_data.mo_coeff = molecular_data.mo_coeff[
+                :, n_frozen_core_orbitals:
+            ]
+            # Compute integrals
+        else:
+            natural_orbital_coefficients_without_core = natural_orbital_coefficients[
+                :, n_frozen_core_orbitals:
+            ]
+            no_coeff_without_core_and_fno = natural_orbital_coefficients_without_core[
+                :, :frozen_natural_orbital_list:
+            ]
+            molecular_data.mo_coeff = no_coeff_without_core_and_fno
+            # Compute integrals
+
+        return molecular_data
+    """
+
     def get_active_space_hamiltonian(self) -> openfermion.InteractionOperator:
         """Generate the fermionic Hamiltonian corresponding to the instance's
         active space.
@@ -95,6 +210,16 @@ class ChemistryApplicationInstance:
                 that the active space will account for both AVAS and the
                 occupied_indices/active_indices attributes.
         """
+        if self.use_fno:
+            (
+                molecular_data,
+                occupied_indices,
+                active_indices,
+            ) = self.get_occupied_and_active_indicies_with_frozen_natural_orbitals()
+            return molecular_data.get_molecular_hamiltonian(
+                occupied_indices=occupied_indices, active_indices=active_indices
+            )
+
         return self._get_molecular_data().get_molecular_hamiltonian(
             occupied_indices=self.occupied_indices,
             active_indices=self.active_indices,
@@ -154,6 +279,7 @@ class ChemistryApplicationInstance:
 
         pyscf_molecular_data = PyscfMolecularData.__new__(PyscfMolecularData)
         pyscf_molecular_data.__dict__.update(molecule.__dict__)
+
         return molecular_data
 
 
