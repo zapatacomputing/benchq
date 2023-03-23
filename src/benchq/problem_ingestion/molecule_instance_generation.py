@@ -85,7 +85,7 @@ class ChemistryApplicationInstance:
 
     def get_occupied_and_active_indicies_with_frozen_natural_orbitals(
         self,
-        freeze_core: Optional[bool] = False,
+        freeze_core: Optional[bool] = True,
         fno_threshold: Optional[float] = 1e-06,
         percentage_occupation_number: Optional[float] = None,
         n_virtual_natural_orbitals: Optional[int] = None,
@@ -109,8 +109,8 @@ class ChemistryApplicationInstance:
         molecular_data = self._get_molecular_data()
         mean_field_object = molecular_data._pyscf_data["scf"]
 
-        # if molecular_data.multiplicity != 1:
-        #    raise ValueError("RO-MP2 is not available.")
+        if molecular_data.multiplicity != 1:
+            raise ValueError("RO-MP2 is not available.")
 
         n_frozen_core_orbitals = 0
         if freeze_core:
@@ -123,28 +123,41 @@ class ChemistryApplicationInstance:
         mp2.verbose = 4
         mp2.run()
         mp2_energy = mean_field_object.e_tot + mp2.e_corr
-        # molecular_data["mp2"] = mp2_energy
+        molecular_data._pyscf_data["mp2"] = mp2_energy
 
         frozen_natural_orbitals, natural_orbital_coefficients = mp2.make_fno(
             fno_threshold, percentage_occupation_number, n_virtual_natural_orbitals
         )
 
-        molecular_data.canonical_orbitals = natural_orbital_coefficients[
-            :, n_frozen_core_orbitals : -len(frozen_natural_orbitals)
-        ]
+        if len(frozen_natural_orbitals) > 0:
+            molecular_data.canonical_orbitals = natural_orbital_coefficients[
+                :, n_frozen_core_orbitals : -len(frozen_natural_orbitals)
+            ]
+        else:
+            molecular_data.canonical_orbitals = natural_orbital_coefficients[
+                :, n_frozen_core_orbitals:
+            ]
+
+        # Override the PySCF coefficients for the compute_integrals()
+        mean_field_object.mo_coeff = molecular_data.canonical_orbitals
 
         one_body_integrals, two_body_integrals = compute_integrals(
-            mean_field_object._eri, natural_orbital_coefficients
+            mean_field_object._eri, mean_field_object
         )
+
         molecular_data.one_body_integrals = one_body_integrals
         molecular_data.two_body_integrals = two_body_integrals
-        molecular_data.overlap_integrals = molecular_data.get_ovlp()
+        molecular_data.overlap_integrals = mean_field_object.get_ovlp()
 
         all_orbital_indicies = list(range(molecular_data.n_orbitals))
         occupied_indices = list(range(n_frozen_core_orbitals))
-        active_indicies = all_orbital_indicies[
-            len(occupied_indices) : -len(frozen_natural_orbitals)
-        ]
+
+        if len(frozen_natural_orbitals) != 0:
+            active_indicies = all_orbital_indicies[
+                len(occupied_indices) : -len(frozen_natural_orbitals)
+            ]
+        else:
+            active_indicies = all_orbital_indicies[len(occupied_indices) :]
 
         return molecular_data, occupied_indices, active_indicies
 
@@ -210,20 +223,23 @@ class ChemistryApplicationInstance:
                 that the active space will account for both AVAS and the
                 occupied_indices/active_indices attributes.
         """
+
         if self.use_fno:
             (
                 molecular_data,
                 occupied_indices,
                 active_indices,
             ) = self.get_occupied_and_active_indicies_with_frozen_natural_orbitals()
+
             return molecular_data.get_molecular_hamiltonian(
                 occupied_indices=occupied_indices, active_indices=active_indices
             )
 
-        return self._get_molecular_data().get_molecular_hamiltonian(
-            occupied_indices=self.occupied_indices,
-            active_indices=self.active_indices,
-        )
+        else:
+            return self._get_molecular_data().get_molecular_hamiltonian(
+                occupied_indices=self.occupied_indices,
+                active_indices=self.active_indices,
+            )
 
     def get_active_space_meanfield_object(self) -> scf.hf.SCF:
         """Run an SCF calculation using PySCF and return the results as a meanfield
