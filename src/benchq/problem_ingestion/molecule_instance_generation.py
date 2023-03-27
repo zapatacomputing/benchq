@@ -48,7 +48,8 @@ class ChemistryApplicationInstance:
     avas_minao: Optional[str] = None
     occupied_indices: Optional[Iterable[int]] = None
     active_indices: Optional[Iterable[int]] = None
-    use_fno: Optional[bool] = False
+    freeze_core: Optional[bool] = None
+    fno_percentage_occupation_number: Optional[float] = None
 
     def get_pyscf_molecule(self) -> gto.Mole:
         "Generate the PySCF molecule object describing the system to be calculated."
@@ -85,11 +86,11 @@ class ChemistryApplicationInstance:
 
     def get_occupied_and_active_indicies_with_frozen_natural_orbitals(
         self,
-        freeze_core: Optional[bool] = True,
-        fno_threshold: Optional[float] = 1e-06,
-        percentage_occupation_number: Optional[float] = None,
+        freeze_core: Optional[bool] = False,
+        percentage_occupation_number: Optional[float] = 0.99,
+        fno_threshold: Optional[float] = None,
         n_virtual_natural_orbitals: Optional[int] = None,
-    ) -> Tuple[List[int], List[int]]:
+    ) -> Tuple[openfermion.MolecularData, List[int], List[int]]:
         """
         Reduce the virtual space with the frozen natural orbital (FNO)
         approach and get occupied and active orbital indicies needed for
@@ -97,14 +98,13 @@ class ChemistryApplicationInstance:
 
         Args:
             freeze_core: Perform calculations with frozen core orbitals. Default: False.
-            fno_threshold: Threshold on NO occupation numbers. Default is 1e-6.
+            percentage_occupation_number:  Percentage of total occupation number. Default is 0.99.
+            fno_threshold: Threshold on NO occupation numbers. Default is None.
             n_virtual_natural_orbitals: Number of virtual NOs to keep. Default is None.
-                                        If present, overrides `thresh` and `pct_occ`.
 
         Returns:
             occupied_indices: A list of molecular orbitals not in the active space.
             active_indicies: A list of molecular orbitals to include in the active space.
-
         """
         molecular_data = self._get_molecular_data()
         mean_field_object = molecular_data._pyscf_data["scf"]
@@ -129,16 +129,7 @@ class ChemistryApplicationInstance:
             fno_threshold, percentage_occupation_number, n_virtual_natural_orbitals
         )
 
-        if len(frozen_natural_orbitals) > 0:
-            molecular_data.canonical_orbitals = natural_orbital_coefficients[
-                :, n_frozen_core_orbitals : -len(frozen_natural_orbitals)
-            ]
-        else:
-            molecular_data.canonical_orbitals = natural_orbital_coefficients[
-                :, n_frozen_core_orbitals:
-            ]
-
-        # Override the PySCF coefficients for the compute_integrals()
+        molecular_data.canonical_orbitals = natural_orbital_coefficients
         mean_field_object.mo_coeff = molecular_data.canonical_orbitals
 
         one_body_integrals, two_body_integrals = compute_integrals(
@@ -161,55 +152,6 @@ class ChemistryApplicationInstance:
 
         return molecular_data, occupied_indices, active_indicies
 
-    """
-    def truncate_with_frozen_natural_orbitals(
-        self,
-        freeze_core=True,
-        fno_threshold=1e-06,
-        percentage_occupation_number=None,
-        n_virtual_nos=None,
-    ):
-        molecular_data = self._get_molecular_data()
-
-        if molecular_data.multiplicity != 1:
-            raise ValueError("RO-MP2 is not available.")
-
-        n_frozen_core_orbitals = 0
-        if freeze_core:
-            mp2 = mp.MP2(molecular_data.mf).set_frozen()
-            n_frozen_core_orbitals = mp2.frozen
-            print(f"Number of core orbital frozen: {n_frozen_core_orbitals}")
-
-        else:
-            mp2 = mp.MP2(molecular_data.mf)
-
-        mp2.verbose = 4
-        mp2.run()
-        mp2_energy = molecular_data.mf.e_tot + mp2.e_corr
-        molecular_data["mp2"] = mp2_energy
-
-        frozen_natural_orbital_list, natural_orbital_coefficients = mp2.make_fno(
-            fno_threshold, percentage_occupation_number, n_virtual_nos
-        )
-
-        if len(frozen_natural_orbital_list) == 0:
-            molecular_data.mo_coeff = molecular_data.mo_coeff[
-                :, n_frozen_core_orbitals:
-            ]
-            # Compute integrals
-        else:
-            natural_orbital_coefficients_without_core = natural_orbital_coefficients[
-                :, n_frozen_core_orbitals:
-            ]
-            no_coeff_without_core_and_fno = natural_orbital_coefficients_without_core[
-                :, :frozen_natural_orbital_list:
-            ]
-            molecular_data.mo_coeff = no_coeff_without_core_and_fno
-            # Compute integrals
-
-        return molecular_data
-    """
-
     def get_active_space_hamiltonian(self) -> openfermion.InteractionOperator:
         """Generate the fermionic Hamiltonian corresponding to the instance's
         active space.
@@ -224,7 +166,7 @@ class ChemistryApplicationInstance:
                 occupied_indices/active_indices attributes.
         """
 
-        if self.use_fno:
+        if self.fno_percentage_occupation_number:
             (
                 molecular_data,
                 occupied_indices,
