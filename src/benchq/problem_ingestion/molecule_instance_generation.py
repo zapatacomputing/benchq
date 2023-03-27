@@ -15,6 +15,7 @@ from openfermion.resource_estimates.molecule import (
 from openfermionpyscf import PyscfMolecularData
 from openfermionpyscf._run_pyscf import compute_integrals
 from pyscf import gto, scf, mp
+import logging
 
 
 @dataclass
@@ -86,21 +87,11 @@ class ChemistryApplicationInstance:
 
     def get_occupied_and_active_indicies_with_frozen_natural_orbitals(
         self,
-        freeze_core: Optional[bool] = False,
-        percentage_occupation_number: Optional[float] = 0.99,
-        fno_threshold: Optional[float] = None,
-        n_virtual_natural_orbitals: Optional[int] = None,
     ) -> Tuple[openfermion.MolecularData, List[int], List[int]]:
         """
         Reduce the virtual space with the frozen natural orbital (FNO)
         approach and get occupied and active orbital indicies needed for
         computing the fermionic Hamiltonian.
-
-        Args:
-            freeze_core: Perform calculations with frozen core orbitals. Default: False.
-            percentage_occupation_number:  Percentage of total occupation number. Default is 0.99.
-            fno_threshold: Threshold on NO occupation numbers. Default is None.
-            n_virtual_natural_orbitals: Number of virtual NOs to keep. Default is None.
 
         Returns:
             occupied_indices: A list of molecular orbitals not in the active space.
@@ -113,7 +104,20 @@ class ChemistryApplicationInstance:
             raise ValueError("RO-MP2 is not available.")
 
         n_frozen_core_orbitals = 0
-        if freeze_core:
+
+        if self.occupied_indices and self.freeze_core:
+            logging.warn(
+                "Both Occupied indicies and frozen_core options were selcted. "
+                "Frozen core orbitals were chosen!"
+            )
+            mp2 = mp.MP2(mean_field_object).set_frozen()
+            n_frozen_core_orbitals = mp2.frozen
+
+        elif self.occupied_indices:
+            mp2 = mp.MP2(mean_field_object).set(frozen=self.occupied_indices)
+            n_frozen_core_orbitals = len(self.occupied_indices)
+
+        elif self.freeze_core:
             mp2 = mp.MP2(mean_field_object).set_frozen()
             n_frozen_core_orbitals = mp2.frozen
 
@@ -126,7 +130,9 @@ class ChemistryApplicationInstance:
         molecular_data._pyscf_data["mp2"] = mp2_energy
 
         frozen_natural_orbitals, natural_orbital_coefficients = mp2.make_fno(
-            fno_threshold, percentage_occupation_number, n_virtual_natural_orbitals
+            self.fno_threshold,
+            self.percentage_occupation_number,
+            self.n_virtual_natural_orbitals,
         )
 
         molecular_data.canonical_orbitals = natural_orbital_coefficients
