@@ -24,9 +24,26 @@ class ChemistryApplicationInstance:
 
     A chemistry application instance is a specification of how to generate a fermionic
     Hamiltonian, including information such as the molecular geometry and choice of
-    active space. Note that the active space can be specified either through the use of
-    Atomic Valence Active Space (AVAS) or by specifying the indices of the occupied and
-    active orbitals.
+    active space. Note that the active space can be specified in one of the following ways:
+    1. the use of Atomic Valence Active Space (AVAS),
+
+    2. by specifying the indices of the occupied and active orbitals,
+
+        If occuped_indicies is determined and freeze_core is True,
+        we use frozen core orbitals in calculations.
+
+    3. by using the frozen natural orbital (FNO) approche.
+       In this case a user needs to set one of the FNO parametsrs:
+            - fno_percentage_occupation_number
+            - fno_threshold
+            - fno_n_virtual_natural_orbitals
+        to decide how much virtual space will be kept for the active space.
+
+        If freeze_core option is selected True, chemical frozen core orbitals
+        are choosen for occuped_indicies.
+
+        If occuped_indicies is determined and freeze_core is True,
+        we use frozen core orbitals in calculations.
 
     Args:
         geometry: A list of tuples of the form (atom, (x, y, z)) where atom is the
@@ -39,6 +56,9 @@ class ChemistryApplicationInstance:
         occupied_indices: A list of molecular orbitals not in the active space that
             should be assumed to be fully occupied.
         active_indices: A list of molecular orbitals to include in the active space.
+        fno_percentage_occupation_number: Percentage of total occupation number.
+        fno_threshold: Threshold on NO occupation numbers.
+        fno_n_virtual_natural_orbitals: Number of virtual NOs to keep.
     """
 
     geometry: List[Tuple[str, Tuple[float, float, float]]]
@@ -51,6 +71,8 @@ class ChemistryApplicationInstance:
     active_indices: Optional[Iterable[int]] = None
     freeze_core: Optional[bool] = None
     fno_percentage_occupation_number: Optional[float] = None
+    fno_threshold: Optional[float] = None
+    fno_n_virtual_natural_orbitals: Optional[int] = None
 
     def get_pyscf_molecule(self) -> gto.Mole:
         "Generate the PySCF molecule object describing the system to be calculated."
@@ -108,18 +130,16 @@ class ChemistryApplicationInstance:
         if self.occupied_indices and self.freeze_core:
             logging.warn(
                 "Both Occupied indicies and frozen_core options were selcted. "
-                "Frozen core orbitals were chosen!"
+                "Frozen core orbitals were chosen for further calculations!"
             )
-            mp2 = mp.MP2(mean_field_object).set_frozen()
-            n_frozen_core_orbitals = mp2.frozen
+            mp2, n_frozen_core_orbitals = self._get_frozen_core_orbitals(molecular_data)
 
-        elif self.occupied_indices:
+        elif self.occupied_indices and not self.freeze_core:
             mp2 = mp.MP2(mean_field_object).set(frozen=self.occupied_indices)
             n_frozen_core_orbitals = len(self.occupied_indices)
 
-        elif self.freeze_core:
-            mp2 = mp.MP2(mean_field_object).set_frozen()
-            n_frozen_core_orbitals = mp2.frozen
+        elif self.freeze_core and not self.occupied_indices:
+            mp2, n_frozen_core_orbitals = self._get_frozen_core_orbitals(molecular_data)
 
         else:
             mp2 = mp.MP2(mean_field_object)
@@ -131,8 +151,8 @@ class ChemistryApplicationInstance:
 
         frozen_natural_orbitals, natural_orbital_coefficients = mp2.make_fno(
             self.fno_threshold,
-            self.percentage_occupation_number,
-            self.n_virtual_natural_orbitals,
+            self.fno_percentage_occupation_number,
+            self.fno_n_virtual_natural_orbitals,
         )
 
         molecular_data.canonical_orbitals = natural_orbital_coefficients
@@ -172,7 +192,11 @@ class ChemistryApplicationInstance:
                 occupied_indices/active_indices attributes.
         """
 
-        if self.fno_percentage_occupation_number:
+        if (
+            self.fno_percentage_occupation_number
+            or self.fno_threshold
+            or self.fno_n_virtual_natural_orbitals
+        ):
             (
                 molecular_data,
                 occupied_indices,
@@ -184,7 +208,26 @@ class ChemistryApplicationInstance:
             )
 
         else:
-            return self._get_molecular_data().get_molecular_hamiltonian(
+            molecular_data = self._get_molecular_data()
+
+            if not self.active_indices:
+                raise ValueError("Active indices need to be specified.")
+
+            if self.occupied_indices and self.freeze_core:
+                logging.warn(
+                    "Both occupied_indicies and frozen_core options were selcted."
+                    "Frozen core orbitals were chosen for further calculations!"
+                )
+                self.occupied_indices = list(
+                    range(self._get_frozen_core_orbitals(molecular_data)[1])
+                )
+
+            if self.freeze_core and not self.occupied_indices:
+                self.occupied_indices = list(
+                    range(self._get_frozen_core_orbitals(molecular_data)[1])
+                )
+
+            return molecular_data.get_molecular_hamiltonian(
                 occupied_indices=self.occupied_indices,
                 active_indices=self.active_indices,
             )
@@ -245,6 +288,19 @@ class ChemistryApplicationInstance:
         pyscf_molecular_data.__dict__.update(molecule.__dict__)
 
         return molecular_data
+
+    def _get_frozen_core_orbitals(self, molecular_data) -> Tuple[mp.mp2.MP2, int]:
+        """
+        Get auto-generated chemical core orbitals.
+
+        Args:
+            molecular_data: PyscfMolecularData object
+        Returns
+            The mp2 object and the number of chemical core orbitals.
+
+        """
+        mp2 = mp.MP2(molecular_data._pyscf_data["scf"]).set_frozen()
+        return mp2, mp2.frozen
 
 
 def truncate_with_avas(
