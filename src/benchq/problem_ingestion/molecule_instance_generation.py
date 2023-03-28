@@ -1,6 +1,7 @@
 ################################################################################
 # © Copyright 2022 Zapata Computing Inc.
 ################################################################################
+import logging
 from dataclasses import dataclass
 from typing import Iterable, List, Optional, Tuple
 
@@ -14,8 +15,7 @@ from openfermion.resource_estimates.molecule import (
 )
 from openfermionpyscf import PyscfMolecularData
 from openfermionpyscf._run_pyscf import compute_integrals
-from pyscf import gto, scf, mp
-import logging
+from pyscf import gto, mp, scf
 
 
 @dataclass
@@ -24,7 +24,9 @@ class ChemistryApplicationInstance:
 
     A chemistry application instance is a specification of how to generate a fermionic
     Hamiltonian, including information such as the molecular geometry and choice of
-    active space. Note that the active space can be specified in one of the following ways:
+    active space. Note that the active space can be specified in one of the following
+    ways:
+
     1. the use of Atomic Valence Active Space (AVAS),
 
     2. by specifying the indices of the occupied and active orbitals,
