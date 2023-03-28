@@ -1,6 +1,6 @@
 import numpy as np
 
-from .transformers import default_transformer
+from .transformers import synthesize_clifford_t
 
 
 
@@ -73,7 +73,7 @@ def run_resource_estimation_pipeline(
     error_budget,
     use_full_program,
     estimator,
-    transformer=default_transformer,
+    transformer=synthesize_clifford_t,
 ):
     transformed = transformer(program_or_circuit, error_budget)
     return estimator.estimate(transformed, error_budget, use_full_program)

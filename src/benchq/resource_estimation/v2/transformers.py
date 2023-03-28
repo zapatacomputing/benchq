@@ -1,12 +1,22 @@
+from functools import singledispatch
 import json
+from typing import Union
 
 from ...compilation import get_algorithmic_graph, pyliqtr_transpile_to_clifford_t
 from ...data_structures import QuantumProgram
-from .structs import GraphPartition
+from .structs import AnyCircuit, GraphPartition, SingleGraph
 
 
-### There is probably a better name for this
-def default_transformer(program: QuantumProgram, error_budget):
+@singledispatch
+def synthesize_clifford_t(circuit: AnyCircuit, error_budget) -> SingleGraph:
+    return SingleGraph(
+        circuit=circuit,
+        graph=get_algorithmic_graph(circuit),
+    )
+
+
+@synthesize_clifford_t.register
+def synthesize_clifford_t_for_program(program: QuantumProgram, error_budget):
     graphs_list = []
     data_qubits_map_list = []
     # We assign the same amount of error budget to gate synthesis and error correction.
