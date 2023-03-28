@@ -13,11 +13,11 @@ Objectives:
     - This is mostly for completeness and illustratory purposes
     - Software can be quite crappy
 """
-import time
+from pprint import pprint
 
 from benchq import BasicArchitectureModel
 from benchq.algorithms import get_qsp_program
-
+from benchq.timing import measure_time
 from benchq.problem_ingestion import get_vlasov_hamiltonian
 from benchq.resource_estimation.v2 import (
     GraphResourceEstimator,
@@ -88,31 +88,31 @@ def main():
 
     for N in [2]:
         # TA 1 part: specify the core computational capability
-        start = time.time()
-        operator = get_vlasov_hamiltonian(k, alpha, nu, N)
-        end = time.time()
-        print("Operator generation time:", end - start)
+        with measure_time() as t_info:
+            operator = get_vlasov_hamiltonian(k, alpha, nu, N)
+
+        print("Operator generation time:", t_info.total)
 
         ### METHOD 2: Estimation from quantum program, without recreating full graph
         # TA 1.5 part: model algorithmic circuit
-        start = time.time()
-        program = get_qsp_program(
-            operator, qsp_required_precision, dt, tmax, sclf, mode="time_evolution"
-        )
+        with measure_time() as t_info:
+            program = get_qsp_program(
+                operator, qsp_required_precision, dt, tmax, sclf, mode="time_evolution"
+            )
 
-        end = time.time()
-        print("Circuit generation time:", end - start)
+        print("Circuit generation time:", t_info.total)
         # TA 2 part: model hardware resources
-        start = time.time()
-        gsc_resource_estimates = run_resource_estimation_pipeline(
-            program,
-            error_budget,
-            estimator=GraphResourceEstimator(architecture_model),
-            use_full_program=True,  # ?
-        )
-        end = time.time()
-        print("Resource estimation time:", end - start)
-        print(gsc_resource_estimates)
+
+        with measure_time() as t_info:
+            gsc_resource_estimates = run_resource_estimation_pipeline(
+                program,
+                error_budget,
+                estimator=GraphResourceEstimator(architecture_model),
+                use_full_program=True,  # ?
+            )
+
+        print("Resource estimation time:", t_info.total)
+        pprint(gsc_resource_estimates)
 
 
 if __name__ == "__main__":
