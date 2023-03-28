@@ -13,21 +13,14 @@ Objectives:
     - This is mostly for completeness and illustratory purposes
     - Software can be quite crappy
 """
-import logging
 import time
 
-import numpy as np
 from benchq import BasicArchitectureModel
-from benchq.algorithms import get_qsp_circuit, get_qsp_program
-from benchq.compilation import get_algorithmic_graph, pyliqtr_transpile_to_clifford_t
+from benchq.algorithms import get_qsp_program
+
 from benchq.problem_ingestion import get_vlasov_hamiltonian
-from benchq.resource_estimation.new_resource_estimation.estimators import (
+from benchq.resource_estimation.v2 import (
     GraphResourceEstimator,
-)
-from benchq.resource_estimation.new_resource_estimation.transformers import (
-    default_transformer,
-)
-from benchq.resource_estimation.new_resource_estimation.master import (
     run_resource_estimation_pipeline,
 )
 
@@ -78,12 +71,6 @@ def main():
         tolerable_logical_error_rate / 3
     )  # Allocate half the error budget to trotter precision
 
-    gate_synthesis_error_budget = (
-        tolerable_logical_error_rate - qsp_required_precision
-    ) / 3
-    error_correction_error_budget = (
-        tolerable_logical_error_rate - qsp_required_precision
-    ) / 3
     error_budget = {
         "qsp_required_precision": qsp_required_precision,
         "tolerable_circuit_error_rate": tolerable_logical_error_rate,
@@ -105,10 +92,6 @@ def main():
         operator = get_vlasov_hamiltonian(k, alpha, nu, N)
         end = time.time()
         print("Operator generation time:", end - start)
-
-        estimator = GraphResourceEstimator(
-            architecture_model, error_budget=error_budget, specs=specs
-        )
 
         ### METHOD 2: Estimation from quantum program, without recreating full graph
         # TA 1.5 part: model algorithmic circuit
