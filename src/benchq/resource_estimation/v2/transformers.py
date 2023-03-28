@@ -9,8 +9,11 @@ from .structs import AnyCircuit, GraphPartition, SingleGraph
 
 @singledispatch
 def synthesize_clifford_t(circuit: AnyCircuit, error_budget) -> SingleGraph:
+    clifford_t_circuit = pyliqtr_transpile_to_clifford_t(
+        circuit, synthesis_accuracy=error_budget["synthesis_error_rate"]
+    )
     return SingleGraph(
-        circuit=circuit,
+        circuit=clifford_t_circuit,
         graph=get_algorithmic_graph(circuit),
     )
 
@@ -36,3 +39,10 @@ def synthesize_clifford_t_for_program(program: QuantumProgram, error_budget):
         data_qubits_map_list.append(data_qubits_map)
 
     return GraphPartition(program, graphs_list, data_qubits_map_list)
+
+
+
+def rotation_preserving_transformer(
+    circuit: AnyCircuit,
+    error_budget
+):
