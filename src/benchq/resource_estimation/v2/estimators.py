@@ -14,22 +14,21 @@ from ..graph_compilation import (
 
 
 class GraphResourceEstimator:
-    def __init__(self, hw_model, error_budget, specs):
+    def __init__(self, hw_model):
         self.hw_model = hw_model
-        self.error_budget = error_budget
-        self.specs = specs
+        self.specs = {}
 
-    def _synthesis_multiplier(self):
+    def _synthesis_multiplier(self, error_budget):
         return (
             12
             * np.log2(
                 1
                 / (
-                    self.error_budget["total_error"]
-                    * self.error_budget["synthesis_error_rate"]
+                    error_budget["total_error"]
+                    * error_budget["synthesis_error_rate"]
                 )
             )
-            if self.specs["gate_synthesis"]
+            if self.specs.get("gate_synthesis")
             else 1
         )
 
@@ -54,10 +53,10 @@ class GraphResourceEstimator:
             n_nodes
         )
 
-    def calculate_wall_time(self, distance: float, n_measurements: int) -> float:
+    def calculate_wall_time(self, distance: float, n_measurements: int, error_budget) -> float:
         # This formula is probably wrong, check it!
         return (
-            self._synthesis_multiplier()
+            self._synthesis_multiplier(error_budget)
             * self._ec_multiplier(distance, n_measurements)
             * n_measurements
         )
@@ -65,12 +64,13 @@ class GraphResourceEstimator:
     def find_min_viable_distance(
         self,
         n_nodes,
+        error_budget,
         min_d=4,
         max_d=100,
     ):
         min_viable_distance = None
         target_error_rate = (
-            self.error_budget["total_error"] * self.error_budget["ec_error_rate"]
+            error_budget["total_error"] * error_budget["ec_error_rate"]
         )
         for distance in range(min_d, max_d):
             logical_error_rate = self.calculate_total_logical_error_rate(
@@ -94,13 +94,13 @@ class GraphResourceEstimator:
         return 12 * max_graph_degree * 2 * distance**2
 
     def get_resource_estimates(
-        self, distance, n_nodes, max_graph_degree, n_measurements
+        self, distance, n_nodes, max_graph_degree, n_measurements, error_budget
     ):
         results_dict = {
             "logical_error_rate": self.calculate_total_logical_error_rate(
                 distance, n_nodes
             ),
-            "total_time": self.calculate_wall_time(distance, n_measurements),
+            "total_time": self.calculate_wall_time(distance, n_measurements, error_budget),
             "physical_qubit_count": self._get_n_physical_qubits(
                 max_graph_degree, distance
             ),
@@ -129,10 +129,10 @@ class GraphResourceEstimator:
             #     error_budget["tolerable_circuit_error_rate"],
             #     plot=False,
             # )
-            distance = self.find_min_viable_distance(n_nodes)
+            distance = self.find_min_viable_distance(n_nodes, error_budget)
             n_measurements = len(scheduler_only_compiler.measurement_steps)
             resource_estimates = self.get_resource_estimates(
-                distance, n_nodes, max_graph_degree, n_measurements
+                distance, n_nodes, max_graph_degree, n_measurements, error_budget
             )
         else:
             # use dummy graph
