@@ -55,19 +55,7 @@ function map_qubits(num_qubits, icm_output)
     num_qubits, qubit_map
 end
 
-# This code is based on execute_cirq_circuit from Jabalizer
-
 function prepare(num_qubits, qubit_map, icm_output)
-    gate_map = Dict("I" => Jabalizer.Id,
-        "H" => Jabalizer.H,
-        "X" => Jabalizer.X,
-        "Y" => Jabalizer.Y,
-        "Z" => Jabalizer.Z,
-        "CNOT" => Jabalizer.CNOT,
-        "SWAP" => Jabalizer.SWAP,
-        "S" => Jabalizer.P,
-        "CZ" => Jabalizer.CZ)
-
     print("zero_state: ")
     @time state = zero_state(num_qubits)
 
@@ -76,14 +64,7 @@ function prepare(num_qubits, qubit_map, icm_output)
     # loops over all operations in the circuit and applies them to the state
     for (op_name, op_qubits) in icm_output
         opcnt += 1
-        len = length(op_qubits)
-        if len == 1
-            (gate_map[op_name](qubit_map[op_qubits[1]]))(state)
-        elseif len == 2
-            (gate_map[op_name](qubit_map[op_qubits[1]], qubit_map[op_qubits[2]]))(state)
-        else
-            error("Too many arguments to $op_name: $len")
-        end
+        Jabalizer.execute_gate(state, op_name, op_qubits)
         if debug_flag[] && (chkcnt += 1) > 99
             chkcnt = 0
             if ((tn = time_ns()) - pt >= 60_000_000_000)

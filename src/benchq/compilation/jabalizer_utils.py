@@ -1,7 +1,7 @@
 ################################################################################
 # © Copyright 2022-2023 Zapata Computing Inc.
 ################################################################################
-# from juliacall import Main as jl
+from juliacall import Main as jl
 import json
 import logging
 import os
@@ -42,9 +42,11 @@ def _run_quietly(cmd: t.Sequence[str]):
 
 
 def get_algorithmic_graph(circuit):
+    jl.dump(circuit)
     n_qubits = circuit.n_qubits
     icm_input_circuit = translate_circuit_to_icm_input(circuit)
     icm_input_circuit.append(n_qubits)
+    jl.dump(icm_input_circuit)
 
     exec_path = pathlib.Path(__file__).parent.resolve()
     exec_name = "jabalizer_wrapper.jl"
@@ -53,8 +55,8 @@ def get_algorithmic_graph(circuit):
         json.dump(icm_input_circuit, outfile)
 
     julia_file = os.path.join(exec_path, exec_name)
-    # jl.evalfile(julia_file)
-    _run_quietly(["julia", julia_file])
+    jl.evalfile(julia_file)
+    #_run_quietly(["julia", julia_file])
 
     return load_algorithmic_graph("adjacency_list.nxl")
 
@@ -64,8 +66,6 @@ def translate_circuit_to_icm_input(circuit):
     for op in circuit.operations:
         name = op.gate.name
         # TODO: THIS IS NOT CORRECT! TEMPORARY HACK!
-        if name == "S_Dagger":
-            name = "S"
         if name == "T_Dagger":
             name = "T"
 
