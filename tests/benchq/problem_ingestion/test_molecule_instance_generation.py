@@ -64,31 +64,27 @@ def fno_water_insatnce():
     yield water_instance
 
 
-def test_get_occupied_and_active_indicies_with_fno_frozen_core(fno_water_insatnce):
+def test_get_occupied_and_active_indicies_with_FNO_frozen_core(fno_water_insatnce):
     fno_water_insatnce.freeze_core = True
 
     (
         molecular_data,
         occupied_indices,
         active_indicies,
-    ) = (
-        fno_water_insatnce.get_occupied_and_active_indicies_with_frozen_natural_orbitals()
-    )
+    ) = fno_water_insatnce.get_occupied_and_active_indicies_with_FNO()
 
     assert len(occupied_indices) == 1
     assert len(active_indicies) < molecular_data.n_orbitals
 
 
-def test_get_occupied_and_active_indicies_with_fno_no_freeze_core(fno_water_insatnce):
+def test_get_occupied_and_active_indicies_with_FNO_no_freeze_core(fno_water_insatnce):
     fno_water_insatnce.freeze_core = False
 
     (
         molecular_data,
         occupied_indices,
         active_indicies,
-    ) = (
-        fno_water_insatnce.get_occupied_and_active_indicies_with_frozen_natural_orbitals()
-    )
+    ) = fno_water_insatnce.get_occupied_and_active_indicies_with_FNO()
 
     assert len(occupied_indices) == 0
     assert len(active_indicies) < molecular_data.n_orbitals
@@ -99,7 +95,7 @@ def test_get_occupied_and_active_indicies_with_fno_no_freeze_core(fno_water_insa
     assert len(active_indicies) < molecular_data.n_orbitals
 
 
-def test_get_occupied_and_active_indicies_with_fno_no_virtual_frozen_orbitals(
+def test_get_occupied_and_active_indicies_with_FNO_no_virtual_frozen_orbitals(
     fno_water_insatnce,
 ):
     fno_water_insatnce.fno_percentage_occupation_number = 0.0
@@ -108,9 +104,7 @@ def test_get_occupied_and_active_indicies_with_fno_no_virtual_frozen_orbitals(
         molecular_data,
         occupied_indices,
         active_indicies,
-    ) = (
-        fno_water_insatnce.get_occupied_and_active_indicies_with_frozen_natural_orbitals()
-    )
+    ) = fno_water_insatnce.get_occupied_and_active_indicies_with_FNO()
 
     assert len(occupied_indices) == 0
     assert len(active_indicies) < molecular_data.n_orbitals

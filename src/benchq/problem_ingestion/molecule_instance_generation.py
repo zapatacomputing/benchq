@@ -107,7 +107,7 @@ class ChemistryApplicationInstance:
             )
         return molecule, mean_field_object
 
-    def get_occupied_and_active_indicies_with_frozen_natural_orbitals(
+    def get_occupied_and_active_indicies_with_FNO(
         self,
     ) -> Tuple[openfermion.MolecularData, List[int], List[int]]:
         """
@@ -117,7 +117,7 @@ class ChemistryApplicationInstance:
 
         Returns:
             occupied_indices: A list of molecular orbitals not in the active space.
-            active_indicies: A list of molecular orbitals to include in the active space.
+            active_indicies: A list of molecular orbitals to include in the active space. # noqa:E501
         """
         molecular_data = self._get_molecular_data()
         mean_field_object = molecular_data._pyscf_data["scf"]
@@ -175,10 +175,10 @@ class ChemistryApplicationInstance:
         """Generate the fermionic Hamiltonian corresponding to the instance's
         active space.
 
-        The active space will be reduced either with AVAS if the instance has AVAS attributes
-        set, and further reduced to the orbitals specified by occupied_indices and
-        active_indices attributes. Alternatively, the active space will be reduced
-        with FNO if the fno attribute is set.
+        The active space will be reduced either with AVAS if the instance has AVAS
+        attributes set, and further reduced to the orbitals specified by
+        occupied_indices and active_indices attributes. Alternatively, the active
+        space will be reduced with FNO if the fno attribute is set.
 
         Returns:
             The fermionic Hamiltonian corresponding to the instance's active space. Note
@@ -195,7 +195,7 @@ class ChemistryApplicationInstance:
                 molecular_data,
                 occupied_indices,
                 active_indices,
-            ) = self.get_occupied_and_active_indicies_with_frozen_natural_orbitals()
+            ) = self.get_occupied_and_active_indicies_with_FNO()
 
             return molecular_data.get_molecular_hamiltonian(
                 occupied_indices=occupied_indices, active_indices=active_indices
