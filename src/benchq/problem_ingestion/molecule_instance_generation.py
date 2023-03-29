@@ -35,7 +35,7 @@ class ChemistryApplicationInstance:
         are choosen for occuped_indicies.
 
     3. by using the frozen natural orbital (FNO) approche.
-       In this case a user needs to set one of the FNO parametsrs:
+       In this case, a user needs to set one of the FNO parametsrs:
             - fno_percentage_occupation_number
             - fno_threshold
             - fno_n_virtual_natural_orbitals
@@ -116,6 +116,7 @@ class ChemistryApplicationInstance:
         computing the fermionic Hamiltonian.
 
         Returns:
+            molecular data: A PyscfMolecularData object.
             occupied_indices: A list of molecular orbitals not in the active space.
             active_indicies: A list of molecular orbitals to include in the active space. # noqa:E501
         """
@@ -175,10 +176,10 @@ class ChemistryApplicationInstance:
         """Generate the fermionic Hamiltonian corresponding to the instance's
         active space.
 
-        The active space will be reduced either with AVAS if the instance has AVAS
+        The active space will be reduced with AVAS if the instance has AVAS
         attributes set, and further reduced to the orbitals specified by
         occupied_indices and active_indices attributes. Alternatively, the active
-        space will be reduced with FNO if the fno attribute is set.
+        space will be reduced with FNO if the FNO attribute is set.
 
         Returns:
             The fermionic Hamiltonian corresponding to the instance's active space. Note
@@ -277,7 +278,7 @@ class ChemistryApplicationInstance:
         Get auto-generated chemical core orbitals.
 
         Args:
-            molecular_data: PyscfMolecularData object
+            molecular_data: PyscfMolecularData object.
         Returns
             The mp2 object and the number of chemical core orbitals.
 
