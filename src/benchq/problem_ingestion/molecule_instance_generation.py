@@ -204,9 +204,6 @@ class ChemistryApplicationInstance:
         else:
             molecular_data = self._get_molecular_data()
 
-            if not self.active_indices:
-                raise ValueError("Active indices need to be specified.")
-
             if self.freeze_core:
                 self.occupied_indices = list(
                     range(self._get_frozen_core_orbitals(molecular_data)[1])
@@ -226,7 +223,8 @@ class ChemistryApplicationInstance:
 
         Returns:
             A meanfield object corresponding to the instance's active space, accounting
-                for AVAS."""
+                for AVAS.
+        """
         if self.active_indices or self.occupied_indices:
             raise ValueError(
                 "Generating the meanfield object for application instances with "
