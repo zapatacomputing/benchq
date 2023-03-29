@@ -71,9 +71,8 @@ def re_with_subgraphs(program, error_budget, hardware_model, decoder_model, spec
 def run_resource_estimation_pipeline(
     program_or_circuit,
     error_budget,
-    use_full_program,
     estimator,
     transformer=synthesize_clifford_t,
 ):
     transformed = transformer(program_or_circuit, error_budget)
-    return estimator.estimate(transformed, error_budget, use_full_program)
+    return estimator.estimate(transformed, error_budget)

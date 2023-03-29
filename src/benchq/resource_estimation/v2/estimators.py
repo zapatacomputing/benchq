@@ -1,153 +1,210 @@
-import numpy as np
-
+from dataclasses import dataclass
 from functools import singledispatchmethod
-import networkx as nx
+from typing import Callable
 
-from .structs import GraphPartition
-from ..graph_compilation import (
-    combine_subcomponent_graphs,
-    get_resource_estimations_for_graph,
-    get_substrate_scheduler_estimates_for_subcomponents,
-    substrate_scheduler,
-    _get_max_graph_degree,
+import more_itertools
+import networkx as nx
+import numpy as np
+from graph_state_generation.optimizers import greedy_stabilizer_measurement_scheduler
+from graph_state_generation.substrate_scheduler import TwoRowSubstrateScheduler
+
+from ...data_structures.hardware_architecture_models import BasicArchitectureModel
+from ..graph_compilation_rotations import (
+    balance_logical_error_rate_and_synthesis_accuracy,
 )
+from .structs import GraphPartition
+
+
+def combine_subcomponent_graphs(partition: GraphPartition):
+    # TODO: this function is indigestible. We can rewrite it as follows
+    # - compute node relabelling first
+    # - use functools.reduce to combine graphs
+    # - proceed with contraction etc.
+    program_graph = partition.subgraphs[partition.program.subroutine_sequence[0]]
+    node_relabeling = {}
+    prev_graph_size = 0
+
+    for prev_i, curr_i in more_itertools.windowed(
+        partition.program.subroutine_sequence, 2
+    ):
+        data_qubits = partition.data_qubits_map_list[prev_i]  # type:ignore
+        curr_graph = partition.subgraphs[curr_i]  # type: ignore
+
+        # shift labels so curr_graph has no labels in common with program_graph
+        curr_graph = nx.relabel_nodes(
+            curr_graph,
+            lambda x: str(int(x) + len(program_graph)),
+        )
+        # keep track of which nodes should be contracted to connect data qubits
+        for j, data_qubit in enumerate(data_qubits):
+            node_relabeling[data_qubit + prev_graph_size] = j + len(program_graph)
+
+        prev_graph_size = len(program_graph)
+        program_graph = nx.compose(program_graph, curr_graph)
+
+    for node_1, node_2 in node_relabeling.items():
+        program_graph = nx.contracted_nodes(program_graph, str(node_2), str(node_1))
+
+    program_graph = nx.convert_node_labels_to_integers(program_graph)
+
+    return program_graph
+
+
+def substrate_scheduler(graph: nx.Graph) -> TwoRowSubstrateScheduler:
+    connected_graph = graph.copy()
+    connected_graph.remove_nodes_from(list(nx.isolates(graph)))  # remove isolated nodes
+    connected_graph = nx.convert_node_labels_to_integers(connected_graph)
+    scheduler_only_compiler = TwoRowSubstrateScheduler(
+        connected_graph, stabilizer_scheduler=greedy_stabilizer_measurement_scheduler
+    )
+    scheduler_only_compiler.run()
+    return scheduler_only_compiler
+
+
+@dataclass
+class IntermediateResourceInfo:
+    synthesis_multiplier: float
+    ec_distance: int
+    logical_error_rate: float
+    max_graph_degree: int
+    n_nodes: int
+    n_measurement_steps: int
+    total_time: float
+
+    @property
+    def n_physical_qubits(self) -> int:
+        return 12 * self.max_graph_degree * 2 * self.ec_distance**2
+
+    @property
+    def logical_st_volume(self) -> float:
+        return 12 * self.n_nodes * 240 * self.n_nodes * self.synthesis_multiplier
 
 
 class GraphResourceEstimator:
-    def __init__(self, hw_model):
+    def __init__(
+        self, hw_model: BasicArchitectureModel, combine_partition: bool = True
+    ):
         self.hw_model = hw_model
-        self.specs = {}
+        self.combine_partition = combine_partition
 
-    def _synthesis_multiplier(self, error_budget):
-        return (
-            12
-            * np.log2(
-                1
-                / (
-                    error_budget["total_error"]
-                    * error_budget["synthesis_error_rate"]
-                )
-            )
-            if self.specs.get("gate_synthesis")
-            else 1
-        )
-
-    def _ec_multiplier(self, distance, n_measurements):
-        return 240 * distance * n_measurements
-
-    def get_logical_st_volume(self, n_nodes):
-        return 12 * n_nodes * 240 * n_nodes
-
-    # We called it "base cell failure rate" before.
-    # New name makes more sense to us, but perhaps we've been misguided
-    def logical_operation_error_rate(self, distance):
-        # Will be updated through Alexandru and Joe's work
+    def _logical_operation_error_rate(self, distance: int) -> float:
         return (
             distance
             * 0.3
             * (70 * self.hw_model.physical_gate_error_rate) ** ((distance + 1) / 2)
         )
 
-    def calculate_total_logical_error_rate(self, distance, n_nodes):
-        return self.logical_operation_error_rate(distance) * self.get_logical_st_volume(
-            n_nodes
-        )
-
-    def calculate_wall_time(self, distance: float, n_measurements: int, error_budget) -> float:
-        # This formula is probably wrong, check it!
+    def _ec_error_rate_synthesized(self, distance: int, n_nodes: int) -> float:
         return (
-            self._synthesis_multiplier(error_budget)
-            * self._ec_multiplier(distance, n_measurements)
-            * n_measurements
+            self._logical_operation_error_rate(distance) * 12 * n_nodes * 240 * n_nodes
         )
 
-    def find_min_viable_distance(
+    def _ec_error_rate_unsynthesized(self, distance: int, n_nodes: int) -> float:
+        _, ec_error_rate = balance_logical_error_rate_and_synthesis_accuracy(
+            n_nodes, distance, self.hw_model.physical_gate_error_rate
+        )
+        return ec_error_rate
+
+    def _minimize_ec_distance(
         self,
-        n_nodes,
+        n_nodes: int,
         error_budget,
-        min_d=4,
-        max_d=100,
-    ):
-        min_viable_distance = None
-        target_error_rate = (
-            error_budget["total_error"] * error_budget["ec_error_rate"]
-        )
+        error_rate: Callable[[float, float], bool],
+        min_d: int = 4,
+        max_d: int = 100,
+    ) -> int:
+        target_error_rate = error_budget["total_error"] * error_budget["ec_error_rate"]
+
         for distance in range(min_d, max_d):
-            logical_error_rate = self.calculate_total_logical_error_rate(
-                distance,
-                n_nodes,
-            )
-
-            if logical_error_rate < target_error_rate and min_viable_distance is None:
-                min_viable_distance = distance
-
-            if logical_error_rate < target_error_rate:
-                return min_viable_distance
+            if error_rate(distance, n_nodes) < target_error_rate:
+                return distance
 
         raise RuntimeError(f"Not found good error rates under distance code: {max_d}.")
 
-    def _get_n_measurements(self, graph) -> int:
-        scheduler_only_compiler = substrate_scheduler(graph)
-        return len(scheduler_only_compiler.measurement_steps)
+    def _get_n_measurement_steps(self, graph) -> int:
+        return len(substrate_scheduler(graph).measurement_steps)
 
-    def _get_n_physical_qubits(self, max_graph_degree, distance):
-        return 12 * max_graph_degree * 2 * distance**2
+    def _estimate_resource_for_graph(
+        self, graph: nx.Graph, n_nodes: int, synthesized: bool, error_budget
+    ) -> IntermediateResourceInfo:
+        ec_error_rate = (
+            self._ec_error_rate_synthesized
+            if synthesized
+            else self._ec_error_rate_unsynthesized
+        )
 
-    def get_resource_estimates(
-        self, distance, n_nodes, max_graph_degree, n_measurements, error_budget
-    ):
-        results_dict = {
-            "logical_error_rate": self.calculate_total_logical_error_rate(
-                distance, n_nodes
-            ),
-            "total_time": self.calculate_wall_time(distance, n_measurements, error_budget),
-            "physical_qubit_count": self._get_n_physical_qubits(
-                max_graph_degree, distance
-            ),
-            "min_viable_distance": distance,
-            "logical_st_volume": self.get_logical_st_volume(n_nodes),
-            "n_measurement_steps": n_measurements,
-            "max_graph_degree": max_graph_degree,
-            "n_nodes": n_nodes,
-        }
-        return results_dict
+        ec_distance = self._minimize_ec_distance(n_nodes, error_budget, ec_error_rate)
+
+        max_degree = max(deg for _, deg in graph.degree())
+        logical_operation_error_rate = (
+            ec_distance
+            * 0.3
+            * (70 * self.hw_model.physical_gate_error_rate) ** ((ec_distance + 1) / 2)
+        )
+
+        n_measurement_steps = self._get_n_measurement_steps(graph)
+
+        ec_multiplier = 240 * ec_distance * n_measurement_steps
+
+        # Isoalate differences betweeen synthesized and not synthesized case
+        if synthesized:
+            logical_error_rate = (
+                logical_operation_error_rate * 12 * n_nodes * 240 * n_nodes
+            )
+            synthesis_multiplier = 1
+        else:
+            (
+                synthesis_accuracy,
+                logical_error_rate,
+            ) = balance_logical_error_rate_and_synthesis_accuracy(
+                n_nodes, ec_distance, self.hw_model.physical_gate_error_rate
+            )
+            synthesis_multiplier = 12 * np.log2(1 / synthesis_accuracy)
+
+        wall_time = (
+            6
+            * ec_multiplier
+            * 240
+            * ec_distance
+            * n_measurement_steps
+            * self.hw_model.physical_gate_time_in_seconds
+            * synthesis_multiplier
+        )
+
+        return IntermediateResourceInfo(
+            synthesis_multiplier=synthesis_multiplier,
+            ec_distance=ec_distance,
+            logical_error_rate=logical_error_rate,
+            max_graph_degree=max_degree,
+            n_nodes=n_nodes,
+            n_measurement_steps=n_measurement_steps,
+            total_time=wall_time,
+        )
 
     @singledispatchmethod
-    def estimate(self, problem: GraphPartition, error_budget, use_full_program: bool):
+    def estimate(self, problem: GraphPartition, error_budget):
         n_nodes = problem.n_nodes
-        ### TODO
-        ### Actually make use of self.get_resource_estimates
-        if use_full_program:
-            program_graph = combine_subcomponent_graphs(
-                problem.subgraphs, problem.data_qubits_map_list, problem.program
+
+        if self.combine_partition:
+            program_graph = combine_subcomponent_graphs(problem)
+            return self._estimate_resource_for_graph(
+                program_graph, n_nodes, problem.synthesized, error_budget
             )
-            max_graph_degree = _get_max_graph_degree(program_graph)
-            scheduler_only_compiler = substrate_scheduler(program_graph)
+        else:
+            raise NotImplementedError(
+                "Resource estimation from subgraphs is not yet supported."
+            )
+            # use dummy graph
             # resource_estimates = get_resource_estimations_for_graph(
-            #     program_graph,
+            #     nx.path_graph(n_nodes),
             #     self.hw_model,
             #     error_budget["tolerable_circuit_error_rate"],
             #     plot=False,
+            #     is_subgraph=True,
             # )
-            distance = self.find_min_viable_distance(n_nodes, error_budget)
-            n_measurements = len(scheduler_only_compiler.measurement_steps)
-            resource_estimates = self.get_resource_estimates(
-                distance, n_nodes, max_graph_degree, n_measurements, error_budget
-            )
-        else:
-            # use dummy graph
-            resource_estimates = get_resource_estimations_for_graph(
-                nx.path_graph(n_nodes),
-                self.hw_model,
-                error_budget["tolerable_circuit_error_rate"],
-                plot=False,
-                is_subgraph=True,
-            )
-            resource_estimates = get_substrate_scheduler_estimates_for_subcomponents(
-                problem.subgraphs,
-                problem.program,
-                self.hw_model,
-                resource_estimates,
-            )
-
-        return resource_estimates
+            # resource_estimates = get_substrate_scheduler_estimates_for_subcomponents(
+            #     problem.subgraphs,
+            #     problem.program,
+            #     self.hw_model,
+            #     resource_estimates,
+            # )

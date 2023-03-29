@@ -107,8 +107,7 @@ def main():
             gsc_resource_estimates = run_resource_estimation_pipeline(
                 program,
                 error_budget,
-                estimator=GraphResourceEstimator(architecture_model),
-                use_full_program=True,  # ?
+                estimator=GraphResourceEstimator(architecture_model)
             )
 
         print("Resource estimation time:", t_info.total)

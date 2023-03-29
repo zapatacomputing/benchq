@@ -3,8 +3,8 @@
 # structure.
 #
 # I made it a dataclass because it is simple, but it does not have to be one
-from typing import List, Union
-from dataclasses import dataclass
+from typing import Any, Dict, List, Union
+from dataclasses import dataclass, field
 
 from cirq.circuits.circuit import Circuit as CirqCircuit
 from orquestra.quantum.circuits import Circuit as OrquestraCircuit
@@ -22,6 +22,7 @@ class GraphPartition:
     program: QuantumProgram
     subgraphs: List[nx.Graph]
     data_qubits_map_list: List[List[int]]
+    synthesized: bool
 
     @property
     def n_nodes(self) -> int:
@@ -33,9 +34,3 @@ class GraphPartition:
         return n_nodes - self.program.num_data_qubits * (
             len(self.program.subroutine_sequence) - 1
         )
-
-
-@dataclass
-class SingleGraph:
-    circuit: AnyCircuit
-    graph: nx.Graph
