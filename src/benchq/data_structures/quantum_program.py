@@ -60,17 +60,7 @@ class QuantumProgram:
         return recreated_circuit
 
 
-def get_number_of_copies_of_element_in_list(element, list):
-    return len([i for i in list if i == element])
-
-
-"""
-    circuit[0]
-    for i in range(steps):
-        circuit[1]
-        circuit[2]
-    for j in range(steps_2):
-        circuit[3]
-    circuit[1]
-    circuit[0]
-"""
+def generate_program_from_circuit(circuit):
+    return QuantumProgram(
+        [circuit], steps=1, calculate_subroutine_sequence=lambda x: [0]
+    )
