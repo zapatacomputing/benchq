@@ -24,6 +24,7 @@ exclude = [
 
 [[tool.mypy.overrides]]
 module = [
+    'juliacall.*',
     'pyliqtr.*',
     'pyLIQTR.*',
     'scipy.*',

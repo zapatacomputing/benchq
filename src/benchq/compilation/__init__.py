@@ -1,11 +1,14 @@
 ################################################################################
 # © Copyright 2022-2023 Zapata Computing Inc.
 ################################################################################
-from juliacall import Main as jl
 import os
 import pathlib
 
-jl.include(os.path.join(pathlib.Path(__file__).parent.resolve(), "jabalizer_wrapper.jl"))
+from juliacall import Main as jl
+
+jl.include(
+    os.path.join(pathlib.Path(__file__).parent.resolve(), "jabalizer_wrapper.jl")
+)
 
 from .jabalizer_utils import get_algorithmic_graph
 from .pyliqtr_compilation import pyliqtr_transpile_to_clifford_t
