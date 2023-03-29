@@ -1,6 +1,8 @@
 ################################################################################
 # © Copyright 2022-2023 Zapata Computing Inc.
 ################################################################################
+
+from .graph_sim_data import cz_table, decomposition_lookup_table, multiply_lco
 from .jabalizer_utils import get_algorithmic_graph, load_algorithmic_graph
 from .pyliqtr_compilation import pyliqtr_transpile_to_clifford_t
 from .transpilation import simplify_rotations
