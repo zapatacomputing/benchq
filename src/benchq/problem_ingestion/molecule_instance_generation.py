@@ -31,8 +31,8 @@ class ChemistryApplicationInstance:
 
     2. by specifying the indices of the occupied and active orbitals,
 
-        If occuped_indicies is determined and freeze_core is True,
-        we use frozen core orbitals in calculations.
+        If freeze_core option is True, chemical frozen core orbitals
+        are choosen for occuped_indicies.
 
     3. by using the frozen natural orbital (FNO) approche.
        In this case a user needs to set one of the FNO parametsrs:
@@ -41,11 +41,9 @@ class ChemistryApplicationInstance:
             - fno_n_virtual_natural_orbitals
         to decide how much virtual space will be kept for the active space.
 
-        If freeze_core option is selected True, chemical frozen core orbitals
+        If freeze_core option is True, chemical frozen core orbitals
         are choosen for occuped_indicies.
 
-        If occuped_indicies is determined and freeze_core is True,
-        we use frozen core orbitals in calculations.
 
     Args:
         geometry: A list of tuples of the form (atom, (x, y, z)) where atom is the
@@ -129,19 +127,12 @@ class ChemistryApplicationInstance:
 
         n_frozen_core_orbitals = 0
 
-        if self.occupied_indices and self.freeze_core:
-            logging.warn(
-                "Both Occupied indicies and frozen_core options were selcted. "
-                "Frozen core orbitals were chosen for further calculations!"
-            )
+        if self.freeze_core:
             mp2, n_frozen_core_orbitals = self._get_frozen_core_orbitals(molecular_data)
 
         elif self.occupied_indices and not self.freeze_core:
             mp2 = mp.MP2(mean_field_object).set(frozen=self.occupied_indices)
             n_frozen_core_orbitals = len(self.occupied_indices)
-
-        elif self.freeze_core and not self.occupied_indices:
-            mp2, n_frozen_core_orbitals = self._get_frozen_core_orbitals(molecular_data)
 
         else:
             mp2 = mp.MP2(mean_field_object)
@@ -184,9 +175,10 @@ class ChemistryApplicationInstance:
         """Generate the fermionic Hamiltonian corresponding to the instance's
         active space.
 
-        The active space will be reduced with AVAS if the instance has AVAS attributes
+        The active space will be reduced either with AVAS if the instance has AVAS attributes
         set, and further reduced to the orbitals specified by occupied_indices and
-        active_indices attributes if they are set.
+        active_indices attributes. Alternatively, the active space will be reduced
+        with FNO if the fno attribute is set.
 
         Returns:
             The fermionic Hamiltonian corresponding to the instance's active space. Note
@@ -215,16 +207,7 @@ class ChemistryApplicationInstance:
             if not self.active_indices:
                 raise ValueError("Active indices need to be specified.")
 
-            if self.occupied_indices and self.freeze_core:
-                logging.warn(
-                    "Both occupied_indicies and frozen_core options were selcted."
-                    "Frozen core orbitals were chosen for further calculations!"
-                )
-                self.occupied_indices = list(
-                    range(self._get_frozen_core_orbitals(molecular_data)[1])
-                )
-
-            if self.freeze_core and not self.occupied_indices:
+            if self.freeze_core:
                 self.occupied_indices = list(
                     range(self._get_frozen_core_orbitals(molecular_data)[1])
                 )
