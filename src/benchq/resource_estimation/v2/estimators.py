@@ -62,7 +62,7 @@ def substrate_scheduler(graph: nx.Graph) -> TwoRowSubstrateScheduler:
 
 
 @dataclass
-class IntermediateResourceInfo:
+class ResourceInfo:
     synthesis_multiplier: float
     ec_distance: int
     logical_error_rate: float
@@ -126,7 +126,7 @@ class GraphResourceEstimator:
 
     def _estimate_resource_for_graph(
         self, graph: nx.Graph, n_nodes: int, synthesized: bool, error_budget
-    ) -> IntermediateResourceInfo:
+    ) -> ResourceInfo:
         ec_error_rate = (
             self._ec_error_rate_synthesized
             if synthesized
@@ -171,7 +171,7 @@ class GraphResourceEstimator:
             * synthesis_multiplier
         )
 
-        return IntermediateResourceInfo(
+        return ResourceInfo(
             synthesis_multiplier=synthesis_multiplier,
             ec_distance=ec_distance,
             logical_error_rate=logical_error_rate,
