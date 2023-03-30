@@ -110,7 +110,7 @@ class GraphResourceEstimator:
         self,
         n_nodes: int,
         error_budget,
-        error_rate: Callable[[float, float], bool],
+        error_rate: Callable[[int, int], float],
         min_d: int = 4,
         max_d: int = 100,
     ) -> int:
