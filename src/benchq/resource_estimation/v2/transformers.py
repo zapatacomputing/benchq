@@ -10,7 +10,6 @@ from ...data_structures import QuantumProgram
 from .structs import GraphPartition
 
 
-@singledispatch  # possibly this decorator is not needed
 def synthesize_clifford_t(program: QuantumProgram, error_budget) -> GraphPartition:
     graphs_list = []
     data_qubits_map_list = []
@@ -31,10 +30,8 @@ def synthesize_clifford_t(program: QuantumProgram, error_budget) -> GraphPartiti
     return GraphPartition(program, graphs_list, data_qubits_map_list, synthesized=True)
 
 
-@singledispatch  # possibly this decorator is not needed
 def simplify_only(
-    program: QuantumProgram,
-    error_budget,  # TODO: doesn't look like it's needed here?
+    program: QuantumProgram, error_budget
 ) -> GraphPartition:
     graphs_list = []
     data_qubits_map_list = []
