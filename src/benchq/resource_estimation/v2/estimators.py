@@ -16,10 +16,6 @@ from .structs import GraphPartition
 
 
 def combine_subcomponent_graphs(partition: GraphPartition):
-    # TODO: this function is indigestible. We can rewrite it as follows
-    # - compute node relabelling first
-    # - use functools.reduce to combine graphs
-    # - proceed with contraction etc.
     program_graph = partition.subgraphs[partition.program.subroutine_sequence[0]]
     node_relabeling = {}
     prev_graph_size = 0
