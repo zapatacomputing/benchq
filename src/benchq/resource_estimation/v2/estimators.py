@@ -135,7 +135,9 @@ class GraphResourceEstimator:
         )
 
         # Change to code distance
-        code_distance = self._minimize_code_distance(n_nodes, error_budget, ec_error_rate)
+        code_distance = self._minimize_code_distance(
+            n_nodes, error_budget, ec_error_rate
+        )
 
         max_degree = max(deg for _, deg in graph.degree())
         logical_operation_error_rate = (
@@ -196,7 +198,8 @@ class GraphResourceEstimator:
                 )
             else:
                 raise NotImplementedError(
-                    "Resource estimation without combining subgraphs is not yet supported."
+                    "Resource estimation without combining subgraphs is not yet "
+                    "supported."
                 )
             # use dummy graph
             # resource_estimates = get_resource_estimations_for_graph(
