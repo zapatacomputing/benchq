@@ -30,26 +30,17 @@ def get_qsp_circuit(
     occ_state = np.zeros(pyliqtr_operator.problem_size)
     occ_state[0] = 1
 
-    if use_random_angles:
-        steps = gen_qsp.get_phis(
-            pyliqtr_operator,
-            simtime=timestep_vec[1],
-            req_prec=required_precision,
-            steps_only=True,
+    pyliqtr_mode = "random" if use_random_angles else "legacy"
+    tmp = [
+        gen_qsp.compute_hamiltonian_angles(
+            pyliqtr_operator, simtime=t, req_prec=required_precision, mode=pyliqtr_mode
         )
-        if not (steps % 2):
-            steps += 1
+        for t in timestep_vec
+    ]
 
-        angles = np.random.random(steps)
-    else:
-        tmp = [
-            gen_qsp.get_phis(pyliqtr_operator, simtime=t, req_prec=required_precision)
-            for t in timestep_vec
-        ]
-
-        # tolerances = [a[1] for a in tmp]
-        angles = [a[0] for a in tmp]
-        angles = angles[1]
+    # tolerances = [a[1] for a in tmp]
+    angles = [a[0] for a in tmp]
+    angles = angles[1]
 
     qsp_generator = QSP.QSP.QSP(
         phis=angles,
@@ -64,6 +55,17 @@ def get_qsp_circuit(
     return import_from_cirq(circuit)
 
 
+# TODO: This logic is copied from pyLIQTR, perhaps we want to change it to our own?
+def _get_steps(tau, req_prec):
+    # have tau and epsilon, backtrack in order to get steps
+    steps, closeval = QSP.get_steps_from_logeps(np.log(req_prec), tau, 1)
+    # print(':------------------------------------------')
+    # print(f': Steps = {steps}')
+    while QSP.getlogepsilon(tau, steps) > np.log(req_prec):
+        steps += 4
+    return steps
+
+
 def get_qsp_program(
     operator: PauliRepresentation,
     required_precision: float,
@@ -75,6 +77,7 @@ def get_qsp_program(
 ) -> QuantumProgram:
     pyliqtr_operator = openfermion_to_pyliqtr(to_openfermion(operator))
 
+    # TODO: I dont know why we have `gse_accuracy` and `required_precision` separately.
     if mode == "gse":
         n_block_encodings = int(
             np.ceil(np.pi * (pyliqtr_operator.alpha) / (gse_accuracy))
@@ -90,12 +93,9 @@ def get_qsp_program(
         occ_state = np.zeros(pyliqtr_operator.problem_size)
         occ_state[0] = 1
 
-        steps = QSP.gen_qsp.get_phis(
-            pyliqtr_operator,
-            simtime=timestep_vec[1],
-            req_prec=required_precision,
-            steps_only=True,
-        )
+        # TODO: I think the way we calculate it is incorrect.
+        tau = timestep_vec[1] * pyliqtr_operator.alpha
+        steps = _get_steps(tau, required_precision)
 
     # number of steps needs to be odd for QSP
     if not (steps % 2):
