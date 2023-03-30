@@ -17,6 +17,7 @@ def ms_estimate(quantum_program, error_budget: float, architecture_model):
     os.environ["AZURE_CLIENT_ID"] = sdk.secrets.get("AZURE-CLIENT-ID")
     os.environ["AZURE_TENANT_ID"] = sdk.secrets.get("AZURE-TENANT-ID")
     os.environ["AZURE_CLIENT_SECRET"] = sdk.secrets.get("AZURE-TENANT-ID")
+    os.environ["AZURE_RESOURCE_ID"] = sdk.secrets.get("AZURE-RESOURCE-ID")
 
     return msft_re_for_program(quantum_program, error_budget, architecture_model)
 
