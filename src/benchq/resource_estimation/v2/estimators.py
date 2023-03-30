@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from functools import singledispatchmethod
 from typing import Callable
 
 import more_itertools
@@ -57,9 +56,8 @@ def substrate_scheduler(graph: nx.Graph) -> TwoRowSubstrateScheduler:
     return scheduler_only_compiler
 
 
-# TODO: should we split this into algo and resources part?
 @dataclass
-class ResourceInfo:  # Think of a better name (EstimatedResources? Resources?)
+class ResourceInfo:
     synthesis_multiplier: float
     code_distance: int
     logical_error_rate: float
@@ -178,7 +176,6 @@ class GraphResourceEstimator:
             total_time=wall_time,
         )
 
-    @singledispatchmethod
     def estimate(self, problem: GraphPartition, error_budget):
         n_nodes = problem.n_nodes
 
