@@ -30,9 +30,7 @@ def synthesize_clifford_t(program: QuantumProgram, error_budget) -> GraphPartiti
     return GraphPartition(program, graphs_list, data_qubits_map_list, synthesized=True)
 
 
-def simplify_only(
-    program: QuantumProgram, error_budget
-) -> GraphPartition:
+def simplify_only(program: QuantumProgram, error_budget) -> GraphPartition:
     graphs_list = []
     data_qubits_map_list = []
 
