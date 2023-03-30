@@ -13,7 +13,7 @@ Objectives:
     - This is mostly for completeness and illustratory purposes
     - Software can be quite crappy
 """
-import time
+from pathlib import Path
 
 from orquestra.integrations.qiskit.conversions import import_from_qiskit
 from qiskit.circuit import QuantumCircuit
@@ -63,7 +63,7 @@ def main():
         physical_gate_time_in_seconds=1e-6,
     )
 
-    file_name = "circuits/h_chain_circuit.qasm"
+    file_name = Path(__file__).resolve().parent / "circuits/h_chain_circuit.qasm"
     ### METHOD 2: Estimation from quantum program, without recreating full graph
     # TA 1.5 part: model algorithmic circuit
     with measure_time() as t_info:
