@@ -1,3 +1,31 @@
+################################################################################
+# © Copyright 2022-2023 Zapata Computing Inc.
+################################################################################
+"""This contains the data required to run the graph simulation algorithm.
+These tables are used to speed up the graph simulation algorithm by memoizing
+the results of certain small calculations which are performed repeatedly.
+
+decomposition_lookup_table is a lookup table for the decomposition of a local
+clifford operation into a product of sqrt(X) and sqrt(Z) gates. The index of
+the table corresponds to the local clifford operation. The value of the table
+is a string of the form "UUVV" where U and V correspond to sqrt(X) and sqrt(Z)
+gates respectively.
+
+multiply_lco is a lookup table for the product of two local clifford operations.
+The index of the table corresponds to the first local clifford operation and the
+value of the table corresponds to the second local clifford operation. The value
+of the table is the local clifford operation that is the product of the two
+local clifford operations.
+
+cz_table is a lookup table for the product of a CZ gate and a local clifford
+operation. The first index of the table corresponds to whether or not a connection
+exists between the two nodes CZ acts upon. The second and third indices of the
+table correspond to the local clifford operation on the first and second nodes
+respectively. The first value of the table is 0 if the the nodes are not connected
+after applying the CZ gate and 1 if they are connected after applying the CZ gate.
+The second and third values of the table are the local clifford operations on the
+first and second nodes respectively after applying the CZ gate.
+"""
 import numpy as np
 
 decomposition_lookup_table = np.array(

@@ -168,13 +168,13 @@ def commutes(stab_1, stab_2):
         bool: true if self and other commute, false otherwise.
     """
     n_qubits = len(stab_1) // 2
-    comm1 = bool_dot(stab_1[:n_qubits], stab_2[n_qubits:])
-    comm2 = bool_dot(stab_1[n_qubits:], stab_2[:n_qubits])
+    comm1 = _bool_dot(stab_1[:n_qubits], stab_2[n_qubits:])
+    comm2 = _bool_dot(stab_1[n_qubits:], stab_2[:n_qubits])
     return not (comm1 ^ comm2)
 
 
 # numpy doesn't use the boolean binary ring when performing dot products
 # https://github.com/numpy/numpy/issues/1456.
 # So we define our own dot product which uses "xor" instead of "or" for addition.
-def bool_dot(x, y):
+def _bool_dot(x, y):
     return np.logical_xor.reduce(np.logical_and(x, y))

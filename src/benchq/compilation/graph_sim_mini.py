@@ -68,10 +68,7 @@ def cz(lco: List[int], adj: List[Set[int]], vertex_1: int, vertex_2: int) -> Non
         remove_lco(lco, adj, vertex_1, vertex_2)
 
     connected = vertex_1 in adj[vertex_2] or vertex_2 in adj[vertex_1]
-    vertex_1_lco = lco[vertex_1]
-    vertex_2_lco = lco[vertex_2]
-
-    table_nums = cz_table[int(connected), vertex_1_lco, vertex_2_lco]
+    table_nums = cz_table[int(connected), lco[vertex_1], lco[vertex_2]]
 
     if connected != table_nums[0]:
         toggle_edge(adj, vertex_1, vertex_2)

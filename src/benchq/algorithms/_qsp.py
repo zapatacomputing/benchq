@@ -60,6 +60,7 @@ def get_qsp_circuit(
     qsp_circ = qsp_generator.circuit()
 
     circuit = _sanitize_cirq_circuit(qsp_circ)
+
     return import_from_cirq(circuit)
 
 

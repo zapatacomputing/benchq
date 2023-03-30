@@ -16,8 +16,6 @@ Objectives:
 import logging
 import time
 
-import numpy as np
-
 from benchq import BasicArchitectureModel
 from benchq.algorithms import get_qsp_circuit, get_qsp_program
 from benchq.compilation import get_algorithmic_graph, pyliqtr_transpile_to_clifford_t
