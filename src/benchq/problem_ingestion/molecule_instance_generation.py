@@ -16,6 +16,7 @@ from openfermion.resource_estimates.molecule import (
 from openfermionpyscf import PyscfMolecularData
 from openfermionpyscf._run_pyscf import compute_integrals
 from pyscf import gto, mp, scf
+from collections.abc import Sized
 
 
 @dataclass
@@ -129,11 +130,12 @@ class ChemistryApplicationInstance:
         n_frozen_core_orbitals = 0
 
         if self.freeze_core:
-            mp2, n_frozen_core_orbitals = self._get_frozen_core_orbitals(molecular_data)
+            mp2 = self._get_frozen_core_orbitals(molecular_data)
+            n_frozen_core_orbitals = mp2.frozen
 
         elif self.occupied_indices and not self.freeze_core:
             mp2 = mp.MP2(mean_field_object).set(frozen=self.occupied_indices)
-            n_frozen_core_orbitals = len(self.occupied_indices)
+            n_frozen_core_orbitals = Sized(self.occupied_indices)
 
         else:
             mp2 = mp.MP2(mean_field_object)
@@ -207,7 +209,7 @@ class ChemistryApplicationInstance:
 
             if self.freeze_core:
                 self.occupied_indices = list(
-                    range(self._get_frozen_core_orbitals(molecular_data)[1])
+                    range(self._get_frozen_core_orbitals(molecular_data).frozen)
                 )
 
             return molecular_data.get_molecular_hamiltonian(
@@ -280,11 +282,11 @@ class ChemistryApplicationInstance:
         Args:
             molecular_data: PyscfMolecularData object.
         Returns
-            The mp2 object and the number of chemical core orbitals.
+            The mp2 object.
 
         """
         mp2 = mp.MP2(molecular_data._pyscf_data["scf"]).set_frozen()
-        return mp2, mp2.frozen
+        return mp2
 
 
 def truncate_with_avas(
