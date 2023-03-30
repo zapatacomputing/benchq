@@ -1,4 +1,5 @@
 using Jabalizer
+using JSON
 
 ### ICM PART STARTS HERE
 
@@ -12,6 +13,17 @@ function out_cnt(opcnt, prevcnt, tn, pt, t0)
     print("  Ops: $opcnt ($(opcnt-prevcnt)), ")
     print("elapsed: $(round((tn-t0)/60_000_000_000, digits=2)) min (")
     println(round((tn - pt) / 1_000_000_000, digits=2), " s)")
+end
+
+function icm_output_circuit(filename, circuit, data_qubits_map)
+    dict = Dict()
+    dict["circuit"] = circuit
+    dict["data_qubits_map"] = data_qubits_map
+    json_string = JSON.json(dict)
+
+    open(filename, "w") do f
+        write(f, json_string)
+    end
 end
 
 function map_qubits(num_qubits, icm_output)
@@ -71,6 +83,9 @@ function run_jabalizer(circuit)
 
     print("ICM compilation: qubits=$n_qubits, gates=$(length(icm_input))\n\t")
     @time (icm_output, data_qubits_map) = icm_compile(icm_input, n_qubits)
+
+    print("Output ICM circuit\n\t")
+    @time icm_output_circuit("icm_output.json", icm_output, data_qubits_map)
 
     (n_qubits, qubit_map) = map_qubits(n_qubits, icm_output)
 
