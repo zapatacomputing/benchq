@@ -3,16 +3,15 @@
 # structure.
 #
 # I made it a dataclass because it is simple, but it does not have to be one
-from typing import Any, Dict, List, Union
 from dataclasses import dataclass, field
+from typing import Any, Dict, List, Union
 
+import networkx as nx
 from cirq.circuits.circuit import Circuit as CirqCircuit
 from orquestra.quantum.circuits import Circuit as OrquestraCircuit
 from qiskit.circuit import QuantumCircuit as QiskitCircuit
 
 from ...data_structures import QuantumProgram
-import networkx as nx
-
 
 AnyCircuit = Union[OrquestraCircuit, CirqCircuit, QiskitCircuit]
 

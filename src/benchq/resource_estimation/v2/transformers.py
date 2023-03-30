@@ -1,5 +1,5 @@
-from functools import singledispatch
 import json
+from functools import singledispatch
 
 from ...compilation import (
     get_algorithmic_graph,

@@ -1,7 +1,7 @@
 """Simplify timing code occurring in multiple places."""
 import contextlib
-from dataclasses import dataclass
 import time
+from dataclasses import dataclass
 from typing import Optional
 
 
