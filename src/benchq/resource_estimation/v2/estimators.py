@@ -61,10 +61,11 @@ def substrate_scheduler(graph: nx.Graph) -> TwoRowSubstrateScheduler:
     return scheduler_only_compiler
 
 
+# TODO: should we split this into algo and resources part?
 @dataclass
-class ResourceInfo:
+class ResourceInfo:  # Think of a better name (EstimatedResources? Resources?)
     synthesis_multiplier: float
-    ec_distance: int
+    code_distance: int
     logical_error_rate: float
     max_graph_degree: int
     n_nodes: int
@@ -73,7 +74,7 @@ class ResourceInfo:
 
     @property
     def n_physical_qubits(self) -> int:
-        return 12 * self.max_graph_degree * 2 * self.ec_distance**2
+        return 12 * self.max_graph_degree * 2 * self.code_distance**2
 
     @property
     def logical_st_volume(self) -> float:
@@ -105,7 +106,7 @@ class GraphResourceEstimator:
         )
         return ec_error_rate
 
-    def _minimize_ec_distance(
+    def _minimize_code_distance(
         self,
         n_nodes: int,
         error_budget,
@@ -133,18 +134,19 @@ class GraphResourceEstimator:
             else self._ec_error_rate_unsynthesized
         )
 
-        ec_distance = self._minimize_ec_distance(n_nodes, error_budget, ec_error_rate)
+        # Change to code distance
+        code_distance = self._minimize_code_distance(n_nodes, error_budget, ec_error_rate)
 
         max_degree = max(deg for _, deg in graph.degree())
         logical_operation_error_rate = (
-            ec_distance
+            code_distance
             * 0.3
-            * (70 * self.hw_model.physical_gate_error_rate) ** ((ec_distance + 1) / 2)
+            * (70 * self.hw_model.physical_gate_error_rate) ** ((code_distance + 1) / 2)
         )
 
         n_measurement_steps = self._get_n_measurement_steps(graph)
 
-        ec_multiplier = 240 * ec_distance * n_measurement_steps
+        ec_multiplier = 240 * code_distance * n_measurement_steps
 
         # Isoalate differences betweeen synthesized and not synthesized case
         if synthesized:
@@ -157,23 +159,20 @@ class GraphResourceEstimator:
                 synthesis_accuracy,
                 logical_error_rate,
             ) = balance_logical_error_rate_and_synthesis_accuracy(
-                n_nodes, ec_distance, self.hw_model.physical_gate_error_rate
+                n_nodes, code_distance, self.hw_model.physical_gate_error_rate
             )
             synthesis_multiplier = 12 * np.log2(1 / synthesis_accuracy)
 
         wall_time = (
             6
             * ec_multiplier
-            * 240
-            * ec_distance
-            * n_measurement_steps
             * self.hw_model.physical_gate_time_in_seconds
             * synthesis_multiplier
         )
 
         return ResourceInfo(
             synthesis_multiplier=synthesis_multiplier,
-            ec_distance=ec_distance,
+            code_distance=code_distance,
             logical_error_rate=logical_error_rate,
             max_graph_degree=max_degree,
             n_nodes=n_nodes,
