@@ -78,9 +78,7 @@ def main():
         "synthesis_error_rate": 0.5,
         "ec_error_rate": 0.5,
     }
-    specs = {
-        "gate_synthesis": True,
-    }
+
     architecture_model = BasicArchitectureModel(
         physical_gate_error_rate=1e-3,
         physical_gate_time_in_seconds=1e-6,
