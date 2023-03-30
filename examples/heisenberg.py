@@ -16,7 +16,7 @@ from benchq.algorithms import get_qsp_circuit
 from benchq.compilation import pyliqtr_transpile_to_clifford_t
 from benchq.compilation.gate_stitching import get_algorithmic_graph_from_gate_stitching
 from benchq.problem_ingestion.hamiltonian_generation import (
-    generate_heisenburg_hamiltonian,
+    generate_heisenberg_hamiltonian,
 )
 from benchq.resource_estimation.graph_compilation import (
     get_resource_estimations_for_graph,
@@ -41,7 +41,7 @@ def main():
         print(f"Generating operator for N ={N}")
         start = time.time()
         # operator = get_vlasov_hamiltonian(k, alpha, nu, N)
-        operator = generate_heisenburg_hamiltonian(N)
+        operator = generate_heisenberg_hamiltonian(N)
         end = time.time()
         print("Operator generation time:", end - start)
 
