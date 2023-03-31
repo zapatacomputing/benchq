@@ -52,7 +52,6 @@ from benchq.compilation.graph_sim_mini import get_vertices
     ],
 )
 def test_stabilizer_states_are_the_same_for_simple_circuits(circuit):
-
     target_tableau = get_target_tableau(circuit)
     vertices = get_vertices(circuit)
     graph_tableau = get_stabilizer_tableau_from_vertices(vertices)

@@ -14,7 +14,8 @@ from benchq.problem_ingestion.molecule_instance_generation import (
 from benchq.resource_estimation import get_qpe_resource_estimates_from_mean_field_object
 
 from benchq.resource_estimation.microsoft import (
-    get_resource_estimations_for_program as msft_re_for_program)
+    get_resource_estimations_for_program as msft_re_for_program,
+)
 
 
 def main():

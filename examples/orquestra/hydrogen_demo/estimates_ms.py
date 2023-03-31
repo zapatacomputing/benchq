@@ -4,7 +4,8 @@
 from benchq import BasicArchitectureModel
 
 from benchq.resource_estimation.microsoft import (
-    get_resource_estimations_for_program as msft_re_for_program)
+    get_resource_estimations_for_program as msft_re_for_program,
+)
 
 from .defs import get_operator, ms_task, get_program
 from orquestra import sdk
@@ -13,6 +14,7 @@ from orquestra import sdk
 @ms_task
 def ms_estimate(quantum_program, error_budget: float, architecture_model):
     import os
+
     os.environ["AZURE_CLIENT_ID"] = sdk.secrets.get("AZURE-CLIENT-ID")
     os.environ["AZURE_TENANT_ID"] = sdk.secrets.get("AZURE-TENANT-ID")
     os.environ["AZURE_CLIENT_SECRET"] = sdk.secrets.get("AZURE-CLIENT-SECRET")
@@ -35,7 +37,7 @@ def ms_estimates():
 
         tolerable_circuit_error_rate = 1e-3
         # Allocate half the error budget to QSP precision
-        qsp_required_precision = (tolerable_circuit_error_rate / 2)
+        qsp_required_precision = tolerable_circuit_error_rate / 2
         remaining_error_budget = tolerable_circuit_error_rate - qsp_required_precision
 
         architecture_model = BasicArchitectureModel(
@@ -50,8 +52,8 @@ def ms_estimates():
                 operator, qsp_required_precision, dt, tmax, sclf, mode=mode
             )
 
-            results.append(ms_estimate(
-                quantum_program, remaining_error_budget, architecture_model
-            ))
+            results.append(
+                ms_estimate(quantum_program, remaining_error_budget, architecture_model)
+            )
 
     return results
