@@ -222,7 +222,8 @@ class ChemistryApplicationInstance:
         object.
 
         Currently, this method does not support the occupied_indices and active_indices
-        attributes, as well as the FNO attributes and will raise an exception if they are set.
+        attributes, as well as the FNO attributes and will raise an exception if they
+        are set.
 
         Returns:
             A meanfield object corresponding to the instance's active space, accounting
