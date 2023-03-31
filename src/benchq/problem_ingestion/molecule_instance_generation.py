@@ -1,7 +1,6 @@
 ################################################################################
 # © Copyright 2022 Zapata Computing Inc.
 ################################################################################
-import logging
 from dataclasses import dataclass
 from typing import Iterable, List, Optional, Tuple
 
@@ -16,7 +15,6 @@ from openfermion.resource_estimates.molecule import (
 from openfermionpyscf import PyscfMolecularData
 from openfermionpyscf._run_pyscf import compute_integrals
 from pyscf import gto, mp, scf
-from collections.abc import Sized
 
 
 @dataclass
@@ -57,6 +55,8 @@ class ChemistryApplicationInstance:
         occupied_indices: A list of molecular orbitals not in the active space that
             should be assumed to be fully occupied.
         active_indices: A list of molecular orbitals to include in the active space.
+        freeze_core: A boolean specifying whether frozen core orbitals are selected
+                    for calculations.
         fno_percentage_occupation_number: Percentage of total occupation number.
         fno_threshold: Threshold on NO occupation numbers.
         fno_n_virtual_natural_orbitals: Number of virtual NOs to keep.
@@ -135,7 +135,7 @@ class ChemistryApplicationInstance:
 
         elif self.occupied_indices and not self.freeze_core:
             mp2 = mp.MP2(mean_field_object).set(frozen=self.occupied_indices)
-            n_frozen_core_orbitals = Sized(self.occupied_indices)
+            n_frozen_core_orbitals = len(self.occupied_indices)
 
         else:
             mp2 = mp.MP2(mean_field_object)
@@ -222,16 +222,23 @@ class ChemistryApplicationInstance:
         object.
 
         Currently, this method does not support the occupied_indices and active_indices
-        attributes and will raise an exception if they are set.
+        attributes, as well as the FNO attributes and will raise an exception if they are set.
 
         Returns:
             A meanfield object corresponding to the instance's active space, accounting
                 for AVAS.
         """
-        if self.active_indices or self.occupied_indices:
+        if (
+            self.active_indices
+            or self.occupied_indices
+            or self.fno_percentage_occupation_number
+            or self.fno_threshold
+            or self.fno_n_virtual_natural_orbitals
+        ):
             raise ValueError(
                 "Generating the meanfield object for application instances with "
-                "active and occupied indices is not currently supported."
+                "active and occupied indices, as well as with the FNO approach  "
+                " is not currently supported."
             )
         return self._run_pyscf()[1]
 
