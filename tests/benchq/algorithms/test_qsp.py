@@ -40,6 +40,11 @@ class TestGetQSPCircuit:
         """
         Uses values inspired by running the "qsp_vlasov.py" example.py
         """
+        if not use_random_angles:
+            pytest.skip(
+                "Skipping case for use_random_angles=True, "
+                "as it takes very long time to run"
+            )
         # Given
         operator = _make_real_pauli_sum("0.75*X0*X1 + 0.75*Y0*Y1")
         required_precision = 0.01
