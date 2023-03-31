@@ -17,14 +17,16 @@ from .estimates_ms import ms_estimates
 
 
 def main():
-    #wf = hydrogen_workflow()
-    wf = ms_estimates()
+    # uncomment which workflow do you want to run:
+    wf = hydrogen_workflow()  # general hydrogen workflow to calculate estimates
+    # wf = ms_estimates()  # calculate resource estimates using MS tool
+
     # Run locally, sequentially, in a single Python process. Useful for debugging, but
     # doesn't use Orquestra to its full potential.
-    #wf_run = wf.run("ray")
+    wf_run = wf.run("in_process")
 
     # Run remotely on Orquestra Platform.
-    wf_run = wf.run("prod-d")
+    # wf_run = wf.run("prod-d")
 
     print(f"Workflow {wf_run.run_id} submitted!")
 

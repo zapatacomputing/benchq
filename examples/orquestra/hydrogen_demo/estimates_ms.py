@@ -1,8 +1,6 @@
 ################################################################################
 # © Copyright 2022-2023 Zapata Computing Inc.
 ################################################################################
-import time
-
 from benchq import BasicArchitectureModel
 
 from benchq.resource_estimation.microsoft import (
@@ -10,6 +8,7 @@ from benchq.resource_estimation.microsoft import (
 
 from .defs import get_operator, ms_task, get_program
 from orquestra import sdk
+
 
 @ms_task
 def ms_estimate(quantum_program, error_budget: float, architecture_model):
@@ -20,6 +19,7 @@ def ms_estimate(quantum_program, error_budget: float, architecture_model):
     os.environ["AZURE_RESOURCE_ID"] = sdk.secrets.get("AZURE-RESOURCE-ID")
 
     return msft_re_for_program(quantum_program, error_budget, architecture_model)
+
 
 @sdk.workflow
 def ms_estimates():

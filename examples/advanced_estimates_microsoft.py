@@ -17,37 +17,6 @@ from benchq.resource_estimation.microsoft import (
     get_resource_estimations_for_program as msft_re_for_program)
 
 
-def print_re(resource_estimates, label):
-    print("*#*" * 15)
-    print(f"{label} RESOURCE ESTIMATE")
-    print(resource_estimates)
-    print("n qubits (millions):", resource_estimates["physical_qubit_count"] / 1e6)
-    print("time (seconds):", resource_estimates["total_time"])
-    print("time (hours):", resource_estimates["total_time"] / 3600)
-    print("*#*" * 15)
-
-
-def get_of_resource_estimates(n_hydrogens):
-    instance = generate_hydrogen_chain_instance(n_hydrogens)
-    instance.avas_atomic_orbitals = ["H 1s", "H 2s"]
-    instance.avas_minao = "STO-3G"
-    mean_field_object = instance.get_active_space_meanfield_object()
-
-    # Running resource estimation with OpenFermion tools
-
-    # Set number of bits of precision in ancilla state preparation
-    bits_precision_state_prep = 4 * (n_hydrogens - 2) - n_hydrogens
-    chemical_accuracy = 1e-3
-    of_resource_estimates = get_qpe_resource_estimates_from_mean_field_object(
-        mean_field_object,
-        target_accuracy=chemical_accuracy,
-        bits_precision_state_prep=bits_precision_state_prep,
-    )
-
-    print_re(of_resource_estimates, "OF")
-    return of_resource_estimates
-
-
 def main():
     dt = 0.5  # Integration timestep
     tmax = 5  # Maximal timestep
