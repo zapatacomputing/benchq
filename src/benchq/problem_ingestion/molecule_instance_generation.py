@@ -283,7 +283,7 @@ class ChemistryApplicationInstance:
 
         return molecular_data
 
-    def _get_frozen_core_orbitals(self, molecular_data) -> Tuple[mp.mp2.MP2, int]:
+    def _get_frozen_core_orbitals(self, molecular_data) -> mp.mp2.MP2:
         """
         Get auto-generated chemical core orbitals.
 
