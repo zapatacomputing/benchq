@@ -135,7 +135,7 @@ class ChemistryApplicationInstance:
 
         elif self.occupied_indices and not self.freeze_core:
             mp2 = mp.MP2(mean_field_object).set(frozen=self.occupied_indices)
-            n_frozen_core_orbitals = len(self.occupied_indices)
+            n_frozen_core_orbitals = len(list(self.occupied_indices))
 
         else:
             mp2 = mp.MP2(mean_field_object)
