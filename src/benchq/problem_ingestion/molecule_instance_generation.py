@@ -33,8 +33,8 @@ class ChemistryApplicationInstance:
         If freeze_core option is True, chemical frozen core orbitals
         are choosen for occuped_indicies.
 
-    3. by using the frozen natural orbital (FNO) approche.
-       In this case, a user needs to set one of the FNO parametsrs:
+    3. by using the frozen natural orbital (FNO) approach.
+       In this case, a user needs to set one of the FNO parameters:
             - fno_percentage_occupation_number
             - fno_threshold
             - fno_n_virtual_natural_orbitals
@@ -119,6 +119,7 @@ class ChemistryApplicationInstance:
         Returns:
             molecular data: A PyscfMolecularData object.
             occupied_indices: A list of molecular orbitals not in the active space.
+                              They need to be consecutive values.
             active_indicies: A list of molecular orbitals to include in the active space. # noqa:E501
         """
         molecular_data = self._get_molecular_data()
@@ -129,8 +130,14 @@ class ChemistryApplicationInstance:
 
         n_frozen_core_orbitals = 0
 
-        if self.freeze_core:
-            mp2 = self._get_frozen_core_orbitals(molecular_data)
+        if self.freeze_core and self.occupied_indices:
+            raise ValueError(
+                "Both freeze core and occupied_indices were set!"
+                "Those options are exclusive. Please select either one."
+            )
+
+        elif self.freeze_core and not self.occupied_indices:
+            mp2 = self._set_frozen_core_orbitals(molecular_data)
             n_frozen_core_orbitals = mp2.frozen
 
         elif self.occupied_indices and not self.freeze_core:
@@ -209,7 +216,7 @@ class ChemistryApplicationInstance:
 
             if self.freeze_core:
                 self.occupied_indices = list(
-                    range(self._get_frozen_core_orbitals(molecular_data).frozen)
+                    range(self._set_frozen_core_orbitals(molecular_data).frozen)
                 )
 
             return molecular_data.get_molecular_hamiltonian(
@@ -283,9 +290,9 @@ class ChemistryApplicationInstance:
 
         return molecular_data
 
-    def _get_frozen_core_orbitals(self, molecular_data) -> mp.mp2.MP2:
+    def _set_frozen_core_orbitals(self, molecular_data) -> mp.mp2.MP2:
         """
-        Get auto-generated chemical core orbitals.
+        Set auto-generated chemical core orbitals.
 
         Args:
             molecular_data: PyscfMolecularData object.

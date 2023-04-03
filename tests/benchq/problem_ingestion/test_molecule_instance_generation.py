@@ -89,11 +89,6 @@ def test_get_occupied_and_active_indicies_with_FNO_no_freeze_core(fno_water_inst
     assert len(occupied_indices) == 0
     assert len(active_indicies) < molecular_data.n_orbitals
 
-    fno_water_instance.occupied_indices = [0]
-
-    assert len(occupied_indices) == 0
-    assert len(active_indicies) < molecular_data.n_orbitals
-
 
 def test_get_occupied_and_active_indicies_with_FNO_no_virtual_frozen_orbitals(
     fno_water_instance,
