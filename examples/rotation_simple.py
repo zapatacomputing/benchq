@@ -21,7 +21,7 @@ from qiskit.circuit import QuantumCircuit
 
 from benchq import BasicArchitectureModel
 from benchq.compilation import (
-    get_algorithmic_graph,
+    get_algorithmic_graph_from_Jabalizer,
     pyliqtr_transpile_to_clifford_t,
     simplify_rotations,
 )
@@ -54,7 +54,7 @@ def main(file_name="circuits/h_chain_circuit.qasm"):
     clifford_t_circuit = pyliqtr_transpile_to_clifford_t(
         qiskit_circuit, synthesis_accuracy
     )
-    graph = get_algorithmic_graph(clifford_t_circuit)
+    graph = get_algorithmic_graph_from_Jabalizer(clifford_t_circuit)
 
     logical_error_rate = 1e-3
     start = time.time()
@@ -68,7 +68,7 @@ def main(file_name="circuits/h_chain_circuit.qasm"):
     circuit_with_rotations = import_from_qiskit(qiskit_circuit)
     circuit_with_rotations_2 = simplify_rotations(circuit_with_rotations)
 
-    graph = get_algorithmic_graph(circuit_with_rotations_2)
+    graph = get_algorithmic_graph_from_Jabalizer(circuit_with_rotations_2)
     start = time.time()
     resource_estimates = get_resource_estimations_for_graph_with_rotations(
         graph, architecture_model, logical_error_rate, plot=True

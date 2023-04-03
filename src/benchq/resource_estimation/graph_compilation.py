@@ -8,13 +8,20 @@ from typing import Any, List
 
 import more_itertools
 import networkx as nx
-from graph_state_generation.optimizers import greedy_stabilizer_measurement_scheduler
+from graph_state_generation.optimizers import (
+    approximate_static_stabilizer_reduction,
+    fast_maximal_independent_set_stabilizer_reduction,
+    greedy_stabilizer_measurement_scheduler,
+)
 from graph_state_generation.substrate_scheduler import TwoRowSubstrateScheduler
 from orquestra.quantum.circuits import Circuit
 
 from benchq.vizualization_tools import plot_graph_state_with_measurement_steps
 
-from ..compilation import get_algorithmic_graph, pyliqtr_transpile_to_clifford_t
+from ..compilation import (
+    get_algorithmic_graph_from_Jabalizer,
+    pyliqtr_transpile_to_clifford_t,
+)
 from ..data_structures import QuantumProgram
 
 LOGGER = logging.getLogger(__name__)
@@ -166,7 +173,9 @@ def substrate_scheduler(graph: nx.Graph):
     connected_graph = nx.convert_node_labels_to_integers(connected_graph)
 
     scheduler_only_compiler = TwoRowSubstrateScheduler(
-        connected_graph, stabilizer_scheduler=greedy_stabilizer_measurement_scheduler
+        connected_graph,
+        stabilizer_scheduler=greedy_stabilizer_measurement_scheduler,
+        # pre_mapping_optimizer=approximate_static_stabilizer_reduction,
     )
     scheduler_only_compiler.run()
 
@@ -204,7 +213,7 @@ def get_resource_estimations_for_program(
         clifford_t_circuit = pyliqtr_transpile_to_clifford_t(
             circuit, synthesis_accuracy=synthesis_error_budget
         )
-        graphs_list.append(get_algorithmic_graph(clifford_t_circuit))
+        graphs_list.append(get_algorithmic_graph_from_Jabalizer(clifford_t_circuit))
         with open("icm_output.json", "r") as f:
             output_dict = json.load(f)
             data_qubits_map = output_dict["data_qubits_map"]

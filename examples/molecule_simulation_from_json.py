@@ -2,9 +2,9 @@
 # © Copyright 2022-2023 Zapata Computing Inc.
 ################################################################################
 """
-MAKE SURE TO UNZIP THE problem.zip FILE BEFORE RUNNING THIS SCRIPT!!!
+MAKE SURE TO UNZIP THE small_molecules.zip FILE BEFORE RUNNING THIS SCRIPT!!!
 
-There are 3 small molecules (smolecules) in the .zip file. These are:
+There are 3 small molecules (smolecules!) in the .zip file. These are:
 
 C2H2-8-cannonical_qubitop - very small
 CH4-8-NOs_qubitop         - medium small
@@ -21,7 +21,7 @@ import time
 from benchq import BasicArchitectureModel
 from benchq.algorithms import get_qsp_program
 from benchq.compilation import (
-    get_algorithmic_graph_from_gate_stitching,
+    get_algorithmic_graph_from_graph_sim_mini,
     pyliqtr_transpile_to_clifford_t,
 )
 from benchq.problem_ingestion.hamiltonian_generation import fast_load_qubit_op
@@ -58,7 +58,7 @@ def main(hamiltonian_name):
     print("Starting circuit generation")
     start = time.time()
     program = get_qsp_program(operator, qsp_required_precision, dt, tmax, sclf)
-    circuit = program.subroutines[1]
+    circuit = program.full_circuit()
     end = time.time()
     print("Circuit generation time: ", end - start)
 
@@ -73,7 +73,7 @@ def main(hamiltonian_name):
 
     print("Starting graph compilation")
     start = time.time()
-    graph = get_algorithmic_graph_from_gate_stitching(clifford_t_circuit)
+    graph = get_algorithmic_graph_from_graph_sim_mini(clifford_t_circuit)
     end = time.time()
     print("Graph compilation time: ", end - start)
 
@@ -95,3 +95,5 @@ def main(hamiltonian_name):
 
 if __name__ == "__main__":
     main("C2H2-8-canonical_qubitop")
+    # main("CH4-8-NOs_qubitop")
+    # main("C2H4-12-NOs_qubitop")

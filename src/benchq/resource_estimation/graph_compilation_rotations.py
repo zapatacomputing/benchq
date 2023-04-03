@@ -12,7 +12,7 @@ import numpy as np
 from orquestra.quantum.circuits import Circuit
 from orquestra.quantum.decompositions import decompose_orquestra_circuit
 
-from ..compilation import get_algorithmic_graph, simplify_rotations
+from ..compilation import get_algorithmic_graph_from_Jabalizer, simplify_rotations
 from ..data_structures import QuantumProgram
 from .graph_compilation import (
     _get_max_graph_degree,
@@ -230,7 +230,7 @@ def get_resource_estimations_for_program(
     for circuit in quantum_program.subroutines:
         # TA 2 part: FTQC compilation
         transpiled_circuit = simplify_rotations(circuit)
-        graphs_list.append(get_algorithmic_graph(transpiled_circuit))
+        graphs_list.append(get_algorithmic_graph_from_Jabalizer(transpiled_circuit))
         with open("icm_output.json", "r") as f:
             output_dict = json.load(f)
             data_qubits_map = output_dict["data_qubits_map"]

@@ -18,8 +18,11 @@ import time
 
 from benchq import BasicArchitectureModel
 from benchq.algorithms import get_qsp_circuit, get_qsp_program
-from benchq.compilation import get_algorithmic_graph, pyliqtr_transpile_to_clifford_t
-from benchq.compilation.gate_stitching import get_algorithmic_graph_from_gate_stitching
+from benchq.compilation import (
+    get_algorithmic_graph_from_graph_sim_mini,
+    get_algorithmic_graph_from_Jabalizer,
+    pyliqtr_transpile_to_clifford_t,
+)
 from benchq.problem_ingestion import get_vlasov_hamiltonian
 from benchq.resource_estimation.graph_compilation import (
     get_resource_estimations_for_graph,
@@ -98,7 +101,7 @@ def main():
         clifford_t_circuit = pyliqtr_transpile_to_clifford_t(
             circuit, gate_synthesis_error_budget
         )
-        graph = get_algorithmic_graph_from_gate_stitching(clifford_t_circuit)
+        graph = get_algorithmic_graph_from_graph_sim_mini(clifford_t_circuit)
 
         # TA 2 part: model hardware resources
         architecture_model = BasicArchitectureModel(

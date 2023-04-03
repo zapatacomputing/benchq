@@ -60,7 +60,7 @@ def generate_jw_qubit_hamiltonian_from_mol_data(
     return from_openfermion(hamiltonian_jw)
 
 
-def generate_heisenberg_hamiltonian(N):
+def generate_1d_heisenberg_hamiltonian(N):
 
     # Setting J/h's
     # Adjusting these from zero to nonzero may also increase the circuit depth,
