@@ -49,7 +49,7 @@ def get_icm(circuit: Circuit, gates_to_decompose=["T", "T_Dagger"]) -> Circuit:
         ]
 
         if op.gate.name in gates_to_decompose:
-            for (original_qubit, compiled_qubit) in zip(
+            for original_qubit, compiled_qubit in zip(
                 op.qubit_indices, compiled_qubits
             ):
                 icm_circuit_n_qubits += 1

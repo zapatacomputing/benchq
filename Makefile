@@ -12,3 +12,8 @@ github_actions-default:
 	${PYTHON_EXE} -m venv ${VENV_NAME}
 	"${VENV_NAME}/${VENV_BINDIR}/${PYTHON_EXE}" -m pip install --upgrade pip
 	"${VENV_NAME}/${VENV_BINDIR}/${PYTHON_EXE}" -m pip install -e '.[dev, circuit-gen]'
+
+# (no override)
+style-fix:
+	black src tests examples
+	isort --profile=black src tests examples
