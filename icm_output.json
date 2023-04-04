@@ -1,1 +1,0 @@
-{"data_qubits_map":[2,1],"circuit":[["H",["0"]],["CNOT",["0","anc_0"]],["CNOT",["anc_0","1"]]]}
