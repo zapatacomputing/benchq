@@ -53,44 +53,45 @@ def main(hamiltonian_name):
     end = time.time()
     print("Hamiltonian generation time: ", end - start)
 
-    ### METHOD 1: Full graph creation
-    # TA 1.5 part: model algorithmic circuit
-    print("Starting circuit generation")
-    start = time.time()
-    program = get_qsp_program(operator, qsp_required_precision, dt, tmax, sclf)
-    circuit = program.full_circuit()
-    end = time.time()
-    print("Circuit generation time: ", end - start)
+    for n_steps in [1, 2, 3]:
+        # TA 1.5 part: model algorithmic circuit
+        print("Starting circuit generation")
+        start = time.time()
+        program = get_qsp_program(operator, qsp_required_precision, dt, tmax, sclf)
+        program.steps = n_steps
+        circuit = program.full_circuit
+        end = time.time()
+        print("Circuit generation time: ", end - start)
 
-    # TA 2 part: FTQC compilation
-    print("Starting transpilation")
-    start = time.time()
-    clifford_t_circuit = pyliqtr_transpile_to_clifford_t(
-        circuit, gate_synthesis_error_budget
-    )
-    end = time.time()
-    print("Transpilation time: ", end - start)
+        # TA 2 part: FTQC compilation
+        print("Starting transpilation")
+        start = time.time()
+        clifford_t_circuit = pyliqtr_transpile_to_clifford_t(
+            circuit, gate_synthesis_error_budget
+        )
+        end = time.time()
+        print("Transpilation time: ", end - start)
 
-    print("Starting graph compilation")
-    start = time.time()
-    graph = get_algorithmic_graph_from_graph_sim_mini(clifford_t_circuit)
-    end = time.time()
-    print("Graph compilation time: ", end - start)
+        print("Starting graph compilation")
+        start = time.time()
+        graph = get_algorithmic_graph_from_graph_sim_mini(clifford_t_circuit)
+        end = time.time()
+        print("Graph compilation time: ", end - start)
 
-    print("Starting resource estimation")
-    # TA 2 part: model hardware resources
-    architecture_model = BasicArchitectureModel(
-        physical_gate_error_rate=1e-3,
-        physical_gate_time_in_seconds=1e-6,
-    )
-    start = time.time()
-    resource_estimates = get_resource_estimations_for_graph(
-        graph, architecture_model, error_correction_error_budget
-    )
-    end = time.time()
+        print("Starting resource estimation")
+        # TA 2 part: model hardware resources
+        architecture_model = BasicArchitectureModel(
+            physical_gate_error_rate=1e-3,
+            physical_gate_time_in_seconds=1e-6,
+        )
+        start = time.time()
+        resource_estimates = get_resource_estimations_for_graph(
+            graph, architecture_model, error_correction_error_budget
+        )
+        end = time.time()
 
-    print("Resource estimation time:", end - start)
-    print(resource_estimates)
+        print("Resource estimation time:", end - start)
+        print(resource_estimates)
 
 
 if __name__ == "__main__":
