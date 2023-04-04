@@ -1,10 +1,5 @@
-# When list of subgraphs is passed, it seems it has to be accompanied
-# by data_qubits_map_list. Hence, they are actually part of the same data
-# structure.
-#
-# I made it a dataclass because it is simple, but it does not have to be one
-from dataclasses import dataclass, field
-from typing import Any, Dict, List, Union
+from dataclasses import dataclass
+from typing import List, Union
 
 import networkx as nx
 from cirq.circuits.circuit import Circuit as CirqCircuit
@@ -20,7 +15,6 @@ AnyCircuit = Union[OrquestraCircuit, CirqCircuit, QiskitCircuit]
 class GraphPartition:
     program: QuantumProgram
     subgraphs: List[nx.Graph]
-    data_qubits_map_list: List[List[int]]
     synthesized: bool
 
     @property
