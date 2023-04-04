@@ -131,9 +131,6 @@ chromedriver
 .DS_Store
 .vscode/
 
-# Files generated from ICM and Jabalizer
-icm_input_circuit.json
-icm_output.json
-adjacency_list.nxl
+# Generated files
 avas_localized_orbitals.molden
 measurement_steps_plot.pdf
