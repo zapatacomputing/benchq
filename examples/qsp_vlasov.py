@@ -21,6 +21,8 @@ from benchq.problem_ingestion import get_vlasov_hamiltonian
 from benchq.resource_estimation.v2 import (
     GraphResourceEstimator,
     run_resource_estimation_pipeline,
+    synthesize_clifford_t,
+    create_graphs_for_subcircuits
 )
 from benchq.timing import measure_time
 
@@ -105,6 +107,10 @@ def main():
                 program,
                 error_budget,
                 estimator=GraphResourceEstimator(architecture_model),
+                transformers=[
+                    synthesize_clifford_t(error_budget),
+                    create_graphs_for_subcircuits
+                ]
             )
 
         print("Resource estimation time:", t_info.total)
