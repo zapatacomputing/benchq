@@ -6,7 +6,7 @@ import networkx as nx
 from . import jl
 
 
-def create_adjlist_from_stabilizers(svec):
+def create_graph_from_stabilizers(svec):
     G = nx.Graph()
     siz = len(svec)
     for i in range(siz):
