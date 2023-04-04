@@ -63,8 +63,9 @@ class QuantumProgram:
         return QuantumProgram(
             subroutines=new_circuits,
             steps=self.steps,
-            calculate_subroutine_sequence=self.calculate_subroutine_sequence
+            calculate_subroutine_sequence=self.calculate_subroutine_sequence,
         )
+
 
 def get_program_from_circuit(circuit):
     return QuantumProgram(

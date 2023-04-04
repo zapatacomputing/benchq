@@ -3,8 +3,8 @@ from typing import Callable
 from ...compilation import (
     get_algorithmic_graph_from_graph_sim_mini,
     pyliqtr_transpile_to_clifford_t,
-    simplify_rotations as _simplify_rotations,
 )
+from ...compilation import simplify_rotations as _simplify_rotations
 from ...data_structures import QuantumProgram, get_program_from_circuit
 from .structs import GraphPartition
 
@@ -25,7 +25,7 @@ def synthesize_clifford_t(error_budget) -> Callable[[QuantumProgram], QuantumPro
     return _transformer
 
 
-def simplify_rotations(program: QuantumProgram) -> GraphPartition:
+def simplify_rotations(program: QuantumProgram) -> QuantumProgram:
     circuits = [_simplify_rotations(circuit) for circuit in program.subroutines]
     return QuantumProgram(
         circuits,
@@ -35,8 +35,7 @@ def simplify_rotations(program: QuantumProgram) -> GraphPartition:
 
 
 def create_graphs_for_subcircuits(
-    synthesized: bool,
-    graph_production_method=get_algorithmic_graph_from_graph_sim_mini
+    synthesized: bool, graph_production_method=get_algorithmic_graph_from_graph_sim_mini
 ) -> Callable[[QuantumProgram], GraphPartition]:
     def _transformer(program: QuantumProgram) -> GraphPartition:
         graphs_list = [
@@ -48,8 +47,7 @@ def create_graphs_for_subcircuits(
 
 
 def create_big_graph_from_subcircuits(
-    synthesized: bool,
-    graph_production_method=get_algorithmic_graph_from_graph_sim_mini
+    synthesized: bool, graph_production_method=get_algorithmic_graph_from_graph_sim_mini
 ) -> Callable[[QuantumProgram], GraphPartition]:
     def _transformer(program: QuantumProgram) -> GraphPartition:
         big_circuit = program.full_circuit
