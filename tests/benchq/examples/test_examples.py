@@ -9,10 +9,10 @@ import pytest
 from orquestra.sdk.schema.workflow_run import State
 
 from examples.advanced_estimates import main as advanced_estimates_main
-from examples.h_chain_from_qasm import main as h_chain_from_qasm_main
 from examples.h_chain_trotter import main as h_chain_main
 from examples.orquestra.hydrogen_demo.defs import hydrogen_workflow
 from examples.qsp_vlasov import main as qsp_vlasov_main
+from examples.resource_estimate_from_qasm import main as h_chain_from_qasm_main
 
 MAIN_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.dirname(MAIN_DIR))

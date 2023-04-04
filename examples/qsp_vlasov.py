@@ -17,12 +17,12 @@ from pprint import pprint
 
 from benchq import BasicArchitectureModel
 from benchq.algorithms import get_qsp_program
-from benchq.timing import measure_time
 from benchq.problem_ingestion import get_vlasov_hamiltonian
 from benchq.resource_estimation.v2 import (
     GraphResourceEstimator,
     run_resource_estimation_pipeline,
 )
+from benchq.timing import measure_time
 
 # This examples shows three ways of performing resource estimation:
 # 1. Generating the whole circuit, creating a graph out of it and performing
@@ -104,7 +104,7 @@ def main():
             gsc_resource_estimates = run_resource_estimation_pipeline(
                 program,
                 error_budget,
-                estimator=GraphResourceEstimator(architecture_model)
+                estimator=GraphResourceEstimator(architecture_model),
             )
 
         print("Resource estimation time:", t_info.total)

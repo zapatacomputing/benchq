@@ -9,16 +9,19 @@ from orquestra import sdk
 from orquestra.quantum.evolution import time_evolution
 
 from benchq import BasicArchitectureModel
-from benchq.compilation import get_algorithmic_graph, pyliqtr_transpile_to_clifford_t
-from benchq.problem_ingestion import generate_jw_qubit_hamiltonian_from_mol_data
-from benchq.resource_estimation.graph_compilation import (
-    get_resource_estimations_for_graph,
+from benchq.algorithms import get_qsp_program
+from benchq.compilation import (
+    get_algorithmic_graph_from_Jabalizer,
+    pyliqtr_transpile_to_clifford_t,
 )
+from benchq.problem_ingestion import generate_jw_qubit_hamiltonian_from_mol_data
 from benchq.problem_ingestion.molecule_instance_generation import (
     generate_hydrogen_chain_instance,
 )
 from benchq.resource_estimation import get_qpe_resource_estimates_from_mean_field_object
-from benchq.algorithms import get_qsp_program
+from benchq.resource_estimation.graph_compilation import (
+    get_resource_estimations_for_graph,
+)
 
 task_deps = [sdk.PythonImports("pyscf==2.2.0", "openfermionpyscf==0.5")]
 ms_task_deps = [
@@ -84,7 +87,7 @@ def transpile_to_clifford_t(circuit, synthesis_accuracy):
 
 @task_with_julia
 def get_algorithmic_graph_task(circuit):
-    return get_algorithmic_graph(circuit)
+    return get_algorithmic_graph_from_Jabalizer(circuit)
 
 
 @standard_task
@@ -166,7 +169,7 @@ def original_main():
         clifford_t_circuit = pyliqtr_transpile_to_clifford_t(
             circuit, synthesis_accuracy
         )
-        graph = get_algorithmic_graph(clifford_t_circuit)
+        graph = get_algorithmic_graph_from_Jabalizer(clifford_t_circuit)
 
         # TA 2 part: model hardware resources
         architecture_model = BasicArchitectureModel(

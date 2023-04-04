@@ -2,7 +2,7 @@ import json
 from functools import singledispatch
 
 from ...compilation import (
-    get_algorithmic_graph,
+    get_algorithmic_graph_from_graph_sim_mini,
     pyliqtr_transpile_to_clifford_t,
     simplify_rotations,
 )
@@ -21,7 +21,9 @@ def synthesize_clifford_t(program: QuantumProgram, error_budget) -> GraphPartiti
         clifford_t_circuit = pyliqtr_transpile_to_clifford_t(
             circuit, synthesis_accuracy=synthesis_error_budget
         )
-        graphs_list.append(get_algorithmic_graph(clifford_t_circuit))
+        graphs_list.append(
+            get_algorithmic_graph_from_graph_sim_mini(clifford_t_circuit)
+        )
         with open("icm_output.json", "r") as f:
             output_dict = json.load(f)
             data_qubits_map = output_dict["data_qubits_map"]
@@ -36,7 +38,9 @@ def simplify_only(program: QuantumProgram, error_budget) -> GraphPartition:
 
     for circuit in program.subroutines:
         simplified_circuit = simplify_rotations(circuit)
-        graphs_list.append(get_algorithmic_graph(simplified_circuit))
+        graphs_list.append(
+            get_algorithmic_graph_from_graph_sim_mini(simplified_circuit)
+        )
         with open("icm_output.json", "r") as f:
             output_dict = json.load(f)
             data_qubits_map = output_dict["data_qubits_map"]

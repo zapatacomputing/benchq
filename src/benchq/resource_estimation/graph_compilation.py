@@ -7,7 +7,11 @@ from typing import Any, List
 
 import more_itertools
 import networkx as nx
-from graph_state_generation.optimizers import greedy_stabilizer_measurement_scheduler
+from graph_state_generation.optimizers import (
+    approximate_static_stabilizer_reduction,
+    fast_maximal_independent_set_stabilizer_reduction,
+    greedy_stabilizer_measurement_scheduler,
+)
 from graph_state_generation.substrate_scheduler import TwoRowSubstrateScheduler
 from orquestra.quantum.circuits import Circuit
 
@@ -166,7 +170,9 @@ def substrate_scheduler(graph: nx.Graph):
     connected_graph = nx.convert_node_labels_to_integers(connected_graph)
 
     scheduler_only_compiler = TwoRowSubstrateScheduler(
-        connected_graph, stabilizer_scheduler=greedy_stabilizer_measurement_scheduler
+        connected_graph,
+        stabilizer_scheduler=greedy_stabilizer_measurement_scheduler,
+        # pre_mapping_optimizer=approximate_static_stabilizer_reduction,
     )
     scheduler_only_compiler.run()
 
