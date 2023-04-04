@@ -59,6 +59,12 @@ class QuantumProgram:
             recreated_circuit += self.subroutines[i]
         return recreated_circuit
 
+    def replace_circuits(self, new_circuits: Sequence[Circuit]) -> "QuantumProgram":
+        return QuantumProgram(
+            subroutines=new_circuits,
+            steps=self.steps,
+            calculate_subroutine_sequence=self.calculate_subroutine_sequence
+        )
 
 def get_program_from_circuit(circuit):
     return QuantumProgram(
