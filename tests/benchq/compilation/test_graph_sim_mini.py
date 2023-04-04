@@ -51,7 +51,6 @@ from benchq.compilation import jl, pyliqtr_transpile_to_clifford_t
     ],
 )
 def test_stabilizer_states_are_the_same_for_simple_circuits(circuit):
-
     target_tableau = get_target_tableau(circuit)
     loc, adj = jl.run_graph_sim_mini(circuit)
     vertices = list(zip(loc, adj))

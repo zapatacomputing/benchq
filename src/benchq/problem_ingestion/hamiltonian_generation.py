@@ -28,7 +28,6 @@ def generate_fermi_hubbard_jw_qubit_hamiltonian(
     chemical_potential: float = 0.0,
     spinless: bool = False,
 ) -> PauliSum:
-
     hubbard_model = of.fermi_hubbard(
         x_dimension,
         y_dimension,
@@ -47,7 +46,6 @@ def generate_fermi_hubbard_jw_qubit_hamiltonian(
 def generate_jw_qubit_hamiltonian_from_mol_data(
     molecular_data, occupied_indices=None, active_indices=None
 ) -> PauliSum:
-
     hamiltonian = molecular_data.get_active_space_hamiltonian()
 
     # # Convert to a FermionOperator
@@ -60,8 +58,12 @@ def generate_jw_qubit_hamiltonian_from_mol_data(
     return from_openfermion(hamiltonian_jw)
 
 
+<<<<<<< HEAD
 def generate_1d_heisenberg_hamiltonian(N):
 
+=======
+def generate_heisenberg_hamiltonian(N):
+>>>>>>> 14cc028710a1b70aa61d27e37ff00e91f45eccd8
     # Setting J/h's
     # Adjusting these from zero to nonzero may also increase the circuit depth,
     # since additional terms in the Hamiltonian are introduced.

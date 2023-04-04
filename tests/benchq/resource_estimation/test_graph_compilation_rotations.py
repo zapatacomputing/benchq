@@ -48,7 +48,7 @@ from benchq.resource_estimation.graph_compilation_rotations import (
                 1,
                 lambda _: [0],
             ),
-            {"n_measurement_steps": 3, "n_nodes": 6, "max_graph_degree": 2},
+            {"n_measurement_steps": 3, "n_nodes": 3, "max_graph_degree": 2},
         ),
     ],
 )

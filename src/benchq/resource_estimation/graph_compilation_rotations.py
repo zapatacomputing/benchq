@@ -1,7 +1,6 @@
 ################################################################################
 # © Copyright 2022-2023 Zapata Computing Inc.
 ################################################################################
-import json
 import logging
 import warnings
 from typing import Any, List
@@ -12,7 +11,11 @@ import numpy as np
 from orquestra.quantum.circuits import Circuit
 from orquestra.quantum.decompositions import decompose_orquestra_circuit
 
+<<<<<<< HEAD
 from ..compilation import get_algorithmic_graph_from_Jabalizer, simplify_rotations
+=======
+from ..compilation import get_algorithmic_graph_and_icm_output, simplify_rotations
+>>>>>>> 14cc028710a1b70aa61d27e37ff00e91f45eccd8
 from ..data_structures import QuantumProgram
 from .graph_compilation import (
     _get_max_graph_degree,
@@ -21,8 +24,6 @@ from .graph_compilation import (
 )
 
 CLIFFORD_GATES = [
-    "X",
-    "H",
     "CNOT",
     "CZ",
     "SWAP",
@@ -212,9 +213,9 @@ def get_resource_estimations_for_program(
 ):
     """
     Args:
-        quantum_program (QuantumProgram): The program we wish toestimate resources for.
+        quantum_program (QuantumProgram): The program we wish to estimate resources for.
         error_budget (float): maximum allowable error in program.
-        architecture_model (ArchetectureModel): Parameters describing th e performance
+        architecture_model (ArchitectureModel): Parameters describing the performance
             of the architecture.
         use_full_program_graph (bool, optional): Choose whether to perform resource
             estimations using the graph of the full program or with the subcomponents.
@@ -230,10 +231,17 @@ def get_resource_estimations_for_program(
     for circuit in quantum_program.subroutines:
         # TA 2 part: FTQC compilation
         transpiled_circuit = simplify_rotations(circuit)
+<<<<<<< HEAD
         graphs_list.append(get_algorithmic_graph_from_Jabalizer(transpiled_circuit))
         with open("icm_output.json", "r") as f:
             output_dict = json.load(f)
             data_qubits_map = output_dict["data_qubits_map"]
+=======
+        adjlist, _, _, data_qubits_map = get_algorithmic_graph_and_icm_output(
+            transpiled_circuit
+        )
+        graphs_list.append(adjlist)
+>>>>>>> 14cc028710a1b70aa61d27e37ff00e91f45eccd8
         data_qubits_map_list.append(data_qubits_map)
 
     return resource_estimations_for_subcomponents(
@@ -262,8 +270,8 @@ def resource_estimations_for_subcomponents(
             program.
         data_qubits_map_list (List[List[int]]): A list of lists describing where the
             data qubits are after each subroutine is called.
-        quantum_program (QuantumProgram): The program we wish toestimate resources for.
-        architecture_model (ArchetectureModel): Parameters describing th e performance
+        quantum_program (QuantumProgram): The program we wish to estimate resources for.
+        architecture_model (ArchitectureModel): Parameters describing the performance
             of the archetecture.
         tolerable_circuit_error_rate (float): Error rate of the circuit.
         use_full_program_graph (bool, optional): Choose whether to perform resource
@@ -364,7 +372,6 @@ def get_substrate_scheduler_estimates_for_subcomponents(
     architecture_model,
     resource_estimates={},
 ):
-
     # sum substrate scheduler resource estimates for each subcomponent
     total_n_measurement_steps = 0
     total_measurement_steps = []

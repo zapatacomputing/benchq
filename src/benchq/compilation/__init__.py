@@ -6,6 +6,8 @@ import pathlib
 
 from juliacall import Main as jl
 
+from .gate_stitching import get_algorithmic_graph_from_gate_stitching
+from .jabalizer_utils import get_algorithmic_graph, get_algorithmic_graph_and_icm_output
 from .julia_utils import (
     get_algorithmic_graph_from_graph_sim_mini,
     get_algorithmic_graph_from_Jabalizer,

@@ -18,11 +18,27 @@ from benchq.problem_ingestion.molecule_instance_generation import (
     generate_hydrogen_chain_instance,
 )
 from benchq.resource_estimation import get_qpe_resource_estimates_from_mean_field_object
+<<<<<<< HEAD
 from benchq.resource_estimation.graph_compilation import (
     get_resource_estimations_for_graph,
 )
 
 task_deps = [sdk.PythonImports("pyscf==2.1.0", "openfermionpyscf==0.5")]
+=======
+from benchq.algorithms import get_qsp_program
+
+task_deps = [sdk.PythonImports("pyscf==2.2.0", "openfermionpyscf==0.5")]
+ms_task_deps = [
+    sdk.PythonImports(
+        "pyscf==2.2.0",
+        "openfermionpyscf==0.5",
+        "azure-quantum==0.28.262328b1",
+        "pyqir==0.8.0",
+        "qiskit_qir==0.3.1",
+        "qiskit_ionq==0.3.10",
+    )
+]
+>>>>>>> 14cc028710a1b70aa61d27e37ff00e91f45eccd8
 standard_task = sdk.task(
     source_import=sdk.GitImport.infer(), dependency_imports=task_deps
 )
@@ -32,6 +48,29 @@ task_with_julia = sdk.task(
     dependency_imports=task_deps,
     custom_image="mstechly/ta2-julia-test",
 )
+
+ms_task = sdk.task(source_import=sdk.GitImport.infer(), dependency_imports=ms_task_deps)
+
+
+@standard_task
+def get_program(
+    operator,
+    qsp_required_precision: float,
+    dt: float,
+    tmax: float,
+    sclf: float,
+    mode: str = "gse",
+    gse_accuracy: float = 1e-3,
+):
+    return get_qsp_program(
+        operator,
+        qsp_required_precision,
+        dt,
+        tmax,
+        sclf,
+        mode=mode,
+        gse_accuracy=gse_accuracy,
+    )
 
 
 @standard_task
@@ -113,7 +152,6 @@ def hydrogen_workflow():
 
 def original_main():
     for n_hydrogens in [1]:
-
         # TA 1 part: specify the core computational capability
 
         # Generate instance

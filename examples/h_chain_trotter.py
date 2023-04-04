@@ -26,62 +26,78 @@ from benchq.problem_ingestion.molecule_instance_generation import (
 from benchq.resource_estimation.graph_compilation import (
     get_resource_estimations_for_program,
 )
+from benchq.resource_estimation.v2 import GraphResourceEstimator, run_resource_estimation_pipeline
+from benchq.timing import measure_time
 
 
 def main():
-    for n_hydrogens in [2, 3, 5]:
-        print("Number of hydrogen atoms:", n_hydrogens)
+    for n_hydrogens in [2, 3]:
+        print(f"Number of hydrogen atoms: {n_hydrogens}")
 
-        begtime = time.time()
-        start = begtime
-        mol_data = generate_hydrogen_chain_instance(n_hydrogens)
-        print("Generate instance:", time.time() - start)
+        with measure_time() as t_info:
+            mol_data = generate_hydrogen_chain_instance(n_hydrogens)
+
+        begtime = t_info.start_counter
+        print(f"Generate instance: {t_info.total}")
 
         # Convert instance to core computational problem instance
-        start = time.time()
-        operator = generate_jw_qubit_hamiltonian_from_mol_data(mol_data)
-        print("Generate JW qubit hamiltonian", time.time() - start)
-        print("Size of Hamiltonian:", operator.n_qubits)
+        with measure_time() as t_info:
+            operator = generate_jw_qubit_hamiltonian_from_mol_data(mol_data)
+        print(f"Generate JW qubit hamiltonian {t_info.total}")
+        print(f"Size of Hamiltonian: {operator.n_qubits}")
 
         # Resource estimation for partial circuits:
         tolerable_circuit_error_rate = 1e-3
-        trotter_required_precision = (
-            tolerable_circuit_error_rate / 2
-        )  # Allocate half the error budget to QSP precision
-        remaining_error_budget = (
-            tolerable_circuit_error_rate - trotter_required_precision
-        )
+        # Allocate half the error budget to QSP precision
+        trotter_required_precision = tolerable_circuit_error_rate / 2
 
         architecture_model = BasicArchitectureModel(
             physical_gate_error_rate=1e-3,
             physical_gate_time_in_seconds=1e-6,
         )
 
+        error_budget = {
+            "total_error": 1e-2,
+            "trotter_required_precision": trotter_required_precision,
+            "tolerable_circuit_error_rate": tolerable_circuit_error_rate,
+            "remaining_error_budget": (
+                tolerable_circuit_error_rate - trotter_required_precision
+            ),
+            "synthesis_error_rate": 1e-3,
+            "ec_error_rate": 1e-3
+        }
+
         # TA 1.5 part: model algorithmic circuit
         evolution_time = 1
 
-        start = time.time()
-        # This could be replaced with QSP, please see `advanced_estimates`
-        # as an example of how to do that.
-        quantum_program = get_trotter_program(
-            operator,
-            evolution_time=evolution_time,
-            total_trotter_error=trotter_required_precision,
-        )
-        end = time.time()
-        print("Circuit generation time:", end - start)
+        with measure_time() as t_info:
+            # This could be replaced with QSP, please see `advanced_estimates`
+            # as an example of how to do that.
+            quantum_program = get_trotter_program(
+                operator,
+                evolution_time=evolution_time,
+                total_trotter_error=trotter_required_precision,
+            )
 
-        start = time.time()
-        gsc_resource_estimates = get_resource_estimations_for_program(
-            quantum_program, remaining_error_budget, architecture_model, plot=True
-        )
-        end = time.time()
-        print("Resource estimation time:", end - start)
+        print("Circuit generation time:", t_info.total)
+
+
+        with measure_time() as t_info:
+        ### TODO: error budget is needed both for transforming AND
+            ### in the estimation
+            ### Hence, I suggest passing it once to run_resource_estimation_pipeline
+            ### And then propagating it through transformer and estimator
+            gsc_resource_estimates = run_resource_estimation_pipeline(
+                quantum_program,
+                error_budget,
+                estimator=GraphResourceEstimator(architecture_model)
+            )
+
+        print(f"Resource estimation time: {t_info.total}")
         print(gsc_resource_estimates)
-        print("Total time for ", n_hydrogens, " ", end - begtime)
+        print(f"Total time for {n_hydrogens} {t_info.stop_counter - begtime}") # type: ignore
 
         ### END OF STUFF FOR SUBCIRCUITS
-
 
 if __name__ == "__main__":
     main()
