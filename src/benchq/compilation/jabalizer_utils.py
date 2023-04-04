@@ -19,9 +19,9 @@ def create_graph_from_stabilizers(svec):
 
 def get_algorithmic_graph(circuit):
     svec, op_seq, icm_output, data_qubits_map = jl.run_jabalizer(circuit)
-    return create_adjlist_from_stabilizers(svec)
+    return create_graph_from_stabilizers(svec)
 
 
 def get_algorithmic_graph_and_icm_output(circuit):
     svec, op_seq, icm_output, data_qubits_map = jl.run_jabalizer(circuit)
-    return create_adjlist_from_stabilizers(svec), op_seq, icm_output, data_qubits_map
+    return create_graph_from_stabilizers(svec), op_seq, icm_output, data_qubits_map
