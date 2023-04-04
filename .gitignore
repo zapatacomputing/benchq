@@ -137,3 +137,6 @@ icm_output.json
 adjacency_list.nxl
 avas_localized_orbitals.molden
 measurement_steps_plot.pdf
+
+# ignore molecule files
+small_molecules/

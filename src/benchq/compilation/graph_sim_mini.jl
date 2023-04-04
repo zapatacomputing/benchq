@@ -13,6 +13,12 @@ using PythonCall
 include("graph_sim_data.jl")
 
 
+# numbers which correspond to each of the gates in multiply_lco
+H_code = 11
+S_code = 7
+S_Dagger_code = 6
+sqrt_X_code = 15
+
 """Get the vertices of a graph state corresponding to enacting the given circuit
 on the |0> state. Also gives the local clifford operation on each node.
 
@@ -28,28 +34,40 @@ Returns:
         graph state
 """
 function get_graph_state_data(icm_circuit, n_qubits)
-    lco = [11 for _ in 1:n_qubits]  # local clifford operation on each node
+    lco = [H_code for _ in 1:n_qubits]  # local clifford operation on each node
     adj = [Set{Int}() for _ in 1:n_qubits]  # adjacency list
 
+    # for keeping track of progress
+    total_length = length(icm_circuit)
+    last_10_percent_completed = 0
+    i = 0
+
     for (op_name, op_qubits) in icm_circuit
+        i += 1
+        percent_completed = round(100 * i / total_length)
+        if percent_completed >= last_10_percent_completed + 10
+            println("GraphSim Mini is $percent_completed% completed")
+            last_10_percent_completed += 10
+        end
+
         qubit_1 = parse(Int, op_qubits[1]) + 1
         if op_name in ["I", "X", "Y", "Z"]
             # these gates do not change the graph
             continue
         elseif op_name == "H"
-            lco[qubit_1] = multiply_lco[11, lco[qubit_1]]
+            lco[qubit_1] = multiply_lco[H_code, lco[qubit_1]]
         elseif op_name == "S"
-            lco[qubit_1] = multiply_lco[7, lco[qubit_1]]
+            lco[qubit_1] = multiply_lco[S_code, lco[qubit_1]]
         elseif op_name == "S_Dagger"
-            lco[qubit_1] = multiply_lco[6, lco[qubit_1]]
+            lco[qubit_1] = multiply_lco[S_Dagger_code, lco[qubit_1]]
         elseif op_name == "CZ"
             cz(lco, adj, qubit_1, parse(Int, op_qubits[2]) + 1)
         elseif op_name == "CNOT"
             # CNOT = (I \otimes H) CZ (I \otimes H)
             qubit_2 = parse(Int, op_qubits[2]) + 1
-            lco[qubit_2] = multiply_lco[11, lco[qubit_2]]
+            lco[qubit_2] = multiply_lco[H_code, lco[qubit_2]]
             cz(lco, adj, qubit_1, qubit_2)
-            lco[qubit_2] = multiply_lco[11, lco[qubit_2]]
+            lco[qubit_2] = multiply_lco[H_code, lco[qubit_2]]
         else
             error("Unknown gate: $op_name")
         end
@@ -80,6 +98,17 @@ function cz(lco, adj, vertex_1, vertex_2)
     lco[vertex_2] = table_tuple[3]
 end
 
+
+"""Check if a vertex is almost isolated. A vertex is almost isolated if it has no
+neighbors or if it has one neighbor and that neighbor is the given vertex.
+
+Args:
+    set (Set[int]): set of neighbors of a vertex
+    vertex (int): vertex to check if it is almost isolated
+
+Returns:
+    bool: whether the vertex is almost isolated
+"""
 function check_almost_isolated(set, vertex)
     l = length(set)
     return l != 0 || (l == 1 && vertex in set)
@@ -121,9 +150,9 @@ function local_complement(lco, adj, v)
         end
     end
 
-    lco[v] = multiply_lco[lco[v], 15]
+    lco[v] = multiply_lco[lco[v], sqrt_X_code]
     for i in adj[v]
-        lco[i] = multiply_lco[lco[i], 7]
+        lco[i] = multiply_lco[lco[i], S_code]
     end
 end
 
@@ -188,8 +217,19 @@ function get_icm(
     return compiled_circuit, curr_qubits
 end
 
+
+"""Converts a given circuit in Clifford + T form to icm form and simulates the icm 
+circuit using the graph sim mini simulator. Returns the adjacency list of the graph
+state created by the icm circuit along with the single qubit operations on each vertex.
+
+Args:
+    circuit (Circuit): circuit to be simulated
+
+Returns:    
+    adj (List[Set[int]]): adjacency list describing the graph state
+    lco (List[int]): local clifford operations on each node
+"""
 function run_graph_sim_mini(circuit)
-    # Convert to Julia values, and (as a temp hack) rename T_Dagger to T (until implemented)
     n_qubits = Jabalizer.pyconvert(Int, circuit.n_qubits)
     bare_circuit = Jabalizer.ICMGate[]
     for op in circuit.operations

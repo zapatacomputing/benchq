@@ -53,11 +53,16 @@ def main(hamiltonian_name):
     end = time.time()
     print("Hamiltonian generation time: ", end - start)
 
-    for n_steps in [1, 2, 3]:
+    print("Starting program generation")
+    start = time.time()
+    program = get_qsp_program(operator, qsp_required_precision, dt, tmax, sclf)
+    end = time.time()
+    print("program generation time: ", end - start)
+
+    for n_steps in [4, 5]:
         # TA 1.5 part: model algorithmic circuit
         print("Starting circuit generation")
         start = time.time()
-        program = get_qsp_program(operator, qsp_required_precision, dt, tmax, sclf)
         program.steps = n_steps
         circuit = program.full_circuit
         end = time.time()
@@ -91,7 +96,20 @@ def main(hamiltonian_name):
         end = time.time()
 
         print("Resource estimation time:", end - start)
+
+        print(
+            "Resource estimations for "
+            + hamiltonian_name
+            + " with "
+            + str(n_steps)
+            + " steps"
+        )
         print(resource_estimates)
+
+        # Free up memory for next iteration
+        del circuit
+        del clifford_t_circuit
+        del graph
 
 
 if __name__ == "__main__":
