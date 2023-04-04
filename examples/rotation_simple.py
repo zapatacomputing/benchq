@@ -33,7 +33,7 @@ from benchq.resource_estimation.v2 import (
     simplify_only,
     synthesize_clifford_t,
 )
-from benchq.data_structures import generate_program_from_circuit
+from benchq.data_structures import get_program_from_circuit
 
 
 # This demo shows how to get resource estimation for a circuit in two ways:
@@ -68,7 +68,7 @@ def main():
     # TA 1.5 part: model algorithmic circuit
     with measure_time() as t_info:
         qiskit_circuit = QuantumCircuit.from_qasm_file(file_name)
-        program = generate_program_from_circuit(import_from_qiskit(qiskit_circuit))
+        program = get_program_from_circuit(import_from_qiskit(qiskit_circuit))
 
     print("Program generation time:", t_info.total)
 

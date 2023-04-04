@@ -1,5 +1,3 @@
-import numpy as np
-
 from .transformers import synthesize_clifford_t
 
 

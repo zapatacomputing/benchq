@@ -60,7 +60,7 @@ class QuantumProgram:
         return recreated_circuit
 
 
-def generate_program_from_circuit(circuit):
+def get_program_from_circuit(circuit):
     return QuantumProgram(
         [circuit], steps=1, calculate_subroutine_sequence=lambda x: [0]
     )

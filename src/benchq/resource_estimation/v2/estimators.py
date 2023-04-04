@@ -194,17 +194,3 @@ class GraphResourceEstimator:
                     "Resource estimation without combining subgraphs is not yet "
                     "supported."
                 )
-            # use dummy graph
-            # resource_estimates = get_resource_estimations_for_graph(
-            #     nx.path_graph(n_nodes),
-            #     self.hw_model,
-            #     error_budget["tolerable_circuit_error_rate"],
-            #     plot=False,
-            #     is_subgraph=True,
-            # )
-            # resource_estimates = get_substrate_scheduler_estimates_for_subcomponents(
-            #     problem.subgraphs,
-            #     problem.program,
-            #     self.hw_model,
-            #     resource_estimates,
-            # )
