@@ -2,10 +2,11 @@ from .transformers import synthesize_clifford_t
 
 
 def run_resource_estimation_pipeline(
-    program_or_circuit,
+    program,
     error_budget,
     estimator,
-    transformer=synthesize_clifford_t,
+    transformers,
 ):
-    transformed = transformer(program_or_circuit, error_budget)
-    return estimator.estimate(transformed, error_budget)
+    for transformer in transformers:
+        program = transformer(program)
+    return estimator.estimate(program, error_budget)

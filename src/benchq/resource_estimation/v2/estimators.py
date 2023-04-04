@@ -178,19 +178,12 @@ class GraphResourceEstimator:
 
     def estimate(self, problem: GraphPartition, error_budget):
         n_nodes = problem.n_nodes
-
         if len(problem.subgraphs) == 1:
             return self._estimate_resource_for_graph(
                 problem.subgraphs[0], n_nodes, problem.synthesized, error_budget
             )
         else:
-            if self.combine_partition:
-                program_graph = combine_subcomponent_graphs(problem)
-                return self._estimate_resource_for_graph(
-                    program_graph, n_nodes, problem.synthesized, error_budget
-                )
-            else:
-                raise NotImplementedError(
-                    "Resource estimation without combining subgraphs is not yet "
-                    "supported."
-                )
+            raise NotImplementedError(
+                "Resource estimation without combining subgraphs is not yet "
+                "supported."
+            )

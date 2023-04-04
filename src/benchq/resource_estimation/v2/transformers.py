@@ -1,49 +1,58 @@
-import json
-from functools import singledispatch
+from typing import Callable
 
 from ...compilation import (
     get_algorithmic_graph_from_graph_sim_mini,
     pyliqtr_transpile_to_clifford_t,
-    simplify_rotations,
 )
-from ...data_structures import QuantumProgram
+from ...compilation import simplify_rotations as _simplify_rotations
+from ...data_structures import QuantumProgram, get_program_from_circuit
 from .structs import GraphPartition
 
 
-def synthesize_clifford_t(program: QuantumProgram, error_budget) -> GraphPartition:
-    graphs_list = []
-    data_qubits_map_list = []
-    # We assign the same amount of error budget to gate synthesis and error correction.
-    synthesis_error_budget = (
-        error_budget["synthesis_error_rate"] * error_budget["total_error"]
+def synthesize_clifford_t(error_budget) -> Callable[[QuantumProgram], QuantumProgram]:
+    def _transformer(program: QuantumProgram) -> QuantumProgram:
+        synthesis_error_budget = (
+            error_budget["synthesis_error_rate"] * error_budget["total_error"]
+        )
+        circuits = [
+            pyliqtr_transpile_to_clifford_t(
+                circuit, synthesis_accuracy=synthesis_error_budget
+            )
+            for circuit in program.subroutines
+        ]
+        return program.replace_circuits(circuits)
+
+    return _transformer
+
+
+def simplify_rotations(program: QuantumProgram) -> QuantumProgram:
+    circuits = [_simplify_rotations(circuit) for circuit in program.subroutines]
+    return QuantumProgram(
+        circuits,
+        steps=program.steps,
+        calculate_subroutine_sequence=program.calculate_subroutine_sequence,
     )
-    for circuit in program.subroutines:
-        clifford_t_circuit = pyliqtr_transpile_to_clifford_t(
-            circuit, synthesis_accuracy=synthesis_error_budget
-        )
-        graphs_list.append(
-            get_algorithmic_graph_from_graph_sim_mini(clifford_t_circuit)
-        )
-        with open("icm_output.json", "r") as f:
-            output_dict = json.load(f)
-            data_qubits_map = output_dict["data_qubits_map"]
-        data_qubits_map_list.append(data_qubits_map)
-
-    return GraphPartition(program, graphs_list, data_qubits_map_list, synthesized=True)
 
 
-def simplify_only(program: QuantumProgram, error_budget) -> GraphPartition:
-    graphs_list = []
-    data_qubits_map_list = []
+def create_graphs_for_subcircuits(
+    synthesized: bool, graph_production_method=get_algorithmic_graph_from_graph_sim_mini
+) -> Callable[[QuantumProgram], GraphPartition]:
+    def _transformer(program: QuantumProgram) -> GraphPartition:
+        graphs_list = [
+            graph_production_method(circuit) for circuit in program.subroutines
+        ]
+        return GraphPartition(program, graphs_list, synthesized=synthesized)
 
-    for circuit in program.subroutines:
-        simplified_circuit = simplify_rotations(circuit)
-        graphs_list.append(
-            get_algorithmic_graph_from_graph_sim_mini(simplified_circuit)
-        )
-        with open("icm_output.json", "r") as f:
-            output_dict = json.load(f)
-            data_qubits_map = output_dict["data_qubits_map"]
-        data_qubits_map_list.append(data_qubits_map)
+    return _transformer
 
-    return GraphPartition(program, graphs_list, data_qubits_map_list, synthesized=False)
+
+def create_big_graph_from_subcircuits(
+    synthesized: bool, graph_production_method=get_algorithmic_graph_from_graph_sim_mini
+) -> Callable[[QuantumProgram], GraphPartition]:
+    def _transformer(program: QuantumProgram) -> GraphPartition:
+        big_circuit = program.full_circuit
+        new_program = get_program_from_circuit(big_circuit)
+        graph = graph_production_method(big_circuit)
+        return GraphPartition(new_program, [graph], synthesized=synthesized)
+
+    return _transformer
