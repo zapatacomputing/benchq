@@ -22,7 +22,7 @@ from benchq.resource_estimation.v2 import (
     GraphResourceEstimator,
     run_resource_estimation_pipeline,
     synthesize_clifford_t,
-    create_graphs_for_subcircuits
+    create_big_graph_from_subcircuits
 )
 from benchq.timing import measure_time
 
@@ -109,7 +109,7 @@ def main():
                 estimator=GraphResourceEstimator(architecture_model),
                 transformers=[
                     synthesize_clifford_t(error_budget),
-                    create_graphs_for_subcircuits
+                    create_big_graph_from_subcircuits(synthesized=True)
                 ]
             )
 
