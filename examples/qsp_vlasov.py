@@ -24,7 +24,6 @@ from benchq.resource_estimation.v2 import (
     run_resource_estimation_pipeline,
 )
 
-
 # This examples shows three ways of performing resource estimation:
 # 1. Generating the whole circuit, creating a graph out of it and performing
 #   estimation on it
