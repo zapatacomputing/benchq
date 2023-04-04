@@ -21,7 +21,6 @@ def get_qsp_circuit(
     sclf: float,
     use_random_angles: bool = False,
 ) -> Circuit:
-
     pyliqtr_operator = openfermion_to_pyliqtr(to_openfermion(operator))
 
     # Ns = int(np.ceil(tmax / dt))  # Total number of timesteps
