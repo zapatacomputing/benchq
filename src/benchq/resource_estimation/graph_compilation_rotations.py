@@ -364,7 +364,6 @@ def get_substrate_scheduler_estimates_for_subcomponents(
     architecture_model,
     resource_estimates={},
 ):
-
     # sum substrate scheduler resource estimates for each subcomponent
     total_n_measurement_steps = 0
     total_measurement_steps = []
