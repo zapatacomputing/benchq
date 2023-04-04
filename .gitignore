@@ -137,3 +137,5 @@ measurement_steps_plot.pdf
 
 # ignore molecule files
 small_molecules/
+
+adjacency_list.nxl

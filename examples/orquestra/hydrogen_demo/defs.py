@@ -9,6 +9,7 @@ from orquestra import sdk
 from orquestra.quantum.evolution import time_evolution
 
 from benchq import BasicArchitectureModel
+from benchq.algorithms import get_qsp_program
 from benchq.compilation import (
     get_algorithmic_graph_from_Jabalizer,
     pyliqtr_transpile_to_clifford_t,
@@ -18,14 +19,9 @@ from benchq.problem_ingestion.molecule_instance_generation import (
     generate_hydrogen_chain_instance,
 )
 from benchq.resource_estimation import get_qpe_resource_estimates_from_mean_field_object
-<<<<<<< HEAD
 from benchq.resource_estimation.graph_compilation import (
     get_resource_estimations_for_graph,
 )
-
-task_deps = [sdk.PythonImports("pyscf==2.1.0", "openfermionpyscf==0.5")]
-=======
-from benchq.algorithms import get_qsp_program
 
 task_deps = [sdk.PythonImports("pyscf==2.2.0", "openfermionpyscf==0.5")]
 ms_task_deps = [
@@ -38,7 +34,6 @@ ms_task_deps = [
         "qiskit_ionq==0.3.10",
     )
 ]
->>>>>>> 14cc028710a1b70aa61d27e37ff00e91f45eccd8
 standard_task = sdk.task(
     source_import=sdk.GitImport.infer(), dependency_imports=task_deps
 )

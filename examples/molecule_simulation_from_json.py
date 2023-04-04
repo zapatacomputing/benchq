@@ -59,7 +59,7 @@ def main(hamiltonian_name):
     end = time.time()
     print("program generation time: ", end - start)
 
-    for n_steps in [4, 5]:
+    for n_steps in [1, 2]:
         # TA 1.5 part: model algorithmic circuit
         print("Starting circuit generation")
         start = time.time()
