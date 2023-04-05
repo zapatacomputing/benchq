@@ -45,3 +45,61 @@ def test_get_active_space_meanfield_object_raises_error_for_unsupported_instance
     instance.occupied_indices = [0]
     with pytest.raises(ValueError):
         instance.get_active_space_meanfield_object()
+
+
+@pytest.fixture
+def fno_water_instance():
+    water_instance = ChemistryApplicationInstance(
+        geometry=[
+            ("O", (0.000000, -0.075791844, 0.000000)),
+            ("H", (0.866811829, 0.601435779, 0.000000)),
+            ("H", (-0.866811829, 0.601435779, 0.000000)),
+        ],
+        basis="6-31g",
+        charge=0,
+        multiplicity=1,
+        fno_percentage_occupation_number=0.9,
+    )
+
+    yield water_instance
+
+
+def test_get_occupied_and_active_indicies_with_FNO_frozen_core(fno_water_instance):
+    fno_water_instance.freeze_core = True
+
+    (
+        molecular_data,
+        occupied_indices,
+        active_indicies,
+    ) = fno_water_instance.get_occupied_and_active_indicies_with_FNO()
+
+    assert len(occupied_indices) == 1
+    assert len(active_indicies) < molecular_data.n_orbitals
+
+
+def test_get_occupied_and_active_indicies_with_FNO_no_freeze_core(fno_water_instance):
+    fno_water_instance.freeze_core = False
+
+    (
+        molecular_data,
+        occupied_indices,
+        active_indicies,
+    ) = fno_water_instance.get_occupied_and_active_indicies_with_FNO()
+
+    assert len(occupied_indices) == 0
+    assert len(active_indicies) < molecular_data.n_orbitals
+
+
+def test_get_occupied_and_active_indicies_with_FNO_no_virtual_frozen_orbitals(
+    fno_water_instance,
+):
+    fno_water_instance.fno_percentage_occupation_number = 0.0
+
+    (
+        molecular_data,
+        occupied_indices,
+        active_indicies,
+    ) = fno_water_instance.get_occupied_and_active_indicies_with_FNO()
+
+    assert len(occupied_indices) == 0
+    assert len(active_indicies) < molecular_data.n_orbitals
