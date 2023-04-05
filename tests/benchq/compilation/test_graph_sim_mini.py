@@ -8,9 +8,7 @@ from orquestra.integrations.qiskit.conversions import import_from_qiskit
 from orquestra.quantum.circuits import CNOT, CZ, Circuit, H, I, S
 from qiskit import QuantumCircuit
 
-from benchq.compilation import pyliqtr_transpile_to_clifford_t
-from benchq.compilation.gate_stitching import get_icm
-from benchq.compilation.graph_sim_mini import get_vertices
+from benchq.compilation import jl, pyliqtr_transpile_to_clifford_t
 
 
 @pytest.mark.parametrize(
@@ -24,6 +22,7 @@ from benchq.compilation.graph_sim_mini import get_vertices
         Circuit([S(0), H(0)]),
         Circuit([S.dagger(0)]),
         Circuit([H(2)]),
+        Circuit([H(0), CNOT(0, 1)]),
         Circuit([CZ(0, 1), H(2)]),
         Circuit([H(0), S(0), CNOT(0, 1), H(2)]),
         Circuit([CNOT(0, 1), CNOT(1, 2)]),
@@ -52,9 +51,9 @@ from benchq.compilation.graph_sim_mini import get_vertices
     ],
 )
 def test_stabilizer_states_are_the_same_for_simple_circuits(circuit):
-
     target_tableau = get_target_tableau(circuit)
-    vertices = get_vertices(circuit)
+    loc, adj = jl.run_graph_sim_mini(circuit)
+    vertices = list(zip(loc, adj))
     graph_tableau = get_stabilizer_tableau_from_vertices(vertices)
 
     assert tableaus_correspond_to_same_state(graph_tableau, target_tableau)
@@ -82,10 +81,48 @@ def test_stabilizer_states_are_the_same_for_larger_circuits(filename):
         test_circuit = get_icm(clifford_t)
 
         target_tableau = get_target_tableau(test_circuit)
-        vertices = get_vertices(test_circuit)
+        loc, adj = jl.run_graph_sim_mini(test_circuit)
+        vertices = list(zip(loc, adj))
         graph_tableau = get_stabilizer_tableau_from_vertices(vertices)
 
         assert tableaus_correspond_to_same_state(graph_tableau, target_tableau)
+
+
+# Everything below here is testing utils
+
+
+def get_icm(circuit: Circuit, gates_to_decompose=["T", "T_Dagger"]) -> Circuit:
+    """Convert a circuit to the ICM form.
+
+    Args:
+        circuit (Circuit): the circuit to convert to ICM form
+        gates_to_decompose (list, optional): list of gates to decompose into CNOT
+        and adding ancilla qubits. Defaults to ["T", "T_Dagger"].
+
+    Returns:
+        Circuit: the circuit in ICM form
+    """
+    compiled_qubit_index = {i: i for i in range(circuit.n_qubits)}
+    icm_circuit = []
+    icm_circuit_n_qubits = circuit.n_qubits - 1
+    for op in circuit.operations:
+        compiled_qubits = [
+            compiled_qubit_index.get(qubit, qubit) for qubit in op.qubit_indices
+        ]
+
+        if op.gate.name in gates_to_decompose:
+            for (original_qubit, compiled_qubit) in zip(
+                op.qubit_indices, compiled_qubits
+            ):
+                icm_circuit_n_qubits += 1
+                compiled_qubit_index[original_qubit] = icm_circuit_n_qubits
+                icm_circuit += [CNOT(compiled_qubit, icm_circuit_n_qubits)]
+        else:
+            icm_circuit += [
+                op.gate(*[compiled_qubit_index[i] for i in op.qubit_indices])
+            ]
+
+    return Circuit(icm_circuit)
 
 
 def get_target_tableau(circuit):
@@ -124,7 +161,7 @@ def get_stabilizer_tableau_from_vertices(vertices):
     cliffords = []
     for vertex in vertices:
         # perform the vertex operation on the tableau
-        pauli_perm_class = divmod(vertex[0], 4)[0]
+        pauli_perm_class = divmod(vertex[0] - 1, 4)[0]
         if pauli_perm_class == 0:
             cliffords += [[]]
         if pauli_perm_class == 1:

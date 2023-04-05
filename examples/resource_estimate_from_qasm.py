@@ -13,20 +13,25 @@ Objectives:
     - This is mostly for completeness and illustratory purposes
     - Software can be quite crappy
 """
+import logging
 import time
 
 from qiskit.circuit import QuantumCircuit
 
 from benchq import BasicArchitectureModel
-from benchq.compilation import get_algorithmic_graph, pyliqtr_transpile_to_clifford_t
+from benchq.compilation import (
+    get_algorithmic_graph_from_graph_sim_mini,
+    get_algorithmic_graph_from_Jabalizer,
+    pyliqtr_transpile_to_clifford_t,
+)
 from benchq.resource_estimation.graph_compilation import (
     get_resource_estimations_for_graph,
 )
 
 
-def main(file_name="circuits/h_chain_circuit.qasm"):
+def main(file_name):
     # Uncomment to see Jabalizer output
-    # logging.getLogger().setLevel(logging.INFO)
+    logging.getLogger().setLevel(logging.INFO)
 
     qiskit_circuit = QuantumCircuit.from_qasm_file(file_name)
 
@@ -35,7 +40,7 @@ def main(file_name="circuits/h_chain_circuit.qasm"):
     clifford_t_circuit = pyliqtr_transpile_to_clifford_t(
         qiskit_circuit, synthesis_accuracy
     )
-    graph = get_algorithmic_graph(clifford_t_circuit)
+    graph = get_algorithmic_graph_from_graph_sim_mini(clifford_t_circuit)
 
     # TA 2 part: model hardware resources
     architecture_model = BasicArchitectureModel(
@@ -45,7 +50,7 @@ def main(file_name="circuits/h_chain_circuit.qasm"):
     synthesis_accuracy = 1e-3
     start = time.time()
     resource_estimates = get_resource_estimations_for_graph(
-        graph, architecture_model, synthesis_accuracy, plot=True
+        graph, architecture_model, synthesis_accuracy
     )
     end = time.time()
     print("Resource estimation time:", end - start)
@@ -53,4 +58,4 @@ def main(file_name="circuits/h_chain_circuit.qasm"):
 
 
 if __name__ == "__main__":
-    main()
+    main("circuits/h_chain_circuit.qasm")

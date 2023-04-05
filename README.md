@@ -20,7 +20,7 @@ Graph compilation requires non-Python dependencies to be installed.
 Either:
 1. Install a recent Julia version from the [Julia website](https://julialang.org/downloads/).
 2. Make sure `julia` executable is on your `$PATH`. You can test it by running `julia` in a new terminal window.
-3. Install Julia dependencies: open `julia` REPL, press `]`, run `add JSON` and `add Jabalizer`.
+3. Install Julia dependencies: open `julia` REPL, press `]`, run `add Jabalizer`.
 
 Or:
 1. Run `python setup_julia.py` in repo root.
@@ -37,7 +37,7 @@ To run resource estimation for Microsoft, one needs to have Microsoft Resource E
 Please take a look at the `examples` directory. 
 We have multiple examples there:
 - `h_chain_trotter.py` shows how to use graph state compilation on a simple hydrogen chain example. (Requires `pyscf` install extra.)
-- `h_chain_from_qasm.py` shows how to use graph state compilation when the circuit is loaded from QASM.
+- `resource_estimate_from_qasm.py` shows how to use graph state compilation when the circuit is loaded from QASM.
 - `qsp_vlasov.py` shows how to perform resource estimation.
 
 

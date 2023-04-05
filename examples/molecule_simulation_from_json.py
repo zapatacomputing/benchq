@@ -2,9 +2,9 @@
 # © Copyright 2022-2023 Zapata Computing Inc.
 ################################################################################
 """
-MAKE SURE TO UNZIP THE problem.zip FILE BEFORE RUNNING THIS SCRIPT!!!
+MAKE SURE TO UNZIP THE small_molecules.zip FILE BEFORE RUNNING THIS SCRIPT!!!
 
-There are 3 small molecules (smolecules) in the .zip file. These are:
+There are 3 small molecules (smolecules!) in the .zip file. These are:
 
 C2H2-8-cannonical_qubitop - very small
 CH4-8-NOs_qubitop         - medium small
@@ -21,7 +21,7 @@ import time
 from benchq import BasicArchitectureModel
 from benchq.algorithms import get_qsp_program
 from benchq.compilation import (
-    get_algorithmic_graph_from_gate_stitching,
+    get_algorithmic_graph_from_graph_sim_mini,
     pyliqtr_transpile_to_clifford_t,
 )
 from benchq.problem_ingestion.hamiltonian_generation import fast_load_qubit_op
@@ -53,45 +53,66 @@ def main(hamiltonian_name):
     end = time.time()
     print("Hamiltonian generation time: ", end - start)
 
-    ### METHOD 1: Full graph creation
-    # TA 1.5 part: model algorithmic circuit
-    print("Starting circuit generation")
+    print("Starting program generation")
     start = time.time()
     program = get_qsp_program(operator, qsp_required_precision, dt, tmax, sclf)
-    circuit = program.subroutines[1]
     end = time.time()
-    print("Circuit generation time: ", end - start)
+    print("program generation time: ", end - start)
 
-    # TA 2 part: FTQC compilation
-    print("Starting transpilation")
-    start = time.time()
-    clifford_t_circuit = pyliqtr_transpile_to_clifford_t(
-        circuit, gate_synthesis_error_budget
-    )
-    end = time.time()
-    print("Transpilation time: ", end - start)
+    for n_steps in [1, 2]:
+        # TA 1.5 part: model algorithmic circuit
+        print("Starting circuit generation")
+        start = time.time()
+        program.steps = n_steps
+        circuit = program.full_circuit
+        end = time.time()
+        print("Circuit generation time: ", end - start)
 
-    print("Starting graph compilation")
-    start = time.time()
-    graph = get_algorithmic_graph_from_gate_stitching(clifford_t_circuit)
-    end = time.time()
-    print("Graph compilation time: ", end - start)
+        # TA 2 part: FTQC compilation
+        print("Starting transpilation")
+        start = time.time()
+        clifford_t_circuit = pyliqtr_transpile_to_clifford_t(
+            circuit, gate_synthesis_error_budget
+        )
+        end = time.time()
+        print("Transpilation time: ", end - start)
 
-    print("Starting resource estimation")
-    # TA 2 part: model hardware resources
-    architecture_model = BasicArchitectureModel(
-        physical_gate_error_rate=1e-3,
-        physical_gate_time_in_seconds=1e-6,
-    )
-    start = time.time()
-    resource_estimates = get_resource_estimations_for_graph(
-        graph, architecture_model, error_correction_error_budget
-    )
-    end = time.time()
+        print("Starting graph compilation")
+        start = time.time()
+        graph = get_algorithmic_graph_from_graph_sim_mini(clifford_t_circuit)
+        end = time.time()
+        print("Graph compilation time: ", end - start)
 
-    print("Resource estimation time:", end - start)
-    print(resource_estimates)
+        print("Starting resource estimation")
+        # TA 2 part: model hardware resources
+        architecture_model = BasicArchitectureModel(
+            physical_gate_error_rate=1e-3,
+            physical_gate_time_in_seconds=1e-6,
+        )
+        start = time.time()
+        resource_estimates = get_resource_estimations_for_graph(
+            graph, architecture_model, error_correction_error_budget
+        )
+        end = time.time()
+
+        print("Resource estimation time:", end - start)
+
+        print(
+            "Resource estimations for "
+            + hamiltonian_name
+            + " with "
+            + str(n_steps)
+            + " steps"
+        )
+        print(resource_estimates)
+
+        # Free up memory for next iteration
+        del circuit
+        del clifford_t_circuit
+        del graph
 
 
 if __name__ == "__main__":
     main("C2H2-8-canonical_qubitop")
+    # main("CH4-8-NOs_qubitop")
+    # main("C2H4-12-NOs_qubitop")

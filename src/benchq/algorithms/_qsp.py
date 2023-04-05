@@ -21,7 +21,6 @@ def get_qsp_circuit(
     sclf: float,
     use_random_angles: bool = False,
 ) -> Circuit:
-
     pyliqtr_operator = openfermion_to_pyliqtr(to_openfermion(operator))
 
     # Ns = int(np.ceil(tmax / dt))  # Total number of timesteps
@@ -58,10 +57,10 @@ def get_qsp_circuit(
 # TODO: This logic is copied from pyLIQTR, perhaps we want to change it to our own?
 def _get_steps(tau, req_prec):
     # have tau and epsilon, backtrack in order to get steps
-    steps, closeval = QSP.get_steps_from_logeps(np.log(req_prec), tau, 1)
+    steps, closeval = gen_qsp.get_steps_from_logeps(np.log(req_prec), tau, 1)
     # print(':------------------------------------------')
     # print(f': Steps = {steps}')
-    while QSP.getlogepsilon(tau, steps) > np.log(req_prec):
+    while gen_qsp.getlogepsilon(tau, steps) > np.log(req_prec):
         steps += 4
     return steps
 

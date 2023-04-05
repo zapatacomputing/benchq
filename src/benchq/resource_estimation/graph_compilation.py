@@ -1,28 +1,32 @@
 ################################################################################
 # © Copyright 2022-2023 Zapata Computing Inc.
 ################################################################################
-import json
 import logging
 import warnings
 from typing import Any, List
 
 import more_itertools
 import networkx as nx
-from graph_state_generation.optimizers import greedy_stabilizer_measurement_scheduler
+from graph_state_generation.optimizers import (
+    approximate_static_stabilizer_reduction,
+    fast_maximal_independent_set_stabilizer_reduction,
+    greedy_stabilizer_measurement_scheduler,
+)
 from graph_state_generation.substrate_scheduler import TwoRowSubstrateScheduler
 from orquestra.quantum.circuits import Circuit
 
 from benchq.vizualization_tools import plot_graph_state_with_measurement_steps
 
-from ..compilation import get_algorithmic_graph, pyliqtr_transpile_to_clifford_t
+from ..compilation import (
+    get_algorithmic_graph_and_icm_output,
+    pyliqtr_transpile_to_clifford_t,
+)
 from ..data_structures import QuantumProgram
 
 LOGGER = logging.getLogger(__name__)
 
 
 CLIFFORD_GATES = [
-    "X",
-    "H",
     "CNOT",
     "CZ",
     "SWAP",
@@ -166,7 +170,9 @@ def substrate_scheduler(graph: nx.Graph):
     connected_graph = nx.convert_node_labels_to_integers(connected_graph)
 
     scheduler_only_compiler = TwoRowSubstrateScheduler(
-        connected_graph, stabilizer_scheduler=greedy_stabilizer_measurement_scheduler
+        connected_graph,
+        stabilizer_scheduler=greedy_stabilizer_measurement_scheduler,
+        # pre_mapping_optimizer=approximate_static_stabilizer_reduction,
     )
     scheduler_only_compiler.run()
 
@@ -182,9 +188,9 @@ def get_resource_estimations_for_program(
 ):
     """
     Args:
-        quantum_program (QuantumProgram): The program we wish toestimate resources for.
+        quantum_program (QuantumProgram): The program we wish to estimate resources for.
         error_budget (float): maximum allowable error in program.
-        architecture_model (ArchetectureModel): Parameters describing th e performance
+        architecture_model (ArchitectureModel): Parameters describing the performance
             of the architecture.
         use_full_program_graph (bool, optional): Choose whether to perform resource
             estimations using the graph of the full program or with the subcomponents.
@@ -204,10 +210,10 @@ def get_resource_estimations_for_program(
         clifford_t_circuit = pyliqtr_transpile_to_clifford_t(
             circuit, synthesis_accuracy=synthesis_error_budget
         )
-        graphs_list.append(get_algorithmic_graph(clifford_t_circuit))
-        with open("icm_output.json", "r") as f:
-            output_dict = json.load(f)
-            data_qubits_map = output_dict["data_qubits_map"]
+        adjlist, _, _, data_qubits_map = get_algorithmic_graph_and_icm_output(
+            clifford_t_circuit
+        )
+        graphs_list.append(adjlist)
         data_qubits_map_list.append(data_qubits_map)
 
     return resource_estimations_for_subcomponents(
@@ -236,9 +242,9 @@ def resource_estimations_for_subcomponents(
             program.
         data_qubits_map_list (List[List[int]]): A list of lists describing where the
             data qubits are after each subroutine is called.
-        quantum_program (QuantumProgram): The program we wish toestimate resources for.
-        architecture_model (ArchetectureModel): Parameters describing th e performance
-            of the archetecture.
+        quantum_program (QuantumProgram): The program we wish to estimate resources for.
+        architecture_model (ArchitectureModel): Parameters describing the performance
+            of the architecture.
         tolerable_circuit_error_rate (float): Error rate of the circuit.
         use_full_program_graph (bool, optional): Choose whether to perform resource
             estimations using the graph of the full program or with the subcomponents.
@@ -338,7 +344,6 @@ def get_substrate_scheduler_estimates_for_subcomponents(
     architecture_model,
     resource_estimates={},
 ):
-
     # sum substrate scheduler resource estimates for each subcomponent
     total_n_measurement_steps = 0
     total_measurement_steps = []

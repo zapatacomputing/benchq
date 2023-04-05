@@ -13,18 +13,18 @@ Objectives:
     - This is mostly for completeness and illustratory purposes
     - Software can be quite crappy
 """
-import logging
-import time
+from pprint import pprint
 
 from benchq import BasicArchitectureModel
-from benchq.algorithms import get_qsp_circuit, get_qsp_program
-from benchq.compilation import get_algorithmic_graph, pyliqtr_transpile_to_clifford_t
-from benchq.compilation.gate_stitching import get_algorithmic_graph_from_gate_stitching
+from benchq.algorithms import get_qsp_program
 from benchq.problem_ingestion import get_vlasov_hamiltonian
-from benchq.resource_estimation.graph_compilation import (
-    get_resource_estimations_for_graph,
-    get_resource_estimations_for_program,
+from benchq.resource_estimation.v2 import (
+    GraphResourceEstimator,
+    run_resource_estimation_pipeline,
+    synthesize_clifford_t,
+    create_big_graph_from_subcircuits
 )
+from benchq.timing import measure_time
 
 # This examples shows three ways of performing resource estimation:
 # 1. Generating the whole circuit, creating a graph out of it and performing
@@ -72,81 +72,49 @@ def main():
         tolerable_logical_error_rate / 3
     )  # Allocate half the error budget to trotter precision
 
-    gate_synthesis_error_budget = (
-        tolerable_logical_error_rate - qsp_required_precision
-    ) / 3
-    error_correction_error_budget = (
-        tolerable_logical_error_rate - qsp_required_precision
-    ) / 3
+    error_budget = {
+        "qsp_required_precision": qsp_required_precision,
+        "tolerable_circuit_error_rate": tolerable_logical_error_rate,
+        "total_error": 1e-2,
+        "synthesis_error_rate": 0.5,
+        "ec_error_rate": 0.5,
+    }
+
+    architecture_model = BasicArchitectureModel(
+        physical_gate_error_rate=1e-3,
+        physical_gate_time_in_seconds=1e-6,
+    )
 
     for N in [2]:
         # TA 1 part: specify the core computational capability
-        start = time.time()
-        operator = get_vlasov_hamiltonian(k, alpha, nu, N)
-        end = time.time()
-        print("Operator generation time:", end - start)
+        with measure_time() as t_info:
+            operator = get_vlasov_hamiltonian(k, alpha, nu, N)
 
-        ### METHOD 1: Full graph creation
-        # TA 1.5 part: model algorithmic circuit
-        start = time.time()
-        circuit = get_qsp_circuit(
-            operator, qsp_required_precision, dt, tmax, sclf, use_random_angles=True
-        )
-        end = time.time()
-        print("Circuit generation time:", end - start)
-        # TA 2 part: FTQC compilation
-        clifford_t_circuit = pyliqtr_transpile_to_clifford_t(
-            circuit, gate_synthesis_error_budget
-        )
-        graph = get_algorithmic_graph_from_gate_stitching(clifford_t_circuit)
-
-        # TA 2 part: model hardware resources
-        architecture_model = BasicArchitectureModel(
-            physical_gate_error_rate=1e-3,
-            physical_gate_time_in_seconds=1e-6,
-        )
-        start = time.time()
-        resource_estimates = get_resource_estimations_for_graph(
-            graph, architecture_model, error_correction_error_budget
-        )
-        end = time.time()
-
-        print("Resource estimation time:", end - start)
-        print(resource_estimates)
+        print("Operator generation time:", t_info.total)
 
         ### METHOD 2: Estimation from quantum program, without recreating full graph
         # TA 1.5 part: model algorithmic circuit
-        start = time.time()
-        program = get_qsp_program(
-            operator, qsp_required_precision, dt, tmax, sclf, mode="time_evolution"
-        )
+        with measure_time() as t_info:
+            program = get_qsp_program(
+                operator, qsp_required_precision, dt, tmax, sclf, mode="time_evolution"
+            )
 
-        end = time.time()
-        print("Circuit generation time:", end - start)
+        print("Circuit generation time:", t_info.total)
         # TA 2 part: model hardware resources
-        start = time.time()
-        resource_estimates = get_resource_estimations_for_program(
-            program,
-            gate_synthesis_error_budget + error_correction_error_budget,
-            architecture_model,
-            use_full_program_graph=False,
-        )
-        end = time.time()
-        print("Resource estimation time:", end - start)
-        print(resource_estimates)
 
-        ### METHOD 3: Estimation from quantum program, with recreating the full graph
-        start = time.time()
-        resource_estimates = get_resource_estimations_for_program(
-            program,
-            gate_synthesis_error_budget + error_correction_error_budget,
-            architecture_model,
-            use_full_program_graph=True,
-            plot=False,
-        )
-        end = time.time()
-        print("Resource estimation time:", end - start)
-        print(resource_estimates)
+        with measure_time() as t_info:
+            gsc_resource_estimates = run_resource_estimation_pipeline(
+                program,
+                error_budget,
+                estimator=GraphResourceEstimator(architecture_model),
+                transformers=[
+                    synthesize_clifford_t(error_budget),
+                    create_big_graph_from_subcircuits(synthesized=True)
+                ]
+            )
+
+        print("Resource estimation time:", t_info.total)
+        pprint(gsc_resource_estimates)
 
 
 if __name__ == "__main__":
