@@ -19,14 +19,21 @@ import time
 from qiskit.circuit import QuantumCircuit
 
 from benchq import BasicArchitectureModel
-from benchq.compilation import (
-    get_algorithmic_graph_from_graph_sim_mini,
-    get_algorithmic_graph_from_Jabalizer,
-    pyliqtr_transpile_to_clifford_t,
+from benchq.data_structures import get_program_from_circuit
+from benchq.timing import measure_time
+from benchq.resource_estimation.graph import (
+    GraphResourceEstimator,
+    run_resource_estimation_pipeline,
 )
-from benchq.resource_estimation.graph_compilation import (
-    get_resource_estimations_for_graph,
+from benchq.timing import measure_time
+from benchq.resource_estimation.graph import (
+    GraphResourceEstimator,
+    run_resource_estimation_pipeline,
+    synthesize_clifford_t,
+    create_big_graph_from_subcircuits,
+    simplify_rotations,
 )
+from orquestra.integrations.qiskit.conversions import import_from_qiskit
 
 
 def main(file_name):
@@ -34,27 +41,38 @@ def main(file_name):
     logging.getLogger().setLevel(logging.INFO)
 
     qiskit_circuit = QuantumCircuit.from_qasm_file(file_name)
+    quantum_program = get_program_from_circuit(import_from_qiskit(qiskit_circuit))
 
-    # TA 2 part: FTQC compilation
-    synthesis_accuracy = 1e-10
-    clifford_t_circuit = pyliqtr_transpile_to_clifford_t(
-        qiskit_circuit, synthesis_accuracy
-    )
-    graph = get_algorithmic_graph_from_graph_sim_mini(clifford_t_circuit)
+    error_budget = {
+        "total_error": 1e-2,
+        "trotter_required_precision": 1e-3,
+        "tolerable_circuit_error_rate": 1e-3,
+        "remaining_error_budget": (5e-3),
+        "synthesis_error_rate": 1e-3,
+        "ec_error_rate": 1e-3,
+    }
 
-    # TA 2 part: model hardware resources
     architecture_model = BasicArchitectureModel(
         physical_gate_error_rate=1e-3,
         physical_gate_time_in_seconds=1e-6,
     )
-    synthesis_accuracy = 1e-3
-    start = time.time()
-    resource_estimates = get_resource_estimations_for_graph(
-        graph, architecture_model, synthesis_accuracy
-    )
-    end = time.time()
-    print("Resource estimation time:", end - start)
-    print(resource_estimates)
+
+    with measure_time() as t_info:
+        ### TODO: error budget is needed both for transforming AND
+        ### in the estimation
+        ### Hence, I suggest passing it once to run_resource_estimation_pipeline
+        ### And then propagating it through transformer and estimator
+        gsc_resource_estimates = run_resource_estimation_pipeline(
+            quantum_program,
+            error_budget,
+            estimator=GraphResourceEstimator(architecture_model),
+            transformers=[
+                simplify_rotations,
+                synthesize_clifford_t(error_budget),
+                create_big_graph_from_subcircuits(synthesized=True),
+            ],
+        )
+    print(gsc_resource_estimates)
 
 
 if __name__ == "__main__":

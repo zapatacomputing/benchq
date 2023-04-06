@@ -23,11 +23,18 @@ from benchq.problem_ingestion import (
 from benchq.problem_ingestion.molecule_instance_generation import (
     generate_hydrogen_chain_instance,
 )
-from benchq.resource_estimation.graph_compilation import (
-    get_resource_estimations_for_program,
+from benchq.resource_estimation.graph import (
+    GraphResourceEstimator,
+    run_resource_estimation_pipeline,
 )
-from benchq.resource_estimation.v2 import GraphResourceEstimator, run_resource_estimation_pipeline
 from benchq.timing import measure_time
+from benchq.resource_estimation.graph import (
+    GraphResourceEstimator,
+    run_resource_estimation_pipeline,
+    synthesize_clifford_t,
+    create_big_graph_from_subcircuits,
+    simplify_rotations,
+)
 
 
 def main():
@@ -64,7 +71,7 @@ def main():
                 tolerable_circuit_error_rate - trotter_required_precision
             ),
             "synthesis_error_rate": 1e-3,
-            "ec_error_rate": 1e-3
+            "ec_error_rate": 1e-3,
         }
 
         # TA 1.5 part: model algorithmic circuit
@@ -80,24 +87,28 @@ def main():
             )
 
         print("Circuit generation time:", t_info.total)
-
-
         with measure_time() as t_info:
-        ### TODO: error budget is needed both for transforming AND
+            ### TODO: error budget is needed both for transforming AND
             ### in the estimation
             ### Hence, I suggest passing it once to run_resource_estimation_pipeline
             ### And then propagating it through transformer and estimator
             gsc_resource_estimates = run_resource_estimation_pipeline(
                 quantum_program,
                 error_budget,
-                estimator=GraphResourceEstimator(architecture_model)
+                estimator=GraphResourceEstimator(architecture_model),
+                transformers=[
+                    simplify_rotations,
+                    synthesize_clifford_t(error_budget),
+                    create_big_graph_from_subcircuits(synthesized=True),
+                ],
             )
 
         print(f"Resource estimation time: {t_info.total}")
         print(gsc_resource_estimates)
-        print(f"Total time for {n_hydrogens} {t_info.stop_counter - begtime}") # type: ignore
+        print(f"Total time for {n_hydrogens} {t_info.stop_counter - begtime}")  # type: ignore
 
         ### END OF STUFF FOR SUBCIRCUITS
+
 
 if __name__ == "__main__":
     main()

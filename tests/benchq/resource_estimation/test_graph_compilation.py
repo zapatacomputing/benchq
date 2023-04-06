@@ -4,7 +4,7 @@ from orquestra.quantum.circuits import CNOT, RX, RY, RZ, Circuit, H, T
 
 from benchq.data_structures.hardware_architecture_models import BasicArchitectureModel
 from benchq.data_structures.quantum_program import QuantumProgram
-from benchq.resource_estimation.graph_compilation import (
+from benchq.resource_estimation.graph import (
     get_resource_estimations_for_program,
 )
 

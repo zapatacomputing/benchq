@@ -1,48 +1,15 @@
 from dataclasses import dataclass
 from typing import Callable
 
-import more_itertools
 import networkx as nx
 import numpy as np
 from graph_state_generation.optimizers import greedy_stabilizer_measurement_scheduler
 from graph_state_generation.substrate_scheduler import TwoRowSubstrateScheduler
 
 from ...data_structures.hardware_architecture_models import BasicArchitectureModel
-from ..graph_compilation_rotations import (
-    balance_logical_error_rate_and_synthesis_accuracy,
-)
 from .structs import GraphPartition
 
-
-def combine_subcomponent_graphs(partition: GraphPartition):
-    program_graph = partition.subgraphs[partition.program.subroutine_sequence[0]]
-    node_relabeling = {}
-    prev_graph_size = 0
-
-    for prev_i, curr_i in more_itertools.windowed(
-        partition.program.subroutine_sequence, 2
-    ):
-        data_qubits = partition.data_qubits_map_list[prev_i]  # type:ignore
-        curr_graph = partition.subgraphs[curr_i]  # type: ignore
-
-        # shift labels so curr_graph has no labels in common with program_graph
-        curr_graph = nx.relabel_nodes(
-            curr_graph,
-            lambda x: str(int(x) + len(program_graph)),
-        )
-        # keep track of which nodes should be contracted to connect data qubits
-        for j, data_qubit in enumerate(data_qubits):
-            node_relabeling[data_qubit + prev_graph_size] = j + len(program_graph)
-
-        prev_graph_size = len(program_graph)
-        program_graph = nx.compose(program_graph, curr_graph)
-
-    for node_1, node_2 in node_relabeling.items():
-        program_graph = nx.contracted_nodes(program_graph, str(node_2), str(node_1))
-
-    program_graph = nx.convert_node_labels_to_integers(program_graph)
-
-    return program_graph
+INITIAL_synthesis_accuracy = 0.0001
 
 
 def substrate_scheduler(graph: nx.Graph) -> TwoRowSubstrateScheduler:
@@ -89,17 +56,6 @@ class GraphResourceEstimator:
             * (70 * self.hw_model.physical_gate_error_rate) ** ((distance + 1) / 2)
         )
 
-    def _ec_error_rate_synthesized(self, distance: int, n_nodes: int) -> float:
-        return (
-            self._logical_operation_error_rate(distance) * 12 * n_nodes * 240 * n_nodes
-        )
-
-    def _ec_error_rate_unsynthesized(self, distance: int, n_nodes: int) -> float:
-        _, ec_error_rate = balance_logical_error_rate_and_synthesis_accuracy(
-            n_nodes, distance, self.hw_model.physical_gate_error_rate
-        )
-        return ec_error_rate
-
     def _minimize_code_distance(
         self,
         n_nodes: int,
@@ -119,9 +75,44 @@ class GraphResourceEstimator:
     def _get_n_measurement_steps(self, graph) -> int:
         return len(substrate_scheduler(graph).measurement_steps)
 
+    def _ec_error_rate_synthesized(self, distance: int, n_nodes: int) -> float:
+        return (
+            self._logical_operation_error_rate(distance) * 12 * n_nodes * 240 * n_nodes
+        )
+
+    def _ec_error_rate_unsynthesized(self, distance: int, n_nodes: int) -> float:
+        _, ec_error_rate = self.balance_logical_error_rate_and_synthesis_accuracy(
+            n_nodes, distance
+        )
+        return ec_error_rate
+
+    # TODO: We need to make sure it's doing scientifically what it should be doing
+    def balance_logical_error_rate_and_synthesis_accuracy(self, n_nodes, distance):
+        """
+        This function is basically finding such a value of synthesis error rate, that it is
+        1/(12*N) smaller than circuit error rate, where N is the number of nodes
+        in the graph.
+        """
+        current_synthesis_accuracy = INITIAL_synthesis_accuracy
+        for _ in range(20):
+            ec_error_rate = self._ec_error_rate_synthesized(
+                distance,
+                n_nodes,
+            )
+            new_synthesis_accuracy = (1 / (12 * n_nodes)) * ec_error_rate
+            # This is for cases where the algorithm diverges terribly, to avoid
+            # "divide by 0" and similar warnings.
+            # TODO: Hacky! We should come up with a more stable solution in future!
+            if new_synthesis_accuracy <= 0 or np.isnan(new_synthesis_accuracy):
+                return np.inf, np.inf
+
+            current_synthesis_accuracy = new_synthesis_accuracy
+        return current_synthesis_accuracy, ec_error_rate
+
     def _estimate_resource_for_graph(
         self, graph: nx.Graph, n_nodes: int, synthesized: bool, error_budget
     ) -> ResourceInfo:
+
         ec_error_rate = (
             self._ec_error_rate_synthesized
             if synthesized
@@ -132,19 +123,14 @@ class GraphResourceEstimator:
         code_distance = self._minimize_code_distance(
             n_nodes, error_budget, ec_error_rate
         )
-
         max_degree = max(deg for _, deg in graph.degree())
-        logical_operation_error_rate = (
-            code_distance
-            * 0.3
-            * (70 * self.hw_model.physical_gate_error_rate) ** ((code_distance + 1) / 2)
-        )
+        logical_operation_error_rate = self._logical_operation_error_rate(code_distance)
 
         n_measurement_steps = self._get_n_measurement_steps(graph)
 
         ec_multiplier = 240 * code_distance * n_measurement_steps
 
-        # Isoalate differences betweeen synthesized and not synthesized case
+        # Isolate differences betweeen synthesized and not synthesized case
         if synthesized:
             logical_error_rate = (
                 logical_operation_error_rate * 12 * n_nodes * 240 * n_nodes
@@ -154,8 +140,8 @@ class GraphResourceEstimator:
             (
                 synthesis_accuracy,
                 logical_error_rate,
-            ) = balance_logical_error_rate_and_synthesis_accuracy(
-                n_nodes, code_distance, self.hw_model.physical_gate_error_rate
+            ) = self.balance_logical_error_rate_and_synthesis_accuracy(
+                n_nodes, code_distance
             )
             synthesis_multiplier = 12 * np.log2(1 / synthesis_accuracy)
 
