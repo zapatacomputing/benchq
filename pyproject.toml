@@ -24,6 +24,7 @@ exclude = [
 
 [[tool.mypy.overrides]]
 module = [
+    'juliacall.*',
     'pyliqtr.*',
     'pyLIQTR.*',
     'scipy.*',
@@ -38,6 +39,7 @@ module = [
     'azure.quantum.qiskit.*',
     'graph_state_generation.*',
     'matplotlib.*',
+    'stim.*',
 ]
 ignore_missing_imports = true
 

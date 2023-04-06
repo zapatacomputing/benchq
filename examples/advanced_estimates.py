@@ -5,9 +5,9 @@ import time
 
 from benchq import BasicArchitectureModel
 from benchq.algorithms import get_qsp_program
-from benchq.problem_ingestion import (
+from benchq.problem_ingestion import generate_jw_qubit_hamiltonian_from_mol_data
+from benchq.problem_ingestion.molecule_instance_generation import (
     generate_hydrogen_chain_instance,
-    generate_jw_qubit_hamiltonian_from_mol_data,
 )
 from benchq.resource_estimation import get_qpe_resource_estimates_from_mean_field_object
 
@@ -18,9 +18,7 @@ try:
 except Exception as e:
     print("Microsoft not configured, omitting importing related libraries")
 
-from benchq.resource_estimation.graph_compilation import (
-    get_resource_estimations_for_program,
-)
+from benchq.resource_estimation.graph import get_resource_estimations_for_program
 
 
 def print_re(resource_estimates, label):
@@ -34,9 +32,10 @@ def print_re(resource_estimates, label):
 
 
 def get_of_resource_estimates(n_hydrogens):
-    mean_field_object = generate_hydrogen_chain_instance(
-        n_hydrogens
-    ).get_active_space_meanfield_object()
+    instance = generate_hydrogen_chain_instance(n_hydrogens)
+    instance.avas_atomic_orbitals = ["H 1s", "H 2s"]
+    instance.avas_minao = "STO-3G"
+    mean_field_object = instance.get_active_space_meanfield_object()
 
     # Running resource estimation with OpenFermion tools
 
@@ -66,7 +65,7 @@ def main():
         # TA 1 part: specify the core computational capability
         start = time.time()
         # Generate instance
-        mol_data = generate_hydrogen_chain_instance(n_hydrogens).get_molecular_data()
+        mol_data = generate_hydrogen_chain_instance(n_hydrogens)
 
         # Convert instance to core computational problem instance
         operator = generate_jw_qubit_hamiltonian_from_mol_data(mol_data)

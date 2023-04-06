@@ -13,10 +13,13 @@ import time
 from orquestra.sdk.schema.workflow_run import State
 
 from .defs import hydrogen_workflow
+from .estimates_ms import ms_estimates
 
 
 def main():
-    wf = hydrogen_workflow()
+    # uncomment which workflow do you want to run:
+    wf = hydrogen_workflow()  # general hydrogen workflow to calculate estimates
+    # wf = ms_estimates()  # calculate resource estimates using MS tool
 
     # Run locally, sequentially, in a single Python process. Useful for debugging, but
     # doesn't use Orquestra to its full potential.
@@ -35,6 +38,8 @@ def main():
             break
 
         time.sleep(1)
+
+    print(wf_run.get_results())
 
 
 if __name__ == "__main__":
