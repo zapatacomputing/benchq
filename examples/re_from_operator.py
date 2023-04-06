@@ -57,14 +57,6 @@ def main():
         # N = 100
         # operator = generate_1d_heisenberg_hamiltonian(N)
 
-        # Alternative operator: Small molecules
-        # Warning: they take ~1h-5h to run, depending on the case
-        # hamiltonian_name = "C2H2-8-canonical_qubitop"
-        # hamiltonian_name = "CH4-8-NOs_qubitop"
-        # hamiltonian_name = "C2H4-12-NOs_qubitop"
-        # file = "small_molecules/" + hamiltonian_name + ".json"
-        # operator = fast_load_qubit_op(file)
-
     print("Operator generation time:", t_info.total)
 
     # TA 1.5 part: model algorithmic circuit

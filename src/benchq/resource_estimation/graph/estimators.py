@@ -9,7 +9,7 @@ from graph_state_generation.substrate_scheduler import TwoRowSubstrateScheduler
 from ...data_structures.hardware_architecture_models import BasicArchitectureModel
 from .structs import GraphPartition
 
-INITIAL_synthesis_accuracy = 0.0001
+INITIAL_SYNTHESIS_ACCURACY = 0.0001
 
 
 def substrate_scheduler(graph: nx.Graph) -> TwoRowSubstrateScheduler:
@@ -89,11 +89,11 @@ class GraphResourceEstimator:
     # TODO: We need to make sure it's doing scientifically what it should be doing
     def balance_logical_error_rate_and_synthesis_accuracy(self, n_nodes, distance):
         """
-        This function is basically finding such a value of synthesis error rate, that it is
-        1/(12*N) smaller than circuit error rate, where N is the number of nodes
+        This function is basically finding such a value of synthesis error rate, that
+        it is 1/(12*N) smaller than circuit error rate, where N is the number of nodes
         in the graph.
         """
-        current_synthesis_accuracy = INITIAL_synthesis_accuracy
+        current_synthesis_accuracy = INITIAL_SYNTHESIS_ACCURACY
         for _ in range(20):
             ec_error_rate = self._ec_error_rate_synthesized(
                 distance,
