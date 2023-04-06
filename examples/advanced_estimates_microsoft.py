@@ -5,14 +5,11 @@ import time
 
 from benchq import BasicArchitectureModel
 from benchq.algorithms import get_qsp_program
-from benchq.problem_ingestion import (
-    generate_jw_qubit_hamiltonian_from_mol_data,
-)
+from benchq.problem_ingestion import generate_jw_qubit_hamiltonian_from_mol_data
 from benchq.problem_ingestion.molecule_instance_generation import (
     generate_hydrogen_chain_instance,
 )
 from benchq.resource_estimation import get_qpe_resource_estimates_from_mean_field_object
-
 from benchq.resource_estimation.microsoft import (
     get_resource_estimations_for_program as msft_re_for_program,
 )

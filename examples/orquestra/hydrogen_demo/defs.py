@@ -19,9 +19,7 @@ from benchq.problem_ingestion.molecule_instance_generation import (
     generate_hydrogen_chain_instance,
 )
 from benchq.resource_estimation import get_qpe_resource_estimates_from_mean_field_object
-from benchq.resource_estimation.graph_compilation import (
-    get_resource_estimations_for_graph,
-)
+from benchq.resource_estimation.graph import get_resource_estimations_for_graph
 
 task_deps = [sdk.PythonImports("pyscf==2.2.0", "openfermionpyscf==0.5")]
 ms_task_deps = [

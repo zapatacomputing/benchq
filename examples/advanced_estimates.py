@@ -5,9 +5,7 @@ import time
 
 from benchq import BasicArchitectureModel
 from benchq.algorithms import get_qsp_program
-from benchq.problem_ingestion import (
-    generate_jw_qubit_hamiltonian_from_mol_data,
-)
+from benchq.problem_ingestion import generate_jw_qubit_hamiltonian_from_mol_data
 from benchq.problem_ingestion.molecule_instance_generation import (
     generate_hydrogen_chain_instance,
 )
@@ -20,9 +18,7 @@ try:
 except Exception as e:
     print("Microsoft not configured, omitting importing related libraries")
 
-from benchq.resource_estimation.graph_compilation import (
-    get_resource_estimations_for_program,
-)
+from benchq.resource_estimation.graph import get_resource_estimations_for_program
 
 
 def print_re(resource_estimates, label):
