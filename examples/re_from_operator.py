@@ -1,18 +1,6 @@
 ################################################################################
 # © Copyright 2022-2023 Zapata Computing Inc.
 ################################################################################
-"""
-Objectives:
-
-1. Have a "benchq" script, which takes in a circuit and outputs a resource estimate
-    - Prototype, but needs to make sense in principle.
-    - Well defined I/Os
-
-
-2. Have a "darpa-1.5" script, which creates a circuit from an application instance.
-    - This is mostly for completeness and illustratory purposes
-    - Software can be quite crappy
-"""
 from pprint import pprint
 
 from benchq import BasicArchitectureModel
@@ -23,6 +11,7 @@ from benchq.resource_estimation.graph import (
     run_resource_estimation_pipeline,
     synthesize_clifford_t,
     create_big_graph_from_subcircuits,
+    simplify_rotations,
 )
 from benchq.problem_ingestion.hamiltonian_generation import (
     fast_load_qubit_op,
@@ -32,8 +21,6 @@ from benchq.timing import measure_time
 
 
 def main():
-    # Uncomment to see Jabalizer output
-    # logging.getLogger().setLevel(logging.INFO)
 
     k = 2.0
     alpha = 0.6
@@ -65,7 +52,7 @@ def main():
     with measure_time() as t_info:
         N = 2
         operator = get_vlasov_hamiltonian(k, alpha, nu, N)
-        
+
         # Alternative operator: 1D Heisenberg model
         # N = 100
         # operator = generate_1d_heisenberg_hamiltonian(N)
@@ -95,7 +82,7 @@ def main():
             error_budget,
             estimator=GraphResourceEstimator(architecture_model),
             transformers=[
-                synthesize_clifford_t(error_budget),
+                simplify_rotations,
                 create_big_graph_from_subcircuits(synthesized=False),
             ],
         )
