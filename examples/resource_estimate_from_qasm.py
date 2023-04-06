@@ -16,24 +16,19 @@ Objectives:
 import logging
 import time
 
+from orquestra.integrations.qiskit.conversions import import_from_qiskit
 from qiskit.circuit import QuantumCircuit
 
 from benchq import BasicArchitectureModel
 from benchq.data_structures import get_program_from_circuit
-from benchq.timing import measure_time
 from benchq.resource_estimation.graph import (
     GraphResourceEstimator,
-    run_resource_estimation_pipeline,
-)
-from benchq.timing import measure_time
-from benchq.resource_estimation.graph import (
-    GraphResourceEstimator,
-    run_resource_estimation_pipeline,
-    synthesize_clifford_t,
     create_big_graph_from_subcircuits,
+    run_resource_estimation_pipeline,
     simplify_rotations,
+    synthesize_clifford_t,
 )
-from orquestra.integrations.qiskit.conversions import import_from_qiskit
+from benchq.timing import measure_time
 
 
 def main(file_name):

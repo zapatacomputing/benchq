@@ -6,16 +6,16 @@ from pprint import pprint
 from benchq import BasicArchitectureModel
 from benchq.algorithms import get_qsp_program
 from benchq.problem_ingestion import get_vlasov_hamiltonian
-from benchq.resource_estimation.graph import (
-    GraphResourceEstimator,
-    run_resource_estimation_pipeline,
-    synthesize_clifford_t,
-    create_big_graph_from_subcircuits,
-    simplify_rotations,
-)
 from benchq.problem_ingestion.hamiltonian_generation import (
     fast_load_qubit_op,
     generate_1d_heisenberg_hamiltonian,
+)
+from benchq.resource_estimation.graph import (
+    GraphResourceEstimator,
+    create_big_graph_from_subcircuits,
+    run_resource_estimation_pipeline,
+    simplify_rotations,
+    synthesize_clifford_t,
 )
 from benchq.timing import measure_time
 

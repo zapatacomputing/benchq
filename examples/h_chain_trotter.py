@@ -17,20 +17,18 @@ import time
 
 from benchq import BasicArchitectureModel
 from benchq.algorithms import get_trotter_program
-from benchq.problem_ingestion import (
-    generate_jw_qubit_hamiltonian_from_mol_data,
-)
+from benchq.problem_ingestion import generate_jw_qubit_hamiltonian_from_mol_data
 from benchq.problem_ingestion.molecule_instance_generation import (
     generate_hydrogen_chain_instance,
 )
-from benchq.timing import measure_time
 from benchq.resource_estimation.graph import (
     GraphResourceEstimator,
-    run_resource_estimation_pipeline,
-    synthesize_clifford_t,
     create_big_graph_from_subcircuits,
+    run_resource_estimation_pipeline,
     simplify_rotations,
+    synthesize_clifford_t,
 )
+from benchq.timing import measure_time
 
 
 def main():
