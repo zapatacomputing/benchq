@@ -1,0 +1,9 @@
+{
+  "julia": "1.8,1.9,1.10",
+  "packages": {
+    "Jabalizer": {
+      "uuid": "5ba14d91-d028-496b-b148-c0fbc366f709",
+      "version": "0.4.4"
+    }
+  }
+}
