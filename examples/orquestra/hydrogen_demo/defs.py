@@ -79,8 +79,8 @@ def time_evolution_task(operator, time):
 
 
 @standard_task
-def transpile_to_clifford_t(circuit, synthesis_accuracy):
-    return pyliqtr_transpile_to_clifford_t(circuit, synthesis_accuracy)
+def transpile_to_clifford_t(circuit, circuit_accuracy):
+    return pyliqtr_transpile_to_clifford_t(circuit, circuit_accuracy=circuit_accuracy)
 
 
 @task_with_julia
@@ -163,9 +163,9 @@ def original_main():
 
         # TA 2 part: FTQC compilation
 
-        synthesis_accuracy = 1e-10
+        circuit_accuracy = 1e-10
         clifford_t_circuit = pyliqtr_transpile_to_clifford_t(
-            circuit, synthesis_accuracy
+            circuit, circuit_accuracy=circuit_accuracy
         )
         graph = get_algorithmic_graph_from_Jabalizer(clifford_t_circuit)
 

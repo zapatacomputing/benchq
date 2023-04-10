@@ -17,7 +17,7 @@ def synthesize_clifford_t(error_budget) -> Callable[[QuantumProgram], QuantumPro
         )
         circuits = [
             pyliqtr_transpile_to_clifford_t(
-                circuit, synthesis_accuracy=synthesis_error_budget
+                circuit, circuit_accuracy=synthesis_error_budget
             )
             for circuit in program.subroutines
         ]
