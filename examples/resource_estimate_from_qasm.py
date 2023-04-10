@@ -40,7 +40,7 @@ def main(file_name):
 
     error_budget = {
         "total_error": 1e-2,
-        "trotter_required_precision": 1e-3,
+        "trotter_required_precision": 1e-3,  
         "tolerable_circuit_error_rate": 1e-3,
         "remaining_error_budget": (5e-3),
         "synthesis_error_rate": 1e-3,

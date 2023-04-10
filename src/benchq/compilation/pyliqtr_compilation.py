@@ -13,7 +13,7 @@ from ..conversions import export_circuit, import_circuit
 
 
 def pyliqtr_transpile_to_clifford_t(
-    circuit: Union[OrquestraCircuit, CirqCircuit, PyquilCircuit, QiskitCircuit],
+    circuit: Union[OrquestraCircuit, CirqCircuit, QiskitCircuit],
     gate_accuracy: Union[float, None] = None,
     circuit_accuracy: Union[float, None] = None,
 ) -> OrquestraCircuit:
