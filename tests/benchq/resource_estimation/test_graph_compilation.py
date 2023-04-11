@@ -1,11 +1,18 @@
 from dataclasses import asdict
 
 import numpy as np
+import os
 import pytest
 from orquestra.quantum.circuits import CNOT, RX, RY, RZ, Circuit, H, T
 
-from benchq.data_structures.hardware_architecture_models import BasicArchitectureModel
-from benchq.data_structures.quantum_program import QuantumProgram
+from benchq.data_structures import (
+    BasicArchitectureModel,
+    DecoderModel,
+)
+from benchq.data_structures.quantum_program import (
+    QuantumProgram,
+    get_program_from_circuit,
+)
 from benchq.resource_estimation.graph import (
     GraphResourceEstimator,
     create_big_graph_from_subcircuits,
@@ -38,40 +45,30 @@ def _get_transformers(use_synthesis, error_budget):
     "quantum_program,expected_results",
     [
         (
-            QuantumProgram(
-                [Circuit([H(0), RZ(np.pi / 4)(0), CNOT(0, 1)])], 1, lambda x: [0]
-            ),
+            get_program_from_circuit(Circuit([H(0), RZ(np.pi / 4)(0), CNOT(0, 1)])),
             {"n_measurement_steps": 3, "n_nodes": 3, "max_graph_degree": 2},
         ),
         # (
-        #     QuantumProgram(
-        #         [Circuit([RX(np.pi / 4)(0), RY(np.pi / 4)(0), CNOT(0, 1)])],
-        #         1,
-        #         lambda _: [0],
+        #     get_program_from_circuit(
+        #         Circuit([RX(np.pi / 4)(0), RY(np.pi / 4)(0), CNOT(0, 1)])
         #     ),
         #     {"n_measurement_steps": 3, "n_nodes": 4, "max_graph_degree": 2},
         # ),
         (
-            QuantumProgram(
-                [Circuit([H(0)] + [CNOT(i, i + 1) for i in range(3)])],
-                1,
-                lambda _: [0],
+            get_program_from_circuit(
+                Circuit([H(0)] + [CNOT(i, i + 1) for i in range(3)])
             ),
             {"n_measurement_steps": 4, "n_nodes": 4, "max_graph_degree": 3},
         ),
         (
-            QuantumProgram(
-                [Circuit([H(0)] + [CNOT(i, i + 1) for i in range(3)] + [T(1), T(2)])],
-                1,
-                lambda _: [0],
+            get_program_from_circuit(
+                Circuit([H(0)] + [CNOT(i, i + 1) for i in range(3)] + [T(1), T(2)])
             ),
             {"n_measurement_steps": 6, "n_nodes": 6, "max_graph_degree": 5},
         ),
         # (
-        #     QuantumProgram(
-        #         [Circuit([H(0), T(0), CNOT(0, 1), T(2), CNOT(2, 3)])],
-        #         1,
-        #         lambda _: [0],
+        #     get_program_from_circuit(
+        #         Circuit([H(0), T(0), CNOT(0, 1), T(2), CNOT(2, 3)])
         #     ),
         #     {"n_measurement_steps": 3, "n_nodes": 3, "max_graph_degree": 2},
         # ),
@@ -129,9 +126,8 @@ def test_better_architecture_does_not_require_more_resources(use_synthesis):
     }
     transformers = _get_transformers(use_synthesis, error_budget)
 
-    circuit = Circuit([H(0), RZ(np.pi / 4)(0), CNOT(0, 1)])
-    quantum_program = QuantumProgram(
-        subroutines=[circuit], steps=1, calculate_subroutine_sequence=lambda x: [0]
+    quantum_program = get_program_from_circuit(
+        Circuit([H(0), RZ(np.pi / 4)(0), CNOT(0, 1)])
     )
     low_noise_resource_estimates = run_resource_estimation_pipeline(
         quantum_program,
@@ -186,10 +182,10 @@ def test_higher_error_budget_does_not_require_more_resources(use_synthesis):
     low_error_transformers = _get_transformers(use_synthesis, low_error_budget)
     high_error_transformers = _get_transformers(use_synthesis, high_error_budget)
 
-    circuit = Circuit([H(0), RZ(np.pi / 4)(0), CNOT(0, 1)])
-    quantum_program = QuantumProgram(
-        subroutines=[circuit], steps=1, calculate_subroutine_sequence=lambda x: [0]
+    quantum_program = get_program_from_circuit(
+        Circuit([H(0), RZ(np.pi / 4)(0), CNOT(0, 1)])
     )
+
     low_error_resource_estimates = run_resource_estimation_pipeline(
         quantum_program,
         low_error_budget,
@@ -216,3 +212,49 @@ def test_higher_error_budget_does_not_require_more_resources(use_synthesis):
         high_error_resource_estimates.total_time
         <= low_error_resource_estimates.total_time
     )
+
+
+def test_get_resource_estimations_for_program_accounts_for_decoder():
+    architecture_model = BasicArchitectureModel(
+        physical_gate_error_rate=1e-3,
+        physical_gate_time_in_seconds=1e-6,
+    )
+    error_budget = {
+        "qsp_required_precision": 1e-3,
+        "tolerable_circuit_error_rate": 1e-2,
+        "total_error": 1e-2,
+        "synthesis_error_rate": 0.5,
+        "ec_error_rate": 0.5,
+    }
+    quantum_program = get_program_from_circuit(
+        Circuit([H(0), RZ(np.pi / 4)(0), CNOT(0, 1)])
+    )
+
+    transformers = _get_transformers(True, error_budget)
+    gsc_resource_estimates_no_decoder = run_resource_estimation_pipeline(
+        quantum_program,
+        error_budget,
+        estimator=GraphResourceEstimator(architecture_model, decoder_model=None),
+        transformers=transformers,
+    )
+
+    file_dir = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), "..", "data_structures"
+    )
+    file_path = os.path.join(file_dir, "decoder_test_data.csv")
+
+    decoder = DecoderModel.from_csv(file_path)
+    gsc_resource_estimates_with_decoder = run_resource_estimation_pipeline(
+        quantum_program,
+        error_budget,
+        estimator=GraphResourceEstimator(architecture_model, decoder_model=decoder),
+        transformers=transformers,
+    )
+
+    assert gsc_resource_estimates_no_decoder.max_decodable_distance is None
+    assert gsc_resource_estimates_no_decoder.decoder_area is None
+    assert gsc_resource_estimates_no_decoder.decoder_power is None
+
+    assert gsc_resource_estimates_with_decoder.max_decodable_distance is not None
+    assert gsc_resource_estimates_with_decoder.decoder_area is not None
+    assert gsc_resource_estimates_with_decoder.decoder_power is not None

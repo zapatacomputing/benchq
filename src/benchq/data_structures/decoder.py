@@ -68,6 +68,14 @@ class DecoderModel:
             distance, self.L2, self.delay_d_26, self.delay_ranks, self.delay_sqmat_inv
         )
 
+    def error_rate(self, distance: int) -> float:
+        """Calculates the error rate of the decoder.
+
+        Args:
+            distance: surface code distance.
+        """
+        return 0
+
     @classmethod
     def from_csv(cls, file_path):
         """Creates DecoderModel object based on a csv file.
