@@ -4,7 +4,7 @@
 from pprint import pprint
 
 from benchq import BasicArchitectureModel
-from benchq.algorithms import get_qsp_time_evolution_program
+from benchq.algorithms.time_evolution import get_qsp_time_evolution_program
 from benchq.problem_ingestion import get_vlasov_hamiltonian
 from benchq.problem_ingestion.hamiltonian_generation import (
     fast_load_qubit_op,

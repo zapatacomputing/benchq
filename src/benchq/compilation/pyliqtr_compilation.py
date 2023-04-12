@@ -18,7 +18,7 @@ def pyliqtr_transpile_to_clifford_t(
     circuit_accuracy: Union[float, None] = None,
 ) -> OrquestraCircuit:
     """Compile a circuit into clifford + T using pyLIQTR. The only non-clifford + T
-    gates that can be compiled are X, Y, and Z rotations. 
+    gates that can be compiled are X, Y, and Z rotations.
     Note that while we are using accuracy pyLIQTR requires specifying precision
 
     Args:
@@ -29,7 +29,7 @@ def pyliqtr_transpile_to_clifford_t(
             of significant figures. When this is done, the number of significant
             figures is always rounded up.
         circuit_accuracy (float): Accuracy required for a whole circuit
-            Each gate will be bounded by either `circuit_precision` divided by 
+            Each gate will be bounded by either `circuit_precision` divided by
             the number of rotation gates (if given a float),
             or 10^{-circuit_precision} (if given an int)
 
@@ -44,13 +44,14 @@ def pyliqtr_transpile_to_clifford_t(
     elif circuit_accuracy is not None and gate_accuracy is None:
         circuit_precision = ceil(-log10(circuit_accuracy))
     elif circuit_accuracy and gate_accuracy is None:
-        raise ValueError("Please supply accuracy either for the gates or for the circuit")
+        raise ValueError(
+            "Please supply accuracy either for the gates or for the circuit"
+        )
     else:
         raise ValueError("Please supply gate or circuit accuracy not both")
 
-
-    compiled_cirq_circuit = clifford_plus_t_direct_transform(cirq_circuit, precision=gate_precision, 
-                            circuit_precision=circuit_precision
-                            )
+    compiled_cirq_circuit = clifford_plus_t_direct_transform(
+        cirq_circuit, precision=gate_precision, circuit_precision=circuit_precision
+    )
 
     return import_circuit(compiled_cirq_circuit)

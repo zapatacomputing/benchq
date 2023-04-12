@@ -16,7 +16,7 @@ Objectives:
 import time
 
 from benchq import BasicArchitectureModel
-from benchq.algorithms import get_trotter_program
+from benchq.algorithms.time_evolution import get_trotter_program
 from benchq.problem_ingestion import generate_jw_qubit_hamiltonian_from_mol_data
 from benchq.problem_ingestion.molecule_instance_generation import (
     generate_hydrogen_chain_instance,

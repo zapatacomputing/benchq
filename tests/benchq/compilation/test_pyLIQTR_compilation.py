@@ -45,7 +45,9 @@ def test_clifford_circuit_produces_correct_output(circuit):
 )
 def test_non_clifford_gates_compile(circuit, gate_accuracy):
     target_unitary = circuit.to_unitary()
-    compiled_circuit = pyliqtr_transpile_to_clifford_t(circuit, gate_accuracy=gate_accuracy)
+    compiled_circuit = pyliqtr_transpile_to_clifford_t(
+        circuit, gate_accuracy=gate_accuracy
+    )
     compiled_unitary = compiled_circuit.to_unitary()
     distance_from_target = (
         LA.norm(mod_out_phase(target_unitary) - mod_out_phase(compiled_unitary), 2) / 2
@@ -55,23 +57,29 @@ def test_non_clifford_gates_compile(circuit, gate_accuracy):
 
 @pytest.mark.parametrize(
     "circuit, gate_accuracy, circuit_accuracy",
-    [
-        (OrquestraCircuit([RZ(0.1)(0)]), 1e-3, 1e-3)
-    ],
+    [(OrquestraCircuit([RZ(0.1)(0)]), 1e-3, 1e-3)],
 )
-def test_user_cant_specify_both_gate_and_circuit_accuracy(circuit, gate_accuracy, circuit_accuracy):
-        with pytest.raises(ValueError):
-            compiled_circuit = pyliqtr_transpile_to_clifford_t(circuit, gate_accuracy=gate_accuracy, circuit_accuracy=circuit_accuracy)
+def test_user_cant_specify_both_gate_and_circuit_accuracy(
+    circuit, gate_accuracy, circuit_accuracy
+):
+    with pytest.raises(ValueError):
+        pyliqtr_transpile_to_clifford_t(
+            circuit, gate_accuracy=gate_accuracy, circuit_accuracy=circuit_accuracy
+        )
+
 
 @pytest.mark.parametrize(
     "circuit, gate_accuracy, circuit_accuracy",
-    [
-        (OrquestraCircuit([RZ(0.1)(0)]), None, None)
-    ],
+    [(OrquestraCircuit([RZ(0.1)(0)]), None, None)],
 )
-def test_user_didnt_specify_both_gate_or_circuit_accuracy(circuit, gate_accuracy, circuit_accuracy):
-        with pytest.raises(ValueError):
-            compiled_circuit = pyliqtr_transpile_to_clifford_t(circuit, gate_accuracy=gate_accuracy, circuit_accuracy=circuit_accuracy)
+def test_user_didnt_specify_both_gate_or_circuit_accuracy(
+    circuit, gate_accuracy, circuit_accuracy
+):
+    with pytest.raises(ValueError):
+        pyliqtr_transpile_to_clifford_t(
+            circuit, gate_accuracy=gate_accuracy, circuit_accuracy=circuit_accuracy
+        )
+
 
 def mod_out_phase(matrix):
     return matrix / np.exp(1j * np.angle(matrix[0][0]))

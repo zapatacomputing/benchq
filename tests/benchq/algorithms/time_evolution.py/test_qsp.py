@@ -79,7 +79,7 @@ class TestGetQSPCircuit:
             "T": 28,
             "T_Dagger": 28,
         }
-    
+
 
 class TestGetQSPProgram:
     @staticmethod
@@ -109,7 +109,7 @@ class TestGetQSPProgram:
             required_precision=required_precision,
             dt=dt,
             tmax=tmax,
-            sclf=sclf
+            sclf=sclf,
         )
 
         circuit_from_program = qsp_program.full_circuit
