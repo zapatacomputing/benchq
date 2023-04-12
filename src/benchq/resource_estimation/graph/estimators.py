@@ -55,10 +55,6 @@ class GraphResourceEstimator:
     N_TOCKS_PER_T_GATE_FACTORY = 15 * 16
 
     def _logical_cell_failure_rate(self, distance: int) -> float:
-        if self.decoder_model:
-            decoder_error_rate = self.decoder_model.error_rate(distance)
-        else:
-            decoder_error_rate = 0
         return (
             # 0.3 and 70 come from numerical simulations
             distance
