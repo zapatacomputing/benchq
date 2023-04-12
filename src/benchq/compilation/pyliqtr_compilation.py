@@ -2,7 +2,7 @@
 # © Copyright 2022 Zapata Computing Inc.
 ################################################################################
 from math import ceil, log10
-from typing import Union
+from typing import Union, Optional
 
 from cirq.circuits import Circuit as CirqCircuit
 from orquestra.quantum.circuits import Circuit as OrquestraCircuit
@@ -19,7 +19,6 @@ def pyliqtr_transpile_to_clifford_t(
 ) -> OrquestraCircuit:
     """Compile a circuit into clifford + T using pyLIQTR. The only non-clifford + T
     gates that can be compiled are X, Y, and Z rotations.
-    Note that while we are using precision pyLIQTR requires specifying precision
 
     Args:
         circuit (Union[OrquestraCircuit, CirqCircuit, PyquilCircuit, QiskitCircuit]):
