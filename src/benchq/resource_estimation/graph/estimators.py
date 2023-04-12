@@ -53,15 +53,10 @@ class GraphResourceEstimator:
         self.decoder_model = decoder_model
 
     def _logical_operation_error_rate(self, distance: int) -> float:
-        if self.decoder_model:
-            decoder_error_rate = self.decoder_model.error_rate(distance)
-        else:
-            decoder_error_rate = 0
         return (
             distance
             * 0.3
             * (70 * self.hw_model.physical_gate_error_rate) ** ((distance + 1) / 2)
-            * (1 - decoder_error_rate)
         )
 
     def _minimize_code_distance(
