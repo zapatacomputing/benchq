@@ -2,14 +2,15 @@
 # © Copyright 2022-2023 Zapata Computing Inc.
 ################################################################################
 import time
-
+import logging
 from benchq import BasicArchitectureModel
-from benchq.algorithms import get_qsp_program
+from benchq.algorithms.time_evolution import get_qsp_time_evolution_program
 from benchq.problem_ingestion import generate_jw_qubit_hamiltonian_from_mol_data
 from benchq.problem_ingestion.molecule_instance_generation import (
     generate_hydrogen_chain_instance,
 )
 from benchq.resource_estimation import get_qpe_resource_estimates_from_mean_field_object
+from benchq.timing import measure_time
 
 try:
     from benchq.resource_estimation.microsoft import (
@@ -18,7 +19,13 @@ try:
 except Exception as e:
     print("Microsoft not configured, omitting importing related libraries")
 
-from benchq.resource_estimation.graph import get_resource_estimations_for_program
+from benchq.resource_estimation.graph import (
+    GraphResourceEstimator,
+    create_big_graph_from_subcircuits,
+    run_resource_estimation_pipeline,
+    simplify_rotations,
+    synthesize_clifford_t,
+)
 
 
 def print_re(resource_estimates, label):
@@ -53,11 +60,13 @@ def get_of_resource_estimates(n_hydrogens):
 
 
 def main():
+    # Uncomment to see Jabalizer output
+    logging.getLogger().setLevel(logging.INFO)
     dt = 0.5  # Integration timestep
     tmax = 5  # Maximal timestep
     sclf = 1
 
-    for n_hydrogens in [2, 3]:
+    for n_hydrogens in [2]:
         print("!!*#*!!" * 15)
         print(f"N HYDROGENS: {n_hydrogens}")
         print("!!*#*!!" * 15)
@@ -80,15 +89,13 @@ def main():
         print("OF resource estimation took:", end - start, "seconds")
         ### END OPENFERMION ESTIMATES
 
-        ###### RE FOR PARTIAL CIRCUITS
-        ### THIS CODE BELOW IS SUCH A MESS, BEWARE!
-        # TODO: extract to a separate function
-        tolerable_circuit_error_rate = 1e-3
-        qsp_required_precision = (
-            tolerable_circuit_error_rate / 2
-        )  # Allocate half the error budget to QSP precision
-        remaining_error_budget = tolerable_circuit_error_rate - qsp_required_precision
-        ### THOUGH I THINK IT WORKS
+        error_budget = {
+            "total_error": 1e-2,
+            "qsp_required_precision": 1e-3,  
+            "tolerable_circuit_error_rate": 1e-3,
+            "synthesis_error_rate": 1e-3,
+            "ec_error_rate": 1e-3,
+        }
 
         architecture_model = BasicArchitectureModel(
             physical_gate_error_rate=1e-3,
@@ -97,46 +104,49 @@ def main():
 
         ##### STUFF FOR SUBCIRCUITS
         # TA 1.5 part: model algorithmic circuit
-        for mode in ["time_evolution", "gse"]:
-            print("!!*#*!!" * 15)
-            print(f"MODE: {mode}, n hydrogens: {n_hydrogens}")
-            print("!!*#*!!" * 15)
+    
+        print("!!*#*!!" * 15)
+        print(f"n hydrogens: {n_hydrogens}")
+        print("!!*#*!!" * 15)
+        start = time.time()
+        quantum_program = get_qsp_time_evolution_program(
+            operator, error_budget["qsp_required_precision"], dt, tmax, sclf,
+        )
+        end = time.time()
+        print("Circuit generation time:", end - start)
+
+        try:
             start = time.time()
-            quantum_program = get_qsp_program(
-                operator, qsp_required_precision, dt, tmax, sclf, mode=mode
+            msft_resource_estimates = msft_re_for_program(
+                quantum_program, error_budget["synthesis_error_rate"]+ error_budget["ec_error_rate "], architecture_model
             )
             end = time.time()
-            print("Circuit generation time:", end - start)
-
-            try:
-                start = time.time()
-                msft_resource_estimates = msft_re_for_program(
-                    quantum_program, remaining_error_budget, architecture_model
-                )
-                end = time.time()
-                print("Microsoft estimation time:", end - start)
-                print("Microsoft estimates:")
-                print(msft_resource_estimates)
-            except Exception as e:
-                print(
-                    "Microsoft estimation tools is not configured, aborting estimation. "
-                    "Expect better documentation on how to get the access in the future."
-                )
-                # print("Original exception message", e)
-
-            start = time.time()
-            gsc_resource_estimates = get_resource_estimations_for_program(
-                quantum_program,
-                remaining_error_budget,
-                architecture_model,
-                plot=True,
-            )
-            end = time.time()
-            print("Graph State Compilation estimation time:", end - start)
+            print("Microsoft estimation time:", end - start)
             print("Microsoft estimates:")
-            print(gsc_resource_estimates)
+            print(msft_resource_estimates)
+        except Exception as e:
+            print(
+                "Microsoft estimation tools is not configured, aborting estimation. "
+                "Expect better documentation on how to get the access in the future."
+            )
+            # print("Original exception message", e)]
 
-            #### END OF STUFF FOR SUBCIRCUITS
+        with measure_time() as t_info:
+            ### TODO: error budget is needed both for transforming AND
+            ### in the estimation
+            ### Hence, I suggest passing it once to run_resource_estimation_pipeline
+            ### And then propagating it through transformer and estimator
+            gsc_resource_estimates = run_resource_estimation_pipeline(
+                quantum_program,
+                error_budget,
+                estimator=GraphResourceEstimator(architecture_model),
+                transformers=[
+                    simplify_rotations,
+                    synthesize_clifford_t(error_budget),
+                    create_big_graph_from_subcircuits(synthesized=False),
+                ],
+            )
+        print(gsc_resource_estimates)
 
 
 if __name__ == "__main__":
