@@ -9,8 +9,8 @@ from orquestra.quantum.circuits import Circuit
 from orquestra.quantum.operators import PauliRepresentation
 from pyLIQTR.QSP import gen_qsp
 
-from ..conversions import openfermion_to_pyliqtr
-from ..data_structures import QuantumProgram
+from ...conversions import openfermion_to_pyliqtr
+from ...data_structures import QuantumProgram
 
 
 def get_qsp_circuit(
@@ -65,36 +65,22 @@ def _get_steps(tau, req_prec):
     return steps
 
 
-def get_qsp_program(
+def get_qsp_time_evolution_program(
     operator: PauliRepresentation,
     required_precision: float,
     dt: float,
     tmax: float,
     sclf: float,
-    mode: str = "gse",
-    gse_accuracy: float = 1e-3,
-) -> QuantumProgram:
+):
     pyliqtr_operator = openfermion_to_pyliqtr(to_openfermion(operator))
+    timestep_vec = np.arange(0, tmax + dt, sclf * dt)  # Define array of timesteps
 
-    # TODO: I dont know why we have `gse_accuracy` and `required_precision` separately.
-    if mode == "gse":
-        n_block_encodings = int(
-            np.ceil(np.pi * (pyliqtr_operator.alpha) / (gse_accuracy))
-        )
-        # *2 for each layer consisting of 2 blocks,
-        # +2 for rotation layers,
-        # #+1 for extra select-V
-        steps = n_block_encodings * 2 + 3
+    occ_state = np.zeros(pyliqtr_operator.problem_size)
+    occ_state[0] = 1
 
-    elif mode == "time_evolution":
-        timestep_vec = np.arange(0, tmax + dt, sclf * dt)  # Define array of timesteps
-
-        occ_state = np.zeros(pyliqtr_operator.problem_size)
-        occ_state[0] = 1
-
-        # TODO: I think the way we calculate it is incorrect.
-        tau = timestep_vec[1] * pyliqtr_operator.alpha
-        steps = _get_steps(tau, required_precision)
+    # TODO: I think the way we calculate it is incorrect.
+    tau = timestep_vec[1] * pyliqtr_operator.alpha
+    steps = _get_steps(tau, required_precision)
 
     # number of steps needs to be odd for QSP
     if not (steps % 2):
@@ -109,7 +95,6 @@ def get_qsp_program(
         hamiltonian=pyliqtr_operator,
         target_size=pyliqtr_operator.problem_size,
     )
-
     rotation_circuit = qsp_generator.initialize_circuit()
     rotation_circuit = qsp_generator.add_phase_rotation(
         rotation_circuit, angles[0], rot_type="X"

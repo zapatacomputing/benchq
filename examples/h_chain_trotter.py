@@ -61,9 +61,6 @@ def main():
             "total_error": 1e-2,
             "trotter_required_precision": trotter_required_precision,
             "tolerable_circuit_error_rate": tolerable_circuit_error_rate,
-            "remaining_error_budget": (
-                tolerable_circuit_error_rate - trotter_required_precision
-            ),
             "synthesis_error_rate": 1e-3,
             "ec_error_rate": 1e-3,
         }

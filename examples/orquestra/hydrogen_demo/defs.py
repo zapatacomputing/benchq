@@ -9,7 +9,7 @@ from orquestra import sdk
 from orquestra.quantum.evolution import time_evolution
 
 from benchq import BasicArchitectureModel
-from benchq.algorithms import get_qsp_program
+from benchq.algorithms import get_qsp_time_evolution_program
 from benchq.compilation import (
     get_algorithmic_graph_from_Jabalizer,
     pyliqtr_transpile_to_clifford_t,
@@ -55,7 +55,7 @@ def get_program(
     mode: str = "gse",
     gse_accuracy: float = 1e-3,
 ):
-    return get_qsp_program(
+    return get_qsp_time_evolution_program(
         operator,
         qsp_required_precision,
         dt,

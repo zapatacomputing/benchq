@@ -13,7 +13,7 @@ import pytest
 from orquestra.quantum import circuits
 from orquestra.quantum.operators import PauliSum
 
-from benchq.algorithms import _qsp
+from benchq.algorithms.time_evolution import _qsp
 
 
 def _make_real_pauli_sum(terms_str: str) -> PauliSum:
@@ -71,6 +71,55 @@ class TestGetQSPCircuit:
 
         # We expect the following gate types being applied n times
         assert _gate_op_counts(circuit) == {
+            "CZ": 84,
+            "RX": 3,
+            "RY": 188,
+            "S": 8,
+            "S_Dagger": 8,
+            "T": 28,
+            "T_Dagger": 28,
+        }
+    
+
+class TestGetQSPProgram:
+    @staticmethod
+    @pytest.mark.parametrize("use_random_angles", [False, True])
+    def test_example_program(use_random_angles: bool):
+        """
+        Uses values inspired by running the "qsp_vlasov.py" example.py
+        """
+        if not use_random_angles:
+            pytest.skip(
+                "Skipping case for use_random_angles=True, "
+                "as it takes very long time to run"
+            )
+        # Given
+        operator = _make_real_pauli_sum("0.75*X0*X1 + 0.75*Y0*Y1")
+        required_precision = 0.01
+        dt = 0.1
+        tmax = 5
+        sclf = 1
+
+        # We're using 'np.random.random()' inside QSP.
+        np.random.seed(42)
+
+        # When
+        qsp_program = _qsp.get_qsp_time_evolution_program(
+            operator=operator,
+            required_precision=required_precision,
+            dt=dt,
+            tmax=tmax,
+            sclf=sclf
+        )
+
+        circuit_from_program = qsp_program.full_circuit
+
+        # Then
+        # We expect this many gates being applied in the circuit
+        assert len(circuit_from_program.operations) == 347
+
+        # We expect the following gate types being applied n times
+        assert _gate_op_counts(circuit_from_program) == {
             "CZ": 84,
             "RX": 3,
             "RY": 188,

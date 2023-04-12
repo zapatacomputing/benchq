@@ -4,7 +4,7 @@
 from pprint import pprint
 
 from benchq import BasicArchitectureModel
-from benchq.algorithms import get_qsp_program
+from benchq.algorithms import get_qsp_time_evolution_program
 from benchq.problem_ingestion import get_vlasov_hamiltonian
 from benchq.problem_ingestion.hamiltonian_generation import (
     fast_load_qubit_op,
@@ -61,7 +61,7 @@ def main():
 
     # TA 1.5 part: model algorithmic circuit
     with measure_time() as t_info:
-        program = get_qsp_program(
+        program = get_qsp_time_evolution_program(
             operator, qsp_required_precision, dt, tmax, sclf, mode="time_evolution"
         )
 
