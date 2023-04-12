@@ -1,15 +1,17 @@
 ################################################################################
 # © Copyright 2023 Zapata Computing Inc.
 ################################################################################
-from csv import reader
-
 import numpy as np
 
 
 class DecoderModel:
-    """Class representing decoder model
+    """Class representing decoder model for belief-propagation decoder.
 
-    All the fields of the class represent some properties of the decoder model.
+    Most parameters don't have physical interpretations, they are just numerical
+    coefficients coming from the fit of the simulation data. Their names come from
+    numberical methods used for their calculation.
+    The exception is L2, which corresponds to the number of interations of
+    belief-propagation.
     """
 
     def __init__(
@@ -23,7 +25,7 @@ class DecoderModel:
         delay_d_26: float,
         delay_ranks: np.ndarray,
         delay_sqmat_inv: np.ndarray,
-        L2=10,
+        L2: int = 10,
     ):
         self.power_d_26 = power_d_26
         self.power_ranks = power_ranks
@@ -48,7 +50,7 @@ class DecoderModel:
         )
 
     def area(self, distance: int) -> float:
-        """Calculates the area (in m^2) that it will take to have a decoder
+        """Calculates the area (arbitrary units) that it will take to have a decoder
         which allows to decode code of given distance.
 
         Args:
@@ -59,7 +61,7 @@ class DecoderModel:
         )
 
     def delay(self, distance: int) -> float:
-        """Calculates the delay (in s) it will take to decode the code
+        """Calculates the delay (in ns) it will take to decode the code
         of given distance.
 
         Args:
@@ -68,14 +70,6 @@ class DecoderModel:
         return _get_estimate(
             distance, self.L2, self.delay_d_26, self.delay_ranks, self.delay_sqmat_inv
         )
-
-    def error_rate(self, distance: int) -> float:
-        """Calculates the error rate of the decoder.
-
-        Args:
-            distance: surface code distance.
-        """
-        return 0
 
     @classmethod
     def from_csv(cls, file_path):

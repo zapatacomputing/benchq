@@ -52,16 +52,14 @@ class GraphResourceEstimator:
         self.combine_partition = combine_partition
         self.decoder_model = decoder_model
 
-    def _logical_operation_error_rate(self, distance: int) -> float:
-        if self.decoder_model:
-            decoder_error_rate = self.decoder_model.error_rate(distance)
-        else:
-            decoder_error_rate = 0
+    N_TOCKS_PER_T_GATE_FACTORY = 15 * 16
+
+    def _logical_cell_failure_rate(self, distance: int) -> float:
         return (
+            # 0.3 and 70 come from numerical simulations
             distance
             * 0.3
             * (70 * self.hw_model.physical_gate_error_rate) ** ((distance + 1) / 2)
-            * (1 - decoder_error_rate)
         )
 
     def _minimize_code_distance(
@@ -80,16 +78,9 @@ class GraphResourceEstimator:
 
         raise RuntimeError(f"Not found good error rates under distance code: {max_d}.")
 
-    def _get_n_measurement_steps(self, graph) -> int:
-        return len(substrate_scheduler(graph).measurement_steps)
-
     def _ec_error_rate_synthesized(self, distance: int, n_nodes: int) -> float:
-        return (
-            self._logical_operation_error_rate(distance)
-            * 12
-            * n_nodes
-            * self.n_tocks_per_t_gate_factory()
-            * n_nodes
+        return self._logical_cell_failure_rate(distance) * self.get_logical_st_volume(
+            n_nodes
         )
 
     def _ec_error_rate_unsynthesized(self, distance: int, n_nodes: int) -> float:
@@ -99,7 +90,7 @@ class GraphResourceEstimator:
         return ec_error_rate
 
     def get_logical_st_volume(self, n_operations):
-        return 12 * n_operations * self.n_tocks_per_t_gate_factory() * n_operations
+        return 12 * n_operations * self.N_TOCKS_PER_T_GATE_FACTORY * n_operations
 
     def find_max_decodable_distance(self, min_d=4, max_d=100):
         max_distance = 0
@@ -111,13 +102,6 @@ class GraphResourceEstimator:
                 max_distance = distance
 
         return max_distance
-
-    def n_tocks_per_t_gate_factory(self) -> int:
-        """This function calculates how many tocks are needed to implement T-gate
-        factory.
-        It comes from 15 Tocks for a T-gate over 16 logical graph nodes per factory.
-        """
-        return 15 * 16
 
     # TODO: We need to make sure it's doing scientifically what it should be doing
     def balance_logical_error_rate_and_synthesis_accuracy(self, n_nodes, distance):
@@ -146,31 +130,29 @@ class GraphResourceEstimator:
         self, graph: nx.Graph, n_nodes: int, synthesized: bool, error_budget
     ) -> ResourceInfo:
 
-        ec_error_rate = (
+        ec_error_rate_func = (
             self._ec_error_rate_synthesized
             if synthesized
             else self._ec_error_rate_unsynthesized
         )
 
-        # Change to code distance
         code_distance = self._minimize_code_distance(
-            n_nodes, error_budget, ec_error_rate
+            n_nodes, error_budget, ec_error_rate_func
         )
         max_degree = max(deg for _, deg in graph.degree())
-        logical_operation_error_rate = self._logical_operation_error_rate(code_distance)
-
-        n_measurement_steps = self._get_n_measurement_steps(graph)
+        logical_cell_error_rate = self._logical_cell_failure_rate(code_distance)
+        n_measurement_steps = len(substrate_scheduler(graph).measurement_steps)
 
         # Isolate differences betweeen synthesized and not synthesized case
         if synthesized:
-            logical_error_rate = (
-                logical_operation_error_rate * self.get_logical_st_volume(max_degree)
+            total_logical_error_rate = (
+                logical_cell_error_rate * self.get_logical_st_volume(max_degree)
             )
             synthesis_multiplier = 1
         else:
             (
                 synthesis_accuracy,
-                logical_error_rate,
+                total_logical_error_rate,
             ) = self.balance_logical_error_rate_and_synthesis_accuracy(
                 n_nodes, code_distance
             )
@@ -181,7 +163,7 @@ class GraphResourceEstimator:
 
         wall_time = (
             time_of_logical_t_gate
-            * self.n_tocks_per_t_gate_factory()
+            * self.N_TOCKS_PER_T_GATE_FACTORY
             * n_measurement_steps
             * synthesis_multiplier
         )
@@ -199,7 +181,7 @@ class GraphResourceEstimator:
         return ResourceInfo(
             synthesis_multiplier=synthesis_multiplier,
             code_distance=code_distance,
-            logical_error_rate=logical_error_rate,
+            logical_error_rate=total_logical_error_rate,
             max_graph_degree=max_degree,
             n_nodes=n_nodes,
             n_measurement_steps=n_measurement_steps,
