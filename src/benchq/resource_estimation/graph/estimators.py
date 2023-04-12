@@ -64,7 +64,6 @@ class GraphResourceEstimator:
             distance
             * 0.3
             * (70 * self.hw_model.physical_gate_error_rate) ** ((distance + 1) / 2)
-            * (1 - decoder_error_rate)
         )
 
     def _minimize_code_distance(
