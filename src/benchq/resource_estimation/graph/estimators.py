@@ -79,9 +79,8 @@ class GraphResourceEstimator:
         raise RuntimeError(f"Not found good error rates under distance code: {max_d}.")
 
     def _ec_error_rate_synthesized(self, distance: int, n_nodes: int) -> float:
-        return (
-            self._logical_cell_failure_rate(distance)
-            * self.get_logical_st_volume(n_nodes)
+        return self._logical_cell_failure_rate(distance) * self.get_logical_st_volume(
+            n_nodes
         )
 
     def _ec_error_rate_unsynthesized(self, distance: int, n_nodes: int) -> float:
@@ -103,7 +102,6 @@ class GraphResourceEstimator:
                 max_distance = distance
 
         return max_distance
-
 
     # TODO: We need to make sure it's doing scientifically what it should be doing
     def balance_logical_error_rate_and_synthesis_accuracy(self, n_nodes, distance):
