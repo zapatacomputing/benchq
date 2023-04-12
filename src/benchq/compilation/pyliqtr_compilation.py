@@ -37,6 +37,15 @@ def pyliqtr_transpile_to_clifford_t(
     Returns:
         OrquestraCircuit: circuit decomposed to Clifford + T using pyLIQTR.
     """
+    has_rotations = False
+    orquestra_circuit = import_circuit(circuit)
+    for op in orquestra_circuit.operations:
+        if op.gate.name in ["RX", "RY", "RZ"]:
+            has_rotations = True
+            break
+    if not has_rotations:
+        return circuit
+
     cirq_circuit = export_circuit(CirqCircuit, import_circuit(circuit))
     gate_precision, circuit_precision = None, None
     if gate_accuracy is not None and circuit_accuracy is None:
