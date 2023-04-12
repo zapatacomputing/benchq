@@ -30,12 +30,12 @@ two_qubit_qiskit_circuit.h(0)
 )
 def test_clifford_circuit_produces_correct_output(circuit):
     """Tests that clifford circuits are unchanged"""
-    pyliqtr_transpile_to_clifford_t(circuit, gate_accuracy=0.001) == OrquestraCircuit(
+    pyliqtr_transpile_to_clifford_t(circuit, gate_precision=0.001) == OrquestraCircuit(
         [OrquestraCNOT(0, 1), OrquestraH(0)]
     )
 
 
-@pytest.mark.parametrize("gate_accuracy", [1e-3, 1e-6, 1e-10, 1.2e-6])
+@pytest.mark.parametrize("gate_precision", [1e-3, 1e-6, 1e-10, 1.2e-6])
 @pytest.mark.parametrize(
     "circuit",
     [
@@ -43,41 +43,41 @@ def test_clifford_circuit_produces_correct_output(circuit):
         OrquestraCircuit([RZ(0.1)(0), OrquestraCNOT(0, 1), RX(0.3)(0)]),
     ],
 )
-def test_non_clifford_gates_compile(circuit, gate_accuracy):
+def test_non_clifford_gates_compile(circuit, gate_precision):
     target_unitary = circuit.to_unitary()
     compiled_circuit = pyliqtr_transpile_to_clifford_t(
-        circuit, gate_accuracy=gate_accuracy
+        circuit, gate_precision=gate_precision
     )
     compiled_unitary = compiled_circuit.to_unitary()
     distance_from_target = (
         LA.norm(mod_out_phase(target_unitary) - mod_out_phase(compiled_unitary), 2) / 2
     )  # normalize with 2 because we are using the 2 norm rather than diamond norm
-    assert distance_from_target < gate_accuracy ** (1 / len(circuit.operations))
+    assert distance_from_target < gate_precision ** (1 / len(circuit.operations))
 
 
 @pytest.mark.parametrize(
-    "circuit, gate_accuracy, circuit_accuracy",
+    "circuit, gate_precision, circuit_accuracy",
     [(OrquestraCircuit([RZ(0.1)(0)]), 1e-3, 1e-3)],
 )
 def test_user_cant_specify_both_gate_and_circuit_accuracy(
-    circuit, gate_accuracy, circuit_accuracy
+    circuit, gate_precision, circuit_accuracy
 ):
     with pytest.raises(ValueError):
         pyliqtr_transpile_to_clifford_t(
-            circuit, gate_accuracy=gate_accuracy, circuit_accuracy=circuit_accuracy
+            circuit, gate_precision=gate_precision, circuit_accuracy=circuit_accuracy
         )
 
 
 @pytest.mark.parametrize(
-    "circuit, gate_accuracy, circuit_accuracy",
+    "circuit, gate_precision, circuit_accuracy",
     [(OrquestraCircuit([RZ(0.1)(0)]), None, None)],
 )
-def test_user_didnt_specify_both_gate_or_circuit_accuracy(
-    circuit, gate_accuracy, circuit_accuracy
+def test_user_didnt_specify_either_gate_or_circuit_accuracy(
+    circuit, gate_precision, circuit_accuracy
 ):
     with pytest.raises(ValueError):
         pyliqtr_transpile_to_clifford_t(
-            circuit, gate_accuracy=gate_accuracy, circuit_accuracy=circuit_accuracy
+            circuit, gate_precision=gate_precision, circuit_accuracy=circuit_accuracy
         )
 
 
