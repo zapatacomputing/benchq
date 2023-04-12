@@ -1,12 +1,12 @@
 from dataclasses import dataclass
-from typing import Callable
+from typing import Callable, Optional
 
 import networkx as nx
 import numpy as np
 from graph_state_generation.optimizers import greedy_stabilizer_measurement_scheduler
 from graph_state_generation.substrate_scheduler import TwoRowSubstrateScheduler
 
-from ...data_structures.hardware_architecture_models import BasicArchitectureModel
+from ...data_structures import BasicArchitectureModel, DecoderModel
 from .structs import GraphPartition
 
 INITIAL_SYNTHESIS_ACCURACY = 0.0001
@@ -32,28 +32,36 @@ class ResourceInfo:
     n_nodes: int
     n_measurement_steps: int
     total_time: float
+    max_decodable_distance: Optional[int]
+    decoder_power: Optional[float]
+    decoder_area: Optional[float]
 
     @property
     def n_physical_qubits(self) -> int:
         return 12 * self.max_graph_degree * 2 * self.code_distance**2
 
-    @property
-    def logical_st_volume(self) -> float:
-        return 12 * self.n_nodes * 240 * self.n_nodes * self.synthesis_multiplier
-
 
 class GraphResourceEstimator:
     def __init__(
-        self, hw_model: BasicArchitectureModel, combine_partition: bool = True
+        self,
+        hw_model: BasicArchitectureModel,
+        decoder_model: Optional[DecoderModel] = None,
+        combine_partition: bool = True,
     ):
         self.hw_model = hw_model
         self.combine_partition = combine_partition
+        self.decoder_model = decoder_model
 
     def _logical_operation_error_rate(self, distance: int) -> float:
+        if self.decoder_model:
+            decoder_error_rate = self.decoder_model.error_rate(distance)
+        else:
+            decoder_error_rate = 0
         return (
             distance
             * 0.3
             * (70 * self.hw_model.physical_gate_error_rate) ** ((distance + 1) / 2)
+            * (1 - decoder_error_rate)
         )
 
     def _minimize_code_distance(
@@ -77,7 +85,11 @@ class GraphResourceEstimator:
 
     def _ec_error_rate_synthesized(self, distance: int, n_nodes: int) -> float:
         return (
-            self._logical_operation_error_rate(distance) * 12 * n_nodes * 240 * n_nodes
+            self._logical_operation_error_rate(distance)
+            * 12
+            * n_nodes
+            * self.n_tocks_per_t_gate_factory()
+            * n_nodes
         )
 
     def _ec_error_rate_unsynthesized(self, distance: int, n_nodes: int) -> float:
@@ -85,6 +97,27 @@ class GraphResourceEstimator:
             n_nodes, distance
         )
         return ec_error_rate
+
+    def get_logical_st_volume(self, n_operations):
+        return 12 * n_operations * self.n_tocks_per_t_gate_factory() * n_operations
+
+    def find_max_decodable_distance(self, min_d=4, max_d=100):
+        max_distance = 0
+        for distance in range(min_d, max_d):
+            time_for_logical_operation = (
+                6 * self.hw_model.physical_gate_time_in_seconds * distance
+            )
+            if self.decoder_model.delay(distance) < time_for_logical_operation:
+                max_distance = distance
+
+        return max_distance
+
+    def n_tocks_per_t_gate_factory(self) -> int:
+        """This function calculates how many tocks are needed to implement T-gate
+        factory.
+        It comes from 15 Tocks for a T-gate over 16 logical graph nodes per factory.
+        """
+        return 15 * 16
 
     # TODO: We need to make sure it's doing scientifically what it should be doing
     def balance_logical_error_rate_and_synthesis_accuracy(self, n_nodes, distance):
@@ -128,12 +161,10 @@ class GraphResourceEstimator:
 
         n_measurement_steps = self._get_n_measurement_steps(graph)
 
-        ec_multiplier = 240 * code_distance * n_measurement_steps
-
         # Isolate differences betweeen synthesized and not synthesized case
         if synthesized:
             logical_error_rate = (
-                logical_operation_error_rate * 12 * n_nodes * 240 * n_nodes
+                logical_operation_error_rate * self.get_logical_st_volume(max_degree)
             )
             synthesis_multiplier = 1
         else:
@@ -144,13 +175,26 @@ class GraphResourceEstimator:
                 n_nodes, code_distance
             )
             synthesis_multiplier = 12 * np.log2(1 / synthesis_accuracy)
+        time_of_logical_t_gate = (
+            6 * self.hw_model.physical_gate_time_in_seconds * code_distance
+        )
 
         wall_time = (
-            6
-            * ec_multiplier
-            * self.hw_model.physical_gate_time_in_seconds
+            time_of_logical_t_gate
+            * self.n_tocks_per_t_gate_factory()
+            * n_measurement_steps
             * synthesis_multiplier
         )
+        if self.decoder_model:
+            decoder_power = self.get_logical_st_volume(
+                max_degree
+            ) * self.decoder_model.power(code_distance)
+            decoder_area = max_degree * self.decoder_model.area(code_distance)
+            max_decodable_distance = self.find_max_decodable_distance()
+        else:
+            decoder_power = None
+            decoder_area = None
+            max_decodable_distance = None
 
         return ResourceInfo(
             synthesis_multiplier=synthesis_multiplier,
@@ -160,6 +204,9 @@ class GraphResourceEstimator:
             n_nodes=n_nodes,
             n_measurement_steps=n_measurement_steps,
             total_time=wall_time,
+            decoder_power=decoder_power,
+            decoder_area=decoder_area,
+            max_decodable_distance=max_decodable_distance,
         )
 
     def estimate(self, problem: GraphPartition, error_budget):
