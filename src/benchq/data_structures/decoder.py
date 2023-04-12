@@ -1,8 +1,9 @@
 ################################################################################
 # © Copyright 2023 Zapata Computing Inc.
 ################################################################################
-import numpy as np
 from csv import reader
+
+import numpy as np
 
 
 class DecoderModel:

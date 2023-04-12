@@ -1,7 +1,9 @@
-import pytest
-from benchq.data_structures import DecoderModel
 import os
+
 import numpy as np
+import pytest
+
+from benchq.data_structures import DecoderModel
 
 
 class TestDecoders:
@@ -26,19 +28,6 @@ class TestDecoders:
         file_name = "decoder_test_data_corrupted.csv"
         with pytest.raises(ValueError):
             _ = DecoderModel.from_csv(self.file_path(file_name))
-
-    def test_properties_have_same_formulas(self):
-        d_26 = 1
-        ranks = np.array([1, 2, 3, 4])
-        sqmat = np.array([4, -3, 2, -1])
-        L2 = 100
-        decoder = DecoderModel(
-            d_26, ranks, sqmat, d_26, ranks, sqmat, d_26, ranks, sqmat, L2
-        )
-        distance = 10
-        assert (
-            decoder.power(distance) == decoder.area(distance) == decoder.delay(distance)
-        )
 
     def test_properties_have_same_formulas(self):
         d_26 = 1

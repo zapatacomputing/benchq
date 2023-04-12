@@ -1,14 +1,11 @@
+import os
 from dataclasses import asdict
 
 import numpy as np
-import os
 import pytest
 from orquestra.quantum.circuits import CNOT, RX, RY, RZ, Circuit, H, T
 
-from benchq.data_structures import (
-    BasicArchitectureModel,
-    DecoderModel,
-)
+from benchq.data_structures import BasicArchitectureModel, DecoderModel
 from benchq.data_structures.quantum_program import (
     QuantumProgram,
     get_program_from_circuit,
