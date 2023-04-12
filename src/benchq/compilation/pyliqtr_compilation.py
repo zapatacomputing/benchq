@@ -2,7 +2,7 @@
 # © Copyright 2022 Zapata Computing Inc.
 ################################################################################
 from math import ceil, log10
-from typing import Union, Optional
+from typing import Optional, Union
 
 from cirq.circuits import Circuit as CirqCircuit
 from orquestra.quantum.circuits import Circuit as OrquestraCircuit
@@ -43,7 +43,7 @@ def pyliqtr_transpile_to_clifford_t(
             has_rotations = True
             break
     if not has_rotations:
-        return circuit
+        return orquestra_circuit
 
     if circuit_precision is None and gate_precision is None:
         raise ValueError(

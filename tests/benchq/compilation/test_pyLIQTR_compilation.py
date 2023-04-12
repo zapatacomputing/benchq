@@ -56,28 +56,28 @@ def test_non_clifford_gates_compile(circuit, gate_precision):
 
 
 @pytest.mark.parametrize(
-    "circuit, gate_precision, circuit_accuracy",
+    "circuit, gate_precision, circuit_precision",
     [(OrquestraCircuit([RZ(0.1)(0)]), 1e-3, 1e-3)],
 )
-def test_user_cant_specify_both_gate_and_circuit_accuracy(
-    circuit, gate_precision, circuit_accuracy
+def test_user_cant_specify_both_gate_and_circuit_precision(
+    circuit, gate_precision, circuit_precision
 ):
     with pytest.raises(ValueError):
         pyliqtr_transpile_to_clifford_t(
-            circuit, gate_precision=gate_precision, circuit_accuracy=circuit_accuracy
+            circuit, gate_precision=gate_precision, circuit_precision=circuit_precision
         )
 
 
 @pytest.mark.parametrize(
-    "circuit, gate_precision, circuit_accuracy",
+    "circuit, gate_precision, circuit_precision",
     [(OrquestraCircuit([RZ(0.1)(0)]), None, None)],
 )
-def test_user_didnt_specify_either_gate_or_circuit_accuracy(
-    circuit, gate_precision, circuit_accuracy
+def test_user_didnt_specify_either_gate_or_circuit_precision(
+    circuit, gate_precision, circuit_precision
 ):
     with pytest.raises(ValueError):
         pyliqtr_transpile_to_clifford_t(
-            circuit, gate_precision=gate_precision, circuit_accuracy=circuit_accuracy
+            circuit, gate_precision=gate_precision, circuit_precision=circuit_precision
         )
 
 
