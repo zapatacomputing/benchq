@@ -1,7 +1,7 @@
 import networkx as nx
 import pytest
 
-from benchq.resource_estimation.graph.estimators import substrate_scheduler
+from benchq.resource_estimation.graph.graph_estimator import substrate_scheduler
 
 
 @pytest.mark.parametrize(

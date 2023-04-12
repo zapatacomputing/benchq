@@ -12,6 +12,36 @@ from .structs import GraphPartition
 INITIAL_SYNTHESIS_ACCURACY = 0.0001
 
 
+@dataclass
+class GraphData:
+    """Contains minimal set of data to get a resource estimate for a graph."""
+
+    max_node_degree: int
+    n_nodes: int
+    n_measurement_steps: int
+
+
+@dataclass
+class ResourceInfo:
+    """Contains all resource estimated for a problem instance."""
+
+    synthesis_multiplier: float
+    code_distance: int
+    logical_error_rate: float
+    n_logical_qubits: int
+    n_nodes: int
+    n_measurement_steps: int
+    total_time: float
+
+    @property
+    def n_physical_qubits(self) -> int:
+        return 12 * self.n_logical_qubits * 2 * self.code_distance**2
+
+    @property
+    def logical_st_volume(self) -> float:
+        return 12 * self.n_nodes * 240 * self.n_nodes * self.synthesis_multiplier
+
+
 def substrate_scheduler(graph: nx.Graph) -> TwoRowSubstrateScheduler:
     connected_graph = graph.copy()
     connected_graph.remove_nodes_from(list(nx.isolates(graph)))  # remove isolated nodes
@@ -21,25 +51,6 @@ def substrate_scheduler(graph: nx.Graph) -> TwoRowSubstrateScheduler:
     )
     scheduler_only_compiler.run()
     return scheduler_only_compiler
-
-
-@dataclass
-class ResourceInfo:
-    synthesis_multiplier: float
-    code_distance: int
-    logical_error_rate: float
-    max_graph_degree: int
-    n_nodes: int
-    n_measurement_steps: int
-    total_time: float
-
-    @property
-    def n_physical_qubits(self) -> int:
-        return 12 * self.max_graph_degree * 2 * self.code_distance**2
-
-    @property
-    def logical_st_volume(self) -> float:
-        return 12 * self.n_nodes * 240 * self.n_nodes * self.synthesis_multiplier
 
 
 class GraphResourceEstimator:
@@ -75,12 +86,14 @@ class GraphResourceEstimator:
     def _get_n_measurement_steps(self, graph) -> int:
         return len(substrate_scheduler(graph).measurement_steps)
 
-    def _ec_error_rate_synthesized(self, distance: int, n_nodes: int) -> float:
+    def _ec_error_rate_delayed_gate_synthesis(
+        self, distance: int, n_nodes: int
+    ) -> float:
         return (
             self._logical_operation_error_rate(distance) * 12 * n_nodes * 240 * n_nodes
         )
 
-    def _ec_error_rate_unsynthesized(self, distance: int, n_nodes: int) -> float:
+    def _ec_error_rate(self, distance: int, n_nodes: int) -> float:
         _, ec_error_rate = self.balance_logical_error_rate_and_synthesis_accuracy(
             n_nodes, distance
         )
@@ -95,7 +108,7 @@ class GraphResourceEstimator:
         """
         current_synthesis_accuracy = INITIAL_SYNTHESIS_ACCURACY
         for _ in range(20):
-            ec_error_rate = self._ec_error_rate_synthesized(
+            ec_error_rate = self._ec_error_rate_delayed_gate_synthesis(
                 distance,
                 n_nodes,
             )
@@ -109,31 +122,42 @@ class GraphResourceEstimator:
             current_synthesis_accuracy = new_synthesis_accuracy
         return current_synthesis_accuracy, ec_error_rate
 
-    def _estimate_resource_for_graph(
-        self, graph: nx.Graph, n_nodes: int, synthesized: bool, error_budget
+    def _get_graph_data(self, graph: nx.Graph, n_nodes: int) -> GraphData:
+        max_node_degree = max(deg for _, deg in graph.degree())
+        n_nodes = n_nodes
+        n_measurement_steps = self._get_n_measurement_steps(graph)
+        return GraphData(
+            max_node_degree=max_node_degree,
+            n_nodes=n_nodes,
+            n_measurement_steps=n_measurement_steps,
+        )
+
+    def _estimate_resources_from_graph_data(
+        self, graph_data: GraphData, delayed_gate_synthesis: bool, error_budget
     ) -> ResourceInfo:
 
         ec_error_rate = (
-            self._ec_error_rate_synthesized
-            if synthesized
-            else self._ec_error_rate_unsynthesized
+            self._ec_error_rate_delayed_gate_synthesis
+            if delayed_gate_synthesis
+            else self._ec_error_rate
         )
 
         # Change to code distance
         code_distance = self._minimize_code_distance(
-            n_nodes, error_budget, ec_error_rate
+            graph_data.n_nodes, error_budget, ec_error_rate
         )
-        max_degree = max(deg for _, deg in graph.degree())
         logical_operation_error_rate = self._logical_operation_error_rate(code_distance)
 
-        n_measurement_steps = self._get_n_measurement_steps(graph)
+        ec_multiplier = 240 * code_distance * graph_data.n_measurement_steps
 
-        ec_multiplier = 240 * code_distance * n_measurement_steps
-
-        # Isolate differences betweeen synthesized and not synthesized case
-        if synthesized:
+        # Isolate differences betweeen delayed_gate_synthesis and not delayed_gate_synthesis case
+        if not delayed_gate_synthesis:
             logical_error_rate = (
-                logical_operation_error_rate * 12 * n_nodes * 240 * n_nodes
+                logical_operation_error_rate
+                * 12
+                * graph_data.n_nodes
+                * 240
+                * graph_data.n_nodes
             )
             synthesis_multiplier = 1
         else:
@@ -141,7 +165,7 @@ class GraphResourceEstimator:
                 synthesis_accuracy,
                 logical_error_rate,
             ) = self.balance_logical_error_rate_and_synthesis_accuracy(
-                n_nodes, code_distance
+                graph_data.n_nodes, code_distance
             )
             synthesis_multiplier = 12 * np.log2(1 / synthesis_accuracy)
 
@@ -156,17 +180,21 @@ class GraphResourceEstimator:
             synthesis_multiplier=synthesis_multiplier,
             code_distance=code_distance,
             logical_error_rate=logical_error_rate,
-            max_graph_degree=max_degree,
-            n_nodes=n_nodes,
-            n_measurement_steps=n_measurement_steps,
+            # estimate the number of logical qubits using max node degree
+            n_logical_qubits=graph_data.max_node_degree,
+            n_nodes=graph_data.n_nodes,
+            n_measurement_steps=graph_data.n_measurement_steps,
             total_time=wall_time,
         )
 
     def estimate(self, problem: GraphPartition, error_budget):
         n_nodes = problem.n_nodes
         if len(problem.subgraphs) == 1:
-            return self._estimate_resource_for_graph(
-                problem.subgraphs[0], n_nodes, problem.synthesized, error_budget
+            graph_data = self._get_graph_data(problem.subgraphs[0], n_nodes)
+            return self._estimate_resources_from_graph_data(
+                graph_data,
+                problem.delayed_gate_synthesis,
+                error_budget,
             )
         else:
             raise NotImplementedError(

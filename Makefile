@@ -17,3 +17,6 @@ github_actions-default:
 style-fix:
 	black src tests examples
 	isort --profile=black src tests examples
+
+performance-tests:
+	pytest tests/benchq/performance_tests/ --benchmark-save=performance_tests --benchmark-compare-fail=min:5%

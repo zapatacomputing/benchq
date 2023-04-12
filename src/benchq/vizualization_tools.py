@@ -27,3 +27,19 @@ def plot_graph_state_with_measurement_steps(
     # plt.savefig(name + ".pdf")
     # plt.clf()
     plt.show()
+
+
+def plot_linear_extrapolation(x, y, steps_to_extrapolate_to):
+    coeffs, sum_of_residuals, _, _, _ = np.polyfit(x, y, 1, full=True)
+    r_squared = 1 - (sum_of_residuals[0] / (len(y) * np.var(y)))
+    m, c = coeffs
+    plt.plot(x, y, "o")
+    plt.plot(
+        [0, steps_to_extrapolate_to],
+        [c, m * steps_to_extrapolate_to + c],
+        "r",
+        label="fitted line",
+    )
+    plt.legend()
+    plt.show()
+    return r_squared

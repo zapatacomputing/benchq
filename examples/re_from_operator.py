@@ -75,7 +75,7 @@ def main():
             estimator=GraphResourceEstimator(architecture_model),
             transformers=[
                 simplify_rotations,
-                create_big_graph_from_subcircuits(synthesized=False),
+                create_big_graph_from_subcircuits(delayed_gate_synthesis=True),
             ],
         )
 
@@ -89,7 +89,7 @@ def main():
             estimator=GraphResourceEstimator(architecture_model),
             transformers=[
                 synthesize_clifford_t(error_budget),
-                create_big_graph_from_subcircuits(synthesized=True),
+                create_big_graph_from_subcircuits(delayed_gate_synthesis=False),
             ],
         )
 

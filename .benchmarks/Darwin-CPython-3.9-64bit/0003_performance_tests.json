@@ -1,0 +1,1384 @@
+{
+    "machine_info": {
+        "node": "Athenas-MBP",
+        "processor": "i386",
+        "machine": "x86_64",
+        "python_compiler": "Clang 14.0.0 (clang-1400.0.29.202)",
+        "python_implementation": "CPython",
+        "python_implementation_version": "3.9.16",
+        "python_version": "3.9.16",
+        "python_build": [
+            "main",
+            "Mar 31 2023 10:07:09"
+        ],
+        "release": "22.4.0",
+        "system": "Darwin",
+        "cpu": {
+            "python_version": "3.9.16.final.0 (64 bit)",
+            "cpuinfo_version": [
+                9,
+                0,
+                0
+            ],
+            "cpuinfo_version_string": "9.0.0",
+            "arch": "X86_64",
+            "bits": 64,
+            "count": 12,
+            "arch_string_raw": "x86_64",
+            "vendor_id_raw": "GenuineIntel",
+            "brand_raw": "Intel(R) Core(TM) i7-9750H CPU @ 2.60GHz",
+            "hz_advertised_friendly": "2.6000 GHz",
+            "hz_actual_friendly": "2.6000 GHz",
+            "hz_advertised": [
+                2600000000,
+                0
+            ],
+            "hz_actual": [
+                2600000000,
+                0
+            ],
+            "l2_cache_size": 262144,
+            "stepping": 10,
+            "model": 158,
+            "family": 6,
+            "flags": [
+                "1gbpage",
+                "3dnowprefetch",
+                "abm",
+                "acapmsr",
+                "acpi",
+                "adx",
+                "aes",
+                "apic",
+                "avx",
+                "avx1.0",
+                "avx2",
+                "bmi1",
+                "bmi2",
+                "clflush",
+                "clflushopt",
+                "clfsh",
+                "clfsopt",
+                "cmov",
+                "cx16",
+                "cx8",
+                "de",
+                "ds",
+                "ds_cpl",
+                "dscpl",
+                "dtes64",
+                "dts",
+                "em64t",
+                "erms",
+                "est",
+                "f16c",
+                "fma",
+                "fpu",
+                "fpu_csds",
+                "fxsr",
+                "ht",
+                "htt",
+                "ibrs",
+                "intel_pt",
+                "invpcid",
+                "ipt",
+                "l1df",
+                "lahf",
+                "lahf_lm",
+                "lzcnt",
+                "mca",
+                "mce",
+                "mdclear",
+                "mmx",
+                "mon",
+                "monitor",
+                "movbe",
+                "mpx",
+                "msr",
+                "mtrr",
+                "osxsave",
+                "pae",
+                "pat",
+                "pbe",
+                "pcid",
+                "pclmulqdq",
+                "pdcm",
+                "pge",
+                "pni",
+                "popcnt",
+                "prefetchw",
+                "pse",
+                "pse36",
+                "rdrand",
+                "rdrnd",
+                "rdseed",
+                "rdtscp",
+                "rdwrfsgs",
+                "seglim64",
+                "sep",
+                "sgx",
+                "sgx_lc",
+                "sgxlc",
+                "smap",
+                "smep",
+                "ss",
+                "ssbd",
+                "sse",
+                "sse2",
+                "sse3",
+                "sse4.1",
+                "sse4.2",
+                "sse4_1",
+                "sse4_2",
+                "ssse3",
+                "stibp",
+                "syscall",
+                "tm",
+                "tm2",
+                "tpr",
+                "tsc",
+                "tsc_thread_offset",
+                "tscdeadline",
+                "tsci",
+                "tsctmr",
+                "tsxfa",
+                "vme",
+                "vmx",
+                "x2apic",
+                "xd",
+                "xsave",
+                "xtpr"
+            ],
+            "l2_cache_line_size": 256,
+            "l2_cache_associativity": 6
+        }
+    },
+    "commit_info": {
+        "id": "13b9ea3084cf7f608d9391b1943bfe414c492f61",
+        "time": "2023-04-06T12:27:15-04:00",
+        "author_time": "2023-04-06T12:27:15-04:00",
+        "dirty": true,
+        "project": "benchq",
+        "branch": "main"
+    },
+    "benchmarks": [
+        {
+            "group": null,
+            "name": "test_substrate_scheduler_timing[10-path_graph]",
+            "fullname": "tests/benchq/performance_tests/test_substrate_scheduler.py::test_substrate_scheduler_timing[10-path_graph]",
+            "params": {
+                "size": 10,
+                "graph": "UNSERIALIZABLE[<function path_graph at 0x110725430>]"
+            },
+            "param": "10-path_graph",
+            "extra_info": {},
+            "options": {
+                "disable_gc": false,
+                "timer": "perf_counter",
+                "min_rounds": 5,
+                "max_time": 1.0,
+                "min_time": 5e-06,
+                "warmup": false
+            },
+            "stats": {
+                "min": 0.00010640899999891928,
+                "max": 0.000623517999999379,
+                "mean": 0.0001160393402951909,
+                "stddev": 2.1222261721810963e-05,
+                "rounds": 3591,
+                "median": 0.00010945300000031466,
+                "iqr": 2.5762499986647924e-06,
+                "q1": 0.00010847750000086975,
+                "q3": 0.00011105374999953455,
+                "iqr_outliers": 505,
+                "stddev_outliers": 384,
+                "outliers": "384;505",
+                "ld15iqr": 0.00010640899999891928,
+                "hd15iqr": 0.00011492100000154437,
+                "ops": 8617.767021564528,
+                "total": 0.4166972710000305,
+                "iterations": 1
+            }
+        },
+        {
+            "group": null,
+            "name": "test_substrate_scheduler_timing[10-complete_graph]",
+            "fullname": "tests/benchq/performance_tests/test_substrate_scheduler.py::test_substrate_scheduler_timing[10-complete_graph]",
+            "params": {
+                "size": 10,
+                "graph": "UNSERIALIZABLE[<function complete_graph at 0x11071ea60>]"
+            },
+            "param": "10-complete_graph",
+            "extra_info": {},
+            "options": {
+                "disable_gc": false,
+                "timer": "perf_counter",
+                "min_rounds": 5,
+                "max_time": 1.0,
+                "min_time": 5e-06,
+                "warmup": false
+            },
+            "stats": {
+                "min": 0.00021628100000015138,
+                "max": 0.00046799699999944266,
+                "mean": 0.00023377584050267197,
+                "stddev": 2.9229177861350384e-05,
+                "rounds": 4138,
+                "median": 0.00022126300000024912,
+                "iqr": 8.250000000487034e-06,
+                "q1": 0.00021950699999884193,
+                "q3": 0.00022775699999932897,
+                "iqr_outliers": 849,
+                "stddev_outliers": 492,
+                "outliers": "492;849",
+                "ld15iqr": 0.00021628100000015138,
+                "hd15iqr": 0.00024023399999961725,
+                "ops": 4277.601987655223,
+                "total": 0.9673644280000566,
+                "iterations": 1
+            }
+        },
+        {
+            "group": null,
+            "name": "test_substrate_scheduler_timing[10-star_graph]",
+            "fullname": "tests/benchq/performance_tests/test_substrate_scheduler.py::test_substrate_scheduler_timing[10-star_graph]",
+            "params": {
+                "size": 10,
+                "graph": "UNSERIALIZABLE[<function star_graph at 0x1107255e0>]"
+            },
+            "param": "10-star_graph",
+            "extra_info": {},
+            "options": {
+                "disable_gc": false,
+                "timer": "perf_counter",
+                "min_rounds": 5,
+                "max_time": 1.0,
+                "min_time": 5e-06,
+                "warmup": false
+            },
+            "stats": {
+                "min": 0.00011533400000018901,
+                "max": 0.0004595049999984724,
+                "mean": 0.0001263957255515868,
+                "stddev": 2.3930806007045065e-05,
+                "rounds": 7025,
+                "median": 0.00011854399999933207,
+                "iqr": 2.2455000001642134e-06,
+                "q1": 0.00011778500000048098,
+                "q3": 0.00012003050000064519,
+                "iqr_outliers": 1114,
+                "stddev_outliers": 779,
+                "outliers": "779;1114",
+                "ld15iqr": 0.00011533400000018901,
+                "hd15iqr": 0.00012342499999995482,
+                "ops": 7911.659952391846,
+                "total": 0.8879299719998972,
+                "iterations": 1
+            }
+        },
+        {
+            "group": null,
+            "name": "test_substrate_scheduler_timing[10-wheel_graph]",
+            "fullname": "tests/benchq/performance_tests/test_substrate_scheduler.py::test_substrate_scheduler_timing[10-wheel_graph]",
+            "params": {
+                "size": 10,
+                "graph": "UNSERIALIZABLE[<function wheel_graph at 0x1107258b0>]"
+            },
+            "param": "10-wheel_graph",
+            "extra_info": {},
+            "options": {
+                "disable_gc": false,
+                "timer": "perf_counter",
+                "min_rounds": 5,
+                "max_time": 1.0,
+                "min_time": 5e-06,
+                "warmup": false
+            },
+            "stats": {
+                "min": 0.00013482499999994957,
+                "max": 0.0014272539999993228,
+                "mean": 0.00015760556853681697,
+                "stddev": 4.706632430037113e-05,
+                "rounds": 6274,
+                "median": 0.00013839650000058157,
+                "iqr": 2.491300000073693e-05,
+                "q1": 0.00013733300000140503,
+                "q3": 0.00016224600000214195,
+                "iqr_outliers": 595,
+                "stddev_outliers": 557,
+                "outliers": "557;595",
+                "ld15iqr": 0.00013482499999994957,
+                "hd15iqr": 0.00019969499999916707,
+                "ops": 6344.953476478199,
+                "total": 0.9888173369999897,
+                "iterations": 1
+            }
+        },
+        {
+            "group": null,
+            "name": "test_substrate_scheduler_timing[100-path_graph]",
+            "fullname": "tests/benchq/performance_tests/test_substrate_scheduler.py::test_substrate_scheduler_timing[100-path_graph]",
+            "params": {
+                "size": 100,
+                "graph": "UNSERIALIZABLE[<function path_graph at 0x110725430>]"
+            },
+            "param": "100-path_graph",
+            "extra_info": {},
+            "options": {
+                "disable_gc": false,
+                "timer": "perf_counter",
+                "min_rounds": 5,
+                "max_time": 1.0,
+                "min_time": 5e-06,
+                "warmup": false
+            },
+            "stats": {
+                "min": 0.0007982689999970205,
+                "max": 0.0020002249999997446,
+                "mean": 0.0009859957803467739,
+                "stddev": 0.00015002840885499784,
+                "rounds": 865,
+                "median": 0.0009720790000002921,
+                "iqr": 0.00018342250000014104,
+                "q1": 0.0008590140000004354,
+                "q3": 0.0010424365000005764,
+                "iqr_outliers": 30,
+                "stddev_outliers": 208,
+                "outliers": "208;30",
+                "ld15iqr": 0.0007982689999970205,
+                "hd15iqr": 0.0013450519999977928,
+                "ops": 1014.203123311847,
+                "total": 0.8528863499999595,
+                "iterations": 1
+            }
+        },
+        {
+            "group": null,
+            "name": "test_substrate_scheduler_timing[100-complete_graph]",
+            "fullname": "tests/benchq/performance_tests/test_substrate_scheduler.py::test_substrate_scheduler_timing[100-complete_graph]",
+            "params": {
+                "size": 100,
+                "graph": "UNSERIALIZABLE[<function complete_graph at 0x11071ea60>]"
+            },
+            "param": "100-complete_graph",
+            "extra_info": {},
+            "options": {
+                "disable_gc": false,
+                "timer": "perf_counter",
+                "min_rounds": 5,
+                "max_time": 1.0,
+                "min_time": 5e-06,
+                "warmup": false
+            },
+            "stats": {
+                "min": 0.017731482000002075,
+                "max": 0.02416522700000101,
+                "mean": 0.019645943083333634,
+                "stddev": 0.0018487156189526239,
+                "rounds": 48,
+                "median": 0.018739132500000366,
+                "iqr": 0.0031627380000003313,
+                "q1": 0.018070837499999826,
+                "q3": 0.021233575500000157,
+                "iqr_outliers": 0,
+                "stddev_outliers": 11,
+                "outliers": "11;0",
+                "ld15iqr": 0.017731482000002075,
+                "hd15iqr": 0.02416522700000101,
+                "ops": 50.90109422379098,
+                "total": 0.9430052680000145,
+                "iterations": 1
+            }
+        },
+        {
+            "group": null,
+            "name": "test_substrate_scheduler_timing[100-star_graph]",
+            "fullname": "tests/benchq/performance_tests/test_substrate_scheduler.py::test_substrate_scheduler_timing[100-star_graph]",
+            "params": {
+                "size": 100,
+                "graph": "UNSERIALIZABLE[<function star_graph at 0x1107255e0>]"
+            },
+            "param": "100-star_graph",
+            "extra_info": {},
+            "options": {
+                "disable_gc": false,
+                "timer": "perf_counter",
+                "min_rounds": 5,
+                "max_time": 1.0,
+                "min_time": 5e-06,
+                "warmup": false
+            },
+            "stats": {
+                "min": 0.0008455010000005814,
+                "max": 0.14969384499999805,
+                "mean": 0.0012044302297154529,
+                "stddev": 0.004826801590869039,
+                "rounds": 949,
+                "median": 0.0010197280000028286,
+                "iqr": 0.00010651650000070845,
+                "q1": 0.0009794967500003082,
+                "q3": 0.0010860132500010167,
+                "iqr_outliers": 63,
+                "stddev_outliers": 1,
+                "outliers": "1;63",
+                "ld15iqr": 0.0008455010000005814,
+                "hd15iqr": 0.0012567340000018135,
+                "ops": 830.2681013214443,
+                "total": 1.1430042879999647,
+                "iterations": 1
+            }
+        },
+        {
+            "group": null,
+            "name": "test_substrate_scheduler_timing[100-wheel_graph]",
+            "fullname": "tests/benchq/performance_tests/test_substrate_scheduler.py::test_substrate_scheduler_timing[100-wheel_graph]",
+            "params": {
+                "size": 100,
+                "graph": "UNSERIALIZABLE[<function wheel_graph at 0x1107258b0>]"
+            },
+            "param": "100-wheel_graph",
+            "extra_info": {},
+            "options": {
+                "disable_gc": false,
+                "timer": "perf_counter",
+                "min_rounds": 5,
+                "max_time": 1.0,
+                "min_time": 5e-06,
+                "warmup": false
+            },
+            "stats": {
+                "min": 0.0011136979999974983,
+                "max": 0.0022506940000006637,
+                "mean": 0.0013015180476858774,
+                "stddev": 0.00018463185482051463,
+                "rounds": 713,
+                "median": 0.0012684110000016346,
+                "iqr": 0.00018686324999883652,
+                "q1": 0.0011663715000009844,
+                "q3": 0.001353234749999821,
+                "iqr_outliers": 38,
+                "stddev_outliers": 76,
+                "outliers": "76;38",
+                "ld15iqr": 0.0011136979999974983,
+                "hd15iqr": 0.0016506259999999884,
+                "ops": 768.3335638549294,
+                "total": 0.9279823680000305,
+                "iterations": 1
+            }
+        },
+        {
+            "group": null,
+            "name": "test_substrate_scheduler_timing[1000-path_graph]",
+            "fullname": "tests/benchq/performance_tests/test_substrate_scheduler.py::test_substrate_scheduler_timing[1000-path_graph]",
+            "params": {
+                "size": 1000,
+                "graph": "UNSERIALIZABLE[<function path_graph at 0x110725430>]"
+            },
+            "param": "1000-path_graph",
+            "extra_info": {},
+            "options": {
+                "disable_gc": false,
+                "timer": "perf_counter",
+                "min_rounds": 5,
+                "max_time": 1.0,
+                "min_time": 5e-06,
+                "warmup": false
+            },
+            "stats": {
+                "min": 0.008027117000001027,
+                "max": 0.09229092900000069,
+                "mean": 0.009667960946428553,
+                "stddev": 0.007912324676987307,
+                "rounds": 112,
+                "median": 0.008657198499999907,
+                "iqr": 0.001005732999999509,
+                "q1": 0.008398787500000893,
+                "q3": 0.009404520500000402,
+                "iqr_outliers": 4,
+                "stddev_outliers": 1,
+                "outliers": "1;4",
+                "ld15iqr": 0.008027117000001027,
+                "hd15iqr": 0.011168775000001574,
+                "ops": 103.43442692219506,
+                "total": 1.082811625999998,
+                "iterations": 1
+            }
+        },
+        {
+            "group": null,
+            "name": "test_substrate_scheduler_timing[1000-complete_graph]",
+            "fullname": "tests/benchq/performance_tests/test_substrate_scheduler.py::test_substrate_scheduler_timing[1000-complete_graph]",
+            "params": {
+                "size": 1000,
+                "graph": "UNSERIALIZABLE[<function complete_graph at 0x11071ea60>]"
+            },
+            "param": "1000-complete_graph",
+            "extra_info": {},
+            "options": {
+                "disable_gc": false,
+                "timer": "perf_counter",
+                "min_rounds": 5,
+                "max_time": 1.0,
+                "min_time": 5e-06,
+                "warmup": false
+            },
+            "stats": {
+                "min": 1.9002962100000005,
+                "max": 2.1663740320000002,
+                "mean": 2.0056603724000004,
+                "stddev": 0.11237399866322366,
+                "rounds": 5,
+                "median": 1.966107045000001,
+                "iqr": 0.18218467824999873,
+                "q1": 1.915563156750001,
+                "q3": 2.097747835,
+                "iqr_outliers": 0,
+                "stddev_outliers": 1,
+                "outliers": "1;0",
+                "ld15iqr": 1.9002962100000005,
+                "hd15iqr": 2.1663740320000002,
+                "ops": 0.4985889005741218,
+                "total": 10.028301862000003,
+                "iterations": 1
+            }
+        },
+        {
+            "group": null,
+            "name": "test_substrate_scheduler_timing[1000-star_graph]",
+            "fullname": "tests/benchq/performance_tests/test_substrate_scheduler.py::test_substrate_scheduler_timing[1000-star_graph]",
+            "params": {
+                "size": 1000,
+                "graph": "UNSERIALIZABLE[<function star_graph at 0x1107255e0>]"
+            },
+            "param": "1000-star_graph",
+            "extra_info": {},
+            "options": {
+                "disable_gc": false,
+                "timer": "perf_counter",
+                "min_rounds": 5,
+                "max_time": 1.0,
+                "min_time": 5e-06,
+                "warmup": false
+            },
+            "stats": {
+                "min": 0.00805349500000574,
+                "max": 0.9795313329999971,
+                "mean": 0.02128212635555542,
+                "stddev": 0.10259407802473695,
+                "rounds": 90,
+                "median": 0.009594036499997571,
+                "iqr": 0.0014470910000028425,
+                "q1": 0.008696778999997434,
+                "q3": 0.010143870000000277,
+                "iqr_outliers": 2,
+                "stddev_outliers": 1,
+                "outliers": "1;2",
+                "ld15iqr": 0.00805349500000574,
+                "hd15iqr": 0.10025325499999838,
+                "ops": 46.98778605545508,
+                "total": 1.9153913719999878,
+                "iterations": 1
+            }
+        },
+        {
+            "group": null,
+            "name": "test_substrate_scheduler_timing[1000-wheel_graph]",
+            "fullname": "tests/benchq/performance_tests/test_substrate_scheduler.py::test_substrate_scheduler_timing[1000-wheel_graph]",
+            "params": {
+                "size": 1000,
+                "graph": "UNSERIALIZABLE[<function wheel_graph at 0x1107258b0>]"
+            },
+            "param": "1000-wheel_graph",
+            "extra_info": {},
+            "options": {
+                "disable_gc": false,
+                "timer": "perf_counter",
+                "min_rounds": 5,
+                "max_time": 1.0,
+                "min_time": 5e-06,
+                "warmup": false
+            },
+            "stats": {
+                "min": 0.011262360999999999,
+                "max": 0.11882864999999754,
+                "mean": 0.015847657972602923,
+                "stddev": 0.01726891503401506,
+                "rounds": 73,
+                "median": 0.012364888000000462,
+                "iqr": 0.001961850499995421,
+                "q1": 0.011758410000004105,
+                "q3": 0.013720260499999526,
+                "iqr_outliers": 6,
+                "stddev_outliers": 2,
+                "outliers": "2;6",
+                "ld15iqr": 0.011262360999999999,
+                "hd15iqr": 0.01677902099999784,
+                "ops": 63.10080655001374,
+                "total": 1.1568790320000133,
+                "iterations": 1
+            }
+        },
+        {
+            "group": null,
+            "name": "test_substrate_scheduler_timing_with_pre_mapping_optimizer[10-path_graph]",
+            "fullname": "tests/benchq/performance_tests/test_substrate_scheduler.py::test_substrate_scheduler_timing_with_pre_mapping_optimizer[10-path_graph]",
+            "params": {
+                "size": 10,
+                "graph": "UNSERIALIZABLE[<function path_graph at 0x110725430>]"
+            },
+            "param": "10-path_graph",
+            "extra_info": {},
+            "options": {
+                "disable_gc": false,
+                "timer": "perf_counter",
+                "min_rounds": 5,
+                "max_time": 1.0,
+                "min_time": 5e-06,
+                "warmup": false
+            },
+            "stats": {
+                "min": 0.00010657100000344144,
+                "max": 0.00036358400000580104,
+                "mean": 0.00011704373572467753,
+                "stddev": 1.9747569249834644e-05,
+                "rounds": 6217,
+                "median": 0.00011098399999553976,
+                "iqr": 3.7564999928463294e-06,
+                "q1": 0.00010908775000295634,
+                "q3": 0.00011284424999580267,
+                "iqr_outliers": 845,
+                "stddev_outliers": 656,
+                "outliers": "656;845",
+                "ld15iqr": 0.00010657100000344144,
+                "hd15iqr": 0.00011848800000535675,
+                "ops": 8543.814786912682,
+                "total": 0.7276609050003202,
+                "iterations": 1
+            }
+        },
+        {
+            "group": null,
+            "name": "test_substrate_scheduler_timing_with_pre_mapping_optimizer[10-complete_graph]",
+            "fullname": "tests/benchq/performance_tests/test_substrate_scheduler.py::test_substrate_scheduler_timing_with_pre_mapping_optimizer[10-complete_graph]",
+            "params": {
+                "size": 10,
+                "graph": "UNSERIALIZABLE[<function complete_graph at 0x11071ea60>]"
+            },
+            "param": "10-complete_graph",
+            "extra_info": {},
+            "options": {
+                "disable_gc": false,
+                "timer": "perf_counter",
+                "min_rounds": 5,
+                "max_time": 1.0,
+                "min_time": 5e-06,
+                "warmup": false
+            },
+            "stats": {
+                "min": 0.00021670299999954068,
+                "max": 0.001815487999998311,
+                "mean": 0.00024451347537690697,
+                "stddev": 4.9736906823741165e-05,
+                "rounds": 2985,
+                "median": 0.00022656600000203753,
+                "iqr": 3.672299999912809e-05,
+                "q1": 0.00022225600000247425,
+                "q3": 0.00025897900000160234,
+                "iqr_outliers": 166,
+                "stddev_outliers": 247,
+                "outliers": "247;166",
+                "ld15iqr": 0.00021670299999954068,
+                "hd15iqr": 0.0003142009999947959,
+                "ops": 4089.7541473268216,
+                "total": 0.7298727240000673,
+                "iterations": 1
+            }
+        },
+        {
+            "group": null,
+            "name": "test_substrate_scheduler_timing_with_pre_mapping_optimizer[10-star_graph]",
+            "fullname": "tests/benchq/performance_tests/test_substrate_scheduler.py::test_substrate_scheduler_timing_with_pre_mapping_optimizer[10-star_graph]",
+            "params": {
+                "size": 10,
+                "graph": "UNSERIALIZABLE[<function star_graph at 0x1107255e0>]"
+            },
+            "param": "10-star_graph",
+            "extra_info": {},
+            "options": {
+                "disable_gc": false,
+                "timer": "perf_counter",
+                "min_rounds": 5,
+                "max_time": 1.0,
+                "min_time": 5e-06,
+                "warmup": false
+            },
+            "stats": {
+                "min": 0.00011597399999629943,
+                "max": 0.0005432210000009263,
+                "mean": 0.00014059971797385402,
+                "stddev": 3.2000695332240725e-05,
+                "rounds": 6120,
+                "median": 0.00013753050000175904,
+                "iqr": 2.2433000001598202e-05,
+                "q1": 0.00012076650000025779,
+                "q3": 0.000143199500001856,
+                "iqr_outliers": 506,
+                "stddev_outliers": 580,
+                "outliers": "580;506",
+                "ld15iqr": 0.00011597399999629943,
+                "hd15iqr": 0.00017691400000074964,
+                "ops": 7112.389799999175,
+                "total": 0.8604702739999865,
+                "iterations": 1
+            }
+        },
+        {
+            "group": null,
+            "name": "test_substrate_scheduler_timing_with_pre_mapping_optimizer[10-wheel_graph]",
+            "fullname": "tests/benchq/performance_tests/test_substrate_scheduler.py::test_substrate_scheduler_timing_with_pre_mapping_optimizer[10-wheel_graph]",
+            "params": {
+                "size": 10,
+                "graph": "UNSERIALIZABLE[<function wheel_graph at 0x1107258b0>]"
+            },
+            "param": "10-wheel_graph",
+            "extra_info": {},
+            "options": {
+                "disable_gc": false,
+                "timer": "perf_counter",
+                "min_rounds": 5,
+                "max_time": 1.0,
+                "min_time": 5e-06,
+                "warmup": false
+            },
+            "stats": {
+                "min": 0.0001353350000030673,
+                "max": 0.0004399090000006822,
+                "mean": 0.00015744753016894657,
+                "stddev": 3.0952832873271995e-05,
+                "rounds": 3729,
+                "median": 0.00014302700000001778,
+                "iqr": 2.3476999999161308e-05,
+                "q1": 0.00014006600000193714,
+                "q3": 0.00016354300000109845,
+                "iqr_outliers": 247,
+                "stddev_outliers": 332,
+                "outliers": "332;247",
+                "ld15iqr": 0.0001353350000030673,
+                "hd15iqr": 0.00019913599999910048,
+                "ops": 6351.322240031113,
+                "total": 0.5871218400000018,
+                "iterations": 1
+            }
+        },
+        {
+            "group": null,
+            "name": "test_substrate_scheduler_timing_with_pre_mapping_optimizer[100-path_graph]",
+            "fullname": "tests/benchq/performance_tests/test_substrate_scheduler.py::test_substrate_scheduler_timing_with_pre_mapping_optimizer[100-path_graph]",
+            "params": {
+                "size": 100,
+                "graph": "UNSERIALIZABLE[<function path_graph at 0x110725430>]"
+            },
+            "param": "100-path_graph",
+            "extra_info": {},
+            "options": {
+                "disable_gc": false,
+                "timer": "perf_counter",
+                "min_rounds": 5,
+                "max_time": 1.0,
+                "min_time": 5e-06,
+                "warmup": false
+            },
+            "stats": {
+                "min": 0.0007953420000035294,
+                "max": 0.0020005169999990358,
+                "mean": 0.0009065489990942717,
+                "stddev": 0.00011976696199940438,
+                "rounds": 1104,
+                "median": 0.0008566299999976934,
+                "iqr": 0.00012945699999988847,
+                "q1": 0.0008291029999973887,
+                "q3": 0.0009585599999972771,
+                "iqr_outliers": 44,
+                "stddev_outliers": 135,
+                "outliers": "135;44",
+                "ld15iqr": 0.0007953420000035294,
+                "hd15iqr": 0.0011533240000005662,
+                "ops": 1103.0843352086813,
+                "total": 1.000830095000076,
+                "iterations": 1
+            }
+        },
+        {
+            "group": null,
+            "name": "test_substrate_scheduler_timing_with_pre_mapping_optimizer[100-complete_graph]",
+            "fullname": "tests/benchq/performance_tests/test_substrate_scheduler.py::test_substrate_scheduler_timing_with_pre_mapping_optimizer[100-complete_graph]",
+            "params": {
+                "size": 100,
+                "graph": "UNSERIALIZABLE[<function complete_graph at 0x11071ea60>]"
+            },
+            "param": "100-complete_graph",
+            "extra_info": {},
+            "options": {
+                "disable_gc": false,
+                "timer": "perf_counter",
+                "min_rounds": 5,
+                "max_time": 1.0,
+                "min_time": 5e-06,
+                "warmup": false
+            },
+            "stats": {
+                "min": 0.016768009999999833,
+                "max": 0.025996646000002954,
+                "mean": 0.019376027758620358,
+                "stddev": 0.0018511489821132993,
+                "rounds": 58,
+                "median": 0.019242452499998564,
+                "iqr": 0.0027616870000031213,
+                "q1": 0.01781619700000192,
+                "q3": 0.020577884000005042,
+                "iqr_outliers": 1,
+                "stddev_outliers": 15,
+                "outliers": "15;1",
+                "ld15iqr": 0.016768009999999833,
+                "hd15iqr": 0.025996646000002954,
+                "ops": 51.610165533289035,
+                "total": 1.1238096099999808,
+                "iterations": 1
+            }
+        },
+        {
+            "group": null,
+            "name": "test_substrate_scheduler_timing_with_pre_mapping_optimizer[100-star_graph]",
+            "fullname": "tests/benchq/performance_tests/test_substrate_scheduler.py::test_substrate_scheduler_timing_with_pre_mapping_optimizer[100-star_graph]",
+            "params": {
+                "size": 100,
+                "graph": "UNSERIALIZABLE[<function star_graph at 0x1107255e0>]"
+            },
+            "param": "100-star_graph",
+            "extra_info": {},
+            "options": {
+                "disable_gc": false,
+                "timer": "perf_counter",
+                "min_rounds": 5,
+                "max_time": 1.0,
+                "min_time": 5e-06,
+                "warmup": false
+            },
+            "stats": {
+                "min": 0.0008225470000056134,
+                "max": 0.13346080699999874,
+                "mean": 0.0010211386405569404,
+                "stddev": 0.003911366749388706,
+                "rounds": 1149,
+                "median": 0.0008682700000051113,
+                "iqr": 9.97552500017207e-05,
+                "q1": 0.0008495385000006905,
+                "q3": 0.0009492937500024112,
+                "iqr_outliers": 46,
+                "stddev_outliers": 1,
+                "outliers": "1;46",
+                "ld15iqr": 0.0008225470000056134,
+                "hd15iqr": 0.0011000269999996704,
+                "ops": 979.2989514671473,
+                "total": 1.1732882979999246,
+                "iterations": 1
+            }
+        },
+        {
+            "group": null,
+            "name": "test_substrate_scheduler_timing_with_pre_mapping_optimizer[100-wheel_graph]",
+            "fullname": "tests/benchq/performance_tests/test_substrate_scheduler.py::test_substrate_scheduler_timing_with_pre_mapping_optimizer[100-wheel_graph]",
+            "params": {
+                "size": 100,
+                "graph": "UNSERIALIZABLE[<function wheel_graph at 0x1107258b0>]"
+            },
+            "param": "100-wheel_graph",
+            "extra_info": {},
+            "options": {
+                "disable_gc": false,
+                "timer": "perf_counter",
+                "min_rounds": 5,
+                "max_time": 1.0,
+                "min_time": 5e-06,
+                "warmup": false
+            },
+            "stats": {
+                "min": 0.0011095969999956878,
+                "max": 0.021686599000005913,
+                "mean": 0.0013978454021024488,
+                "stddev": 0.000917936188638902,
+                "rounds": 761,
+                "median": 0.0012166220000011663,
+                "iqr": 0.00025065849999883483,
+                "q1": 0.001150901000002591,
+                "q3": 0.0014015595000014258,
+                "iqr_outliers": 59,
+                "stddev_outliers": 25,
+                "outliers": "25;59",
+                "ld15iqr": 0.0011095969999956878,
+                "hd15iqr": 0.0017782679999953643,
+                "ops": 715.3866933324215,
+                "total": 1.0637603509999636,
+                "iterations": 1
+            }
+        },
+        {
+            "group": null,
+            "name": "test_substrate_scheduler_timing_with_pre_mapping_optimizer[1000-path_graph]",
+            "fullname": "tests/benchq/performance_tests/test_substrate_scheduler.py::test_substrate_scheduler_timing_with_pre_mapping_optimizer[1000-path_graph]",
+            "params": {
+                "size": 1000,
+                "graph": "UNSERIALIZABLE[<function path_graph at 0x110725430>]"
+            },
+            "param": "1000-path_graph",
+            "extra_info": {},
+            "options": {
+                "disable_gc": false,
+                "timer": "perf_counter",
+                "min_rounds": 5,
+                "max_time": 1.0,
+                "min_time": 5e-06,
+                "warmup": false
+            },
+            "stats": {
+                "min": 0.008766426999997634,
+                "max": 0.10187420599999797,
+                "mean": 0.011804684347825724,
+                "stddev": 0.009568667840457186,
+                "rounds": 92,
+                "median": 0.010654676999998003,
+                "iqr": 0.0013291389999956493,
+                "q1": 0.009999157500001132,
+                "q3": 0.011328296499996782,
+                "iqr_outliers": 2,
+                "stddev_outliers": 1,
+                "outliers": "1;2",
+                "ld15iqr": 0.008766426999997634,
+                "hd15iqr": 0.014690410000000043,
+                "ops": 84.71213380510149,
+                "total": 1.0860309599999667,
+                "iterations": 1
+            }
+        },
+        {
+            "group": null,
+            "name": "test_substrate_scheduler_timing_with_pre_mapping_optimizer[1000-complete_graph]",
+            "fullname": "tests/benchq/performance_tests/test_substrate_scheduler.py::test_substrate_scheduler_timing_with_pre_mapping_optimizer[1000-complete_graph]",
+            "params": {
+                "size": 1000,
+                "graph": "UNSERIALIZABLE[<function complete_graph at 0x11071ea60>]"
+            },
+            "param": "1000-complete_graph",
+            "extra_info": {},
+            "options": {
+                "disable_gc": false,
+                "timer": "perf_counter",
+                "min_rounds": 5,
+                "max_time": 1.0,
+                "min_time": 5e-06,
+                "warmup": false
+            },
+            "stats": {
+                "min": 2.098684169000002,
+                "max": 2.7804239880000026,
+                "mean": 2.3508324770000018,
+                "stddev": 0.268199986657245,
+                "rounds": 5,
+                "median": 2.2456077860000008,
+                "iqr": 0.3411890657499974,
+                "q1": 2.175336402500003,
+                "q3": 2.5165254682500002,
+                "iqr_outliers": 0,
+                "stddev_outliers": 1,
+                "outliers": "1;0",
+                "ld15iqr": 2.098684169000002,
+                "hd15iqr": 2.7804239880000026,
+                "ops": 0.4253812254951246,
+                "total": 11.754162385000008,
+                "iterations": 1
+            }
+        },
+        {
+            "group": null,
+            "name": "test_substrate_scheduler_timing_with_pre_mapping_optimizer[1000-star_graph]",
+            "fullname": "tests/benchq/performance_tests/test_substrate_scheduler.py::test_substrate_scheduler_timing_with_pre_mapping_optimizer[1000-star_graph]",
+            "params": {
+                "size": 1000,
+                "graph": "UNSERIALIZABLE[<function star_graph at 0x1107255e0>]"
+            },
+            "param": "1000-star_graph",
+            "extra_info": {},
+            "options": {
+                "disable_gc": false,
+                "timer": "perf_counter",
+                "min_rounds": 5,
+                "max_time": 1.0,
+                "min_time": 5e-06,
+                "warmup": false
+            },
+            "stats": {
+                "min": 0.008242230999996991,
+                "max": 0.5746975650000081,
+                "mean": 0.017315897658536913,
+                "stddev": 0.06233487803216741,
+                "rounds": 82,
+                "median": 0.010099093999997422,
+                "iqr": 0.0018793200000004617,
+                "q1": 0.009351049000002831,
+                "q3": 0.011230369000003293,
+                "iqr_outliers": 6,
+                "stddev_outliers": 1,
+                "outliers": "1;6",
+                "ld15iqr": 0.008242230999996991,
+                "hd15iqr": 0.014059559000003219,
+                "ops": 57.75039906793338,
+                "total": 1.419903608000027,
+                "iterations": 1
+            }
+        },
+        {
+            "group": null,
+            "name": "test_substrate_scheduler_timing_with_pre_mapping_optimizer[1000-wheel_graph]",
+            "fullname": "tests/benchq/performance_tests/test_substrate_scheduler.py::test_substrate_scheduler_timing_with_pre_mapping_optimizer[1000-wheel_graph]",
+            "params": {
+                "size": 1000,
+                "graph": "UNSERIALIZABLE[<function wheel_graph at 0x1107258b0>]"
+            },
+            "param": "1000-wheel_graph",
+            "extra_info": {},
+            "options": {
+                "disable_gc": false,
+                "timer": "perf_counter",
+                "min_rounds": 5,
+                "max_time": 1.0,
+                "min_time": 5e-06,
+                "warmup": false
+            },
+            "stats": {
+                "min": 0.011911412999992876,
+                "max": 0.11095665299998814,
+                "mean": 0.0184658191369871,
+                "stddev": 0.018736579479971042,
+                "rounds": 73,
+                "median": 0.014115551999992704,
+                "iqr": 0.002056698749996144,
+                "q1": 0.013571657500008882,
+                "q3": 0.015628356250005027,
+                "iqr_outliers": 3,
+                "stddev_outliers": 3,
+                "outliers": "3;3",
+                "ld15iqr": 0.011911412999992876,
+                "hd15iqr": 0.10534457900000405,
+                "ops": 54.15410995751586,
+                "total": 1.3480047970000584,
+                "iterations": 1
+            }
+        },
+        {
+            "group": null,
+            "name": "test_substrate_scheduler_timing_barbell_graph[10-10]",
+            "fullname": "tests/benchq/performance_tests/test_substrate_scheduler.py::test_substrate_scheduler_timing_barbell_graph[10-10]",
+            "params": {
+                "bell_size": 10,
+                "chain_size": 10
+            },
+            "param": "10-10",
+            "extra_info": {},
+            "options": {
+                "disable_gc": false,
+                "timer": "perf_counter",
+                "min_rounds": 5,
+                "max_time": 1.0,
+                "min_time": 5e-06,
+                "warmup": false
+            },
+            "stats": {
+                "min": 0.00048377999999615895,
+                "max": 0.0011124239999986685,
+                "mean": 0.0005724298791995511,
+                "stddev": 8.089343834410898e-05,
+                "rounds": 1399,
+                "median": 0.0005715650000013284,
+                "iqr": 0.00010756349999851977,
+                "q1": 0.0005026594999968381,
+                "q3": 0.0006102229999953579,
+                "iqr_outliers": 36,
+                "stddev_outliers": 343,
+                "outliers": "343;36",
+                "ld15iqr": 0.00048377999999615895,
+                "hd15iqr": 0.0007723679999998012,
+                "ops": 1746.9388589539303,
+                "total": 0.800829401000172,
+                "iterations": 1
+            }
+        },
+        {
+            "group": null,
+            "name": "test_substrate_scheduler_timing_barbell_graph[10-100]",
+            "fullname": "tests/benchq/performance_tests/test_substrate_scheduler.py::test_substrate_scheduler_timing_barbell_graph[10-100]",
+            "params": {
+                "bell_size": 10,
+                "chain_size": 100
+            },
+            "param": "10-100",
+            "extra_info": {},
+            "options": {
+                "disable_gc": false,
+                "timer": "perf_counter",
+                "min_rounds": 5,
+                "max_time": 1.0,
+                "min_time": 5e-06,
+                "warmup": false
+            },
+            "stats": {
+                "min": 0.03372388200000387,
+                "max": 0.03985764499999789,
+                "mean": 0.035653764000000567,
+                "stddev": 0.0013589420795248142,
+                "rounds": 26,
+                "median": 0.03575362249999614,
+                "iqr": 0.0018445900000045867,
+                "q1": 0.034284988999999655,
+                "q3": 0.03612957900000424,
+                "iqr_outliers": 1,
+                "stddev_outliers": 9,
+                "outliers": "9;1",
+                "ld15iqr": 0.03372388200000387,
+                "hd15iqr": 0.03985764499999789,
+                "ops": 28.047529567985702,
+                "total": 0.9269978640000147,
+                "iterations": 1
+            }
+        },
+        {
+            "group": null,
+            "name": "test_substrate_scheduler_timing_barbell_graph[100-10]",
+            "fullname": "tests/benchq/performance_tests/test_substrate_scheduler.py::test_substrate_scheduler_timing_barbell_graph[100-10]",
+            "params": {
+                "bell_size": 100,
+                "chain_size": 10
+            },
+            "param": "100-10",
+            "extra_info": {},
+            "options": {
+                "disable_gc": false,
+                "timer": "perf_counter",
+                "min_rounds": 5,
+                "max_time": 1.0,
+                "min_time": 5e-06,
+                "warmup": false
+            },
+            "stats": {
+                "min": 0.0011828490000027614,
+                "max": 0.0022929249999918966,
+                "mean": 0.0013584040837210036,
+                "stddev": 0.0001852212112471947,
+                "rounds": 645,
+                "median": 0.0012887329999955455,
+                "iqr": 0.00017982349999101643,
+                "q1": 0.0012336365000003013,
+                "q3": 0.0014134599999913178,
+                "iqr_outliers": 48,
+                "stddev_outliers": 74,
+                "outliers": "74;48",
+                "ld15iqr": 0.0011828490000027614,
+                "hd15iqr": 0.001687605000000758,
+                "ops": 736.157975365293,
+                "total": 0.8761706340000472,
+                "iterations": 1
+            }
+        },
+        {
+            "group": null,
+            "name": "test_substrate_scheduler_timing_barbell_graph[100-100]",
+            "fullname": "tests/benchq/performance_tests/test_substrate_scheduler.py::test_substrate_scheduler_timing_barbell_graph[100-100]",
+            "params": {
+                "bell_size": 100,
+                "chain_size": 100
+            },
+            "param": "100-100",
+            "extra_info": {},
+            "options": {
+                "disable_gc": false,
+                "timer": "perf_counter",
+                "min_rounds": 5,
+                "max_time": 1.0,
+                "min_time": 5e-06,
+                "warmup": false
+            },
+            "stats": {
+                "min": 0.03679349499999773,
+                "max": 0.04485696499999392,
+                "mean": 0.03931666087499982,
+                "stddev": 0.002572983727661222,
+                "rounds": 24,
+                "median": 0.03791424750000516,
+                "iqr": 0.00370462149999895,
+                "q1": 0.03746267749999532,
+                "q3": 0.04116729899999427,
+                "iqr_outliers": 0,
+                "stddev_outliers": 5,
+                "outliers": "5;0",
+                "ld15iqr": 0.03679349499999773,
+                "hd15iqr": 0.04485696499999392,
+                "ops": 25.434509893383836,
+                "total": 0.9435998609999956,
+                "iterations": 1
+            }
+        },
+        {
+            "group": null,
+            "name": "test_substrate_scheduler_timing_erdos_renyi[0.01-10]",
+            "fullname": "tests/benchq/performance_tests/test_substrate_scheduler.py::test_substrate_scheduler_timing_erdos_renyi[0.01-10]",
+            "params": {
+                "probablity_of_edge": 0.01,
+                "size": 10
+            },
+            "param": "0.01-10",
+            "extra_info": {},
+            "options": {
+                "disable_gc": false,
+                "timer": "perf_counter",
+                "min_rounds": 5,
+                "max_time": 1.0,
+                "min_time": 5e-06,
+                "warmup": false
+            },
+            "stats": {
+                "min": 5.749899999329955e-05,
+                "max": 0.002789543999995203,
+                "mean": 6.611331368875413e-05,
+                "stddev": 3.5573242983881937e-05,
+                "rounds": 9621,
+                "median": 6.0552999997298684e-05,
+                "iqr": 3.288750011876118e-06,
+                "q1": 5.942274999881647e-05,
+                "q3": 6.271150001069259e-05,
+                "iqr_outliers": 1687,
+                "stddev_outliers": 425,
+                "outliers": "425;1687",
+                "ld15iqr": 5.749899999329955e-05,
+                "hd15iqr": 6.764799999814386e-05,
+                "ops": 15125.546492916146,
+                "total": 0.6360761909995034,
+                "iterations": 1
+            }
+        },
+        {
+            "group": null,
+            "name": "test_substrate_scheduler_timing_erdos_renyi[0.01-100]",
+            "fullname": "tests/benchq/performance_tests/test_substrate_scheduler.py::test_substrate_scheduler_timing_erdos_renyi[0.01-100]",
+            "params": {
+                "probablity_of_edge": 0.01,
+                "size": 100
+            },
+            "param": "0.01-100",
+            "extra_info": {},
+            "options": {
+                "disable_gc": false,
+                "timer": "perf_counter",
+                "min_rounds": 5,
+                "max_time": 1.0,
+                "min_time": 5e-06,
+                "warmup": false
+            },
+            "stats": {
+                "min": 0.0005776630000013938,
+                "max": 0.0017340110000105824,
+                "mean": 0.0006759001426691893,
+                "stddev": 0.00010520090089012615,
+                "rounds": 1521,
+                "median": 0.0006573219999950197,
+                "iqr": 0.00011075649999270354,
+                "q1": 0.0005969535000041049,
+                "q3": 0.0007077099999968084,
+                "iqr_outliers": 68,
+                "stddev_outliers": 140,
+                "outliers": "140;68",
+                "ld15iqr": 0.0005776630000013938,
+                "hd15iqr": 0.000874299999992445,
+                "ops": 1479.5084907822504,
+                "total": 1.0280441169998369,
+                "iterations": 1
+            }
+        },
+        {
+            "group": null,
+            "name": "test_substrate_scheduler_timing_erdos_renyi[0.1-10]",
+            "fullname": "tests/benchq/performance_tests/test_substrate_scheduler.py::test_substrate_scheduler_timing_erdos_renyi[0.1-10]",
+            "params": {
+                "probablity_of_edge": 0.1,
+                "size": 10
+            },
+            "param": "0.1-10",
+            "extra_info": {},
+            "options": {
+                "disable_gc": false,
+                "timer": "perf_counter",
+                "min_rounds": 5,
+                "max_time": 1.0,
+                "min_time": 5e-06,
+                "warmup": false
+            },
+            "stats": {
+                "min": 9.991800000364037e-05,
+                "max": 0.0004494119999947088,
+                "mean": 0.00011626814946564207,
+                "stddev": 2.479951372908355e-05,
+                "rounds": 6550,
+                "median": 0.00010599799999511106,
+                "iqr": 1.5094999980647117e-05,
+                "q1": 0.00010392200000808316,
+                "q3": 0.00011901699998873028,
+                "iqr_outliers": 618,
+                "stddev_outliers": 623,
+                "outliers": "623;618",
+                "ld15iqr": 9.991800000364037e-05,
+                "hd15iqr": 0.00014166299999374132,
+                "ops": 8600.807741379818,
+                "total": 0.7615563789999555,
+                "iterations": 1
+            }
+        },
+        {
+            "group": null,
+            "name": "test_substrate_scheduler_timing_erdos_renyi[0.1-100]",
+            "fullname": "tests/benchq/performance_tests/test_substrate_scheduler.py::test_substrate_scheduler_timing_erdos_renyi[0.1-100]",
+            "params": {
+                "probablity_of_edge": 0.1,
+                "size": 100
+            },
+            "param": "0.1-100",
+            "extra_info": {},
+            "options": {
+                "disable_gc": false,
+                "timer": "perf_counter",
+                "min_rounds": 5,
+                "max_time": 1.0,
+                "min_time": 5e-06,
+                "warmup": false
+            },
+            "stats": {
+                "min": 0.002215526000000523,
+                "max": 0.004053188000000318,
+                "mean": 0.002705886805930081,
+                "stddev": 0.00026710097057314344,
+                "rounds": 371,
+                "median": 0.0026824389999973164,
+                "iqr": 0.00033130699999617264,
+                "q1": 0.0025297842500009438,
+                "q3": 0.0028610912499971164,
+                "iqr_outliers": 6,
+                "stddev_outliers": 108,
+                "outliers": "108;6",
+                "ld15iqr": 0.002215526000000523,
+                "hd15iqr": 0.0034720770000120638,
+                "ops": 369.56460920998313,
+                "total": 1.0038840050000601,
+                "iterations": 1
+            }
+        }
+    ],
+    "datetime": "2023-04-06T18:11:38.775837",
+    "version": "4.0.0"
+}

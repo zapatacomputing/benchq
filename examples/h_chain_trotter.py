@@ -93,7 +93,7 @@ def main():
                 transformers=[
                     simplify_rotations,
                     synthesize_clifford_t(error_budget),
-                    create_big_graph_from_subcircuits(synthesized=True),
+                    create_big_graph_from_subcircuits(delayed_gate_synthesis=False),
                 ],
             )
 
