@@ -15,6 +15,7 @@ from benchq.resource_estimation.graph import (
     simplify_rotations,
     synthesize_clifford_t,
 )
+from benchq.vizualization_tools import plot_linear_extrapolations
 
 
 @pytest.fixture(params=[False, True])
@@ -46,13 +47,13 @@ def _get_transformers(use_delayed_gate_synthesis, error_budget):
         (
             QuantumProgram(
                 [
-                    Circuit([H(0), RZ(np.pi / 4)(0), CNOT(0, 1)]),
-                    Circuit([H(0), H(1), CNOT(0, 1)]),
+                    Circuit([H(0), RZ(np.pi / 14)(0), CNOT(0, 1)]),
+                    Circuit([H(0), H(1), RZ(np.pi / 14)(0)]),
                 ],
                 100,
-                lambda x: [0] + [1] * (x - 1) + [0],
+                lambda x: [0] + [1] * x + [0],
             ),
-            [1, 2, 3, 5, 7],
+            [1, 2, 3, 5, 7, 10, 12, 15, 20],
             {"n_measurement_steps": 3, "n_nodes": 3, "n_logical_qubits": 2},
         ),
         # (
@@ -107,6 +108,7 @@ def test_get_resource_estimations_for_program_gives_correct_results(
         "ec_error_rate": 0.5,
     }
     transformers = _get_transformers(use_delayed_gate_synthesis, error_budget)
+
     extrapolated_resource_estimates = run_extrapolation_pipeline(
         quantum_program,
         error_budget,
@@ -115,15 +117,16 @@ def test_get_resource_estimations_for_program_gives_correct_results(
         ),
         transformers=transformers,
     )
-
-        gsc_resource_estimates = run_resource_estimation_pipeline(
+    gsc_resource_estimates = run_resource_estimation_pipeline(
         quantum_program,
         error_budget,
         estimator=GraphResourceEstimator(architecture_model),
         transformers=transformers,
     )
-
     breakpoint()
+    plot_linear_extrapolations(
+        extrapolated_resource_estimates, steps_to_extrapolate_from, 100
+    )
 
     # for key in expected_results.keys():
     #     assert asdict(gsc_resource_estimates)[key] == expected_results[key]

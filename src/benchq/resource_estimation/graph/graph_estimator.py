@@ -43,6 +43,9 @@ class ResourceInfo:
     n_nodes: int
     n_measurement_steps: int
     total_time: float
+    max_decodable_distance: Optional[int]
+    decoder_power: Optional[float]
+    decoder_area: Optional[float]
 
     @property
     def n_physical_qubits(self) -> int:
@@ -51,6 +54,18 @@ class ResourceInfo:
     @property
     def logical_st_volume(self) -> float:
         return 12 * self.n_nodes * 240 * self.n_nodes * self.synthesis_multiplier
+
+    def __repr__(self):
+        necessary_info = [
+            "code_distance",
+            "logical_error_rate",
+            "n_logical_qubits",
+            "total_time",
+            "decoder_power",
+            "decoder_area",
+            "n_measurement_steps",
+        ]
+        return "\n".join(f"{info}: {getattr(self, info)}" for info in necessary_info)
 
 
 class GraphResourceEstimator:
@@ -96,9 +111,7 @@ class GraphResourceEstimator:
     def _ec_error_rate_delayed_gate_synthesis(
         self, distance: int, n_nodes: int
     ) -> float:
-        return (
-            self._logical_operation_error_rate(distance) * 12 * n_nodes * 240 * n_nodes
-        )
+        return self._logical_cell_failure_rate(distance) * 12 * n_nodes * 240 * n_nodes
 
     def _ec_error_rate(self, distance: int, n_nodes: int) -> float:
         _, ec_error_rate = self.balance_logical_error_rate_and_synthesis_accuracy(
@@ -195,9 +208,9 @@ class GraphResourceEstimator:
         )
         if self.decoder_model:
             decoder_power = self.get_logical_st_volume(
-                graph_data.max_degree
+                graph_data.max_node_degree
             ) * self.decoder_model.power(code_distance)
-            decoder_area = graph_data.max_degree * self.decoder_model.area(
+            decoder_area = graph_data.max_node_degree * self.decoder_model.area(
                 code_distance
             )
             max_decodable_distance = self.find_max_decodable_distance()

@@ -29,17 +29,46 @@ def plot_graph_state_with_measurement_steps(
     plt.show()
 
 
-def plot_linear_extrapolation(x, y, steps_to_extrapolate_to):
-    coeffs, sum_of_residuals, _, _, _ = np.polyfit(x, y, 1, full=True)
-    r_squared = 1 - (sum_of_residuals[0] / (len(y) * np.var(y)))
-    m, c = coeffs
-    plt.plot(x, y, "o")
-    plt.plot(
-        [0, steps_to_extrapolate_to],
-        [c, m * steps_to_extrapolate_to + c],
-        "r",
-        label="fitted line",
-    )
-    plt.legend()
+def plot_linear_extrapolations(
+    ExtrapolatedResourceInfo, steps_to_extrapolate_from, steps_to_extrapolate_to
+):
+    figure, axis = plt.subplots(3, 1)
+    figure.tight_layout(pad=1.5)
+
+    for i, property in enumerate(
+        ["n_logical_qubits", "n_nodes", "n_measurement_steps"]
+    ):
+        x = steps_to_extrapolate_from
+        y = np.array(
+            [
+                getattr(d, property)
+                for d in ExtrapolatedResourceInfo.data_used_to_extrapolate
+            ]
+        )
+
+        # logarithmic extrapolation
+        if property == "n_measurement_steps":
+            x = np.log(x)
+
+        coeffs, sum_of_residuals, _, _, _ = np.polyfit(x, y, 1, full=True)
+        r_squared = 1 - (sum_of_residuals[0] / (len(y) * np.var(y)))
+        m, c = coeffs
+
+        axis[i].plot(x, y, "o")
+        axis[i].plot(
+            [0, steps_to_extrapolate_to],
+            [c, m * steps_to_extrapolate_to + c],
+            "r",
+            label="fitted line",
+        )
+        axis[i].plot(
+            [steps_to_extrapolate_to],
+            [m * steps_to_extrapolate_to + c],
+            "ko",
+        )
+        axis[i].plot([], [], " ", label="r_squared: " + str(r_squared))
+        axis[i].legend()
+        axis[i].set_title(property)
+        axis[i].ticklabel_format(useOffset=False)
+        axis[i].yaxis.set_major_formatter(plt.FormatStrFormatter("%d"))
     plt.show()
-    return r_squared

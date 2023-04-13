@@ -14,7 +14,6 @@ Objectives:
     - Software can be quite crappy
 """
 import logging
-import time
 
 from orquestra.integrations.qiskit.conversions import import_from_qiskit
 from qiskit.circuit import QuantumCircuit
@@ -40,7 +39,7 @@ def main(file_name):
 
     error_budget = {
         "total_error": 1e-2,
-        "trotter_required_precision": 1e-3,  
+        "trotter_required_precision": 1e-3,
         "tolerable_circuit_error_rate": 1e-3,
         "synthesis_error_rate": 1e-3,
         "ec_error_rate": 1e-3,

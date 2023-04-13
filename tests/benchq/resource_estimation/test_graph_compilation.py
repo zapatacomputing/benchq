@@ -3,7 +3,7 @@ from dataclasses import asdict
 
 import numpy as np
 import pytest
-from orquestra.quantum.circuits import CNOT, RX, RY, RZ, Circuit, H, T
+from orquestra.quantum.circuits import CNOT, RZ, Circuit, H, T
 
 from benchq.data_structures import BasicArchitectureModel, DecoderModel
 from benchq.data_structures.quantum_program import (
@@ -46,15 +46,10 @@ def _get_transformers(use_delayed_gate_synthesis, error_budget):
     "quantum_program,expected_results",
     [
         (
-<<<<<<< HEAD
             QuantumProgram(
                 [Circuit([H(0), RZ(np.pi / 4)(0), CNOT(0, 1)])], 1, lambda x: [0]
             ),
             {"n_measurement_steps": 3, "n_nodes": 3, "n_logical_qubits": 2},
-=======
-            get_program_from_circuit(Circuit([H(0), RZ(np.pi / 4)(0), CNOT(0, 1)])),
-            {"n_measurement_steps": 3, "n_nodes": 3, "max_graph_degree": 2},
->>>>>>> main
         ),
         # (
         #     get_program_from_circuit(
