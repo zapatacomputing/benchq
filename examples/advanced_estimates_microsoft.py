@@ -4,7 +4,7 @@
 import time
 
 from benchq import BasicArchitectureModel
-from benchq.algorithms import get_qsp_program
+from benchq.algorithms import get_qsp_time_evolution_program
 from benchq.problem_ingestion import generate_jw_qubit_hamiltonian_from_mol_data
 from benchq.problem_ingestion.molecule_instance_generation import (
     generate_hydrogen_chain_instance,
@@ -57,7 +57,7 @@ def main():
             print(f"MODE: {mode}, n hydrogens: {n_hydrogens}")
             print("!!*#*!!" * 15)
             start = time.time()
-            quantum_program = get_qsp_program(
+            quantum_program = get_qsp_time_evolution_program(
                 operator, qsp_required_precision, dt, tmax, sclf, mode=mode
             )
             end = time.time()
