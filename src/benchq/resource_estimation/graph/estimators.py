@@ -30,18 +30,12 @@ class ResourceInfo:
     logical_error_rate: float
     max_graph_degree: int
     n_nodes: int
+    n_physical_qubits: int
     n_measurement_steps: int
     total_time: float
     max_decodable_distance: Optional[int]
     decoder_power: Optional[float]
     decoder_area: Optional[float]
-
-    @property
-    def n_physical_qubits(self) -> int:
-        # 21 * 12 comes from Game of surface codes (Latinski)
-        num_boxes = np.ceil((self.max_graph_degree + 1) / 21)
-        patch_size = 2 * self.code_distance**2
-        return 21 * 12 * num_boxes * patch_size
 
 
 class GraphResourceEstimator:
@@ -56,6 +50,15 @@ class GraphResourceEstimator:
         self.decoder_model = decoder_model
 
     N_TOCKS_PER_T_GATE_FACTORY = 15
+    # We are not sure if names below are the best choice
+    # 21 comes from Game of surface codes (Litinski):
+    # https://quantum-journal.org/papers/q-2019-03-05-128/
+    # We are not sure where does 12 come from
+    BOX_WIDTH = 21
+    BOX_HEIGHT = 12
+
+    # Assumes gridsynth scaling and full Euler angle decompositions
+    SYNTHESIS_SCALING = 3 * 4
 
     def _logical_cell_failure_rate(self, distance: int) -> float:
         return (
@@ -98,8 +101,8 @@ class GraphResourceEstimator:
         return ec_error_rate
 
     def get_logical_st_volume(self, n_nodes: int, max_graph_degree: int):
-        num_boxes = np.ceil((max_graph_degree + 1) / 21)
-        space = 21 * 12 * num_boxes
+        num_boxes = np.ceil((max_graph_degree + 1) / self.BOX_WIDTH)
+        space = self.BOX_WIDTH * self.BOX_HEIGHT * num_boxes
         # Time component assuming all graph nodes are measured sequentially
         time = self.N_TOCKS_PER_T_GATE_FACTORY * n_nodes
         return space * time
@@ -170,11 +173,17 @@ class GraphResourceEstimator:
             ) = self.balance_logical_error_rate_and_synthesis_accuracy(
                 n_nodes, code_distance, max_degree
             )
-            # Assumes gridsynth scaling and full Euler angle decompositions
-            synthesis_multiplier = 12 * np.log2(1 / synthesis_accuracy)
+
+            synthesis_multiplier = self.SYNTHESIS_SCALING * np.log2(
+                1 / synthesis_accuracy
+            )
         time_of_logical_t_gate = (
             6 * self.hw_model.physical_gate_time_in_seconds * code_distance
         )
+
+        num_boxes = np.ceil((max_degree + 1) / self.BOX_WIDTH)
+        patch_size = 2 * code_distance**2
+        n_physical_qubits = self.BOX_WIDTH * self.BOX_HEIGHT * num_boxes * patch_size
 
         wall_time = (
             n_measurement_steps * time_of_logical_t_gate
@@ -201,6 +210,7 @@ class GraphResourceEstimator:
             n_nodes=n_nodes,
             n_measurement_steps=n_measurement_steps,
             total_time=wall_time,
+            n_physical_qubits=n_physical_qubits,
             decoder_power=decoder_power,
             decoder_area=decoder_area,
             max_decodable_distance=max_decodable_distance,
