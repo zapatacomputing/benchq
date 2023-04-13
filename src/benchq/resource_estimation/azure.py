@@ -58,7 +58,7 @@ def get_resource_estimations_for_program(
         error_budget: _description_
     """
     total_multiplicity = sum(quantum_program.multiplicities)
-    # TA 2 part: Microsoft estimation
+    # TA 2 part: Azure QRE estimation
     all_ms_results = []
     for mult, circuit in zip(
         quantum_program.multiplicities, quantum_program.subroutines
