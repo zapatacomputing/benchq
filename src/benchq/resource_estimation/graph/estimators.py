@@ -30,15 +30,12 @@ class ResourceInfo:
     logical_error_rate: float
     max_graph_degree: int
     n_nodes: int
+    n_physical_qubits: int
     n_measurement_steps: int
     total_time: float
     max_decodable_distance: Optional[int]
     decoder_power: Optional[float]
     decoder_area: Optional[float]
-
-    @property
-    def n_physical_qubits(self) -> int:
-        return 12 * self.max_graph_degree * 2 * self.code_distance**2
 
 
 class GraphResourceEstimator:
@@ -52,7 +49,16 @@ class GraphResourceEstimator:
         self.combine_partition = combine_partition
         self.decoder_model = decoder_model
 
-    N_TOCKS_PER_T_GATE_FACTORY = 15 * 16
+    N_TOCKS_PER_T_GATE_FACTORY = 15
+    # We are not sure if names below are the best choice
+    # 21 comes from Game of surface codes (Litinski):
+    # https://quantum-journal.org/papers/q-2019-03-05-128/
+    # We are not sure where does 12 come from
+    BOX_WIDTH = 21
+    BOX_HEIGHT = 12
+
+    # Assumes gridsynth scaling and full Euler angle decompositions
+    SYNTHESIS_SCALING = 3 * 4
 
     def _logical_cell_failure_rate(self, distance: int) -> float:
         return (
@@ -65,32 +71,41 @@ class GraphResourceEstimator:
     def _minimize_code_distance(
         self,
         n_nodes: int,
+        max_graph_degree: int,
         error_budget,
-        error_rate: Callable[[int, int], float],
+        error_rate: Callable[[int, int, int], float],
         min_d: int = 4,
         max_d: int = 100,
     ) -> int:
         target_error_rate = error_budget["total_error"] * error_budget["ec_error_rate"]
 
         for distance in range(min_d, max_d):
-            if error_rate(distance, n_nodes) < target_error_rate:
+            if error_rate(distance, n_nodes, max_graph_degree) < target_error_rate:
                 return distance
 
         raise RuntimeError(f"Not found good error rates under distance code: {max_d}.")
 
-    def _ec_error_rate_synthesized(self, distance: int, n_nodes: int) -> float:
+    def _ec_error_rate_synthesized(
+        self, distance: int, n_nodes: int, max_graph_degree: int
+    ) -> float:
         return self._logical_cell_failure_rate(distance) * self.get_logical_st_volume(
-            n_nodes
+            n_nodes, max_graph_degree
         )
 
-    def _ec_error_rate_unsynthesized(self, distance: int, n_nodes: int) -> float:
+    def _ec_error_rate_unsynthesized(
+        self, distance: int, n_nodes: int, max_graph_degree: int
+    ) -> float:
         _, ec_error_rate = self.balance_logical_error_rate_and_synthesis_accuracy(
-            n_nodes, distance
+            n_nodes, distance, max_graph_degree
         )
         return ec_error_rate
 
-    def get_logical_st_volume(self, n_operations):
-        return 12 * n_operations * self.N_TOCKS_PER_T_GATE_FACTORY * n_operations
+    def get_logical_st_volume(self, n_nodes: int, max_graph_degree: int):
+        num_boxes = np.ceil((max_graph_degree + 1) / self.BOX_WIDTH)
+        space = self.BOX_WIDTH * self.BOX_HEIGHT * num_boxes
+        # Time component assuming all graph nodes are measured sequentially
+        time = self.N_TOCKS_PER_T_GATE_FACTORY * n_nodes
+        return space * time
 
     def find_max_decodable_distance(self, min_d=4, max_d=100):
         max_distance = 0
@@ -104,7 +119,9 @@ class GraphResourceEstimator:
         return max_distance
 
     # TODO: We need to make sure it's doing scientifically what it should be doing
-    def balance_logical_error_rate_and_synthesis_accuracy(self, n_nodes, distance):
+    def balance_logical_error_rate_and_synthesis_accuracy(
+        self, n_nodes, distance, max_graph_degree
+    ):
         """
         This function is basically finding such a value of synthesis error rate, that
         it is 1/(12*N) smaller than circuit error rate, where N is the number of nodes
@@ -113,8 +130,7 @@ class GraphResourceEstimator:
         current_synthesis_accuracy = INITIAL_SYNTHESIS_ACCURACY
         for _ in range(20):
             ec_error_rate = self._ec_error_rate_synthesized(
-                distance,
-                n_nodes,
+                distance, n_nodes, max_graph_degree
             )
             new_synthesis_accuracy = (1 / (12 * n_nodes)) * ec_error_rate
             # This is for cases where the algorithm diverges terribly, to avoid
@@ -129,48 +145,56 @@ class GraphResourceEstimator:
     def _estimate_resource_for_graph(
         self, graph: nx.Graph, n_nodes: int, synthesized: bool, error_budget
     ) -> ResourceInfo:
-
         ec_error_rate_func = (
             self._ec_error_rate_synthesized
             if synthesized
             else self._ec_error_rate_unsynthesized
         )
 
-        code_distance = self._minimize_code_distance(
-            n_nodes, error_budget, ec_error_rate_func
-        )
         max_degree = max(deg for _, deg in graph.degree())
+
+        code_distance = self._minimize_code_distance(
+            n_nodes, max_degree, error_budget, ec_error_rate_func
+        )
+
+        space_time_volume = self.get_logical_st_volume(n_nodes, max_degree)
+
         logical_cell_error_rate = self._logical_cell_failure_rate(code_distance)
         n_measurement_steps = len(substrate_scheduler(graph).measurement_steps)
 
         # Isolate differences betweeen synthesized and not synthesized case
         if synthesized:
-            total_logical_error_rate = (
-                logical_cell_error_rate * self.get_logical_st_volume(max_degree)
-            )
+            total_logical_error_rate = logical_cell_error_rate * space_time_volume
             synthesis_multiplier = 1
         else:
             (
                 synthesis_accuracy,
                 total_logical_error_rate,
             ) = self.balance_logical_error_rate_and_synthesis_accuracy(
-                n_nodes, code_distance
+                n_nodes, code_distance, max_degree
             )
-            synthesis_multiplier = 12 * np.log2(1 / synthesis_accuracy)
+
+            synthesis_multiplier = self.SYNTHESIS_SCALING * np.log2(
+                1 / synthesis_accuracy
+            )
         time_of_logical_t_gate = (
             6 * self.hw_model.physical_gate_time_in_seconds * code_distance
         )
 
+        num_boxes = np.ceil((max_degree + 1) / self.BOX_WIDTH)
+        patch_size = 2 * code_distance**2
+        n_physical_qubits = self.BOX_WIDTH * self.BOX_HEIGHT * num_boxes * patch_size
+
         wall_time = (
-            time_of_logical_t_gate
+            n_measurement_steps * time_of_logical_t_gate
+            + time_of_logical_t_gate
             * self.N_TOCKS_PER_T_GATE_FACTORY
-            * n_measurement_steps
+            * n_nodes
             * synthesis_multiplier
         )
+
         if self.decoder_model:
-            decoder_power = self.get_logical_st_volume(
-                max_degree
-            ) * self.decoder_model.power(code_distance)
+            decoder_power = space_time_volume * self.decoder_model.power(code_distance)
             decoder_area = max_degree * self.decoder_model.area(code_distance)
             max_decodable_distance = self.find_max_decodable_distance()
         else:
@@ -186,6 +210,7 @@ class GraphResourceEstimator:
             n_nodes=n_nodes,
             n_measurement_steps=n_measurement_steps,
             total_time=wall_time,
+            n_physical_qubits=n_physical_qubits,
             decoder_power=decoder_power,
             decoder_area=decoder_area,
             max_decodable_distance=max_decodable_distance,
