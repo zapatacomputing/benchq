@@ -37,6 +37,7 @@ def plot_graph_state_with_measurement_steps(
 def plot_extrapolations(
     info: ExtrapolatedResourceInfo,
     steps_to_extrapolate_from: List[int],
+    n_measurement_steps_fit_type: str = "logarithmic",
 ):
     """Here we allow one to inspect the fits given by extrapolating a problem
     from a smaller number of steps.
@@ -51,7 +52,10 @@ def plot_extrapolations(
         y = np.array([getattr(d, property) for d in info.data_used_to_extrapolate])
 
         # logarithmic extrapolation
-        if property == "n_measurement_steps":
+        if (
+            property == "n_measurement_steps"
+            and n_measurement_steps_fit_type == "logarithmic"
+        ):
             x = np.log(x)
 
         coeffs, sum_of_residuals, _, _, _ = np.polyfit(x, y, 1, full=True)
@@ -59,11 +63,13 @@ def plot_extrapolations(
         m, c = coeffs
 
         # logarithmic extrapolation
-        if property == "n_measurement_steps":
+        if (
+            property == "n_measurement_steps"
+            and n_measurement_steps_fit_type == "logarithmic"
+        ):
             x = np.exp(x)  # rescale the x values for plotting
             extrapolated_point = ceil(m * np.log(info.steps_to_extrapolate_to) + c)
 
-            axis[i].plot(x, y, "o")
             all_x = np.arange(1, info.steps_to_extrapolate_to, 1)
             axis[i].plot(
                 all_x,
@@ -71,28 +77,23 @@ def plot_extrapolations(
                 "r",
                 label="fitted line",
             )
-            axis[i].plot(
-                [info.steps_to_extrapolate_to],
-                [extrapolated_point],
-                "ko",
-            )
-            plt.yticks(range(floor(min(y)), extrapolated_point + 1))
         else:
             extrapolated_point = ceil(m * info.steps_to_extrapolate_to + c)
 
-            axis[i].plot(x, y, "o")
             axis[i].plot(
                 [0, info.steps_to_extrapolate_to],
                 [c, m * info.steps_to_extrapolate_to + c],
                 "r",
                 label="fitted line",
             )
-            axis[i].plot(
-                [info.steps_to_extrapolate_to],
-                [extrapolated_point],
-                "ko",
-            )
-            plt.yticks(range(floor(min(y)) - 1, extrapolated_point + 1))
+
+        axis[i].plot(x, y, "o")
+        axis[i].plot(
+            [info.steps_to_extrapolate_to],
+            [extrapolated_point],
+            "ko",
+        )
+        plt.yticks(range(floor(min(y)) - 1, extrapolated_point + 1))
 
         axis[i].plot([], [], " ", label="r_squared: " + str(r_squared))
         axis[i].legend()

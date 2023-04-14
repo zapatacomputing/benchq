@@ -47,6 +47,7 @@ class ExtrapolationResourceEstimator(GraphResourceEstimator):
         self.hw_model = hw_model
         self.steps_to_extrapolate_from = steps_to_extrapolate_from
         self.decoder_model = decoder_model
+        self.n_measurement_steps_fit_type = n_measurement_steps_fit_type
 
     def _get_extrapolated_graph_data(
         self, data: List[ResourceInfo], steps_to_extrapolate_to: int

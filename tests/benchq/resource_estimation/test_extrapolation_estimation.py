@@ -40,7 +40,7 @@ def _get_transformers(use_delayed_gate_synthesis, error_budget):
 
 
 @pytest.mark.parametrize(
-    "quantum_program,steps_to_extrapolate_from",
+    "quantum_program,steps_to_extrapolate_from,n_measurement_steps_fit_type",
     [
         (
             QuantumProgram(
@@ -52,6 +52,7 @@ def _get_transformers(use_delayed_gate_synthesis, error_budget):
                 lambda x: [0] + [1] * x + [0],
             ),
             [1, 2, 3, 4],
+            "logarithmic",
         ),
         (
             QuantumProgram(
@@ -63,6 +64,7 @@ def _get_transformers(use_delayed_gate_synthesis, error_budget):
                 lambda x: [0] + [1] * x + [0],
             ),
             [1, 2, 3, 5],
+            "logarithmic",
         ),
         (
             QuantumProgram(
@@ -75,6 +77,7 @@ def _get_transformers(use_delayed_gate_synthesis, error_budget):
                 lambda x: [0] + [1, 2] * x + [0],
             ),
             [1, 2, 3, 5, 7, 10, 15, 25],
+            "linear",
         ),
     ],
 )
@@ -82,6 +85,7 @@ def test_get_resource_estimations_for_program_gives_correct_results(
     quantum_program,
     steps_to_extrapolate_from,
     use_delayed_gate_synthesis,
+    n_measurement_steps_fit_type,
 ):
     architecture_model = BasicArchitectureModel(
         physical_gate_error_rate=1e-3,
@@ -100,7 +104,9 @@ def test_get_resource_estimations_for_program_gives_correct_results(
         quantum_program,
         error_budget,
         estimator=ExtrapolationResourceEstimator(
-            architecture_model, steps_to_extrapolate_from
+            architecture_model,
+            steps_to_extrapolate_from,
+            n_measurement_steps_fit_type=n_measurement_steps_fit_type,
         ),
         transformers=transformers,
     )
@@ -119,12 +125,11 @@ def test_get_resource_estimations_for_program_gives_correct_results(
         "n_physical_qubits",
     ]
     for attribute in attributes_to_compare_harshly:
-        if not np.isclose(
+        assert np.isclose(
             getattr(extrapolated_resource_estimates, attribute),
             getattr(gsc_resource_estimates, attribute),
-            rtol=1e-1,
-        ):
-            plot_extrapolations(extrapolated_resource_estimates, steps_to_extrapolate_from)
+            rtol=1e-2,
+        )
     # assert that the number of measurement steps grows with the steps
     attributes_to_compare_loosely = [
         "n_logical_qubits",
