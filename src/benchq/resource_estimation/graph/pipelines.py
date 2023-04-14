@@ -1,7 +1,9 @@
 from copy import deepcopy
 
-from ...data_structures import QuantumProgram
-from .extrapolation_estimator import ExtrapolationResourceEstimator
+from .extrapolation_estimator import (
+    ExtrapolatedResourceInfo,
+    ExtrapolationResourceEstimator,
+)
 
 
 def run_resource_estimation_pipeline(
@@ -16,11 +18,11 @@ def run_resource_estimation_pipeline(
 
 
 def run_extrapolation_pipeline(
-    program: QuantumProgram,
+    program,
     error_budget,
     estimator: ExtrapolationResourceEstimator,
     transformers,
-):
+) -> ExtrapolatedResourceInfo:
     small_programs_resource_info = []
     for i in estimator.steps_to_extrapolate_from:
         # create copy of program for each number of steps

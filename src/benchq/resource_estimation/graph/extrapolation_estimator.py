@@ -42,6 +42,7 @@ class ExtrapolationResourceEstimator(GraphResourceEstimator):
         hw_model: BasicArchitectureModel,
         steps_to_extrapolate_from: List[int],
         decoder_model: Optional[DecoderModel] = None,
+        n_measurement_steps_fit_type: str = "logarithmic",
     ):
         self.hw_model = hw_model
         self.steps_to_extrapolate_from = steps_to_extrapolate_from
@@ -56,14 +57,32 @@ class ExtrapolationResourceEstimator(GraphResourceEstimator):
             np.array([d.n_logical_qubits for d in data]),
             steps_to_extrapolate_to,
         )
-        (
-            n_measurement_steps,
-            n_measurement_steps_r_squared,
-        ) = _get_logarithmic_extrapolation(
-            self.steps_to_extrapolate_from,
-            np.array([d.n_measurement_steps for d in data]),
-            steps_to_extrapolate_to,
-        )
+        # sometimes the n_measurement_steps is log sometimes it's linear.
+        # we need to check which one is better by inspecting the fit
+        if self.n_measurement_steps_fit_type == "logarithmic":
+            (
+                n_measurement_steps,
+                n_measurement_steps_r_squared,
+            ) = _get_logarithmic_extrapolation(
+                self.steps_to_extrapolate_from,
+                np.array([d.n_measurement_steps for d in data]),
+                steps_to_extrapolate_to,
+            )
+        elif self.n_measurement_steps_fit_type == "linear":
+            (
+                n_measurement_steps,
+                n_measurement_steps_r_squared,
+            ) = _get_linear_extrapolation(
+                self.steps_to_extrapolate_from,
+                np.array([d.n_measurement_steps for d in data]),
+                steps_to_extrapolate_to,
+            )
+        else:
+            raise ValueError(
+                "n_measurement_steps_fit_type must be either 'logarithmic' or 'linear'"
+                f", not {self.n_measurement_steps_fit_type}"
+            )
+
         n_nodes, n_nodes_r_squared = _get_linear_extrapolation(
             self.steps_to_extrapolate_from,
             np.array([d.n_nodes for d in data]),
@@ -105,7 +124,7 @@ class ExtrapolationResourceEstimator(GraphResourceEstimator):
             decoder_area=resource_info.decoder_area,
             max_decodable_distance=resource_info.max_decodable_distance,
             n_logical_qubits_r_squared=extrapolated_info.max_node_degree_r_squared,
-            n_measurement_steps_r_squared=extrapolated_info.n_measurement_steps_r_squared,
+            n_measurement_steps_r_squared=extrapolated_info.n_measurement_steps_r_squared,  # noqa: E501
             n_nodes_r_squared=extrapolated_info.n_nodes_r_squared,
             data_used_to_extrapolate=data,
             steps_to_extrapolate_to=steps_to_extrapolate_to,

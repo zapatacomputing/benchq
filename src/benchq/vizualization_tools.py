@@ -47,7 +47,7 @@ def plot_extrapolations(
     for i, property in enumerate(
         ["n_logical_qubits", "n_nodes", "n_measurement_steps"]
     ):
-        x = steps_to_extrapolate_from
+        x = np.array(steps_to_extrapolate_from)
         y = np.array([getattr(d, property) for d in info.data_used_to_extrapolate])
 
         # logarithmic extrapolation
