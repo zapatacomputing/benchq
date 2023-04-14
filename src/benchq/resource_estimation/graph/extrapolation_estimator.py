@@ -58,7 +58,7 @@ class ExtrapolationResourceEstimator(GraphResourceEstimator):
             np.array([d.n_logical_qubits for d in data]),
             steps_to_extrapolate_to,
         )
-        # sometimes the n_measurement_steps is log sometimes it's linear.
+        # sometimes the n_measurement_steps is logarithmic, sometimes it's linear.
         # we need to check which one is better by inspecting the fit
         if self.n_measurement_steps_fit_type == "logarithmic":
             (
