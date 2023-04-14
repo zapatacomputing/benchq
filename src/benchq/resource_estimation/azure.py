@@ -5,108 +5,92 @@ import os
 
 from azure.quantum.qiskit import AzureQuantumProvider
 from orquestra.integrations.qiskit.conversions import export_to_qiskit
-from qiskit import QuantumCircuit, transpile
-from qiskit.circuit.library import RGQFTMultiplier
+from typing import Optional
 from qiskit.tools.monitor import job_monitor
+from orquestra.quantum.circuits import Circuit
+from dataclasses import dataclass
 
-from ..data_structures import QuantumProgram
+from ..data_structures import QuantumProgram, BasicArchitectureModel
+from collections import Counter
 
 
-def get_resource_estimations_for_circuit(
-    circuit, architecture_model=None, error_budget=None
-):
-    qiskit_circuit = export_to_qiskit(circuit)
+@dataclass
+class AzureResourceInfo:
+    physical_qubit_count: int
+    logical_qubit_count: int
+    total_time: float
+    depth: int
+    distance: int
+    cycle_time: float
+    logical_error_rate: float
+    raw_data: dict
 
-    if architecture_model is not None:
-        gate_time = architecture_model.physical_gate_time_in_seconds
-        gate_time_string = f"{int(gate_time * 1e9)} ns"
-        qubit = {
-            "name": "slow gate-based",
-            "oneQubitGateTime": gate_time_string,
-            # "oneQubitMeasurementTime": "30 μs",
-            "oneQubitGateErrorRate": architecture_model.physical_gate_error_rate,
-            # "tStateErrorRate": 1e-3
-        }
 
-    provider = AzureQuantumProvider(
-        resource_id=os.getenv("AZURE_RESOURCE_ID"), location="East US"
-    )
+class AzureResourceEstimator:
+    def __init__(
+        self,
+        hw_model: Optional[BasicArchitectureModel] = None,
+        use_full_circuit: bool = False,
+    ):
+        self.hw_model = hw_model
+        self.use_full_circuit = use_full_circuit
 
-    backend = provider.get_backend("microsoft.estimator")
+    def estimate(self, program: QuantumProgram, error_budget) -> AzureResourceInfo:
+        if error_budget is not None:
+            total_error = error_budget["total_error"]
+            azure_error_budget = {}
+            azure_error_budget["rotations"] = (
+                error_budget["synthesis_error_rate"] * total_error
+            )
+            remaining_error = error_budget["synthesis_error_rate"] * total_error
+            azure_error_budget["logical"] = remaining_error / 2
+            azure_error_budget["tstates"] = remaining_error / 2
+        if self.use_full_circuit:
+            circuit = program.full_circuit()
+            return self._estimate_resources_for_circuit(circuit, azure_error_budget)
+        else:
+            raise NotImplementedError(
+                "Resource estimation for Quantum Programs which are not consisting "
+                "of a single circuit is not implemented yet."
+            )
 
-    if architecture_model is None and error_budget is None:
-        job = backend.run(qiskit_circuit)
-    else:
+    def _estimate_resources_for_circuit(
+        self, circuit: Circuit, error_budget
+    ) -> AzureResourceInfo:
+        """_summary_
+
+        Args:
+            circuit: _description_
+            error_budget: _description_
+
+        Returns:
+            _description_
+        """
+        if self.hw_model is not None:
+            gate_time = self.hw_model.physical_gate_time_in_seconds
+            gate_time_string = f"{int(gate_time * 1e9)} ns"
+            qubit = {
+                "name": "slow gate-based",
+                "oneQubitGateTime": gate_time_string,
+                # "oneQubitMeasurementTime": "30 μs",
+                "oneQubitGateErrorRate": self.hw_model.physical_gate_error_rate,
+                # "tStateErrorRate": 1e-3
+            }
+        else:
+            qubit = None
+
+        qiskit_circuit = export_to_qiskit(circuit)
+        provider = AzureQuantumProvider(
+            resource_id=os.getenv("AZURE_RESOURCE_ID"), location="East US"
+        )
+
+        backend = provider.get_backend("microsoft.estimator")
         job = backend.run(qiskit_circuit, qubit=qubit, errorBudget=error_budget)
 
-    job_monitor(job)
-    full_results = job.result().data()
-    del full_results["reportData"]
-    full_results["physicalCounts"]["runtime_in_s"] = (
-        full_results["physicalCounts"]["runtime"] / 10e9
-    )
-    return full_results
-
-
-def get_resource_estimations_for_program(
-    quantum_program: QuantumProgram, error_budget: float, architecture_model
-):
-    """_summary_
-
-    Args:
-        quantum_program: _description_
-        error_budget: _description_
-    """
-    total_multiplicity = sum(quantum_program.multiplicities)
-    # TA 2 part: Azure QRE estimation
-    all_ms_results = []
-    for mult, circuit in zip(
-        quantum_program.multiplicities, quantum_program.subroutines
-    ):
-        ms_results = get_resource_estimations_for_circuit(
-            circuit,
-            architecture_model=architecture_model,
-            error_budget=error_budget * mult / total_multiplicity,
+        job_monitor(job)
+        full_results = job.result().data()
+        del full_results["reportData"]
+        full_results["physicalCounts"]["runtime_in_s"] = (
+            full_results["physicalCounts"]["runtime"] / 1e9
         )
-        all_ms_results.append(ms_results)
-    return _combine_estimates(all_ms_results, quantum_program.multiplicities)
-
-
-def _combine_estimates(estimates_per_subroutine, subroutine_multiplicities):
-    combined_resource_estimates = {
-        "total_time": 0,
-        "number_of_physical_qubits": [],
-        "logical_error_rate": [],
-        "distance": [],
-        "number_of_logical_qubits": [],
-        "cycle_time": [],
-        "depth": [],
-        "T_state_error_rate": [],
-    }
-    for re, mult in zip(estimates_per_subroutine, subroutine_multiplicities):
-        combined_resource_estimates["total_time"] += (
-            re["physicalCounts"]["runtime_in_s"] * mult
-        )
-        combined_resource_estimates["number_of_physical_qubits"].append(
-            re["physicalCounts"]["physicalQubits"]
-        )
-        combined_resource_estimates["logical_error_rate"].append(
-            re["errorBudget"]["logical"]
-        )
-        combined_resource_estimates["distance"].append(
-            re["logicalQubit"]["codeDistance"]
-        )
-        combined_resource_estimates["number_of_logical_qubits"].append(
-            re["physicalCounts"]["breakdown"]["algorithmicLogicalQubits"]
-        )
-        combined_resource_estimates["cycle_time"].append(
-            re["logicalQubit"]["logicalCycleTime"]
-        )
-        combined_resource_estimates["depth"].append(
-            re["physicalCounts"]["breakdown"]["algorithmicLogicalDepth"]
-        )
-        combined_resource_estimates["T_state_error_rate"].append(
-            re["physicalCounts"]["breakdown"]["requiredLogicalTstateErrorRate"]
-        )
-
-    return combined_resource_estimates
+        return full_results
