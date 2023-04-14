@@ -21,6 +21,7 @@ class ExtrapolatedResourceInfo(ResourceInfo):
     n_measurement_steps_r_squared: float
     n_nodes_r_squared: float
     data_used_to_extrapolate: List[ResourceInfo]
+    steps_to_extrapolate_to: int
 
     def __repr__(self):
         new_necessary_info = [
@@ -83,9 +84,11 @@ class ExtrapolationResourceEstimator(GraphResourceEstimator):
         data: List[ResourceInfo],
         error_budget,
         delayed_gate_synthesis: bool,
-        n_steps: int,
+        steps_to_extrapolate_to: int,
     ):
-        extrapolated_info = self._get_extrapolated_graph_data(data, n_steps)
+        extrapolated_info = self._get_extrapolated_graph_data(
+            data, steps_to_extrapolate_to
+        )
         resource_info = self._estimate_resources_from_graph_data(
             extrapolated_info, delayed_gate_synthesis, error_budget
         )
@@ -97,6 +100,7 @@ class ExtrapolationResourceEstimator(GraphResourceEstimator):
             code_distance=resource_info.code_distance,
             logical_error_rate=resource_info.logical_error_rate,
             total_time=resource_info.total_time,
+            n_physical_qubits=resource_info.n_physical_qubits,
             decoder_power=resource_info.decoder_power,
             decoder_area=resource_info.decoder_area,
             max_decodable_distance=resource_info.max_decodable_distance,
@@ -104,6 +108,7 @@ class ExtrapolationResourceEstimator(GraphResourceEstimator):
             n_measurement_steps_r_squared=extrapolated_info.n_measurement_steps_r_squared,
             n_nodes_r_squared=extrapolated_info.n_nodes_r_squared,
             data_used_to_extrapolate=data,
+            steps_to_extrapolate_to=steps_to_extrapolate_to,
         )
 
 
@@ -119,4 +124,4 @@ def _get_logarithmic_extrapolation(x, y, steps_to_extrapolate_to):
     coeffs, sum_of_residuals, _, _, _ = np.polyfit(log_x, y, 1, full=True)
     r_squared = 1 - (sum_of_residuals[0] / (len(y) * np.var(y)))
     m, c = coeffs
-    return ceil(np.exp(m * np.log(steps_to_extrapolate_to) + c)), r_squared
+    return ceil(m * np.log(steps_to_extrapolate_to) + c), r_squared

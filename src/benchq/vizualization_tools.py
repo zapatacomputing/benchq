@@ -1,9 +1,14 @@
 ################################################################################
 # © Copyright 2022-2023 Zapata Computing Inc.
 ################################################################################
+from math import ceil, floor
+from typing import List
+
 import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
+
+from .resource_estimation.graph.extrapolation_estimator import ExtrapolatedResourceInfo
 
 
 def plot_graph_state_with_measurement_steps(
@@ -29,9 +34,13 @@ def plot_graph_state_with_measurement_steps(
     plt.show()
 
 
-def plot_linear_extrapolations(
-    ExtrapolatedResourceInfo, steps_to_extrapolate_from, steps_to_extrapolate_to
+def plot_extrapolations(
+    info: ExtrapolatedResourceInfo,
+    steps_to_extrapolate_from: List[int],
 ):
+    """Here we allow one to inspect the fits given by extrapolating a problem
+    from a smaller number of steps.
+    """
     figure, axis = plt.subplots(3, 1)
     figure.tight_layout(pad=1.5)
 
@@ -39,12 +48,7 @@ def plot_linear_extrapolations(
         ["n_logical_qubits", "n_nodes", "n_measurement_steps"]
     ):
         x = steps_to_extrapolate_from
-        y = np.array(
-            [
-                getattr(d, property)
-                for d in ExtrapolatedResourceInfo.data_used_to_extrapolate
-            ]
-        )
+        y = np.array([getattr(d, property) for d in info.data_used_to_extrapolate])
 
         # logarithmic extrapolation
         if property == "n_measurement_steps":
@@ -54,18 +58,42 @@ def plot_linear_extrapolations(
         r_squared = 1 - (sum_of_residuals[0] / (len(y) * np.var(y)))
         m, c = coeffs
 
-        axis[i].plot(x, y, "o")
-        axis[i].plot(
-            [0, steps_to_extrapolate_to],
-            [c, m * steps_to_extrapolate_to + c],
-            "r",
-            label="fitted line",
-        )
-        axis[i].plot(
-            [steps_to_extrapolate_to],
-            [m * steps_to_extrapolate_to + c],
-            "ko",
-        )
+        # logarithmic extrapolation
+        if property == "n_measurement_steps":
+            x = np.exp(x)  # rescale the x values for plotting
+            extrapolated_point = ceil(m * np.log(info.steps_to_extrapolate_to) + c)
+
+            axis[i].plot(x, y, "o")
+            all_x = np.arange(1, info.steps_to_extrapolate_to, 1)
+            axis[i].plot(
+                all_x,
+                m * np.log(all_x) + c,
+                "r",
+                label="fitted line",
+            )
+            axis[i].plot(
+                [info.steps_to_extrapolate_to],
+                [extrapolated_point],
+                "ko",
+            )
+            plt.yticks(range(floor(min(y)), extrapolated_point + 1))
+        else:
+            extrapolated_point = ceil(m * info.steps_to_extrapolate_to + c)
+
+            axis[i].plot(x, y, "o")
+            axis[i].plot(
+                [0, info.steps_to_extrapolate_to],
+                [c, m * info.steps_to_extrapolate_to + c],
+                "r",
+                label="fitted line",
+            )
+            axis[i].plot(
+                [info.steps_to_extrapolate_to],
+                [extrapolated_point],
+                "ko",
+            )
+            plt.yticks(range(floor(min(y)) - 1, extrapolated_point + 1))
+
         axis[i].plot([], [], " ", label="r_squared: " + str(r_squared))
         axis[i].legend()
         axis[i].set_title(property)
