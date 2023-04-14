@@ -1,7 +1,8 @@
+import os
 from pathlib import Path
 import pytest
 
-from benchq.algorithms import get_qsp_program
+from benchq.algorithms.time_evolution import get_qsp_time_evolution_program
 from benchq.problem_ingestion import (
     generate_jw_qubit_hamiltonian_from_mol_data,
     get_vlasov_hamiltonian,
@@ -9,6 +10,12 @@ from benchq.problem_ingestion import (
 from benchq.problem_ingestion.hamiltonian_generation import fast_load_qubit_op
 from benchq.problem_ingestion.molecule_instance_generation import (
     generate_hydrogen_chain_instance,
+)
+
+
+SKIP_SLOW = pytest.mark.skipif(
+    os.getenv("SLOW_BENCHMARKS") is None,
+    reason="Slow benchmarks can only run if SLOW_BENCHMARKS env variable is defined"
 )
 
 
@@ -23,11 +30,10 @@ def vlasov_test_case():
     tmax = 5
     sclf = 1
     required_precision = 1e-3 / 3
-    mode = "time_evolution"
 
     operator = get_vlasov_hamiltonian(k, alpha, nu, N)
 
-    return pytest.param(operator, required_precision, dt, tmax, sclf, mode, id="vlasov")
+    return pytest.param(operator, required_precision, dt, tmax, sclf, id="vlasov")
 
 
 def jw_test_cases():
@@ -35,7 +41,6 @@ def jw_test_cases():
     tmax = 5
     sclf = 1
     required_precision = 1e-3 / 2
-    mode = "gse"
 
     return [
         pytest.param(
@@ -46,7 +51,6 @@ def jw_test_cases():
             dt,
             tmax,
             sclf,
-            mode,
             id=f"jw-{n_hydrogens}",
         )
         for n_hydrogens in (2,)
@@ -56,17 +60,16 @@ def jw_test_cases():
 def fast_load_test_cases():
     def _load_hamiltonian(name):
         return fast_load_qubit_op(
-            str(Path(__file__).parent / f"../../examples/small_molecules/{name}.json")
+            str(Path(__file__).parent / f"../examples/small_molecules/{name}.json")
         )
 
     dt = 0.05  # Integration timestep
     tmax = 5  # Maximal timestep
     sclf = 1
     required_precision = 1e-2
-    mode = "gse"
 
     return [
-        pytest.param(_load_hamiltonian(name), required_precision, dt, tmax, sclf, mode, id=name)
+        pytest.param(_load_hamiltonian(name), required_precision, dt, tmax, sclf, id=name, marks=SKIP_SLOW)
         for name in (
             "C2H2-8-canonical_qubitop",
             "CH4-8-NOs_qubitop",
@@ -75,9 +78,10 @@ def fast_load_test_cases():
     ]
 
 
+@pytest.mark.benchmark
 @pytest.mark.parametrize(
-    "operator, required_precision, dt, tmax, sclf, mode",
+    "operator, required_precision, dt, tmax, sclf",
     [vlasov_test_case(), *jw_test_cases(), *fast_load_test_cases()],
 )
-def test_get_qsp_program(benchmark, operator, required_precision, dt, tmax, sclf, mode):
-    benchmark(get_qsp_program, operator, required_precision, dt, tmax, sclf, mode)
+def test_get_qsp_program(benchmark, operator, required_precision, dt, tmax, sclf):
+    benchmark(get_qsp_time_evolution_program, operator, required_precision, dt, tmax, sclf)
