@@ -1,14 +1,14 @@
 ################################################################################
 # © Copyright 2022-2023 Zapata Computing Inc.
 ################################################################################
-from benchq import BasicArchitectureModel
+from orquestra import sdk
 
+from benchq import BasicArchitectureModel
 from benchq.resource_estimation.microsoft import (
     get_resource_estimations_for_program as msft_re_for_program,
 )
 
-from .defs import get_operator, ms_task, get_program
-from orquestra import sdk
+from .defs import get_operator, get_program, ms_task
 
 
 @ms_task

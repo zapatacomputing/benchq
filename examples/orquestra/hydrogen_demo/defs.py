@@ -9,7 +9,7 @@ from orquestra import sdk
 from orquestra.quantum.evolution import time_evolution
 
 from benchq import BasicArchitectureModel
-from benchq.algorithms import get_qsp_program
+from benchq.algorithms import get_qsp_time_evolution_program
 from benchq.compilation import (
     get_algorithmic_graph_from_Jabalizer,
     pyliqtr_transpile_to_clifford_t,
@@ -19,9 +19,7 @@ from benchq.problem_ingestion.molecule_instance_generation import (
     generate_hydrogen_chain_instance,
 )
 from benchq.resource_estimation import get_qpe_resource_estimates_from_mean_field_object
-from benchq.resource_estimation.graph_compilation import (
-    get_resource_estimations_for_graph,
-)
+from benchq.resource_estimation.graph import get_resource_estimations_for_graph
 
 task_deps = [sdk.PythonImports("pyscf==2.2.0", "openfermionpyscf==0.5")]
 ms_task_deps = [
@@ -57,7 +55,7 @@ def get_program(
     mode: str = "gse",
     gse_accuracy: float = 1e-3,
 ):
-    return get_qsp_program(
+    return get_qsp_time_evolution_program(
         operator,
         qsp_required_precision,
         dt,
@@ -81,8 +79,8 @@ def time_evolution_task(operator, time):
 
 
 @standard_task
-def transpile_to_clifford_t(circuit, synthesis_accuracy):
-    return pyliqtr_transpile_to_clifford_t(circuit, synthesis_accuracy)
+def transpile_to_clifford_t(circuit, circuit_precision):
+    return pyliqtr_transpile_to_clifford_t(circuit, circuit_precision=circuit_precision)
 
 
 @task_with_julia
@@ -165,9 +163,9 @@ def original_main():
 
         # TA 2 part: FTQC compilation
 
-        synthesis_accuracy = 1e-10
+        circuit_precision = 1e-10
         clifford_t_circuit = pyliqtr_transpile_to_clifford_t(
-            circuit, synthesis_accuracy
+            circuit, circuit_precision=circuit_precision
         )
         graph = get_algorithmic_graph_from_Jabalizer(clifford_t_circuit)
 

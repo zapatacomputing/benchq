@@ -6,7 +6,7 @@ import math
 from orquestra.quantum.evolution import time_evolution
 from orquestra.quantum.operators._pauli_operators import PauliRepresentation
 
-from ..data_structures import QuantumProgram
+from ...data_structures import QuantumProgram
 
 
 # TODO: This method of calculating number of steps is not exact.

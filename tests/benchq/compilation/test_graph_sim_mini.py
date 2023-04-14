@@ -77,7 +77,9 @@ def test_stabilizer_states_are_the_same_for_larger_circuits(filename):
         )
 
     for i in range(1, 10):
-        clifford_t = pyliqtr_transpile_to_clifford_t(qiskit_circuit, 10**-2)
+        clifford_t = pyliqtr_transpile_to_clifford_t(
+            qiskit_circuit, circuit_precision=10**-2
+        )
         test_circuit = get_icm(clifford_t)
 
         target_tableau = get_target_tableau(test_circuit)

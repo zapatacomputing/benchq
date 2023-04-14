@@ -2,6 +2,7 @@ from typing import Callable
 
 from ...compilation import (
     get_algorithmic_graph_from_graph_sim_mini,
+    get_algorithmic_graph_from_Jabalizer,
     pyliqtr_transpile_to_clifford_t,
 )
 from ...compilation import simplify_rotations as _simplify_rotations
@@ -16,7 +17,7 @@ def synthesize_clifford_t(error_budget) -> Callable[[QuantumProgram], QuantumPro
         )
         circuits = [
             pyliqtr_transpile_to_clifford_t(
-                circuit, synthesis_accuracy=synthesis_error_budget
+                circuit, circuit_precision=synthesis_error_budget
             )
             for circuit in program.subroutines
         ]
