@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+
 import pytest
 
 from benchq.algorithms.time_evolution import get_qsp_time_evolution_program
@@ -12,10 +13,9 @@ from benchq.problem_ingestion.molecule_instance_generation import (
     generate_hydrogen_chain_instance,
 )
 
-
 SKIP_SLOW = pytest.mark.skipif(
     os.getenv("SLOW_BENCHMARKS") is None,
-    reason="Slow benchmarks can only run if SLOW_BENCHMARKS env variable is defined"
+    reason="Slow benchmarks can only run if SLOW_BENCHMARKS env variable is defined",
 )
 
 
@@ -69,7 +69,15 @@ def fast_load_test_cases():
     required_precision = 1e-2
 
     return [
-        pytest.param(_load_hamiltonian(name), required_precision, dt, tmax, sclf, id=name, marks=SKIP_SLOW)
+        pytest.param(
+            _load_hamiltonian(name),
+            required_precision,
+            dt,
+            tmax,
+            sclf,
+            id=name,
+            marks=SKIP_SLOW,
+        )
         for name in (
             "C2H2-8-canonical_qubitop",
             "CH4-8-NOs_qubitop",
@@ -84,4 +92,6 @@ def fast_load_test_cases():
     [vlasov_test_case(), *jw_test_cases(), *fast_load_test_cases()],
 )
 def test_get_qsp_program(benchmark, operator, required_precision, dt, tmax, sclf):
-    benchmark(get_qsp_time_evolution_program, operator, required_precision, dt, tmax, sclf)
+    benchmark(
+        get_qsp_time_evolution_program, operator, required_precision, dt, tmax, sclf
+    )
