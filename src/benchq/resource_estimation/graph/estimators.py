@@ -216,7 +216,7 @@ class GraphResourceEstimator:
             max_decodable_distance=max_decodable_distance,
         )
 
-    def estimate(self, problem: GraphPartition, error_budget):
+    def estimate(self, problem: GraphPartition, error_budget) -> ResourceInfo:
         n_nodes = problem.n_nodes
         if len(problem.subgraphs) == 1:
             return self._estimate_resource_for_graph(
