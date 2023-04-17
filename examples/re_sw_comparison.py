@@ -5,6 +5,7 @@ from pprint import pprint
 
 from benchq import BasicArchitectureModel
 from benchq.algorithms.time_evolution import get_qsp_time_evolution_program
+from benchq.data_structures.quantum_program import get_program_from_circuit
 from benchq.problem_ingestion import get_vlasov_hamiltonian
 from benchq.problem_ingestion.hamiltonian_generation import (
     fast_load_qubit_op,
@@ -18,7 +19,6 @@ from benchq.resource_estimation.graph import (
     simplify_rotations,
     synthesize_clifford_t,
 )
-from benchq.data_structures.quantum_program import get_program_from_circuit
 from benchq.timing import measure_time
 
 
@@ -71,19 +71,19 @@ def main():
     print("Circuit generation time:", t_info.total)
     # TA 2 part: model hardware resources
 
-    # with measure_time() as t_info:
-    #     gsc_resource_estimates = run_resource_estimation_pipeline(
-    #         program,
-    #         error_budget,
-    #         estimator=GraphResourceEstimator(architecture_model),
-    #         transformers=[
-    #             simplify_rotations,
-    #             create_big_graph_from_subcircuits(synthesized=False),
-    #         ],
-    #     )
+    with measure_time() as t_info:
+        gsc_resource_estimates = run_resource_estimation_pipeline(
+            program,
+            error_budget,
+            estimator=GraphResourceEstimator(architecture_model),
+            transformers=[
+                simplify_rotations,
+                create_big_graph_from_subcircuits(synthesized=False),
+            ],
+        )
 
-    # print("Resource estimation time without synthesis:", t_info.total)
-    # pprint(gsc_resource_estimates)
+    print("Resource estimation time with GSC:", t_info.total)
+    pprint(gsc_resource_estimates)
 
     with measure_time() as t_info:
         gsc_resource_estimates = run_resource_estimation_pipeline(

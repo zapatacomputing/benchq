@@ -5,6 +5,7 @@ import os
 from collections import Counter
 from dataclasses import dataclass
 from typing import Dict, Optional
+import warnings
 
 from azure.quantum.qiskit import AzureQuantumProvider
 from orquestra.integrations.qiskit.conversions import export_to_qiskit
@@ -63,12 +64,11 @@ class AzureResourceEstimator:
         hw_model: Optional[BasicArchitectureModel] = None,
         use_full_circuit: bool = True,
     ):
-        """
-
-        Args:
-            hw_model: _description_. Defaults to None.
-            use_full_circuit: _description_. Defaults to True.
-        """
+        if hw_model is not None:
+            warnings.warn(
+                "Supplying hardware model to AzureResourceEstimator is "
+                "currently broken."
+            )
         self.hw_model = hw_model
         self.use_full_circuit = use_full_circuit
 
@@ -100,15 +100,16 @@ class AzureResourceEstimator:
         if self.hw_model is not None:
             gate_time = self.hw_model.physical_gate_time_in_seconds
             gate_time_string = f"{int(gate_time * 1e9)} ns"
-            qubit = {
-                "name": "slow gate-based",
+            qubitParams = {
+                "name": "custom gate-based",
+                "instructionSet": "GateBased",
                 "oneQubitGateTime": gate_time_string,
                 # "oneQubitMeasurementTime": "30 μs",
                 "oneQubitGateErrorRate": self.hw_model.physical_gate_error_rate,
                 # "tStateErrorRate": 1e-3
             }
         else:
-            qubit = None
+            qubitParams = None
 
         qiskit_circuit = export_to_qiskit(circuit)
         provider = AzureQuantumProvider(
@@ -116,7 +117,12 @@ class AzureResourceEstimator:
         )
 
         backend = provider.get_backend("microsoft.estimator")
-        job = backend.run(qiskit_circuit, qubit=qubit, errorBudget=error_budget)
+        if qubitParams is None:
+            job = backend.run(qiskit_circuit, errorBudget=error_budget)
+        else:
+            job = backend.run(
+                qiskit_circuit, qubitParams=qubitParams, errorBudget=error_budget
+            )
 
         job_monitor(job)
         job_results = job.result().data()
