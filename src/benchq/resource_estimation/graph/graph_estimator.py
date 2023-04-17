@@ -95,7 +95,7 @@ class GraphResourceEstimator:
     def _minimize_code_distance(
         self,
         n_nodes: int,
-        max_node_degree: int,
+        max_graph_degree: int,
         error_budget,
         error_rate: Callable[[int, int, int], float],
         min_d: int = 4,
@@ -104,7 +104,7 @@ class GraphResourceEstimator:
         target_error_rate = error_budget["total_error"] * error_budget["ec_error_rate"]
 
         for distance in range(min_d, max_d):
-            if error_rate(distance, n_nodes, max_node_degree) < target_error_rate:
+            if error_rate(distance, n_nodes, max_graph_degree) < target_error_rate:
                 return distance
 
         raise RuntimeError(f"Not found good error rates under distance code: {max_d}.")
@@ -116,7 +116,7 @@ class GraphResourceEstimator:
         self, distance: int, n_nodes: int, max_graph_degree: int
     ) -> float:
         _, ec_error_rate = self.balance_logical_error_rate_and_synthesis_accuracy(
-            n_nodes, distance, max_node_degree
+            n_nodes, distance, max_graph_degree
         )
         return ec_error_rate
 
@@ -147,7 +147,7 @@ class GraphResourceEstimator:
 
     # TODO: We need to make sure it's doing scientifically what it should be doing
     def balance_logical_error_rate_and_synthesis_accuracy(
-        self, n_nodes, distance, max_node_degree
+        self, n_nodes, distance, max_graph_degree
     ):
         """
         This function is basically finding such a value of synthesis error rate, that

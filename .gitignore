@@ -137,7 +137,7 @@ measurement_steps_plot.pdf
 
 # ignore molecule files
 small_molecules/
-wf.generate_hamiltonians
+wf.generate_hamiltonians**
 
 # ignore decoder data
 decoder_data.csv

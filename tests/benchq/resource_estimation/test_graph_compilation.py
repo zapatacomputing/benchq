@@ -6,10 +6,7 @@ import pytest
 from orquestra.quantum.circuits import CNOT, RX, RY, RZ, Circuit, H, S, T
 
 from benchq.data_structures import BasicArchitectureModel, DecoderModel, QuantumProgram
-from benchq.data_structures.quantum_program import (
-    QuantumProgram,
-    get_program_from_circuit,
-)
+from benchq.data_structures.quantum_program import get_program_from_circuit
 from benchq.resource_estimation.graph import (
     GraphResourceEstimator,
     create_big_graph_from_subcircuits,
