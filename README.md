@@ -40,6 +40,23 @@ We have multiple examples there:
 - `resource_estimate_from_qasm.py` shows how to use graph state compilation when the circuit is loaded from QASM.
 - `qsp_vlasov.py` shows how to perform resource estimation.
 
+## Running benchmarks
+
+To run the benchmarks run 
+
+``` bash
+pytest benchmarks/
+```
+
+from the top-level directory of this repo. By default, this will skip some benchmarks that run extremely low. If you want to run
+those too, set environmental variable `SLOW_BENCHMARKS` to any value, e.g.:
+
+``` bash
+SLOW_BENCHMARKS=1 pytest benchmarks/
+```
+
+`
+`
 
 ## Development and Contribution
 

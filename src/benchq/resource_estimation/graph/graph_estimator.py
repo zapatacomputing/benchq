@@ -24,11 +24,22 @@ def substrate_scheduler(graph: nx.Graph) -> TwoRowSubstrateScheduler:
 
 
 @dataclass
+class GraphData:
+    """Contains minimal set of data to get a resource estimate for a graph."""
+
+    max_graph_degree: int
+    n_nodes: int
+    n_measurement_steps: int
+
+
+@dataclass
 class ResourceInfo:
+    """Contains all resource estimated for a problem instance."""
+
     synthesis_multiplier: float
     code_distance: int
     logical_error_rate: float
-    max_graph_degree: int
+    n_logical_qubits: int
     n_nodes: int
     n_physical_qubits: int
     n_measurement_steps: int
@@ -36,6 +47,19 @@ class ResourceInfo:
     max_decodable_distance: Optional[int]
     decoder_power: Optional[float]
     decoder_area: Optional[float]
+
+    def __repr__(self):
+        necessary_info = [
+            "code_distance",
+            "logical_error_rate",
+            "n_logical_qubits",
+            "total_time",
+            "decoder_power",
+            "decoder_area",
+            "n_measurement_steps",
+            "n_physical_qubits",
+        ]
+        return "\n".join(f"{info}: {getattr(self, info)}" for info in necessary_info)
 
 
 class GraphResourceEstimator:
@@ -85,20 +109,23 @@ class GraphResourceEstimator:
 
         raise RuntimeError(f"Not found good error rates under distance code: {max_d}.")
 
-    def _ec_error_rate_synthesized(
-        self, distance: int, n_nodes: int, max_graph_degree: int
-    ) -> float:
-        return self._logical_cell_failure_rate(distance) * self.get_logical_st_volume(
-            n_nodes, max_graph_degree
-        )
+    def _get_n_measurement_steps(self, graph) -> int:
+        return len(substrate_scheduler(graph).measurement_steps)
 
-    def _ec_error_rate_unsynthesized(
+    def _ec_error_rate_delayed_gate_synthesis(
         self, distance: int, n_nodes: int, max_graph_degree: int
     ) -> float:
         _, ec_error_rate = self.balance_logical_error_rate_and_synthesis_accuracy(
             n_nodes, distance, max_graph_degree
         )
         return ec_error_rate
+
+    def _ec_error_rate(
+        self, distance: int, n_nodes: int, max_graph_degree: int
+    ) -> float:
+        return self._logical_cell_failure_rate(distance) * self.get_logical_st_volume(
+            n_nodes, max_graph_degree
+        )
 
     def get_logical_st_volume(self, n_nodes: int, max_graph_degree: int):
         num_boxes = np.ceil((max_graph_degree + 1) / self.BOX_WIDTH)
@@ -129,8 +156,10 @@ class GraphResourceEstimator:
         """
         current_synthesis_accuracy = INITIAL_SYNTHESIS_ACCURACY
         for _ in range(20):
-            ec_error_rate = self._ec_error_rate_synthesized(
-                distance, n_nodes, max_graph_degree
+            ec_error_rate = self._ec_error_rate(
+                distance,
+                n_nodes,
+                max_graph_degree,
             )
             new_synthesis_accuracy = (1 / (12 * n_nodes)) * ec_error_rate
             # This is for cases where the algorithm diverges terribly, to avoid
@@ -142,28 +171,38 @@ class GraphResourceEstimator:
             current_synthesis_accuracy = new_synthesis_accuracy
         return current_synthesis_accuracy, ec_error_rate
 
-    def _estimate_resource_for_graph(
-        self, graph: nx.Graph, n_nodes: int, synthesized: bool, error_budget
+    def _get_graph_data(self, graph: nx.Graph, n_nodes: int) -> GraphData:
+        max_graph_degree = max(deg for _, deg in graph.degree())
+        n_nodes = n_nodes
+        n_measurement_steps = self._get_n_measurement_steps(graph)
+        return GraphData(
+            max_graph_degree=max_graph_degree,
+            n_nodes=n_nodes,
+            n_measurement_steps=n_measurement_steps,
+        )
+
+    def _estimate_resources_from_graph_data(
+        self, graph_data: GraphData, delayed_gate_synthesis: bool, error_budget
     ) -> ResourceInfo:
         ec_error_rate_func = (
-            self._ec_error_rate_synthesized
-            if synthesized
-            else self._ec_error_rate_unsynthesized
+            self._ec_error_rate_delayed_gate_synthesis
+            if delayed_gate_synthesis
+            else self._ec_error_rate
         )
-
-        max_degree = max(deg for _, deg in graph.degree())
 
         code_distance = self._minimize_code_distance(
-            n_nodes, max_degree, error_budget, ec_error_rate_func
+            graph_data.n_nodes,
+            graph_data.max_graph_degree,
+            error_budget,
+            ec_error_rate_func,
         )
-
-        space_time_volume = self.get_logical_st_volume(n_nodes, max_degree)
-
+        space_time_volume = self.get_logical_st_volume(
+            graph_data.n_nodes, graph_data.max_graph_degree
+        )
         logical_cell_error_rate = self._logical_cell_failure_rate(code_distance)
-        n_measurement_steps = len(substrate_scheduler(graph).measurement_steps)
 
-        # Isolate differences betweeen synthesized and not synthesized case
-        if synthesized:
+        # Isolate differences between synthesized and not synthesized case
+        if not delayed_gate_synthesis:
             total_logical_error_rate = logical_cell_error_rate * space_time_volume
             synthesis_multiplier = 1
         else:
@@ -171,31 +210,34 @@ class GraphResourceEstimator:
                 synthesis_accuracy,
                 total_logical_error_rate,
             ) = self.balance_logical_error_rate_and_synthesis_accuracy(
-                n_nodes, code_distance, max_degree
+                graph_data.n_nodes, code_distance, graph_data.max_graph_degree
             )
 
             synthesis_multiplier = self.SYNTHESIS_SCALING * np.log2(
                 1 / synthesis_accuracy
             )
+
         time_of_logical_t_gate = (
             6 * self.hw_model.physical_gate_time_in_seconds * code_distance
         )
 
-        num_boxes = np.ceil((max_degree + 1) / self.BOX_WIDTH)
+        num_boxes = np.ceil((graph_data.max_graph_degree + 1) / self.BOX_WIDTH)
         patch_size = 2 * code_distance**2
         n_physical_qubits = self.BOX_WIDTH * self.BOX_HEIGHT * num_boxes * patch_size
 
         wall_time = (
-            n_measurement_steps * time_of_logical_t_gate
+            graph_data.n_measurement_steps * time_of_logical_t_gate
             + time_of_logical_t_gate
             * self.N_TOCKS_PER_T_GATE_FACTORY
-            * n_nodes
+            * graph_data.n_nodes
             * synthesis_multiplier
         )
 
         if self.decoder_model:
             decoder_power = space_time_volume * self.decoder_model.power(code_distance)
-            decoder_area = max_degree * self.decoder_model.area(code_distance)
+            decoder_area = graph_data.max_graph_degree * self.decoder_model.area(
+                code_distance
+            )
             max_decodable_distance = self.find_max_decodable_distance()
         else:
             decoder_power = None
@@ -206,9 +248,10 @@ class GraphResourceEstimator:
             synthesis_multiplier=synthesis_multiplier,
             code_distance=code_distance,
             logical_error_rate=total_logical_error_rate,
-            max_graph_degree=max_degree,
-            n_nodes=n_nodes,
-            n_measurement_steps=n_measurement_steps,
+            # estimate the number of logical qubits using max node degree
+            n_logical_qubits=graph_data.max_graph_degree,
+            n_nodes=graph_data.n_nodes,
+            n_measurement_steps=graph_data.n_measurement_steps,
             total_time=wall_time,
             n_physical_qubits=n_physical_qubits,
             decoder_power=decoder_power,
@@ -219,8 +262,11 @@ class GraphResourceEstimator:
     def estimate(self, problem: GraphPartition, error_budget) -> ResourceInfo:
         n_nodes = problem.n_nodes
         if len(problem.subgraphs) == 1:
-            return self._estimate_resource_for_graph(
-                problem.subgraphs[0], n_nodes, problem.synthesized, error_budget
+            graph_data = self._get_graph_data(problem.subgraphs[0], n_nodes)
+            return self._estimate_resources_from_graph_data(
+                graph_data,
+                problem.delayed_gate_synthesis,
+                error_budget,
             )
         else:
             raise NotImplementedError(
