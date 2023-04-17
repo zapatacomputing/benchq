@@ -2,7 +2,7 @@
 # © Copyright 2022 Zapata Computing Inc.
 ################################################################################
 from dataclasses import dataclass
-from typing import Iterable, List, Optional, Tuple
+from typing import Iterable, List, Optional, Tuple, Dict
 
 import numpy as np
 import openfermion
@@ -74,6 +74,7 @@ class ChemistryApplicationInstance:
     fno_percentage_occupation_number: Optional[float] = None
     fno_threshold: Optional[float] = None
     fno_n_virtual_natural_orbitals: Optional[int] = None
+    scf_options: Optional[dict] = None
 
     def get_pyscf_molecule(self) -> gto.Mole:
         "Generate the PySCF molecule object describing the system to be calculated."
@@ -99,7 +100,8 @@ class ChemistryApplicationInstance:
         """
         molecule = self.get_pyscf_molecule()
         mean_field_object = (scf.RHF if self.multiplicity == 1 else scf.ROHF)(molecule)
-        mean_field_object.run()
+        mean_field_object.run(**self.scf_options)
+
         if self.avas_atomic_orbitals or self.avas_minao:
             molecule, mean_field_object = truncate_with_avas(
                 mean_field_object,
@@ -195,7 +197,6 @@ class ChemistryApplicationInstance:
                 that the active space will account for both AVAS and the
                 occupied_indices/active_indices attributes.
         """
-
         if (
             self.fno_percentage_occupation_number
             or self.fno_threshold
