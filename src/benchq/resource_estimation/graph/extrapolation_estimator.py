@@ -10,7 +10,7 @@ from .graph_estimator import GraphData, GraphResourceEstimator, ResourceInfo
 
 @dataclass
 class ExtrapolatedGraphData(GraphData):
-    max_node_degree_r_squared: float
+    max_graph_degree_r_squared: float
     n_measurement_steps_r_squared: float
     n_nodes_r_squared: float
 
@@ -53,7 +53,7 @@ class ExtrapolationResourceEstimator(GraphResourceEstimator):
         self, data: List[ResourceInfo], steps_to_extrapolate_to: int
     ) -> ExtrapolatedGraphData:
 
-        max_node_degree, max_node_degree_r_squared = _get_linear_extrapolation(
+        max_graph_degree, max_graph_degree_r_squared = _get_linear_extrapolation(
             self.steps_to_extrapolate_from,
             np.array([d.n_logical_qubits for d in data]),
             steps_to_extrapolate_to,
@@ -91,10 +91,10 @@ class ExtrapolationResourceEstimator(GraphResourceEstimator):
         )
 
         return ExtrapolatedGraphData(
-            max_node_degree=max_node_degree,
+            max_graph_degree=max_graph_degree,
             n_measurement_steps=n_measurement_steps,
             n_nodes=n_nodes,
-            max_node_degree_r_squared=max_node_degree_r_squared,
+            max_graph_degree_r_squared=max_graph_degree_r_squared,
             n_measurement_steps_r_squared=n_measurement_steps_r_squared,
             n_nodes_r_squared=n_nodes_r_squared,
         )
@@ -124,7 +124,7 @@ class ExtrapolationResourceEstimator(GraphResourceEstimator):
             decoder_power=resource_info.decoder_power,
             decoder_area=resource_info.decoder_area,
             max_decodable_distance=resource_info.max_decodable_distance,
-            n_logical_qubits_r_squared=extrapolated_info.max_node_degree_r_squared,
+            n_logical_qubits_r_squared=extrapolated_info.max_graph_degree_r_squared,
             n_measurement_steps_r_squared=extrapolated_info.n_measurement_steps_r_squared,  # noqa: E501
             n_nodes_r_squared=extrapolated_info.n_nodes_r_squared,
             data_used_to_extrapolate=data,
