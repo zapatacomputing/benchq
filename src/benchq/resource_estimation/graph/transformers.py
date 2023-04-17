@@ -5,7 +5,11 @@ from ...compilation import (
     pyliqtr_transpile_to_clifford_t,
 )
 from ...compilation import simplify_rotations as _simplify_rotations
-from ...data_structures import QuantumProgram, get_program_from_circuit
+from ...data_structures import (
+    QuantumProgram,
+    check_program_uses_either_t_gates_or_rotation_gates,
+    get_program_from_circuit,
+)
 from .structs import GraphPartition
 
 
@@ -39,6 +43,7 @@ def create_graphs_for_subcircuits(
     graph_production_method=get_algorithmic_graph_from_graph_sim_mini,
 ) -> Callable[[QuantumProgram], GraphPartition]:
     def _transformer(program: QuantumProgram) -> GraphPartition:
+        check_program_uses_either_t_gates_or_rotation_gates(program)
         graphs_list = [
             graph_production_method(circuit) for circuit in program.subroutines
         ]
@@ -54,6 +59,7 @@ def create_big_graph_from_subcircuits(
     graph_production_method=get_algorithmic_graph_from_graph_sim_mini,
 ) -> Callable[[QuantumProgram], GraphPartition]:
     def _transformer(program: QuantumProgram) -> GraphPartition:
+        check_program_uses_either_t_gates_or_rotation_gates(program)
         big_circuit = program.full_circuit
         new_program = get_program_from_circuit(big_circuit)
         graph = graph_production_method(big_circuit)

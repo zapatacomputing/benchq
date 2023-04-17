@@ -71,3 +71,23 @@ def get_program_from_circuit(circuit):
     return QuantumProgram(
         [circuit], steps=1, calculate_subroutine_sequence=lambda x: [0]
     )
+
+
+def check_program_uses_either_t_gates_or_rotation_gates(
+    program: QuantumProgram,
+) -> None:
+    has_t_gate = False
+    has_rotation_gate = False
+    for subroutine in program.subroutines:
+        for op in subroutine.operations:
+            if op.gate.name in ["T", "T_Dagger"]:
+                has_t_gate = True
+            if op.gate.name in ["RX", "RY", "RZ"]:
+                has_rotation_gate = True
+            if has_t_gate and has_rotation_gate:
+                raise ValueError(
+                    "Program has T gates and rotation gates. Currently, benchq "
+                    "only supports circuits with either T gates or rotation "
+                    "gates when delayed_gate_synthesis=True. Try setting "
+                    "delayed_gate_synthesis=False."
+                )

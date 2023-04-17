@@ -3,10 +3,11 @@
 ################################################################################
 import json
 
+import h5py
 import numpy as np
 import openfermion as of
 import pyLIQTR.sim_methods.quantum_ops as qops
-from openfermion import QubitOperator
+from openfermion import InteractionOperator, QubitOperator, jordan_wigner
 from orquestra.integrations.cirq.conversions import from_openfermion
 from orquestra.quantum.operators import PauliSum
 from orquestra.quantum.utils import ensure_open
@@ -107,3 +108,17 @@ def fast_load_qubit_op(file):
         full_operator += QubitOperator(operator, coefficient)
 
     return from_openfermion(full_operator)
+
+
+def generate_jw_qubit_hamiltonian_from_hdf5_file(
+    file_name
+) -> PauliSum:
+    f = h5py.File(file_name, 'r')  # Open the Hamiltonian file
+
+    one_body_term = f['one_body_tensor']
+    two_body_term = f['two_body_tensor']
+
+    hamiltonian = InteractionOperator(constant=f.attrs["constant"], one_body_tensor=one_body_term, two_body_tensor=two_body_term)
+    hamiltonian_jw = jordan_wigner(hamiltonian)
+
+    return from_openfermion(hamiltonian_jw)

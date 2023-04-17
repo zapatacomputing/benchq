@@ -3,9 +3,9 @@ from dataclasses import asdict
 
 import numpy as np
 import pytest
-from orquestra.quantum.circuits import CNOT, RZ, Circuit, H, T
+from orquestra.quantum.circuits import CNOT, RX, RY, RZ, Circuit, H, S, T
 
-from benchq.data_structures import BasicArchitectureModel, DecoderModel
+from benchq.data_structures import BasicArchitectureModel, DecoderModel, QuantumProgram
 from benchq.data_structures.quantum_program import (
     QuantumProgram,
     get_program_from_circuit,
@@ -13,6 +13,7 @@ from benchq.data_structures.quantum_program import (
 from benchq.resource_estimation.graph import (
     GraphResourceEstimator,
     create_big_graph_from_subcircuits,
+    create_graphs_for_subcircuits,
     run_resource_estimation_pipeline,
     simplify_rotations,
     synthesize_clifford_t,
@@ -269,3 +270,54 @@ def test_get_resource_estimations_for_program_accounts_for_decoder():
     assert gsc_resource_estimates_with_decoder.max_decodable_distance is not None
     assert gsc_resource_estimates_with_decoder.decoder_area is not None
     assert gsc_resource_estimates_with_decoder.decoder_power is not None
+
+
+@pytest.mark.parametrize(
+    "circuit",
+    [
+        Circuit([RX(0.2)(0), T(0)]),
+        Circuit([RY(0.2)(0), T(0)]),
+        Circuit([RZ(0.2)(0), T(0)]),
+        Circuit([RX(0.2)(0), T.dagger(0)]),
+        Circuit([RX(0.2)(0), T(1)]),
+        Circuit([RX(0.2)(0), T(0), H(0)]),
+        Circuit([RX(0)(0), T(0), H(0)]),  # intentional behavior here
+    ],
+)
+def test_simple_graph_compilation_only_works_for_rotation_or_t_gates(circuit):
+    program = QuantumProgram(
+        [circuit], steps=1, calculate_subroutine_sequence=lambda x: [0]
+    )
+    with pytest.raises(ValueError):
+        create_big_graph_from_subcircuits(delayed_gate_synthesis=False)(program)
+    with pytest.raises(ValueError):
+        create_graphs_for_subcircuits(delayed_gate_synthesis=False)(program)
+    with pytest.raises(ValueError):
+        create_big_graph_from_subcircuits(delayed_gate_synthesis=True)(program)
+    with pytest.raises(ValueError):
+        create_graphs_for_subcircuits(delayed_gate_synthesis=True)(program)
+
+
+@pytest.mark.parametrize("steps", [1, 2, 10])
+@pytest.mark.parametrize(
+    "circuits",
+    [
+        [Circuit([T(0)]), Circuit([RX(0.2)(0)]), Circuit([H(0)])],
+        [Circuit([T(0)]), Circuit([H(0)]), Circuit([RX(0.2)(0)])],
+        [Circuit([T(0), T(1)]), Circuit([H(0), S(1)]), Circuit([RX(0.2)(1)])],
+    ],
+)
+def test_qsp_like_graph_compilation_only_works_for_rotation_or_t_gates(circuits, steps):
+    program = QuantumProgram(
+        circuits,
+        steps=steps,
+        calculate_subroutine_sequence=lambda x: [0] + [1] * x + [2],
+    )
+    with pytest.raises(ValueError):
+        create_big_graph_from_subcircuits(delayed_gate_synthesis=False)(program)
+    with pytest.raises(ValueError):
+        create_graphs_for_subcircuits(delayed_gate_synthesis=False)(program)
+    with pytest.raises(ValueError):
+        create_big_graph_from_subcircuits(delayed_gate_synthesis=True)(program)
+    with pytest.raises(ValueError):
+        create_graphs_for_subcircuits(delayed_gate_synthesis=True)(program)
