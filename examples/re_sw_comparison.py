@@ -38,8 +38,6 @@ def main():
     )  # Allocate half the error budget to trotter precision
 
     error_budget = {
-        "qsp_required_precision": qsp_required_precision,
-        "tolerable_circuit_error_rate": tolerable_logical_error_rate,
         "total_error": 1e-2,
         "synthesis_error_rate": 0.5,
         "ec_error_rate": 0.5,
