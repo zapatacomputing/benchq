@@ -9,6 +9,7 @@ import pyLIQTR.sim_methods.quantum_ops as qops
 from openfermion import QubitOperator
 from orquestra.integrations.cirq.conversions import from_openfermion
 from orquestra.quantum.operators import PauliSum
+from orquestra.quantum.utils import ensure_open
 
 # At this stage of development we are aware that there are some issues with methods
 # 2 and 3 and they do not necessarily yield correct results.
@@ -92,11 +93,8 @@ def generate_1d_heisenberg_hamiltonian(N):
 
 
 def fast_load_qubit_op(file):
-    if isinstance(file, str):
-        with open(file, "r") as f:
-            data = json.load(f)
-    else:
-        data = json.load(file)
+    with ensure_open(file, "r") as f:
+        data = json.load(f)
 
     full_operator = QubitOperator()
     for term_dict in data["terms"]:
