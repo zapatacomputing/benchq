@@ -101,7 +101,7 @@ class ChemistryApplicationInstance:
         mean_field_object = (scf.RHF if self.multiplicity == 1 else scf.ROHF)(molecule)
         mean_field_object.run()
         if self.avas_atomic_orbitals or self.avas_minao:
-            molecule, mean_field_object = truncate_with_avas(
+            _, mean_field_object = truncate_with_avas(
                 mean_field_object,
                 self.avas_atomic_orbitals,
                 self.avas_minao,
@@ -218,6 +218,13 @@ class ChemistryApplicationInstance:
                 n_frozen_core = self._set_frozen_core_orbitals(molecular_data).frozen
                 if n_frozen_core > 0:
                     self.occupied_indices = list(range(n_frozen_core))
+                    if self.avas_atomic_orbitals or self.avas_minao:
+                        orbitals_range = list(
+                            range(
+                                molecular_data.overlap_integrals.shape[0]
+                            )  # The active space is already reduced
+                        )
+                        self.active_indices = orbitals_range[n_frozen_core:]
 
             return molecular_data.get_molecular_hamiltonian(
                 occupied_indices=self.occupied_indices,
@@ -300,7 +307,7 @@ class ChemistryApplicationInstance:
             The mp2 object.
 
         """
-        mp2 = mp.MP2(molecular_data._pyscf_data["scf"]).set_frozen()
+        mp2 = mp.MP2(molecular_data._pyscf_data["mol"]).set_frozen()
         return mp2
 
 
