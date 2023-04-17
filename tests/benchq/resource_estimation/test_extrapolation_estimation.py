@@ -92,8 +92,6 @@ def test_get_resource_estimations_for_program_gives_correct_results(
         physical_gate_time_in_seconds=1e-6,
     )
     error_budget = {
-        "qsp_required_precision": 1e-3,
-        "tolerable_circuit_error_rate": 1e-2,
         "total_error": 1e-2,
         "synthesis_error_rate": 0.5,
         "ec_error_rate": 0.5,

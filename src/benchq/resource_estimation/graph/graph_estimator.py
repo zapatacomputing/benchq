@@ -27,7 +27,7 @@ def substrate_scheduler(graph: nx.Graph) -> TwoRowSubstrateScheduler:
 class GraphData:
     """Contains minimal set of data to get a resource estimate for a graph."""
 
-    max_node_degree: int
+    max_graph_degree: int
     n_nodes: int
     n_measurement_steps: int
 
@@ -113,7 +113,7 @@ class GraphResourceEstimator:
         return len(substrate_scheduler(graph).measurement_steps)
 
     def _ec_error_rate_delayed_gate_synthesis(
-        self, distance: int, n_nodes: int, max_node_degree: int
+        self, distance: int, n_nodes: int, max_graph_degree: int
     ) -> float:
         _, ec_error_rate = self.balance_logical_error_rate_and_synthesis_accuracy(
             n_nodes, distance, max_node_degree
@@ -121,14 +121,14 @@ class GraphResourceEstimator:
         return ec_error_rate
 
     def _ec_error_rate(
-        self, distance: int, n_nodes: int, max_node_degree: int
+        self, distance: int, n_nodes: int, max_graph_degree: int
     ) -> float:
         return self._logical_cell_failure_rate(distance) * self.get_logical_st_volume(
-            n_nodes, max_node_degree
+            n_nodes, max_graph_degree
         )
 
-    def get_logical_st_volume(self, n_nodes: int, max_node_degree: int):
-        num_boxes = np.ceil((max_node_degree + 1) / self.BOX_WIDTH)
+    def get_logical_st_volume(self, n_nodes: int, max_graph_degree: int):
+        num_boxes = np.ceil((max_graph_degree + 1) / self.BOX_WIDTH)
         space = self.BOX_WIDTH * self.BOX_HEIGHT * num_boxes
         # Time component assuming all graph nodes are measured sequentially
         time = self.N_TOCKS_PER_T_GATE_FACTORY * n_nodes
@@ -159,7 +159,7 @@ class GraphResourceEstimator:
             ec_error_rate = self._ec_error_rate(
                 distance,
                 n_nodes,
-                max_node_degree,
+                max_graph_degree,
             )
             new_synthesis_accuracy = (1 / (12 * n_nodes)) * ec_error_rate
             # This is for cases where the algorithm diverges terribly, to avoid
@@ -172,11 +172,11 @@ class GraphResourceEstimator:
         return current_synthesis_accuracy, ec_error_rate
 
     def _get_graph_data(self, graph: nx.Graph, n_nodes: int) -> GraphData:
-        max_node_degree = max(deg for _, deg in graph.degree())
+        max_graph_degree = max(deg for _, deg in graph.degree())
         n_nodes = n_nodes
         n_measurement_steps = self._get_n_measurement_steps(graph)
         return GraphData(
-            max_node_degree=max_node_degree,
+            max_graph_degree=max_graph_degree,
             n_nodes=n_nodes,
             n_measurement_steps=n_measurement_steps,
         )
@@ -192,12 +192,12 @@ class GraphResourceEstimator:
 
         code_distance = self._minimize_code_distance(
             graph_data.n_nodes,
-            graph_data.max_node_degree,
+            graph_data.max_graph_degree,
             error_budget,
             ec_error_rate_func,
         )
         space_time_volume = self.get_logical_st_volume(
-            graph_data.n_nodes, graph_data.max_node_degree
+            graph_data.n_nodes, graph_data.max_graph_degree
         )
         logical_cell_error_rate = self._logical_cell_failure_rate(code_distance)
 
@@ -210,7 +210,7 @@ class GraphResourceEstimator:
                 synthesis_accuracy,
                 total_logical_error_rate,
             ) = self.balance_logical_error_rate_and_synthesis_accuracy(
-                graph_data.n_nodes, code_distance, graph_data.max_node_degree
+                graph_data.n_nodes, code_distance, graph_data.max_graph_degree
             )
 
             synthesis_multiplier = self.SYNTHESIS_SCALING * np.log2(
@@ -221,7 +221,7 @@ class GraphResourceEstimator:
             6 * self.hw_model.physical_gate_time_in_seconds * code_distance
         )
 
-        num_boxes = np.ceil((graph_data.max_node_degree + 1) / self.BOX_WIDTH)
+        num_boxes = np.ceil((graph_data.max_graph_degree + 1) / self.BOX_WIDTH)
         patch_size = 2 * code_distance**2
         n_physical_qubits = self.BOX_WIDTH * self.BOX_HEIGHT * num_boxes * patch_size
 
@@ -235,7 +235,7 @@ class GraphResourceEstimator:
 
         if self.decoder_model:
             decoder_power = space_time_volume * self.decoder_model.power(code_distance)
-            decoder_area = graph_data.max_node_degree * self.decoder_model.area(
+            decoder_area = graph_data.max_graph_degree * self.decoder_model.area(
                 code_distance
             )
             max_decodable_distance = self.find_max_decodable_distance()
@@ -249,7 +249,7 @@ class GraphResourceEstimator:
             code_distance=code_distance,
             logical_error_rate=total_logical_error_rate,
             # estimate the number of logical qubits using max node degree
-            n_logical_qubits=graph_data.max_node_degree,
+            n_logical_qubits=graph_data.max_graph_degree,
             n_nodes=graph_data.n_nodes,
             n_measurement_steps=graph_data.n_measurement_steps,
             total_time=wall_time,
