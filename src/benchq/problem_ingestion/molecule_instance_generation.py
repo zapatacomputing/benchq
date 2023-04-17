@@ -1,8 +1,8 @@
 ################################################################################
 # © Copyright 2022 Zapata Computing Inc.
 ################################################################################
-from dataclasses import dataclass
-from typing import Iterable, List, Optional, Tuple, Dict
+from dataclasses import dataclass, field
+from typing import Iterable, List, Optional, Tuple
 
 import numpy as np
 import openfermion
@@ -100,7 +100,10 @@ class ChemistryApplicationInstance:
         """
         molecule = self.get_pyscf_molecule()
         mean_field_object = (scf.RHF if self.multiplicity == 1 else scf.ROHF)(molecule)
-        mean_field_object.run(**self.scf_options)
+        if self.scf_options is not None:
+            mean_field_object.run(**self.scf_options)
+        else:
+            mean_field_object.run()
 
         if self.avas_atomic_orbitals or self.avas_minao:
             molecule, mean_field_object = truncate_with_avas(
@@ -265,6 +268,7 @@ class ChemistryApplicationInstance:
             multiplicity=self.multiplicity,
             charge=self.charge,
         )
+
         molecule, mean_field_object = self._run_pyscf()
         molecular_data.n_orbitals = int(molecule.nao_nr())
         molecular_data.n_qubits = 2 * molecular_data.n_orbitals
