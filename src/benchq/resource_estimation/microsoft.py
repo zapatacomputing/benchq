@@ -5,8 +5,6 @@ import os
 
 from azure.quantum.qiskit import AzureQuantumProvider
 from orquestra.integrations.qiskit.conversions import export_to_qiskit
-from qiskit import QuantumCircuit, transpile
-from qiskit.circuit.library import RGQFTMultiplier
 from qiskit.tools.monitor import job_monitor
 
 from ..data_structures import QuantumProgram

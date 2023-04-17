@@ -15,7 +15,7 @@ AnyCircuit = Union[OrquestraCircuit, CirqCircuit, QiskitCircuit]
 class GraphPartition:
     program: QuantumProgram
     subgraphs: List[nx.Graph]
-    synthesized: bool
+    delayed_gate_synthesis: bool
 
     @property
     def n_nodes(self) -> int:
