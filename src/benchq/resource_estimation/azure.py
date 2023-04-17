@@ -2,16 +2,16 @@
 # © Copyright 2022-2023 Zapata Computing Inc.
 ################################################################################
 import os
+from collections import Counter
+from dataclasses import dataclass
+from typing import Dict, Optional
 
 from azure.quantum.qiskit import AzureQuantumProvider
 from orquestra.integrations.qiskit.conversions import export_to_qiskit
-from typing import Dict, Optional
-from qiskit.tools.monitor import job_monitor
 from orquestra.quantum.circuits import Circuit
-from dataclasses import dataclass
+from qiskit.tools.monitor import job_monitor
 
-from ..data_structures import QuantumProgram, BasicArchitectureModel
-from collections import Counter
+from ..data_structures import BasicArchitectureModel, QuantumProgram
 
 
 @dataclass
@@ -50,9 +50,11 @@ class AzureResourceEstimator:
     Requires having Azure credentials set up in the environment.
 
     Args:
-        hw_model: Describes the architecture that should be used for resource estimation.
-            If None, default architecture provided by QRE is used. Defaults to None.
-        use_full_circuit: If True, recreates the whole circuit from QuantumProgram. Defaults to True.
+        hw_model: Describes the architecture that should be used for resource
+            estimation. If None, default architecture provided by QRE is used.
+            Defaults to None.
+        use_full_circuit: If True, recreates the whole circuit from QuantumProgram.
+            Defaults to True.
 
     """
 
@@ -73,7 +75,7 @@ class AzureResourceEstimator:
     def estimate(
         self, program: QuantumProgram, error_budget: Optional[Dict] = None
     ) -> AzureResourceInfo:
-        azure_error_budget = {}
+        azure_error_budget: Dict[str, float] = {}
         if error_budget is not None:
             azure_error_budget = {}
             total_error = error_budget["total_error"]
@@ -93,7 +95,7 @@ class AzureResourceEstimator:
             )
 
     def _estimate_resources_for_circuit(
-        self, circuit: Circuit, error_budget: Dict
+        self, circuit: Circuit, error_budget: Dict[str, float]
     ) -> AzureResourceInfo:
         if self.hw_model is not None:
             gate_time = self.hw_model.physical_gate_time_in_seconds

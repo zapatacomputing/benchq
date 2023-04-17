@@ -4,7 +4,6 @@ from orquestra.quantum.circuits import CNOT, RX, RY, RZ, Circuit, H, T
 
 from benchq.data_structures import BasicArchitectureModel
 from benchq.data_structures.quantum_program import get_program_from_circuit
-
 from benchq.resource_estimation.azure import AzureResourceEstimator
 
 
