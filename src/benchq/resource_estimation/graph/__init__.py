@@ -1,5 +1,5 @@
 """Initialization file for benchq.resource_estimation.v2 subpackage."""
-from .estimators import GraphResourceEstimator
+from .estimators import GraphResourceEstimator, substrate_scheduler
 from .pipelines import run_resource_estimation_pipeline
 from .transformers import (
     create_big_graph_from_subcircuits,
