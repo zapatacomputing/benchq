@@ -1,7 +1,7 @@
 ################################################################################
 # © Copyright 2022-2023 Zapata Computing Inc.
 ################################################################################
-from typing import Callable, List, Sequence
+from typing import Callable, Sequence
 
 from orquestra.quantum.circuits import Circuit
 

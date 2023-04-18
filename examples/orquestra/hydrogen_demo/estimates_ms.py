@@ -4,8 +4,8 @@
 from orquestra import sdk
 
 from benchq import BasicArchitectureModel
-from benchq.resource_estimation.microsoft import (
-    get_resource_estimations_for_program as msft_re_for_program,
+from benchq.resource_estimation.azure import (
+    get_resource_estimations_for_program as azure_re_for_program,
 )
 
 from .defs import get_operator, get_program, ms_task
@@ -20,7 +20,7 @@ def ms_estimate(quantum_program, error_budget: float, architecture_model):
     os.environ["AZURE_CLIENT_SECRET"] = sdk.secrets.get("AZURE-CLIENT-SECRET")
     os.environ["AZURE_RESOURCE_ID"] = sdk.secrets.get("AZURE-RESOURCE-ID")
 
-    return msft_re_for_program(quantum_program, error_budget, architecture_model)
+    return azure_re_for_program(quantum_program, error_budget, architecture_model)
 
 
 @sdk.workflow
