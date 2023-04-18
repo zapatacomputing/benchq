@@ -30,7 +30,7 @@ If you plan to use PySCF to generate Hamiltonians, use the `pyscf` install extra
 pip install '.[pyscf]'
 ```
 
-To run resource estimation for Microsoft, one needs to have Microsoft Resource Estimation package configured. I'm not sure if that's even possible for a general audience at the moment.
+To run resource estimation using Azure QRE, one needs to have Azure QRE package configured. I'm not sure if that's even possible for a general audience at the moment.
 
 ## Usage
 
@@ -73,6 +73,8 @@ There are codestyle-related [Github Actions](.github/workflows/style.yml) runnin
 
 Unit tests for this project can be run using `make coverage` command from the main directory.
 Alternatively you can also run `pytest .`.
+
+Since tests of integration with Azure QRE require additional setup, they are disabled by default. You can enable them by setting environmental variable `BENCHQ_TEST_AZURE` to any value.
 
 ### Style
 
