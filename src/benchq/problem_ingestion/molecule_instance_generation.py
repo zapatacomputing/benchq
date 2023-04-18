@@ -101,7 +101,6 @@ class ChemistryApplicationInstance:
         molecule = self.get_pyscf_molecule()
         mean_field_object = (scf.RHF if self.multiplicity == 1 else scf.ROHF)(molecule)
 
-        breakpoint()
         if "soscf" in self.scf_options and self.scf_options["soscf"] == True:
             mean_field_object = mean_field_object.newton()
             del self.scf_options["soscf"]
