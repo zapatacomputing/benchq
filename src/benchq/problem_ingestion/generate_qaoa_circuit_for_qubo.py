@@ -47,7 +47,7 @@ def get_hamiltonian_for_qubo(q_matrix):
 def test_get_hamiltonian_for_qubo():
     q_matrix = np.array([[1, -2], [0, -1]])
     hamiltonian = get_hamiltonian_for_qubo(q_matrix)
-    # ic(hamiltonian)
+    ic(hamiltonian)
 
 
 def get_qaoa_circuit_for_qubo(q_matrix, n_layers=1):
@@ -67,7 +67,7 @@ def get_qaoa_circuit_for_qubo(q_matrix, n_layers=1):
 def test_get_qaoa_circuit_for_qubo():
     q_matrix = np.array([[1, -2], [0, -1]])
     circuit = get_qaoa_circuit_for_qubo(q_matrix, n_layers=1)
-    # ic(circuit)
+    ic(circuit)
 
 
 def get_qaoa_circuits_for_qubos(root_dir, n_layers=1, max_qubo_size=100):
