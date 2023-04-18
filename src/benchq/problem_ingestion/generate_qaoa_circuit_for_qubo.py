@@ -7,9 +7,9 @@ from orquestra.vqa.algorithms import QAOA
 from orquestra.integrations.qiskit.conversions import export_to_qiskit
 
 
-# In a QUBO problem, we are given an n*n matrix Q and need to find x in {0,1}^n which minimizes x^T Q x.
-# In the following code, we receive q_matrix = the matrix Q, and generate a QAOA circuit (with random paramerers) for it.
-# The goal here is to estimate the resource cost of the QAOA algorithm for solving the QUBO problem.
+# In a QUBO problem, we are given an n*n matrix Q and need to find x in {0,1}^n
+# which minimizes x^T Q x. In the following code, we receive q_matrix = the
+# matrix Q, and generate a QAOA circuit (with random paramerers) for it.
 
 def get_hamiltonian_for_qubo(q_matrix):
     # Input:
@@ -43,9 +43,11 @@ def get_hamiltonian_for_qubo(q_matrix):
     hamiltonian = PauliSum(pauli_terms).simplify()
     return hamiltonian
 
-# q_matrix = np.array([[1, -2], [0, -1]])
-# hamiltonian = get_hamiltonian_for_qubo(q_matrix)
-# ic(hamiltonian)
+
+def test_get_hamiltonian_for_qubo():
+    q_matrix = np.array([[1, -2], [0, -1]])
+    hamiltonian = get_hamiltonian_for_qubo(q_matrix)
+    # ic(hamiltonian)
 
 
 def get_qaoa_circuit_for_qubo(q_matrix, n_layers=1):
@@ -57,22 +59,28 @@ def get_qaoa_circuit_for_qubo(q_matrix, n_layers=1):
 
     hamiltonian = get_hamiltonian_for_qubo(q_matrix)
     qaoa = QAOA.default(cost_hamiltonian=hamiltonian, n_layers=n_layers)
-    random_params = np.random.uniform(-np.pi, np.pi, 2*n_layers)     # use random parameters in the QAOA circuit
+    random_params = np.random.uniform(-np.pi, np.pi, 2 * n_layers)
     circuit = qaoa.get_circuit(random_params)
     return circuit
 
-# q_matrix = np.array([[1, -2], [0, -1]])
-# circuit = get_qaoa_circuit_for_qubo(q_matrix, n_layers=1)
-# ic(circuit)
+
+def test_get_qaoa_circuit_for_qubo():
+    q_matrix = np.array([[1, -2], [0, -1]])
+    circuit = get_qaoa_circuit_for_qubo(q_matrix, n_layers=1)
+    # ic(circuit)
+
 
 def get_qaoa_circuits_for_qubos(root_dir, n_layers=1, max_qubo_size=100):
     # Input:
-    #       root_dir: A directory that contains the hdf5 files that describe the QUBO instances
+    #       root_dir: A directory that contains the hdf5 files that describe
+    #                 the QUBO instances
     #       n_layers: Number of layers in QAOA circuits
-    #       max_qubo_size: We only generate QAOA ciruicts for QUBO instances with <= max_qubo_size variables.
-    #                     Note that it takes a long time to generate QAOA circuits for very large instances.
+    #       max_qubo_size: We only generate QAOA ciruicts for QUBO instances
+    #                      with <= max_qubo_size variables. It takes long time
+    #                      to generate QAOA circuits for large instances.
     # Output:
-    #       the QAOA ciruicts are saved into QASM files which are named after the given data files
+    #       the QAOA ciruicts are saved into QASM files which are named after
+    #       the given data files
 
     list_files = os.listdir(root_dir)
     for file in list_files:
@@ -82,8 +90,7 @@ def get_qaoa_circuits_for_qubos(root_dir, n_layers=1, max_qubo_size=100):
         q_matrix = np.array(data['q_matrix'][()])
         if q_matrix.shape[0] <= max_qubo_size:
             circuit = get_qaoa_circuit_for_qubo(q_matrix, n_layers=n_layers)
-            #ic(circuit)
             result_file = os.path.splitext(file)[0] + ".qasm"
             export_to_qiskit(circuit).qasm(filename=os.path.join(root_dir, result_file))
 
-# get_qaoa_circuits_for_qubos("./qubo_data_files", n_layers=1, max_qubo_size=100)
+# get_qaoa_circuits_for_qubos("./qubo_data", n_layers=1, max_qubo_size=100)
