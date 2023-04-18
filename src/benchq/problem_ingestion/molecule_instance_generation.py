@@ -105,6 +105,13 @@ class ChemistryApplicationInstance:
             mean_field_object = mean_field_object.newton()
             del self.scf_options["soscf"]
 
+        if (
+            "remove_linear_dep" in self.scf_options
+            and self.scf_options["remove_linear_dep"] == True
+        ):
+            mean_field_object = mean_field_object.apply(scf.addons.remove_linear_dep_)
+            del self.scf_options["remove_linear_dep"]
+
         if self.scf_options is not None:
             mean_field_object.run(**self.scf_options)
         else:
