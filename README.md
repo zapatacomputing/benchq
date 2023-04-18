@@ -74,6 +74,8 @@ There are codestyle-related [Github Actions](.github/workflows/style.yml) runnin
 Unit tests for this project can be run using `make coverage` command from the main directory.
 Alternatively you can also run `pytest .`.
 
+Since tests of integration with Azure QRE require additional setup, they are disabled by default. You can enable them by setting environmental variable `BENCHQ_TEST_AZURE` to any value.
+
 ### Style
 
 We are using automatic tools for style and type checking. In order to make sure the code is compliant with them please run: `make style` from the main directory (this requires `dev` dependencies).

@@ -1,3 +1,5 @@
+import os
+
 import numpy as np
 import pytest
 from orquestra.quantum.circuits import CNOT, RX, RY, RZ, Circuit, H, T
@@ -6,7 +8,13 @@ from benchq.data_structures import BasicArchitectureModel
 from benchq.data_structures.quantum_program import get_program_from_circuit
 from benchq.resource_estimation.azure import AzureResourceEstimator
 
+SKIP_AZURE = pytest.mark.skipif(
+    os.getenv("BENCHQ_TEST_AZURE") is None,
+    reason="Azure tests can only run if BENCHQ_TEST_AZURE env variable is defined",
+)
 
+
+@SKIP_AZURE
 @pytest.mark.skip(
     "It looks like Azure does not take information about the hardware into account"
 )
@@ -54,6 +62,7 @@ def test_better_architecture_does_not_require_more_resources():
     )
 
 
+@SKIP_AZURE
 def test_higher_error_budget_requires_less_resources():
     low_failure_rate = 1e-5
     high_failure_rate = 1e-3
