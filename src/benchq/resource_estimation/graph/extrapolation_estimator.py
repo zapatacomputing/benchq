@@ -4,7 +4,7 @@ from typing import List, Optional
 
 import numpy as np
 
-from ...data_structures import BasicArchitectureModel, DecoderModel
+from ...data_structures import BasicArchitectureModel, DecoderModel, ErrorBudget
 from .graph_estimator import GraphData, GraphResourceEstimator, ResourceInfo
 
 
@@ -102,7 +102,7 @@ class ExtrapolationResourceEstimator(GraphResourceEstimator):
     def estimate_via_extrapolation(
         self,
         data: List[ResourceInfo],
-        error_budget,
+        error_budget: ErrorBudget,
         delayed_gate_synthesis: bool,
         steps_to_extrapolate_to: int,
     ):

@@ -4,12 +4,9 @@
 from pprint import pprint
 
 from benchq import BasicArchitectureModel
-from benchq.algorithms.time_evolution import get_qsp_time_evolution_program
+from benchq.algorithms.time_evolution import qsp_time_evolution_algorithm
 from benchq.problem_ingestion import get_vlasov_hamiltonian
-from benchq.problem_ingestion.hamiltonian_generation import (
-    fast_load_qubit_op,
-    generate_1d_heisenberg_hamiltonian,
-)
+from benchq.data_structures import ErrorBudget
 from benchq.resource_estimation.graph import (
     GraphResourceEstimator,
     create_big_graph_from_subcircuits,
@@ -25,23 +22,9 @@ def main():
     k = 2.0
     alpha = 0.6
     nu = 0.0
+    evolution_time = 5
 
-    dt = 0.1  # Integration timestep
-    tmax = 5  # Maximal timestep
-    sclf = 1
-
-    tolerable_logical_error_rate = 1e-3
-    qsp_required_precision = (
-        tolerable_logical_error_rate / 3
-    )  # Allocate half the error budget to trotter precision
-
-    error_budget = {
-        "qsp_required_precision": qsp_required_precision,
-        "tolerable_circuit_error_rate": tolerable_logical_error_rate,
-        "total_error": 1e-2,
-        "synthesis_error_rate": 0.5,
-        "ec_error_rate": 0.5,
-    }
+    error_budget = ErrorBudget(ultimate_failure_tolerance=1e-3)
 
     architecture_model = BasicArchitectureModel(
         physical_gate_error_rate=1e-3,
@@ -61,8 +44,8 @@ def main():
 
     # TA 1.5 part: model algorithmic circuit
     with measure_time() as t_info:
-        program = get_qsp_time_evolution_program(
-            operator, qsp_required_precision, dt, tmax, sclf, mode="time_evolution"
+        algorithm = qsp_time_evolution_algorithm(
+            operator, evolution_time, error_budget.circuit_generation_weight
         )
 
     print("Circuit generation time:", t_info.total)
@@ -70,7 +53,7 @@ def main():
 
     with measure_time() as t_info:
         gsc_resource_estimates = run_resource_estimation_pipeline(
-            program,
+            algorithm.program,
             error_budget,
             estimator=GraphResourceEstimator(architecture_model),
             transformers=[
@@ -84,7 +67,7 @@ def main():
 
     with measure_time() as t_info:
         gsc_resource_estimates = run_resource_estimation_pipeline(
-            program,
+            algorithm.program,
             error_budget,
             estimator=GraphResourceEstimator(architecture_model),
             transformers=[

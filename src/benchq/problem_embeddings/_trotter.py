@@ -6,13 +6,7 @@ import math
 from orquestra.quantum.evolution import time_evolution
 from orquestra.quantum.operators._pauli_operators import PauliRepresentation
 
-from ...data_structures import QuantumProgram
-
-
-# TODO: This method of calculating number of steps is not exact.
-# It doesn't take into account the prefactor coming from the Hamiltonian.
-def _get_n_trotter_steps(evolution_time, total_trotter_error) -> int:
-    return math.ceil(evolution_time / total_trotter_error)
+from ..data_structures import QuantumProgram
 
 
 def get_trotter_circuit(hamiltonian, evolution_time, total_trotter_error):
