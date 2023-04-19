@@ -47,6 +47,21 @@ def test_get_active_space_meanfield_object_raises_error_for_unsupported_instance
         instance.get_active_space_meanfield_object()
 
 
+def test_mean_field_object_has_valid_scf_options():
+    instance = generate_hydrogen_chain_instance(2)
+    instance.scf_options = {"conv_tol": 1e-08, "level_shift": 0.4}
+    mean_field_object = instance.get_active_space_meanfield_object()
+    assert mean_field_object.conv_tol == 1e-08
+    assert mean_field_object.level_shift == 0.4
+
+
+def test_mean_field_object_has_valid_default_scf_options():
+    instance = generate_hydrogen_chain_instance(2)
+    mean_field_object = instance.get_active_space_meanfield_object()
+    assert mean_field_object.conv_tol == 1e-09
+    assert mean_field_object.level_shift == 0
+
+
 @pytest.fixture
 def fno_water_instance():
     water_instance = ChemistryApplicationInstance(

@@ -74,6 +74,7 @@ class ChemistryApplicationInstance:
     fno_percentage_occupation_number: Optional[float] = None
     fno_threshold: Optional[float] = None
     fno_n_virtual_natural_orbitals: Optional[int] = None
+    scf_options: Optional[dict] = None
 
     def get_pyscf_molecule(self) -> gto.Mole:
         "Generate the PySCF molecule object describing the system to be calculated."
@@ -99,7 +100,12 @@ class ChemistryApplicationInstance:
         """
         molecule = self.get_pyscf_molecule()
         mean_field_object = (scf.RHF if self.multiplicity == 1 else scf.ROHF)(molecule)
-        mean_field_object.run()
+
+        if self.scf_options is not None:
+            mean_field_object.run(**self.scf_options)
+        else:
+            mean_field_object.run()
+
         if self.avas_atomic_orbitals or self.avas_minao:
             molecule, mean_field_object = truncate_with_avas(
                 mean_field_object,
@@ -195,7 +201,6 @@ class ChemistryApplicationInstance:
                 that the active space will account for both AVAS and the
                 occupied_indices/active_indices attributes.
         """
-
         if (
             self.fno_percentage_occupation_number
             or self.fno_threshold
@@ -264,6 +269,7 @@ class ChemistryApplicationInstance:
             multiplicity=self.multiplicity,
             charge=self.charge,
         )
+
         molecule, mean_field_object = self._run_pyscf()
         molecular_data.n_orbitals = int(molecule.nao_nr())
         molecular_data.n_qubits = 2 * molecular_data.n_orbitals
