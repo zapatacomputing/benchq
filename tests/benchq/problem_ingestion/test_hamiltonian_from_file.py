@@ -12,7 +12,12 @@ from benchq.problem_ingestion import (
 
 
 @pytest.mark.parametrize(
-    "file_name", ["test_hamiltonian.hdf5", "test_hamiltonian.json"]
+    "file_name",
+    [
+        "test_hamiltonian.json",
+        "test_guoming_hamiltonian.hdf5",
+        "test_alex_hamiltonian.hdf5",
+    ],
 )
 def test_get_hamiltonian_from_file(file_name):
     curr_dir = str(pathlib.Path(__file__).parent.resolve())
@@ -43,7 +48,7 @@ def test_get_all_hamiltonians_in_folder():
     full_file_name = curr_dir + "/test_hamiltonian_folder"
     hamiltonians = get_all_hamiltonians_in_folder(full_file_name)
 
-    assert len(hamiltonians) == 2
+    assert len(hamiltonians) == 3
     for hamiltonian in hamiltonians:
         assert hamiltonian is not None
         assert hamiltonian.terms is not []

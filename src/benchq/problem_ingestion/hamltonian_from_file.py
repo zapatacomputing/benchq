@@ -5,6 +5,7 @@ from typing import List, Union
 import h5py
 import numpy as np
 import openfermion as of
+from openfermion import InteractionOperator, jordan_wigner
 from orquestra.integrations.cirq.conversions import from_openfermion
 from orquestra.quantum.operators import PauliSum, PauliTerm
 from orquestra.quantum.utils import ensure_open
@@ -39,6 +40,8 @@ def get_hamiltonian_from_file(
                 f"Hamiltonian extraction failed for {file_name}. "
                 f"File format {file_extension} is not supported."
             )
+        else:
+            return None
 
 
 def get_all_hamiltonians_in_folder(
@@ -92,13 +95,31 @@ def _get_hamiltonian_from_json(file_name: str) -> PauliSum:
 
 def _get_hamiltonian_from_hdf5(file_name: str) -> PauliSum:
     """Given a file with a hamiltonian, generate QAOA circuit corresponding to it.
+    This function only accepts hamiltonians in the format used by Guoming Wang's
+    QAOA implementation and Alex Kunita's molecule implementation.
 
     Args:
           file_name (str): The name of the hdf5 file containing the hamiltonian
     Returns:
           the hamiltonian stored in the file
+
+    Raises:
+        ValueError: If the file format is not supported
     """
     data = h5py.File(file_name, "r")
+
+    if "q_matrix" in data.keys():
+        return _guoming_qaoa_hamiltonian_from_hdf5(data)
+    elif "basis" in data.attrs:
+        return _alex_molecule_hamiltonian_from_hdf5(data)
+    else:
+        raise ValueError(
+            f"Hamiltonian extraction failed for {file_name}. "
+            f"File format is not supported."
+        )
+
+
+def _guoming_qaoa_hamiltonian_from_hdf5(data: h5py.File) -> PauliSum:
     q_matrix = np.array(data["q_matrix"][()])
     assert q_matrix.shape[0] == q_matrix.shape[1]
 
@@ -125,4 +146,17 @@ def _get_hamiltonian_from_hdf5(file_name: str) -> PauliSum:
             pauli_terms.append(off_diag_pauli_term4)
 
     hamiltonian = PauliSum(pauli_terms).simplify()
+    return hamiltonian
+
+
+def _alex_molecule_hamiltonian_from_hdf5(data: h5py.File) -> PauliSum:
+    one_body_term = data["one_body_tensor"]
+    two_body_term = data["two_body_tensor"]
+
+    hamiltonian = InteractionOperator(
+        constant=data.attrs["constant"],
+        one_body_tensor=one_body_term,
+        two_body_tensor=two_body_term,
+    )
+    hamiltonian = jordan_wigner(hamiltonian)
     return hamiltonian

@@ -3,13 +3,14 @@
 ################################################################################
 
 import numpy as np
+from orquestra.quantum.circuits import Circuit
 from orquestra.quantum.operators import PauliSum
 from orquestra.vqa.algorithms import QAOA
 
 from ..data_structures import QuantumProgram
 
 
-def get_qaoa_circuit(hamiltonian: PauliSum, n_layers: int = 1) -> QuantumProgram:
+def get_qaoa_circuit(hamiltonian: PauliSum, n_layers: int = 1) -> Circuit:
     """Given a hamiltonian, generate a QAOA circuit for it. All of the parameters
     describing rotations in the circuit are set to be random. Note: this function
     returns a circuit with different randomized values for each layer, whereas
