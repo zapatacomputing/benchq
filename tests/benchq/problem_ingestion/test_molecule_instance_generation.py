@@ -64,23 +64,6 @@ def fno_water_instance():
     yield water_instance
 
 
-@pytest.fixture
-def water_instance_1():
-    water_instance = ChemistryApplicationInstance(
-        geometry=[
-            ("O", (0.000000, -0.075791844, 0.000000)),
-            ("H", (0.866811829, 0.601435779, 0.000000)),
-            ("H", (-0.866811829, 0.601435779, 0.000000)),
-        ],
-        basis="6-31g",
-        charge=0,
-        multiplicity=1,
-        fno_percentage_occupation_number=1.0,
-    )
-
-    yield water_instance
-
-
 def test_get_occupied_and_active_indicies_with_FNO_frozen_core(fno_water_instance):
     fno_water_instance.freeze_core = True
 
@@ -128,9 +111,9 @@ def test_get_active_space_hamiltonian_fno(fno_water_instance):
     assert active_space_hamiltonian.one_body_tensor.shape[0] == 16
 
 
-"""
-def test_get_active_space_hamiltonian_fno_frozen_core(water_instance_1):
-    water_instance_1.freeze_core = True
-    active_space_hamiltonian = water_instance_1.get_active_space_hamiltonian()
-    assert active_space_hamiltonian.one_body_tensor.shape == 15
-"""
+def test_get_active_space_hamiltonian_fno_frozen_core(fno_water_instance):
+    fno_water_instance.freeze_core = True
+    fno_water_instance.fno_percentage_occupation_number = 1.0
+    breakpoint()
+    active_space_hamiltonian = fno_water_instance.get_active_space_hamiltonian()
+    assert active_space_hamiltonian.one_body_tensor.shape == 14
