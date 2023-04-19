@@ -48,7 +48,7 @@ def test_get_active_space_meanfield_object_raises_error_for_unsupported_instance
 
 
 @pytest.fixture
-def fno_water_instance():
+def water_instance():
     water_instance = ChemistryApplicationInstance(
         geometry=[
             ("O", (0.000000, -0.075791844, 0.000000)),
@@ -58,62 +58,94 @@ def fno_water_instance():
         basis="6-31g",
         charge=0,
         multiplicity=1,
-        fno_percentage_occupation_number=0.9,
     )
 
     yield water_instance
 
 
-def test_get_occupied_and_active_indicies_with_FNO_frozen_core(fno_water_instance):
-    fno_water_instance.freeze_core = True
+def test_get_occupied_and_active_indicies_with_FNO_frozen_core(water_instance):
+    water_instance.freeze_core = True
+    water_instance.fno_percentage_occupation_number = 0.9
 
     (
         molecular_data,
         occupied_indices,
         active_indicies,
-    ) = fno_water_instance.get_occupied_and_active_indicies_with_FNO()
+    ) = water_instance.get_occupied_and_active_indicies_with_FNO()
 
     assert len(occupied_indices) == 1
     assert len(active_indicies) < molecular_data.n_orbitals
 
 
-def test_get_occupied_and_active_indicies_with_FNO_no_freeze_core(fno_water_instance):
-    fno_water_instance.freeze_core = False
+def test_get_occupied_and_active_indicies_with_FNO_no_freeze_core(water_instance):
+    water_instance.freeze_core = False
+    water_instance.fno_percentage_occupation_number = 0.9
 
     (
         molecular_data,
         occupied_indices,
         active_indicies,
-    ) = fno_water_instance.get_occupied_and_active_indicies_with_FNO()
+    ) = water_instance.get_occupied_and_active_indicies_with_FNO()
 
     assert len(occupied_indices) == 0
     assert len(active_indicies) < molecular_data.n_orbitals
 
 
 def test_get_occupied_and_active_indicies_with_FNO_no_virtual_frozen_orbitals(
-    fno_water_instance,
+    water_instance,
 ):
-    fno_water_instance.fno_percentage_occupation_number = 0.0
+    water_instance.fno_percentage_occupation_number = 0.0
 
     (
         molecular_data,
         occupied_indices,
         active_indicies,
-    ) = fno_water_instance.get_occupied_and_active_indicies_with_FNO()
+    ) = water_instance.get_occupied_and_active_indicies_with_FNO()
 
     assert len(occupied_indices) == 0
     assert len(active_indicies) < molecular_data.n_orbitals
 
 
-def test_get_active_space_hamiltonian_fno(fno_water_instance):
-    active_space_hamiltonian = fno_water_instance.get_active_space_hamiltonian()
-    fno_water_instance.fno_percentage_occupation_number = 1.0
-    assert active_space_hamiltonian.one_body_tensor.shape[0] == 16
+def test_get_active_space_hamiltonian_fno(water_instance):
+    water_instance.freeze_core = False
+    water_instance.fno_percentage_occupation_number = 1.0
+    active_space_hamiltonian = water_instance.get_active_space_hamiltonian()
+    assert active_space_hamiltonian.one_body_tensor.shape[0] == 26
 
 
-def test_get_active_space_hamiltonian_fno_frozen_core(fno_water_instance):
-    fno_water_instance.freeze_core = True
-    fno_water_instance.fno_percentage_occupation_number = 1.0
-    breakpoint()
-    active_space_hamiltonian = fno_water_instance.get_active_space_hamiltonian()
-    assert active_space_hamiltonian.one_body_tensor.shape == 14
+def test_get_active_space_hamiltonian_fno_frozen_core(water_instance):
+    water_instance.freeze_core = True
+    water_instance.fno_percentage_occupation_number = 1.0
+    active_space_hamiltonian = water_instance.get_active_space_hamiltonian()
+    assert active_space_hamiltonian.one_body_tensor.shape[0] == 24
+
+
+def test_get_active_space_hamiltonian_fno_frozen_core(water_instance):
+    water_instance.freeze_core = True
+    water_instance.fno_percentage_occupation_number = 1.0
+    active_space_hamiltonian = water_instance.get_active_space_hamiltonian()
+    assert active_space_hamiltonian.one_body_tensor.shape[0] == 24
+
+
+def test_get_active_space_hamiltonian_avas(water_instance):
+    water_instance.freeze_core = False
+    water_instance.avas_atomic_orbitals = ["H 1s", "O 2s", "O 2p", "O 3s", "O 3p"]
+    water_instance.avas_minao = "STO-3G"
+    active_space_hamiltonian = water_instance.get_active_space_hamiltonian()
+    assert active_space_hamiltonian.one_body_tensor.shape[0] < 13
+
+
+def test_get_active_space_hamiltonian_avas_frozen_core(water_instance):
+    water_instance.freeze_core = False
+    water_instance.avas_atomic_orbitals = ["H 1s", "O 2s", "O 2p", "O 3s", "O 3p"]
+    water_instance.avas_minao = "STO-3G"
+    active_space_hamiltonian_no_frozen_core = (
+        water_instance.get_active_space_hamiltonian()
+    )
+    water_instance.freeze_core = True
+    active_space_hamiltonian_frozen_core = water_instance.get_active_space_hamiltonian()
+
+    assert (
+        active_space_hamiltonian_frozen_core.one_body_tensor.shape[0]
+        < active_space_hamiltonian_no_frozen_core.one_body_tensor.shape[0]
+    )
