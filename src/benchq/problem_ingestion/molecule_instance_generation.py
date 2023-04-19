@@ -114,7 +114,7 @@ class ChemistryApplicationInstance:
             mean_field_object.run()
 
         if not mean_field_object.converged:
-            raise SCFConvergenceError
+            raise SCFConvergenceError()
 
         if self.avas_atomic_orbitals or self.avas_minao:
             molecule, mean_field_object = truncate_with_avas(
