@@ -83,35 +83,15 @@ class TestGetQSPCircuit:
 
 class TestGetQSPProgram:
     @staticmethod
-    @pytest.mark.parametrize("use_random_angles", [False, True])
-    def test_example_program(use_random_angles: bool):
-        """
-        Uses values inspired by running the "qsp_vlasov.py" example.py
-        """
-        if not use_random_angles:
-            pytest.skip(
-                "Skipping case for use_random_angles=True, "
-                "as it takes very long time to run"
-            )
+    def test_example_program():
         # Given
         operator = _make_real_pauli_sum("0.75*X0*X1 + 0.75*Y0*Y1")
-        required_precision = 0.01
-        dt = 0.1
-        tmax = 5
-        sclf = 1
 
         # We're using 'np.random.random()' inside QSP.
         np.random.seed(42)
 
         # When
-        qsp_program = _qsp.get_qsp_time_evolution_program(
-            operator=operator,
-            required_precision=required_precision,
-            dt=dt,
-            tmax=tmax,
-            sclf=sclf,
-        )
-
+        qsp_program = _qsp.get_qsp_program(operator=operator, n_block_encodings=1)
         circuit_from_program = qsp_program.full_circuit
 
         # Then
