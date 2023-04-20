@@ -14,7 +14,7 @@ from openfermion.resource_estimates.molecule import (
 )
 from openfermionpyscf import PyscfMolecularData
 from openfermionpyscf._run_pyscf import compute_integrals
-from pyscf import gto, mp, scf
+from pyscf import gto, mp, scf, dft
 
 
 @dataclass
@@ -99,7 +99,11 @@ class ChemistryApplicationInstance:
                 and whose second is the meanfield object containing the SCF solution.
         """
         molecule = self.get_pyscf_molecule()
-        mean_field_object = (scf.RHF if self.multiplicity == 1 else scf.ROHF)(molecule)
+        # mean_field_object = (scf.RHF if self.multiplicity == 1 else scf.ROHF)(molecule)
+
+        mean_field_object = dft.RKS(molecule)
+        mean_field_object.xc = "b3lyp"
+        mean_field_object = scf.addons.frac_occ(mean_field_object)
 
         if "soscf" in self.scf_options and self.scf_options["soscf"] == True:
             mean_field_object = mean_field_object.newton()
