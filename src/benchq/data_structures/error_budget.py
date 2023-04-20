@@ -3,10 +3,19 @@ from dataclasses import dataclass
 
 @dataclass
 class ErrorBudget:
-    """_summary_
+    """Data structure which holds the error budget that should be used for
+    a resource estimation.
 
-    Returns:
-        _description_
+    Attributes:
+        ultimate_failure_tolerance: The total budget for the resource estimation
+            - i.e. what is the maximum error rate that is allowed for running
+            the all the calculations.
+        circuit_generation_weight: The weight of the failure tolerance associated
+            with circuit generation.
+        synthesis_weight: The weight of the failure tolerance associated
+            with gate synthesis.
+        ec_weight: The weight of the failure tolerance associated
+            with error correction.
     """
 
     ultimate_failure_tolerance: float

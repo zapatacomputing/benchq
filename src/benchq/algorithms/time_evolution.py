@@ -66,6 +66,6 @@ def trotter_time_evolution_algorithm(
         failure_tolerance: how often the algorithm can fail
     """
 
-    n_trotter_steps = _n_trotter_steps(hamiltonian, time, failure_tolerance)
-    program = get_trotter_program(hamiltonian, n_trotter_steps)
+    n_trotter_steps = _n_trotter_steps(time, failure_tolerance)
+    program = get_trotter_program(hamiltonian, time, n_trotter_steps)
     return AlgorithmDescription(program, 1, failure_tolerance)
