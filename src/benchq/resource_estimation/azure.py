@@ -12,7 +12,7 @@ from orquestra.integrations.qiskit.conversions import export_to_qiskit
 from orquestra.quantum.circuits import Circuit
 from qiskit.tools.monitor import job_monitor
 
-from ..data_structures import BasicArchitectureModel, QuantumProgram
+from ..data_structures import BasicArchitectureModel, QuantumProgram, ErrorBudget
 
 
 @dataclass
@@ -73,16 +73,13 @@ class AzureResourceEstimator:
         self.use_full_circuit = use_full_circuit
 
     def estimate(
-        self, program: QuantumProgram, error_budget: Optional[Dict] = None
+        self, program: QuantumProgram, error_budget: Optional[ErrorBudget] = None
     ) -> AzureResourceInfo:
         azure_error_budget: Dict[str, float] = {}
         if error_budget is not None:
             azure_error_budget = {}
-            total_error = error_budget["total_error"]
-            azure_error_budget["rotations"] = (
-                error_budget["synthesis_error_rate"] * total_error
-            )
-            remaining_error = error_budget["synthesis_error_rate"] * total_error
+            azure_error_budget["rotations"] = error_budget.synthesis_failure_tolerance
+            remaining_error = error_budget.ec_failure_tolerance
             azure_error_budget["logical"] = remaining_error / 2
             azure_error_budget["tstates"] = remaining_error / 2
         if self.use_full_circuit:

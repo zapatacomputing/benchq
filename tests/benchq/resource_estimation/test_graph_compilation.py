@@ -6,9 +6,10 @@ import pytest
 from orquestra.quantum.circuits import CNOT, RZ, Circuit, H, T
 
 from benchq.data_structures import BasicArchitectureModel, DecoderModel
-from benchq.data_structures.quantum_program import (
+from benchq.data_structures import (
     QuantumProgram,
     get_program_from_circuit,
+    ErrorBudget,
 )
 from benchq.resource_estimation.graph import (
     GraphResourceEstimator,
@@ -84,13 +85,9 @@ def test_get_resource_estimations_for_program_gives_correct_results(
         physical_gate_error_rate=1e-3,
         physical_gate_time_in_seconds=1e-6,
     )
-    error_budget = {
-        "qsp_required_precision": 1e-3,
-        "tolerable_circuit_error_rate": 1e-2,
-        "total_error": 1e-2,
-        "synthesis_error_rate": 0.5,
-        "ec_error_rate": 0.5,
-    }
+    error_budget = ErrorBudget(
+        ultimate_failure_tolerance=1e-2, circuit_generation_weight=0
+    )
     transformers = _get_transformers(use_delayed_gate_synthesis, error_budget)
     gsc_resource_estimates = run_resource_estimation_pipeline(
         quantum_program,
@@ -107,7 +104,7 @@ def test_get_resource_estimations_for_program_gives_correct_results(
     # logical error rate.
     assert (
         asdict(gsc_resource_estimates)["logical_error_rate"]
-        < error_budget["tolerable_circuit_error_rate"]
+        < error_budget.ultimate_failure_tolerance
     )
 
 
@@ -122,13 +119,9 @@ def test_better_architecture_does_not_require_more_resources(
         physical_gate_error_rate=1e-3,
         physical_gate_time_in_seconds=1e-6,
     )
-    error_budget = {
-        "qsp_required_precision": 1e-3,
-        "tolerable_circuit_error_rate": 1e-2,
-        "total_error": 1e-2,
-        "synthesis_error_rate": 0.5,
-        "ec_error_rate": 0.5,
-    }
+    error_budget = ErrorBudget(
+        ultimate_failure_tolerance=1e-2, circuit_generation_weight=0
+    )
     transformers = _get_transformers(use_delayed_gate_synthesis, error_budget)
 
     quantum_program = get_program_from_circuit(
@@ -169,23 +162,15 @@ def test_higher_error_budget_does_not_require_more_resources(
         physical_gate_error_rate=1e-3,
         physical_gate_time_in_seconds=1e-6,
     )
-    low_failure_rate = 1e-3
-    high_failure_rate = 1e-2
+    low_failure_tolerance = 1e-3
+    high_failure_tolerance = 1e-2
 
-    low_error_budget = {
-        "qsp_required_precision": 1e-3,
-        "tolerable_circuit_error_rate": low_failure_rate,
-        "total_error": low_failure_rate,
-        "synthesis_error_rate": 0.5,
-        "ec_error_rate": 0.5,
-    }
-    high_error_budget = {
-        "qsp_required_precision": 1e-3,
-        "tolerable_circuit_error_rate": high_failure_rate,
-        "total_error": high_failure_rate,
-        "synthesis_error_rate": 0.5,
-        "ec_error_rate": 0.5,
-    }
+    low_error_budget = ErrorBudget(
+        ultimate_failure_tolerance=low_failure_tolerance, circuit_generation_weight=0
+    )
+    high_error_budget = ErrorBudget(
+        ultimate_failure_tolerance=high_failure_tolerance, circuit_generation_weight=0
+    )
     low_error_transformers = _get_transformers(
         use_delayed_gate_synthesis, low_error_budget
     )
@@ -230,13 +215,9 @@ def test_get_resource_estimations_for_program_accounts_for_decoder():
         physical_gate_error_rate=1e-3,
         physical_gate_time_in_seconds=1e-6,
     )
-    error_budget = {
-        "qsp_required_precision": 1e-3,
-        "tolerable_circuit_error_rate": 1e-2,
-        "total_error": 1e-2,
-        "synthesis_error_rate": 0.5,
-        "ec_error_rate": 0.5,
-    }
+    error_budget = ErrorBudget(
+        ultimate_failure_tolerance=1e-2, circuit_generation_weight=0
+    )
     quantum_program = get_program_from_circuit(
         Circuit([H(0), RZ(np.pi / 4)(0), CNOT(0, 1)])
     )

@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 from orquestra.quantum.circuits import CNOT, RX, RY, RZ, Circuit, H, T
 
-from benchq.data_structures import BasicArchitectureModel
+from benchq.data_structures import BasicArchitectureModel, ErrorBudget
 from benchq.data_structures.quantum_program import get_program_from_circuit
 from benchq.resource_estimation.azure import AzureResourceEstimator
 
@@ -27,11 +27,9 @@ def test_better_architecture_does_not_require_more_resources():
         physical_gate_error_rate=1e-3,
         physical_gate_time_in_seconds=1e-9,
     )
-    error_budget = {
-        "total_error": 1e-3,
-        "synthesis_error_rate": 0.5,
-        "ec_error_rate": 0.5,
-    }
+    error_budget = ErrorBudget(
+        ultimate_failure_tolerance=1e-3, circuit_generation_weight=0
+    )
 
     quantum_program = get_program_from_circuit(
         Circuit([H(0), RZ(np.pi / 4)(0), CNOT(0, 1)])
@@ -64,19 +62,16 @@ def test_better_architecture_does_not_require_more_resources():
 
 @SKIP_AZURE
 def test_higher_error_budget_requires_less_resources():
-    low_failure_rate = 1e-5
-    high_failure_rate = 1e-3
+    low_failure_tolerance = 1e-5
+    high_failure_tolerance = 1e-3
 
-    low_error_budget = {
-        "total_error": low_failure_rate,
-        "synthesis_error_rate": 0.5,
-        "ec_error_rate": 0.5,
-    }
-    high_error_budget = {
-        "total_error": high_failure_rate,
-        "synthesis_error_rate": 0.5,
-        "ec_error_rate": 0.5,
-    }
+    low_error_budget = ErrorBudget(
+        ultimate_failure_tolerance=low_failure_tolerance, circuit_generation_weight=0
+    )
+    high_error_budget = ErrorBudget(
+        ultimate_failure_tolerance=high_failure_tolerance, circuit_generation_weight=0
+    )
+
     quantum_program = get_program_from_circuit(
         Circuit([H(0), RZ(np.pi / 4)(0), CNOT(0, 1)])
     )

@@ -5,18 +5,17 @@ from ...compilation import (
     pyliqtr_transpile_to_clifford_t,
 )
 from ...compilation import simplify_rotations as _simplify_rotations
-from ...data_structures import QuantumProgram, get_program_from_circuit
+from ...data_structures import QuantumProgram, get_program_from_circuit, ErrorBudget
 from .structs import GraphPartition
 
 
-def synthesize_clifford_t(error_budget) -> Callable[[QuantumProgram], QuantumProgram]:
+def synthesize_clifford_t(
+    error_budget: ErrorBudget,
+) -> Callable[[QuantumProgram], QuantumProgram]:
     def _transformer(program: QuantumProgram) -> QuantumProgram:
-        synthesis_error_budget = (
-            error_budget["synthesis_error_rate"] * error_budget["total_error"]
-        )
         circuits = [
             pyliqtr_transpile_to_clifford_t(
-                circuit, circuit_precision=synthesis_error_budget
+                circuit, circuit_precision=error_budget.synthesis_failure_tolerance
             )
             for circuit in program.subroutines
         ]

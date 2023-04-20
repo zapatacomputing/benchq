@@ -89,13 +89,7 @@ def main():
         print("OF resource estimation took:", end - start, "seconds")
         ### END OPENFERMION ESTIMATES
 
-        error_budget = {
-            "total_error": 1e-2,
-            "qsp_required_precision": 1e-3,
-            "tolerable_circuit_error_rate": 1e-3,
-            "synthesis_error_rate": 1e-3,
-            "ec_error_rate": 1e-3,
-        }
+        error_budget = ErrorBudget(ultimate_failure_tolerance=1e-3)
 
         architecture_model = BasicArchitectureModel(
             physical_gate_error_rate=1e-3,

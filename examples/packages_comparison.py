@@ -5,7 +5,7 @@ from pprint import pprint
 
 from benchq import BasicArchitectureModel
 from benchq.algorithms.time_evolution import get_qsp_time_evolution_program
-from benchq.data_structures.quantum_program import get_program_from_circuit
+from benchq.data_structures import get_program_from_circuit, ErrorBudget
 from benchq.problem_ingestion import get_vlasov_hamiltonian
 from benchq.resource_estimation.azure import AzureResourceEstimator
 from benchq.resource_estimation.graph import (
@@ -32,11 +32,7 @@ def main():
         tolerable_logical_error_rate / 3
     )  # Allocate half the error budget to trotter precision
 
-    error_budget = {
-        "total_error": 1e-2,
-        "synthesis_error_rate": 0.5,
-        "ec_error_rate": 0.5,
-    }
+    error_budget = ErrorBudget(ultimate_failure_tolerance=1e-3)
 
     architecture_model = BasicArchitectureModel(
         physical_gate_error_rate=1e-3,
