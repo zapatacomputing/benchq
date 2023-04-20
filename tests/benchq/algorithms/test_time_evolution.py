@@ -1,10 +1,11 @@
 import pytest
+from orquestra.quantum.operators import PauliTerm
+
 from benchq.algorithms import (
     qsp_time_evolution_algorithm,
     trotter_time_evolution_algorithm,
 )
 from benchq.problem_embeddings import get_qsp_program
-from orquestra.quantum.operators import PauliTerm
 
 
 @pytest.fixture(params=[trotter_time_evolution_algorithm, qsp_time_evolution_algorithm])

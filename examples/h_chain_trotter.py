@@ -17,6 +17,7 @@ import time
 
 from benchq import BasicArchitectureModel
 from benchq.algorithms.time_evolution import get_trotter_program
+from benchq.data_structures import ErrorBudget
 from benchq.problem_ingestion import generate_jw_qubit_hamiltonian_from_mol_data
 from benchq.problem_ingestion.molecule_instance_generation import (
     generate_hydrogen_chain_instance,
@@ -29,7 +30,6 @@ from benchq.resource_estimation.graph import (
     synthesize_clifford_t,
 )
 from benchq.timing import measure_time
-from benchq.data_structures import ErrorBudget
 
 
 def main():

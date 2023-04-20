@@ -5,11 +5,12 @@ import numpy as np
 import pytest
 from orquestra.quantum.circuits import CNOT, RZ, Circuit, H, T
 
-from benchq.data_structures import BasicArchitectureModel, DecoderModel
 from benchq.data_structures import (
+    BasicArchitectureModel,
+    DecoderModel,
+    ErrorBudget,
     QuantumProgram,
     get_program_from_circuit,
-    ErrorBudget,
 )
 from benchq.resource_estimation.graph import (
     GraphResourceEstimator,

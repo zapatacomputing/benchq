@@ -5,8 +5,8 @@ from pprint import pprint
 
 from benchq import BasicArchitectureModel
 from benchq.algorithms.time_evolution import qsp_time_evolution_algorithm
-from benchq.problem_ingestion import get_vlasov_hamiltonian
 from benchq.data_structures import ErrorBudget
+from benchq.problem_ingestion import get_vlasov_hamiltonian
 from benchq.resource_estimation.graph import (
     GraphResourceEstimator,
     create_big_graph_from_subcircuits,

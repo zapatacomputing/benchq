@@ -5,7 +5,7 @@ from ...compilation import (
     pyliqtr_transpile_to_clifford_t,
 )
 from ...compilation import simplify_rotations as _simplify_rotations
-from ...data_structures import QuantumProgram, get_program_from_circuit, ErrorBudget
+from ...data_structures import ErrorBudget, QuantumProgram, get_program_from_circuit
 from .structs import GraphPartition
 
 

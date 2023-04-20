@@ -5,7 +5,7 @@ from pprint import pprint
 
 from benchq import BasicArchitectureModel
 from benchq.algorithms.time_evolution import get_qsp_time_evolution_program
-from benchq.data_structures import get_program_from_circuit, ErrorBudget
+from benchq.data_structures import ErrorBudget, get_program_from_circuit
 from benchq.problem_ingestion import get_vlasov_hamiltonian
 from benchq.resource_estimation.azure import AzureResourceEstimator
 from benchq.resource_estimation.graph import (

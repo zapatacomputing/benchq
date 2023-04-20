@@ -1,11 +1,14 @@
 from abc import ABC
-from ..data_structures import AlgorithmDescription
-from pyLIQTR.QSP import gen_qsp
+
 import numpy as np
 from orquestra.integrations.cirq.conversions import to_openfermion
-from ..conversions import openfermion_to_pyliqtr
-from ..problem_embeddings import get_qsp_program, get_trotter_program
 from orquestra.quantum.operators import PauliRepresentation
+from pyLIQTR.QSP import gen_qsp
+
+from ..conversions import openfermion_to_pyliqtr
+from ..data_structures import AlgorithmDescription
+from ..problem_embeddings import get_qsp_program, get_trotter_program
+
 
 # TODO: This logic is copied from pyLIQTR, perhaps we want to change it to our own?
 def _get_steps(tau, req_prec):

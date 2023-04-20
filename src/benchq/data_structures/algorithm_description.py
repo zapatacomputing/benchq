@@ -1,5 +1,6 @@
-from .quantum_program import QuantumProgram
 from dataclasses import dataclass
+
+from .quantum_program import QuantumProgram
 
 
 @dataclass

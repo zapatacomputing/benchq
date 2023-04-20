@@ -2,8 +2,8 @@ import numpy as np
 import pytest
 from orquestra.quantum.circuits import CNOT, RZ, Circuit, H
 
+from benchq.data_structures import ErrorBudget, QuantumProgram
 from benchq.data_structures.hardware_architecture_models import BasicArchitectureModel
-from benchq.data_structures import QuantumProgram, ErrorBudget
 from benchq.resource_estimation.graph import (
     ExtrapolationResourceEstimator,
     GraphResourceEstimator,

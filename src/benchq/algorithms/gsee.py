@@ -1,9 +1,11 @@
-from ..data_structures import AlgorithmDescription
+import warnings
+
 import numpy as np
 from orquestra.integrations.cirq.conversions import to_openfermion
+
 from ..conversions import openfermion_to_pyliqtr
+from ..data_structures import AlgorithmDescription
 from ..problem_embeddings import get_qsp_program
-import warnings
 
 
 def _n_block_encodings(hamiltonian, precision):

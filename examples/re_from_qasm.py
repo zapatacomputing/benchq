@@ -19,7 +19,7 @@ from orquestra.integrations.qiskit.conversions import import_from_qiskit
 from qiskit.circuit import QuantumCircuit
 
 from benchq import BasicArchitectureModel
-from benchq.data_structures import get_program_from_circuit, ErrorBudget
+from benchq.data_structures import ErrorBudget, get_program_from_circuit
 from benchq.resource_estimation.graph import (
     GraphResourceEstimator,
     create_big_graph_from_subcircuits,

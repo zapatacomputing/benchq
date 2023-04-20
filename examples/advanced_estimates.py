@@ -1,8 +1,9 @@
 ################################################################################
 # © Copyright 2022-2023 Zapata Computing Inc.
 ################################################################################
-import time
 import logging
+import time
+
 from benchq import BasicArchitectureModel
 from benchq.algorithms.time_evolution import get_qsp_time_evolution_program
 from benchq.problem_ingestion import generate_jw_qubit_hamiltonian_from_mol_data

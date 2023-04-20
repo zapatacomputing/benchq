@@ -12,7 +12,7 @@ from orquestra.integrations.qiskit.conversions import export_to_qiskit
 from orquestra.quantum.circuits import Circuit
 from qiskit.tools.monitor import job_monitor
 
-from ..data_structures import BasicArchitectureModel, QuantumProgram, ErrorBudget
+from ..data_structures import BasicArchitectureModel, ErrorBudget, QuantumProgram
 
 
 @dataclass
