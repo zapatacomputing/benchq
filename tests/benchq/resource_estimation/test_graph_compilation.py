@@ -3,7 +3,7 @@ from dataclasses import asdict
 
 import numpy as np
 import pytest
-from orquestra.quantum.circuits import CNOT, RX, RY, RZ, Circuit, H, T
+from orquestra.quantum.circuits import CNOT, RZ, Circuit, H, T
 
 from benchq.data_structures import BasicArchitectureModel, DecoderModel
 from benchq.data_structures.quantum_program import (
@@ -20,20 +20,24 @@ from benchq.resource_estimation.graph import (
 
 
 @pytest.fixture(params=[True, False])
-def use_synthesis(request):
+def use_delayed_gate_synthesis(request):
     return request.param
 
 
-def _get_transformers(use_synthesis, error_budget):
-    if use_synthesis:
+def _get_transformers(use_delayed_gate_synthesis, error_budget):
+    if use_delayed_gate_synthesis:
         transformers = [
             synthesize_clifford_t(error_budget),
-            create_big_graph_from_subcircuits(synthesized=use_synthesis),
+            create_big_graph_from_subcircuits(
+                delayed_gate_synthesis=use_delayed_gate_synthesis
+            ),
         ]
     else:
         transformers = [
             simplify_rotations,
-            create_big_graph_from_subcircuits(synthesized=use_synthesis),
+            create_big_graph_from_subcircuits(
+                delayed_gate_synthesis=use_delayed_gate_synthesis
+            ),
         ]
     return transformers
 
@@ -42,37 +46,39 @@ def _get_transformers(use_synthesis, error_budget):
     "quantum_program,expected_results",
     [
         (
-            get_program_from_circuit(Circuit([H(0), RZ(np.pi / 4)(0), CNOT(0, 1)])),
-            {"n_measurement_steps": 3, "n_nodes": 3, "max_graph_degree": 2},
+            QuantumProgram(
+                [Circuit([H(0), RZ(np.pi / 4)(0), CNOT(0, 1)])], 1, lambda x: [0]
+            ),
+            {"n_measurement_steps": 3, "n_nodes": 3, "n_logical_qubits": 2},
         ),
         # (
         #     get_program_from_circuit(
         #         Circuit([RX(np.pi / 4)(0), RY(np.pi / 4)(0), CNOT(0, 1)])
         #     ),
-        #     {"n_measurement_steps": 3, "n_nodes": 4, "max_graph_degree": 2},
+        #     {"n_measurement_steps": 3, "n_nodes": 4, "n_logical_qubits": 2},
         # ),
         (
             get_program_from_circuit(
                 Circuit([H(0)] + [CNOT(i, i + 1) for i in range(3)])
             ),
-            {"n_measurement_steps": 4, "n_nodes": 4, "max_graph_degree": 3},
+            {"n_measurement_steps": 4, "n_nodes": 4, "n_logical_qubits": 3},
         ),
         (
             get_program_from_circuit(
                 Circuit([H(0)] + [CNOT(i, i + 1) for i in range(3)] + [T(1), T(2)])
             ),
-            {"n_measurement_steps": 6, "n_nodes": 6, "max_graph_degree": 5},
+            {"n_measurement_steps": 6, "n_nodes": 6, "n_logical_qubits": 5},
         ),
         # (
         #     get_program_from_circuit(
         #         Circuit([H(0), T(0), CNOT(0, 1), T(2), CNOT(2, 3)])
         #     ),
-        #     {"n_measurement_steps": 3, "n_nodes": 3, "max_graph_degree": 2},
+        #     {"n_measurement_steps": 3, "n_nodes": 3, "n_logical_qubits": 2},
         # ),
     ],
 )
 def test_get_resource_estimations_for_program_gives_correct_results(
-    quantum_program, expected_results, use_synthesis
+    quantum_program, expected_results, use_delayed_gate_synthesis
 ):
     architecture_model = BasicArchitectureModel(
         physical_gate_error_rate=1e-3,
@@ -85,7 +91,7 @@ def test_get_resource_estimations_for_program_gives_correct_results(
         "synthesis_error_rate": 0.5,
         "ec_error_rate": 0.5,
     }
-    transformers = _get_transformers(use_synthesis, error_budget)
+    transformers = _get_transformers(use_delayed_gate_synthesis, error_budget)
     gsc_resource_estimates = run_resource_estimation_pipeline(
         quantum_program,
         error_budget,
@@ -105,7 +111,9 @@ def test_get_resource_estimations_for_program_gives_correct_results(
     )
 
 
-def test_better_architecture_does_not_require_more_resources(use_synthesis):
+def test_better_architecture_does_not_require_more_resources(
+    use_delayed_gate_synthesis,
+):
     low_noise_architecture_model = BasicArchitectureModel(
         physical_gate_error_rate=1e-4,
         physical_gate_time_in_seconds=1e-6,
@@ -121,7 +129,7 @@ def test_better_architecture_does_not_require_more_resources(use_synthesis):
         "synthesis_error_rate": 0.5,
         "ec_error_rate": 0.5,
     }
-    transformers = _get_transformers(use_synthesis, error_budget)
+    transformers = _get_transformers(use_delayed_gate_synthesis, error_budget)
 
     quantum_program = get_program_from_circuit(
         Circuit([H(0), RZ(np.pi / 4)(0), CNOT(0, 1)])
@@ -154,7 +162,9 @@ def test_better_architecture_does_not_require_more_resources(use_synthesis):
     )
 
 
-def test_higher_error_budget_does_not_require_more_resources(use_synthesis):
+def test_higher_error_budget_does_not_require_more_resources(
+    use_delayed_gate_synthesis,
+):
     architecture_model = BasicArchitectureModel(
         physical_gate_error_rate=1e-3,
         physical_gate_time_in_seconds=1e-6,
@@ -176,8 +186,12 @@ def test_higher_error_budget_does_not_require_more_resources(use_synthesis):
         "synthesis_error_rate": 0.5,
         "ec_error_rate": 0.5,
     }
-    low_error_transformers = _get_transformers(use_synthesis, low_error_budget)
-    high_error_transformers = _get_transformers(use_synthesis, high_error_budget)
+    low_error_transformers = _get_transformers(
+        use_delayed_gate_synthesis, low_error_budget
+    )
+    high_error_transformers = _get_transformers(
+        use_delayed_gate_synthesis, high_error_budget
+    )
 
     quantum_program = get_program_from_circuit(
         Circuit([H(0), RZ(np.pi / 4)(0), CNOT(0, 1)])

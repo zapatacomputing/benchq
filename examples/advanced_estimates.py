@@ -13,11 +13,11 @@ from benchq.resource_estimation import get_qpe_resource_estimates_from_mean_fiel
 from benchq.timing import measure_time
 
 try:
-    from benchq.resource_estimation.microsoft import (
-        get_resource_estimations_for_program as msft_re_for_program,
+    from benchq.resource_estimation.azure import (
+        get_resource_estimations_for_program as azure_re_for_program,
     )
 except Exception as e:
-    print("Microsoft not configured, omitting importing related libraries")
+    print("Azure QRE not configured, omitting importing related libraries")
 
 from benchq.resource_estimation.graph import (
     GraphResourceEstimator,
@@ -91,7 +91,7 @@ def main():
 
         error_budget = {
             "total_error": 1e-2,
-            "qsp_required_precision": 1e-3,  
+            "qsp_required_precision": 1e-3,
             "tolerable_circuit_error_rate": 1e-3,
             "synthesis_error_rate": 1e-3,
             "ec_error_rate": 1e-3,
@@ -104,29 +104,35 @@ def main():
 
         ##### STUFF FOR SUBCIRCUITS
         # TA 1.5 part: model algorithmic circuit
-    
+
         print("!!*#*!!" * 15)
         print(f"n hydrogens: {n_hydrogens}")
         print("!!*#*!!" * 15)
         start = time.time()
         quantum_program = get_qsp_time_evolution_program(
-            operator, error_budget["qsp_required_precision"], dt, tmax, sclf,
+            operator,
+            error_budget["qsp_required_precision"],
+            dt,
+            tmax,
+            sclf,
         )
         end = time.time()
         print("Circuit generation time:", end - start)
 
         try:
             start = time.time()
-            msft_resource_estimates = msft_re_for_program(
-                quantum_program, error_budget["synthesis_error_rate"]+ error_budget["ec_error_rate "], architecture_model
+            azure_resource_estimates = azure_re_for_program(
+                quantum_program,
+                error_budget["synthesis_error_rate"] + error_budget["ec_error_rate "],
+                architecture_model,
             )
             end = time.time()
-            print("Microsoft estimation time:", end - start)
-            print("Microsoft estimates:")
-            print(msft_resource_estimates)
+            print("Azure QRE estimation time:", end - start)
+            print("Azure QRE estimates:")
+            print(azure_resource_estimates)
         except Exception as e:
             print(
-                "Microsoft estimation tools is not configured, aborting estimation. "
+                "Azure QRE is not configured, aborting estimation. "
                 "Expect better documentation on how to get the access in the future."
             )
             # print("Original exception message", e)]
