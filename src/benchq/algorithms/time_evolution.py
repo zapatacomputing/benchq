@@ -5,7 +5,7 @@ import numpy as np
 from orquestra.integrations.cirq.conversions import to_openfermion
 from ..conversions import openfermion_to_pyliqtr
 from ..problem_embeddings import get_qsp_program, get_trotter_program
-
+from orquestra.quantum.operators import PauliRepresentation
 
 # TODO: This logic is copied from pyLIQTR, perhaps we want to change it to our own?
 def _get_steps(tau, req_prec):
@@ -31,7 +31,16 @@ def _n_block_encodings_for_time_evolution(hamiltonian, time, failure_tolerance):
     return int((steps - 3) // 2)
 
 
-def qsp_time_evolution_algorithm(hamiltonian, time, failure_tolerance):
+def qsp_time_evolution_algorithm(
+    hamiltonian: PauliRepresentation, time: float, failure_tolerance: float
+) -> AlgorithmDescription:
+    """Returns a program that implements time evolution using QSP.
+
+    Args:
+        hamiltonian: Hamiltonian defining the problem
+        time: time of the evolution
+        failure_tolerance: how often the algorithm can fail
+    """
     n_block_encodings = _n_block_encodings_for_time_evolution(
         hamiltonian, time, failure_tolerance
     )
@@ -45,7 +54,18 @@ def _n_trotter_steps(evolution_time, total_trotter_error) -> int:
     return np.ceil(evolution_time / total_trotter_error)
 
 
-def trotter_time_evolution_algorithm(hamiltonian, time, failure_tolerance):
+def trotter_time_evolution_algorithm(
+    hamiltonian: PauliRepresentation, time: float, failure_tolerance: float
+) -> AlgorithmDescription:
+    """Returns a program that implements time evolution using 1-st order
+    trotterization.
+
+    Args:
+        hamiltonian: Hamiltonian defining the problem
+        time: time of the evolution
+        failure_tolerance: how often the algorithm can fail
+    """
+
     n_trotter_steps = _n_trotter_steps(hamiltonian, time, failure_tolerance)
     program = get_trotter_program(hamiltonian, n_trotter_steps)
     return AlgorithmDescription(program, 1, failure_tolerance)
