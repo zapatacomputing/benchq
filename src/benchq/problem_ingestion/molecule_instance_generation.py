@@ -197,9 +197,9 @@ class ChemistryApplicationInstance:
         """
 
         if (
-            self.fno_percentage_occupation_number
-            or self.fno_threshold
-            or self.fno_n_virtual_natural_orbitals
+            self.fno_percentage_occupation_number is not None
+            or self.fno_threshold is not None
+            or self.fno_n_virtual_natural_orbitals is not None
         ):
             (
                 molecular_data,
@@ -214,17 +214,21 @@ class ChemistryApplicationInstance:
         else:
             molecular_data = self._get_molecular_data()
 
-            if self.freeze_core:
+            if (
+                self.freeze_core is not None
+                and self.avas_atomic_orbitals is not None
+                or self.avas_minao is not None
+            ):
                 n_frozen_core = self._set_frozen_core_orbitals(molecular_data).frozen
                 if n_frozen_core > 0:
                     self.occupied_indices = list(range(n_frozen_core))
-                    if self.avas_atomic_orbitals or self.avas_minao:
-                        orbitals_range = list(
-                            range(
-                                molecular_data.overlap_integrals.shape[0]
-                            )  # The active space is already reduced
-                        )
-                        self.active_indices = orbitals_range[n_frozen_core:]
+                    # if self.avas_atomic_orbitals or self.avas_minao:
+                    orbitals_range = list(
+                        range(
+                            molecular_data.overlap_integrals.shape[0]
+                        )  # The active space is already reduced
+                    )
+                    self.active_indices = orbitals_range[n_frozen_core:]
 
             return molecular_data.get_molecular_hamiltonian(
                 occupied_indices=self.occupied_indices,
