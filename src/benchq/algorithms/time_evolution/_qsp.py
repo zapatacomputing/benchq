@@ -110,15 +110,20 @@ def get_qsp_time_evolution_program(
 
     # pad with identity so all subroutines have same number of qubits
     total_n_qubits = max(circuit.n_qubits for circuit in sanitized_circuits)
-    padded_sanitized_circuits = []
-    for circuit in sanitized_circuits:
-        new_circuit = Circuit()
-        n_qubits = circuit.n_qubits
-        shift = total_n_qubits - n_qubits
-        # in this case we know qubits only need to be moved up.
-        for op in circuit.operations:
-            new_circuit += op.gate(*[shift + index for index in op.qubit_indices])
-        padded_sanitized_circuits.append(new_circuit)
+    padded_sanitized_circuits = [
+        Circuit(
+            [
+                op.gate(
+                    *[
+                        total_n_qubits - circuit.n_qubits + index
+                        for index in op.qubit_indices
+                    ]
+                )
+                for op in circuit.operations
+            ]
+        )
+        for circuit in sanitized_circuits
+    ]
 
     def subroutine_sequence_for_qsp(n_block_encodings):
         my_subroutines = []
@@ -138,9 +143,9 @@ def get_qsp_time_evolution_program(
 
 
 def _sanitize_cirq_circuit(circuit: cirq.Circuit) -> cirq.Circuit:
-    decomposed_circuit = cirq.Circuit(cirq.decompose(circuit))
-    circuit_without_resets = _replace_resets(decomposed_circuit)
-    simplified_circuit = _simplify_gates(circuit_without_resets)
+    decomposed_ops = cirq.decompose(circuit)
+    circuit_without_resets = cirq.Circuit(_replace_resets(decomposed_ops))
+    simplified_circuit = cirq.Circuit(_simplify_gates(circuit_without_resets))
     circuit_with_line_qubits = _replace_named_qubit(simplified_circuit)
     return circuit_with_line_qubits
 
@@ -162,14 +167,11 @@ def _replace_named_qubit(circuit: cirq.Circuit) -> cirq.Circuit:
     return circuit.transform_qubits(qubit_map)  # type: ignore
 
 
-def _replace_resets(circuit: cirq.Circuit) -> cirq.Circuit:
-    def replace_resets_with_I(op: cirq.Operation, _: int) -> cirq.OP_TREE:
-        if op.gate == cirq.ResetChannel():
-            yield cirq.I(op.qubits[0])
-        else:
-            yield op
-
-    return cirq.map_operations_and_unroll(circuit, replace_resets_with_I)
+def _replace_resets(ops):
+    return [
+        op if op.gate != cirq.ResetChannel() else cirq.I(op.qubits[0])
+        for op in ops
+    ]
 
 
 def _simplify_gates(circuit: cirq.Circuit) -> cirq.Circuit:
