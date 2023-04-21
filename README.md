@@ -30,7 +30,7 @@ If you plan to use PySCF to generate Hamiltonians, use the `pyscf` install extra
 pip install '.[pyscf]'
 ```
 
-To run resource estimation using Azure QRE, one needs to have Azure QRE package configured. I'm not sure if that's even possible for a general audience at the moment.
+To run resource estimation using Azure Quantum Resource Estimation (QRE) tool, one needs to have Azure QRE package configured, please see [this tutorial](https://learn.microsoft.com/en-us/azure/quantum/intro-to-resource-estimation).
 
 ## Usage
 
