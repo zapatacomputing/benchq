@@ -115,15 +115,14 @@ def test_get_active_space_hamiltonian_fno(water_instance):
 
 def test_get_active_space_hamiltonian_fno(water_instance):
     water_instance.freeze_core = False
-    water_instance.fno_percentage_occupation_number = 0.0
+    water_instance.fno_percentage_occupation_number = 1.0
     active_space_hamiltonian = water_instance.get_active_space_hamiltonian()
     assert active_space_hamiltonian.one_body_tensor.shape[0] == 26
 
 
 def test_get_active_space_hamiltonian_fno_frozen_core(water_instance):
     water_instance.freeze_core = True
-    water_instance.fno_percentage_occupation_number = 0.0
-    breakpoint()
+    water_instance.fno_percentage_occupation_number = 1.0
     active_space_hamiltonian = water_instance.get_active_space_hamiltonian()
     assert active_space_hamiltonian.one_body_tensor.shape[0] == 24
 
