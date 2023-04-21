@@ -6,7 +6,7 @@ import numpy as np
 from graph_state_generation.optimizers import greedy_stabilizer_measurement_scheduler
 from graph_state_generation.substrate_scheduler import TwoRowSubstrateScheduler
 
-from ...data_structures import BasicArchitectureModel, DecoderModel
+from ...data_structures import BasicArchitectureModel, DecoderModel, ErrorBudget
 from .structs import GraphPartition
 
 INITIAL_SYNTHESIS_ACCURACY = 0.0001
@@ -96,15 +96,17 @@ class GraphResourceEstimator:
         self,
         n_nodes: int,
         max_graph_degree: int,
-        error_budget,
+        error_budget: ErrorBudget,
         error_rate: Callable[[int, int, int], float],
         min_d: int = 4,
         max_d: int = 100,
     ) -> int:
-        target_error_rate = error_budget["total_error"] * error_budget["ec_error_rate"]
 
         for distance in range(min_d, max_d):
-            if error_rate(distance, n_nodes, max_graph_degree) < target_error_rate:
+            if (
+                error_rate(distance, n_nodes, max_graph_degree)
+                < error_budget.ec_failure_tolerance
+            ):
                 return distance
 
         raise RuntimeError(f"Not found good error rates under distance code: {max_d}.")
@@ -182,7 +184,10 @@ class GraphResourceEstimator:
         )
 
     def _estimate_resources_from_graph_data(
-        self, graph_data: GraphData, delayed_gate_synthesis: bool, error_budget
+        self,
+        graph_data: GraphData,
+        delayed_gate_synthesis: bool,
+        error_budget: ErrorBudget,
     ) -> ResourceInfo:
         ec_error_rate_func = (
             self._ec_error_rate_delayed_gate_synthesis
@@ -259,7 +264,9 @@ class GraphResourceEstimator:
             max_decodable_distance=max_decodable_distance,
         )
 
-    def estimate(self, problem: GraphPartition, error_budget) -> ResourceInfo:
+    def estimate(
+        self, problem: GraphPartition, error_budget: ErrorBudget
+    ) -> ResourceInfo:
         n_nodes = problem.n_nodes
         if len(problem.subgraphs) == 1:
             graph_data = self._get_graph_data(problem.subgraphs[0], n_nodes)
