@@ -54,62 +54,18 @@ def get_qsp_circuit(
     return import_from_cirq(circuit)
 
 
-# TODO: This logic is copied from pyLIQTR, perhaps we want to change it to our own?
-def _get_steps(tau, req_prec):
-    # have tau and epsilon, backtrack in order to get steps
-    steps, closeval = gen_qsp.get_steps_from_logeps(np.log(req_prec), tau, 1)
-    # print(':------------------------------------------')
-    # print(f': Steps = {steps}')
-    while gen_qsp.getlogepsilon(tau, steps) > np.log(req_prec):
-        steps += 4
-    return steps
-
-
 def get_qsp_program(
     operator: PauliRepresentation,
-    required_precision: float,
-    dt: float,
-    tmax: float,
-    sclf: float,
-    mode: str = "gse",
-    gse_accuracy: float = 1e-3,
-) -> QuantumProgram:
+    n_block_encodings: int,
+):
     pyliqtr_operator = openfermion_to_pyliqtr(to_openfermion(operator))
-
-    # TODO: I dont know why we have `gse_accuracy` and `required_precision` separately.
-    if mode == "gse":
-        n_block_encodings = int(
-            np.ceil(np.pi * (pyliqtr_operator.alpha) / (gse_accuracy))
-        )
-        # *2 for each layer consisting of 2 blocks,
-        # +2 for rotation layers,
-        # #+1 for extra select-V
-        steps = n_block_encodings * 2 + 3
-
-    elif mode == "time_evolution":
-        timestep_vec = np.arange(0, tmax + dt, sclf * dt)  # Define array of timesteps
-
-        occ_state = np.zeros(pyliqtr_operator.problem_size)
-        occ_state[0] = 1
-
-        # TODO: I think the way we calculate it is incorrect.
-        tau = timestep_vec[1] * pyliqtr_operator.alpha
-        steps = _get_steps(tau, required_precision)
-
-    # number of steps needs to be odd for QSP
-    if not (steps % 2):
-        steps += 1
-
-        n_block_encodings = int((steps - 3) / 2)
-
-    angles = np.random.random(steps)
+    angles = np.random.random(3)
 
     qsp_generator = QSP.QSP.QSP(
         phis=angles,
         hamiltonian=pyliqtr_operator,
         target_size=pyliqtr_operator.problem_size,
     )
-
     rotation_circuit = qsp_generator.initialize_circuit()
     rotation_circuit = qsp_generator.add_phase_rotation(
         rotation_circuit, angles[0], rot_type="X"
@@ -138,7 +94,7 @@ def get_qsp_program(
     def subroutine_sequence_for_qsp(n_block_encodings):
         my_subroutines = []
         my_subroutines.append(0)
-        for i in range(n_block_encodings):
+        for _ in range(n_block_encodings):
             my_subroutines.append(1)
             my_subroutines.append(2)
         my_subroutines.append(1)

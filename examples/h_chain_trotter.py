@@ -16,7 +16,8 @@ Objectives:
 import time
 
 from benchq import BasicArchitectureModel
-from benchq.algorithms import get_trotter_program
+from benchq.algorithms.time_evolution import get_trotter_program
+from benchq.data_structures import ErrorBudget
 from benchq.problem_ingestion import generate_jw_qubit_hamiltonian_from_mol_data
 from benchq.problem_ingestion.molecule_instance_generation import (
     generate_hydrogen_chain_instance,
@@ -57,16 +58,7 @@ def main():
             physical_gate_time_in_seconds=1e-6,
         )
 
-        error_budget = {
-            "total_error": 1e-2,
-            "trotter_required_precision": trotter_required_precision,
-            "tolerable_circuit_error_rate": tolerable_circuit_error_rate,
-            "remaining_error_budget": (
-                tolerable_circuit_error_rate - trotter_required_precision
-            ),
-            "synthesis_error_rate": 1e-3,
-            "ec_error_rate": 1e-3,
-        }
+        error_budget = ErrorBudget(ultimate_failure_tolerance=1e-3)
 
         # TA 1.5 part: model algorithmic circuit
         evolution_time = 1
@@ -93,7 +85,7 @@ def main():
                 transformers=[
                     simplify_rotations,
                     synthesize_clifford_t(error_budget),
-                    create_big_graph_from_subcircuits(synthesized=True),
+                    create_big_graph_from_subcircuits(delayed_gate_synthesis=False),
                 ],
             )
 

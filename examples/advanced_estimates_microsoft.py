@@ -4,14 +4,14 @@
 import time
 
 from benchq import BasicArchitectureModel
-from benchq.algorithms import get_qsp_program
+from benchq.algorithms import get_qsp_time_evolution_program
 from benchq.problem_ingestion import generate_jw_qubit_hamiltonian_from_mol_data
 from benchq.problem_ingestion.molecule_instance_generation import (
     generate_hydrogen_chain_instance,
 )
 from benchq.resource_estimation import get_qpe_resource_estimates_from_mean_field_object
-from benchq.resource_estimation.microsoft import (
-    get_resource_estimations_for_program as msft_re_for_program,
+from benchq.resource_estimation.azure import (
+    get_resource_estimations_for_program as azure_re_for_program,
 )
 
 
@@ -57,20 +57,20 @@ def main():
             print(f"MODE: {mode}, n hydrogens: {n_hydrogens}")
             print("!!*#*!!" * 15)
             start = time.time()
-            quantum_program = get_qsp_program(
+            quantum_program = get_qsp_time_evolution_program(
                 operator, qsp_required_precision, dt, tmax, sclf, mode=mode
             )
             end = time.time()
             print("Circuit generation time:", end - start)
 
             start = time.time()
-            msft_resource_estimates = msft_re_for_program(
+            azure_resource_estimates = azure_re_for_program(
                 quantum_program, remaining_error_budget, architecture_model
             )
             end = time.time()
-            print("Microsoft estimation time:", end - start)
-            print("Microsoft estimates:")
-            print(msft_resource_estimates)
+            print("Azure QRE estimation time:", end - start)
+            print("Azure QRE estimates:")
+            print(azure_resource_estimates)
 
             #### END OF STUFF FOR SUBCIRCUITS
 

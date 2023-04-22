@@ -13,7 +13,7 @@ import pytest
 from orquestra.quantum import circuits
 from orquestra.quantum.operators import PauliSum
 
-from benchq.algorithms import _qsp
+from benchq.problem_embeddings import _qsp
 
 
 def _make_real_pauli_sum(terms_str: str) -> PauliSum:
@@ -71,6 +71,35 @@ class TestGetQSPCircuit:
 
         # We expect the following gate types being applied n times
         assert _gate_op_counts(circuit) == {
+            "CZ": 84,
+            "RX": 3,
+            "RY": 188,
+            "S": 8,
+            "S_Dagger": 8,
+            "T": 28,
+            "T_Dagger": 28,
+        }
+
+
+class TestGetQSPProgram:
+    @staticmethod
+    def test_example_program():
+        # Given
+        operator = _make_real_pauli_sum("0.75*X0*X1 + 0.75*Y0*Y1")
+
+        # We're using 'np.random.random()' inside QSP.
+        np.random.seed(42)
+
+        # When
+        qsp_program = _qsp.get_qsp_program(operator=operator, n_block_encodings=1)
+        circuit_from_program = qsp_program.full_circuit
+
+        # Then
+        # We expect this many gates being applied in the circuit
+        assert len(circuit_from_program.operations) == 347
+
+        # We expect the following gate types being applied n times
+        assert _gate_op_counts(circuit_from_program) == {
             "CZ": 84,
             "RX": 3,
             "RY": 188,

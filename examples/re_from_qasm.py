@@ -14,13 +14,12 @@ Objectives:
     - Software can be quite crappy
 """
 import logging
-import time
 
 from orquestra.integrations.qiskit.conversions import import_from_qiskit
 from qiskit.circuit import QuantumCircuit
 
 from benchq import BasicArchitectureModel
-from benchq.data_structures import get_program_from_circuit
+from benchq.data_structures import ErrorBudget, get_program_from_circuit
 from benchq.resource_estimation.graph import (
     GraphResourceEstimator,
     create_big_graph_from_subcircuits,
@@ -38,14 +37,7 @@ def main(file_name):
     qiskit_circuit = QuantumCircuit.from_qasm_file(file_name)
     quantum_program = get_program_from_circuit(import_from_qiskit(qiskit_circuit))
 
-    error_budget = {
-        "total_error": 1e-2,
-        "trotter_required_precision": 1e-3,
-        "tolerable_circuit_error_rate": 1e-3,
-        "remaining_error_budget": (5e-3),
-        "synthesis_error_rate": 1e-3,
-        "ec_error_rate": 1e-3,
-    }
+    error_budget = ErrorBudget(ultimate_failure_tolerance=1e-3)
 
     architecture_model = BasicArchitectureModel(
         physical_gate_error_rate=1e-3,
@@ -64,7 +56,7 @@ def main(file_name):
             transformers=[
                 simplify_rotations,
                 synthesize_clifford_t(error_budget),
-                create_big_graph_from_subcircuits(synthesized=True),
+                create_big_graph_from_subcircuits(delayed_gate_synthesis=False),
             ],
         )
     print(gsc_resource_estimates)
