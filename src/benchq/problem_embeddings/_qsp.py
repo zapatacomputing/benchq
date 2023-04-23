@@ -150,10 +150,8 @@ def _replace_resets(ops: Iterable[cirq.Operation]) -> List[cirq.Operation]:
 def _is_identity(gate):
     return (
         gate == cirq.I or
-        (
-            isinstance(gate, cirq.XPowGate) and
-            (gate.global_shift==-0.25 or gate.exponent==-1)
-        )
+        gate == cirq.XPowGate(exponent=-1) or
+        gate == cirq.XPowGate(global_shift=-0.25)
     )
 
 
