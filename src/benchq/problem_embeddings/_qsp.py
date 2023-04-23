@@ -1,6 +1,8 @@
 ################################################################################
 # © Copyright 2022-2023 Zapata Computing Inc.
 ################################################################################
+from typing import cast, Iterable, List
+
 import cirq
 import numpy as np
 import pyLIQTR.QSP as QSP
@@ -75,21 +77,27 @@ def get_qsp_program(
     reflection_circuit = qsp_generator.initialize_circuit()
     reflection_circuit = qsp_generator.add_reflection(reflection_circuit, angles[2])
     circuits = [rotation_circuit, select_v_circuit, reflection_circuit]
-    sanitized_circuits = [
-        import_from_cirq(_sanitize_cirq_circuit(circuit)) for circuit in circuits
-    ]
+    sanitized_circuits = cast(
+        List[Circuit],
+        [import_from_cirq(_sanitize_cirq_circuit(circuit)) for circuit in circuits],
+    )
 
     # pad with identity so all subroutines have same number of qubits
     total_n_qubits = max(circuit.n_qubits for circuit in sanitized_circuits)
-    padded_sanitized_circuits = []
-    for circuit in sanitized_circuits:
-        new_circuit = Circuit()
-        n_qubits = circuit.n_qubits
-        shift = total_n_qubits - n_qubits
-        # in this case we know qubits only need to be moved up.
-        for op in circuit.operations:
-            new_circuit += op.gate(*[shift + index for index in op.qubit_indices])
-        padded_sanitized_circuits.append(new_circuit)
+    padded_sanitized_circuits = [
+        Circuit(
+            [
+                op.gate(
+                    *[
+                        total_n_qubits - circuit.n_qubits + index
+                        for index in op.qubit_indices
+                    ]
+                )
+                for op in circuit.operations
+            ]
+        )
+        for circuit in sanitized_circuits
+    ]
 
     def subroutine_sequence_for_qsp(n_block_encodings):
         my_subroutines = []
