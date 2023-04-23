@@ -118,9 +118,9 @@ def get_qsp_program(
 
 def _sanitize_cirq_circuit(circuit: cirq.Circuit) -> cirq.Circuit:
     decomposed_ops = cirq.decompose(circuit)
-    circuit_without_resets = cirq.Circuit(_replace_resets(decomposed_ops))
-    simplified_circuit = _simplify_gates(circuit_without_resets)
-    circuit_with_line_qubits = _replace_named_qubit(simplified_circuit)
+    ops_without_resets = _replace_resets(decomposed_ops)
+    simplified_circuit = _simplify_gates(ops_without_resets)
+    circuit_with_line_qubits = _replace_named_qubit(cirq.Circuit(simplified_circuit))
     return circuit_with_line_qubits
 
 
@@ -147,34 +147,33 @@ def _replace_resets(ops: Iterable[cirq.Operation]) -> List[cirq.Operation]:
     ]
 
 
-def _simplify_gates(circuit: cirq.Circuit) -> cirq.Circuit:
-    def _replace_gates(op: cirq.Operation, _: int) -> cirq.OP_TREE:
-        # TODO: account for special cases - i.e. close to pi, close to 0, etc.
-        # This is basically just dropping a global phase, needed for
-        # interframework compatibility reasons.
+def _replace_gate(op):
+    if isinstance(op.gate, cirq.YPowGate):
+        if op.gate.exponent == 0.5:
+            return cirq.Ry(rads=op.gate.exponent / np.pi).on(op.qubits[0])
+        if op.gate.exponent == -0.5:
+            return cirq.Ry(rads=-op.gate.exponent / np.pi).on(op.qubits[0])
+    elif op.gate == cirq.XPowGate(global_shift=-0.25):
+        # No need to include identity gates
+        # yield cirq.I.on(op.qubits[0])
+        return None
+    elif op.gate == cirq.XPowGate(exponent=-1):
+        # No need to include identity gates
+        # yield cirq.I.on(op.qubits[0])
+        return None
+    elif op.gate == cirq.ZPowGate(exponent=-1):
+        # TODO: requires verification!
+        return cirq.Z.on(op.qubits[0])
+    elif op.gate == cirq.CZPowGate(exponent=-1):
+        return cirq.CZ.on(op.qubits[0], op.qubits[1])
+    elif op.gate == cirq.I:
+        # No need to include identity gates
+        return None
+    else:
+        return op
 
-        if isinstance(op.gate, cirq.YPowGate):
-            if op.gate.exponent == 0.5:
-                yield cirq.Ry(rads=op.gate.exponent / np.pi).on(op.qubits[0])
-            if op.gate.exponent == -0.5:
-                yield cirq.Ry(rads=-op.gate.exponent / np.pi).on(op.qubits[0])
-        elif op.gate == cirq.XPowGate(global_shift=-0.25):
-            # No need to include identity gates
-            # yield cirq.I.on(op.qubits[0])
-            pass
-        elif op.gate == cirq.XPowGate(exponent=-1):
-            # No need to include identity gates
-            # yield cirq.I.on(op.qubits[0])
-            pass
-        elif op.gate == cirq.ZPowGate(exponent=-1):
-            # TODO: requires verification!
-            yield cirq.Z.on(op.qubits[0])
-        elif op.gate == cirq.CZPowGate(exponent=-1):
-            yield cirq.CZ.on(op.qubits[0], op.qubits[1])
-        elif op.gate == cirq.I:
-            # No need to include identity gates
-            pass
-        else:
-            yield op
 
-    return cirq.map_operations_and_unroll(circuit, _replace_gates)
+def _simplify_gates(ops: Iterable[cirq.Operation]) -> List[cirq.Operation]:
+    return [
+        new_op for op in ops if (new_op := _replace_gate(op)) is not None
+    ]
