@@ -117,8 +117,8 @@ def get_qsp_program(
 
 
 def _sanitize_cirq_circuit(circuit: cirq.Circuit) -> cirq.Circuit:
-    decomposed_circuit = cirq.Circuit(cirq.decompose(circuit))
-    circuit_without_resets = _replace_resets(decomposed_circuit)
+    decomposed_ops = cirq.decompose(circuit)
+    circuit_without_resets = cirq.Circuit(_replace_resets(decomposed_ops))
     simplified_circuit = _simplify_gates(circuit_without_resets)
     circuit_with_line_qubits = _replace_named_qubit(simplified_circuit)
     return circuit_with_line_qubits
@@ -141,14 +141,10 @@ def _replace_named_qubit(circuit: cirq.Circuit) -> cirq.Circuit:
     return circuit.transform_qubits(qubit_map)  # type: ignore
 
 
-def _replace_resets(circuit: cirq.Circuit) -> cirq.Circuit:
-    def replace_resets_with_I(op: cirq.Operation, _: int) -> cirq.OP_TREE:
-        if op.gate == cirq.ResetChannel():
-            yield cirq.I(op.qubits[0])
-        else:
-            yield op
-
-    return cirq.map_operations_and_unroll(circuit, replace_resets_with_I)
+def _replace_resets(ops: Iterable[cirq.Operation]) -> List[cirq.Operation]:
+    return [
+        op for op in ops if op.gate != cirq.ResetChannel()
+    ]
 
 
 def _simplify_gates(circuit: cirq.Circuit) -> cirq.Circuit:
