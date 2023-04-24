@@ -1,7 +1,7 @@
 ################################################################################
 # © Copyright 2022-2023 Zapata Computing Inc.
 ################################################################################
-from typing import cast, Iterable, List
+from typing import cast, Iterable, List, Optional
 
 import cirq
 import numpy as np
@@ -147,15 +147,27 @@ def _replace_resets(ops: Iterable[cirq.Operation]) -> List[cirq.Operation]:
     ]
 
 
-def _is_identity(gate):
+
+XPOW_IDENTITY_1 = cirq.XPowGate(exponent=-1)
+XPOW_IDENTITY_2 = cirq.XPowGate(global_shift=-0.25)
+
+def _is_identity(gate: cirq.Gate) -> bool:
     return (
         gate == cirq.I or
-        gate == cirq.XPowGate(exponent=-1) or
-        gate == cirq.XPowGate(global_shift=-0.25)
+        (
+            isinstance(gate, cirq.XPowGate) and (
+                gate == XPOW_IDENTITY_1 or
+                gate == XPOW_IDENTITY_2
+            )
+        )
     )
 
 
-def _replace_gate(op):
+ZPOW_GATE_Z_EQUIVALENT = cirq.ZPowGate(exponent=-1)
+CZPOW_GATE_CZ_EQUIVALENT = cirq.CZPowGate(exponent=-1)
+
+
+def _replace_gate(op: cirq.Operation) -> Optional[cirq.Operation]:
     if isinstance(op.gate, cirq.YPowGate):
         if op.gate.exponent == 0.5:
             return cirq.Ry(rads=op.gate.exponent / np.pi).on(op.qubits[0])
@@ -163,10 +175,10 @@ def _replace_gate(op):
             return cirq.Ry(rads=-op.gate.exponent / np.pi).on(op.qubits[0])
     elif _is_identity(op.gate):
         return None
-    elif op.gate == cirq.ZPowGate(exponent=-1):
+    elif op.gate == ZPOW_GATE_Z_EQUIVALENT:
         # TODO: requires verification!
         return cirq.Z.on(op.qubits[0])
-    elif op.gate == cirq.CZPowGate(exponent=-1):
+    elif op.gate == CZPOW_GATE_CZ_EQUIVALENT:
         return cirq.CZ.on(op.qubits[0], op.qubits[1])
     else:
         return op
