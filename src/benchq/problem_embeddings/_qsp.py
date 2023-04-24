@@ -140,10 +140,6 @@ def _replace_named_qubit(circuit: cirq.Circuit) -> cirq.Circuit:
     return circuit.transform_qubits(qubit_map )  # type: ignore
 
 
-def _replace_resets(ops: Iterable[cirq.Operation]) -> List[cirq.Operation]:
-    return [op for op in ops if op.gate != cirq.ResetChannel()]
-
-
 XPOW_IDENTITY_1 = cirq.XPowGate(exponent=-1)
 XPOW_IDENTITY_2 = cirq.XPowGate(global_shift=-0.25)
 RESET_CHANNEL = cirq.ResetChannel()
