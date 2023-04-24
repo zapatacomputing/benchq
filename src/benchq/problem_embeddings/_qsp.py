@@ -118,8 +118,7 @@ def get_qsp_program(
 
 def _sanitize_cirq_circuit(circuit: cirq.Circuit) -> cirq.Circuit:
     decomposed_ops = cirq.decompose(circuit)
-    ops_without_resets = _replace_resets(decomposed_ops)
-    simplified_circuit = _simplify_gates(ops_without_resets)
+    simplified_circuit = _simplify_gates(decomposed_ops)
     circuit_with_line_qubits = _replace_named_qubit(cirq.Circuit(simplified_circuit))
     return circuit_with_line_qubits
 
@@ -138,29 +137,23 @@ def _replace_named_qubit(circuit: cirq.Circuit) -> cirq.Circuit:
             qubit_map[qubit] = cirq.LineQubit(current_qubit_id)
             current_qubit_id += 1
 
-    return circuit.transform_qubits(qubit_map)  # type: ignore
+    return circuit.transform_qubits(qubit_map )  # type: ignore
 
 
 def _replace_resets(ops: Iterable[cirq.Operation]) -> List[cirq.Operation]:
-    return [
-        op for op in ops if op.gate != cirq.ResetChannel()
-    ]
-
+    return [op for op in ops if op.gate != cirq.ResetChannel()]
 
 
 XPOW_IDENTITY_1 = cirq.XPowGate(exponent=-1)
 XPOW_IDENTITY_2 = cirq.XPowGate(global_shift=-0.25)
+RESET_CHANNEL = cirq.ResetChannel()
+
 
 def _is_identity(gate: cirq.Gate) -> bool:
-    return (
-        gate == cirq.I or
-        (
-            isinstance(gate, cirq.XPowGate) and (
-                gate == XPOW_IDENTITY_1 or
-                gate == XPOW_IDENTITY_2
-            )
-        )
-    )
+    return gate == cirq.I or (
+        isinstance(gate, cirq.XPowGate)
+        and (gate == XPOW_IDENTITY_1 or gate == XPOW_IDENTITY_2)
+    ) or gate == RESET_CHANNEL
 
 
 ZPOW_GATE_Z_EQUIVALENT = cirq.ZPowGate(exponent=-1)
@@ -185,6 +178,4 @@ def _replace_gate(op: cirq.Operation) -> Optional[cirq.Operation]:
 
 
 def _simplify_gates(ops: Iterable[cirq.Operation]) -> List[cirq.Operation]:
-    return [
-        new_op for op in ops if (new_op := _replace_gate(op)) is not None
-    ]
+    return [new_op for op in ops if (new_op := _replace_gate(op)) is not None]
