@@ -1,7 +1,7 @@
 ################################################################################
 # © Copyright 2022-2023 Zapata Computing Inc.
 ################################################################################
-from typing import cast, Iterable, List, Optional
+from typing import Any, Dict, Iterable, List, Optional, cast
 
 import cirq
 import numpy as np
@@ -51,7 +51,11 @@ def get_qsp_circuit(
 
     qsp_circ = qsp_generator.circuit()
 
-    return Circuit([import_from_cirq(op) for op in _sanitize_cirq_circuit(qsp_circ)])  # type: ignore
+    return Circuit(
+        [
+            import_from_cirq(op) for op in _sanitize_cirq_circuit(qsp_circ)
+        ]  # type: ignore
+    )
 
 
 def get_qsp_program(
@@ -78,7 +82,11 @@ def get_qsp_program(
     sanitized_circuits = cast(
         List[Circuit],
         [
-            Circuit([import_from_cirq(op) for op in _sanitize_cirq_circuit(circuit)])  # type: ignore
+            Circuit(
+                [
+                    import_from_cirq(op) for op in _sanitize_cirq_circuit(circuit)
+                ]  # type: ignore
+            )
             for circuit in circuits
         ],
     )
@@ -125,7 +133,7 @@ def _sanitize_cirq_circuit(circuit: cirq.Circuit) -> Iterable[cirq.Operation]:
 
 def _replace_named_qubits(ops: Iterable[cirq.Operation]) -> List[cirq.Operation]:
     all_qubits = set([qubit for op in ops for qubit in op.qubits])
-    qubit_map = {}
+    qubit_map: Dict[Any, cirq.LineQubit] = {}
     max_line_id = 0
     for qubit in all_qubits:
         if isinstance(qubit, cirq.LineQubit) and qubit.x > max_line_id:
@@ -137,7 +145,10 @@ def _replace_named_qubits(ops: Iterable[cirq.Operation]) -> List[cirq.Operation]
             qubit_map[qubit] = cirq.LineQubit(current_qubit_id)
             current_qubit_id += 1
 
-    return [op.gate.on(*[qubit_map.get(q, q) for q in op.qubits]) for op in ops]
+    return [
+        cast(cirq.Gate, op.gate).on(*[qubit_map.get(q, q) for q in op.qubits])
+        for op in ops
+    ]
 
 
 XPOW_IDENTITY_1 = cirq.XPowGate(exponent=-1)
@@ -166,15 +177,15 @@ def _replace_gate(op: cirq.Operation) -> Optional[cirq.Operation]:
             return cirq.Ry(rads=op.gate.exponent / np.pi).on(op.qubits[0])
         if op.gate.exponent == -0.5:
             return cirq.Ry(rads=-op.gate.exponent / np.pi).on(op.qubits[0])
-    elif _is_identity(op.gate):
+    elif _is_identity(cast(cirq.Gate, op.gate)):
         return None
     elif op.gate == ZPOW_GATE_Z_EQUIVALENT:
         # TODO: requires verification!
         return cirq.Z.on(op.qubits[0])
     elif op.gate == CZPOW_GATE_CZ_EQUIVALENT:
         return cirq.CZ.on(op.qubits[0], op.qubits[1])
-    else:
-        return op
+
+    return op
 
 
 def _simplify_gates(ops: Iterable[cirq.Operation]) -> List[cirq.Operation]:
