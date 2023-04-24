@@ -51,9 +51,7 @@ def get_qsp_circuit(
 
     qsp_circ = qsp_generator.circuit()
 
-    circuit = _sanitize_cirq_circuit(qsp_circ)
-
-    return import_from_cirq(circuit)
+    return Circuit([import_from_cirq(op) for op in _sanitize_cirq_circuit(qsp_circ)])  # type: ignore
 
 
 def get_qsp_program(
@@ -79,7 +77,10 @@ def get_qsp_program(
     circuits = [rotation_circuit, select_v_circuit, reflection_circuit]
     sanitized_circuits = cast(
         List[Circuit],
-        [import_from_cirq(_sanitize_cirq_circuit(circuit)) for circuit in circuits],
+        [
+            Circuit([import_from_cirq(op) for op in _sanitize_cirq_circuit(circuit)])  # type: ignore
+            for circuit in circuits
+        ],
     )
 
     # pad with identity so all subroutines have same number of qubits
@@ -116,15 +117,14 @@ def get_qsp_program(
     )
 
 
-def _sanitize_cirq_circuit(circuit: cirq.Circuit) -> cirq.Circuit:
+def _sanitize_cirq_circuit(circuit: cirq.Circuit) -> Iterable[cirq.Operation]:
     decomposed_ops = cirq.decompose(circuit)
-    simplified_circuit = _simplify_gates(decomposed_ops)
-    circuit_with_line_qubits = _replace_named_qubit(cirq.Circuit(simplified_circuit))
-    return circuit_with_line_qubits
+    simplified_ops = _simplify_gates(decomposed_ops)
+    return _replace_named_qubits(simplified_ops)
 
 
-def _replace_named_qubit(circuit: cirq.Circuit) -> cirq.Circuit:
-    all_qubits = circuit.all_qubits()
+def _replace_named_qubits(ops: Iterable[cirq.Operation]) -> List[cirq.Operation]:
+    all_qubits = set([qubit for op in ops for qubit in op.qubits])
     qubit_map = {}
     max_line_id = 0
     for qubit in all_qubits:
@@ -137,7 +137,7 @@ def _replace_named_qubit(circuit: cirq.Circuit) -> cirq.Circuit:
             qubit_map[qubit] = cirq.LineQubit(current_qubit_id)
             current_qubit_id += 1
 
-    return circuit.transform_qubits(qubit_map )  # type: ignore
+    return [op.gate.on(*[qubit_map.get(q, q) for q in op.qubits]) for op in ops]
 
 
 XPOW_IDENTITY_1 = cirq.XPowGate(exponent=-1)
@@ -146,10 +146,14 @@ RESET_CHANNEL = cirq.ResetChannel()
 
 
 def _is_identity(gate: cirq.Gate) -> bool:
-    return gate == cirq.I or (
-        isinstance(gate, cirq.XPowGate)
-        and (gate == XPOW_IDENTITY_1 or gate == XPOW_IDENTITY_2)
-    ) or gate == RESET_CHANNEL
+    return (
+        gate == cirq.I
+        or (
+            isinstance(gate, cirq.XPowGate)
+            and (gate == XPOW_IDENTITY_1 or gate == XPOW_IDENTITY_2)
+        )
+        or gate == RESET_CHANNEL
+    )
 
 
 ZPOW_GATE_Z_EQUIVALENT = cirq.ZPowGate(exponent=-1)
