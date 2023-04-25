@@ -2,13 +2,11 @@
 # © Copyright 2022-2023 Zapata Computing Inc.
 ################################################################################
 """
-In this example, we compare the resource estimation results obtained using different
-packages. We use the same circuit as in the previous example (2_time_evolution.py)
-and compare the results obtained using the BenchQ's graph state compilation method and 
-the Azure QRE.
+TODO
 """
 
 from pprint import pprint
+from pathlib import Path
 
 from benchq import BasicArchitectureModel
 from benchq.algorithms.time_evolution import qsp_time_evolution_algorithm
@@ -17,20 +15,18 @@ from benchq.problem_ingestion import generate_jw_qubit_hamiltonian_from_mol_data
 from benchq.problem_ingestion.molecule_instance_generation import (
     generate_hydrogen_chain_instance,
 )
-from benchq.resource_estimation.azure import AzureResourceEstimator
 from benchq.resource_estimation.graph import (
-    GraphResourceEstimator,
+    ExtrapolationResourceEstimator,
     create_big_graph_from_subcircuits,
-    run_resource_estimation_pipeline,
+    run_extrapolation_pipeline,
     simplify_rotations,
-    synthesize_clifford_t,
 )
 from benchq.timing import measure_time
 from benchq.problem_ingestion import get_vlasov_hamiltonian
 from benchq.data_structures import DecoderModel
 
 
-def main():
+def main(use_hydrogen=True):
     evolution_time = 5.0
     error_budget = ErrorBudget(ultimate_failure_tolerance=1e-3)
     architecture_model = BasicArchitectureModel(
@@ -38,11 +34,18 @@ def main():
         physical_gate_time_in_seconds=1e-6,
     )
 
-    decoder_model = DecoderModel.from_csv("sample_decoder_data.csv")
+    steps_to_extrapolate_from = [1, 2, 3]
+
+    decoder_file_path = str(Path(__file__).parent / "data" / "sample_decoder_data.csv")
+    decoder_model = DecoderModel.from_csv(decoder_file_path)
 
     with measure_time() as t_info:
-        N = 2  # Problem size
-        operator = get_vlasov_hamiltonian(N=N, k=2.0, alpha=0.6, nu=0)
+        N = 2
+        if use_hydrogen:
+            application_instance = generate_hydrogen_chain_instance(N)
+            operator = generate_jw_qubit_hamiltonian_from_mol_data(application_instance)
+        else:
+            operator = get_vlasov_hamiltonian(N=N, k=2.0, alpha=0.6, nu=0)
 
     print("Operator generation time:", t_info.total)
 
@@ -56,11 +59,14 @@ def main():
     # In this example we use delayed_gate_synthesis=True, as this is more similar to
     # how Azure QRE works.
     with measure_time() as t_info:
-        gsc_resource_estimates = run_resource_estimation_pipeline(
+        extrapolated_resource_estimates = run_extrapolation_pipeline(
             algorithm.program,
             error_budget,
-            estimator=GraphResourceEstimator(
-                hw_model=architecture_model, decoder_model=decoder_model
+            estimator=ExtrapolationResourceEstimator(
+                architecture_model,
+                steps_to_extrapolate_from,
+                decoder_model=decoder_model,
+                n_measurement_steps_fit_type="linear",
             ),
             transformers=[
                 simplify_rotations,
@@ -69,23 +75,7 @@ def main():
         )
 
     print("Resource estimation time with GSC:", t_info.total)
-    pprint(gsc_resource_estimates)
-
-    # AzureResourceEstimator is a wrapper around Azure QRE. It takes the same arguments
-    # as GraphResourceEstimator, but instead of running the graph state compilation
-    # method, it runs the Azure QRE.
-    # Azure QRE takes in quantum circuits as input and performs compilation internally,
-    # so there's no need for using any transformers.
-    with measure_time() as t_info:
-        azure_resource_estimates = run_resource_estimation_pipeline(
-            algorithm.program,
-            error_budget,
-            estimator=AzureResourceEstimator(),
-            transformers=[],
-        )
-
-    print("Resource estimation time with Azure:", t_info.total)
-    pprint(azure_resource_estimates)
+    pprint(extrapolated_resource_estimates)
 
 
 if __name__ == "__main__":
