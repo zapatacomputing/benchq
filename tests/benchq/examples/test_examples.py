@@ -8,12 +8,15 @@ import time
 import pytest
 from orquestra.sdk.schema.workflow_run import State
 
-# from examples.advanced_estimates import main as advanced_estimates_main
-from examples.h_chain_trotter import main as h_chain_main
+from examples.ex_1_from_qasm import main as from_qasm_main
+from examples.ex_2_time_evolution import main as time_evolution_main
+from examples.ex_3_packages_comparison import main as packages_comparison_main
+from examples.ex_4_extrapolation import main as extrapolation_main
 
-# from examples.orquestra.hydrogen_demo.defs import hydrogen_workflow
-from examples.re_from_operator import main as re_from_operator
-from examples.re_from_qasm import main as h_chain_from_qasm_main
+SKIP_AZURE = pytest.mark.skipif(
+    os.getenv("BENCHQ_TEST_AZURE") is None,
+    reason="Azure tests can only run if BENCHQ_TEST_AZURE env variable is defined",
+)
 
 MAIN_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.dirname(MAIN_DIR))
@@ -50,20 +53,24 @@ def _clean_auto_generated_files():
 #     wf_run.get_results()  # this will throw an exception on failed workflow
 
 
-@pytest.mark.skip(reason="Temporary skip to facilitate development")
-def test_h_chain_example():
-    h_chain_main()
+# @pytest.mark.skip(reason="Temporary skip to facilitate development")
+def test_from_qasm_example():
+    file_path = os.path.join("examples", "data", "example_circuit.qasm")
+    from_qasm_main(file_path)
+
+
+def test_time_evolution_example():
+    time_evolution_main()
+
+
+@SKIP_AZURE
+def test_packages_comparison_example():
+    packages_comparison_main()
 
 
 # @pytest.mark.skip(reason="Temporary skip to facilitate development")
-def test_h_chain_from_qasm_example():
-    file_path = os.path.join("examples", "circuits", "h_chain_circuit.qasm")
-    h_chain_from_qasm_main(file_path)
-
-
-@pytest.mark.skip(reason="Temporary skip to facilitate development")
-def test_re_from_operator():
-    re_from_operator()
+def test_extrapolation_example():
+    extrapolation_main(use_hydrogen=False)
 
 
 # def test_advanced_estimates():
