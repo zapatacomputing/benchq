@@ -24,12 +24,6 @@ sys.path.insert(0, os.path.dirname(MAIN_DIR))
 print(sys.path)
 print(MAIN_DIR)
 
-
-@pytest.fixture(autouse=True)
-def _clean_auto_generated_files():
-    yield
-
-
 # def test_orquestra_example():
 #     """
 #     Tests that SDK workflow example works properly at least in process
@@ -53,7 +47,6 @@ def _clean_auto_generated_files():
 #     wf_run.get_results()  # this will throw an exception on failed workflow
 
 
-# @pytest.mark.skip(reason="Temporary skip to facilitate development")
 def test_from_qasm_example():
     file_path = os.path.join("examples", "data", "example_circuit.qasm")
     from_qasm_main(file_path)
@@ -68,10 +61,5 @@ def test_packages_comparison_example():
     packages_comparison_main()
 
 
-# @pytest.mark.skip(reason="Temporary skip to facilitate development")
 def test_extrapolation_example():
     extrapolation_main(use_hydrogen=False)
-
-
-# def test_advanced_estimates():
-#     advanced_estimates_main()
