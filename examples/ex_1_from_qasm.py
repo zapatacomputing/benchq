@@ -5,8 +5,6 @@
 Basic example of how to perform resource estimation of a circuit from a QASM file.
 """
 
-import logging
-
 from orquestra.integrations.qiskit.conversions import import_from_qiskit
 from qiskit.circuit import QuantumCircuit
 
@@ -19,7 +17,6 @@ from benchq.resource_estimation.graph import (
     simplify_rotations,
     synthesize_clifford_t,
 )
-from benchq.timing import measure_time
 
 
 def main(file_name):

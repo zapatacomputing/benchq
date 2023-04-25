@@ -8,28 +8,21 @@ and compare the results obtained using the BenchQ's graph state compilation meth
 the Azure QRE.
 """
 
-from pprint import pprint
-import os
 from pathlib import Path
+from pprint import pprint
 
 from benchq import BasicArchitectureModel
 from benchq.algorithms.time_evolution import qsp_time_evolution_algorithm
-from benchq.data_structures import ErrorBudget
-from benchq.problem_ingestion import generate_jw_qubit_hamiltonian_from_mol_data
-from benchq.problem_ingestion.molecule_instance_generation import (
-    generate_hydrogen_chain_instance,
-)
+from benchq.data_structures import DecoderModel, ErrorBudget
+from benchq.problem_ingestion import get_vlasov_hamiltonian
 from benchq.resource_estimation.azure import AzureResourceEstimator
 from benchq.resource_estimation.graph import (
     GraphResourceEstimator,
     create_big_graph_from_subcircuits,
     run_resource_estimation_pipeline,
     simplify_rotations,
-    synthesize_clifford_t,
 )
 from benchq.timing import measure_time
-from benchq.problem_ingestion import get_vlasov_hamiltonian
-from benchq.data_structures import DecoderModel
 
 
 def main():

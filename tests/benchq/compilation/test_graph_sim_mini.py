@@ -1,10 +1,11 @@
 ################################################################################
 # © Copyright 2022-2023 Zapata Computing Inc.
 ################################################################################
+import os
+
 import numpy as np
 import pytest
 import stim
-import os
 from orquestra.integrations.qiskit.conversions import import_from_qiskit
 from orquestra.quantum.circuits import CNOT, CZ, Circuit, H, I, S
 from qiskit import QuantumCircuit
