@@ -2,7 +2,12 @@
 # © Copyright 2022-2023 Zapata Computing Inc.
 ################################################################################
 """
-TODO
+In this example we show how to deal with the case where the problem is too large to be 
+compiled to a graph. We use the extrapolation technique to estimate resources
+for running time evolution for H2 molecule. 
+Number of block encodings needed to run the algorithm is too high, so we 
+estimate resources need for running similar circuit with 1, 2 and 3 block encodings 
+and then we extrapolate the results to estimate resources for full problem.
 """
 
 from pprint import pprint
@@ -55,9 +60,6 @@ def main(use_hydrogen=True):
         )
     print("Circuit generation time:", t_info.total)
 
-    # We run the resource estimation pipeline using the graph state compilation method.
-    # In this example we use delayed_gate_synthesis=True, as this is more similar to
-    # how Azure QRE works.
     with measure_time() as t_info:
         extrapolated_resource_estimates = run_extrapolation_pipeline(
             algorithm.program,
