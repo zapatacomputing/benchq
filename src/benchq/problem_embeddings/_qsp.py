@@ -172,11 +172,10 @@ CZPOW_GATE_CZ_EQUIVALENT = cirq.CZPowGate(exponent=-1)
 
 
 def _replace_gate(op: cirq.Operation) -> Optional[cirq.Operation]:
-    if isinstance(op.gate, cirq.YPowGate):
-        if op.gate.exponent == 0.5:
-            return cirq.Ry(rads=op.gate.exponent / np.pi).on(op.qubits[0])
-        if op.gate.exponent == -0.5:
-            return cirq.Ry(rads=-op.gate.exponent / np.pi).on(op.qubits[0])
+    if isinstance(op.gate, cirq.YPowGate) and  op.gate.exponent == 0.5:
+        return cirq.Ry(rads=op.gate.exponent / np.pi).on(op.qubits[0])
+    elif isinstance(op.gate, cirq.YPowGate) and op.gate.exponent == -0.5:
+        return cirq.Ry(rads=-op.gate.exponent / np.pi).on(op.qubits[0])
     elif _is_identity(cast(cirq.Gate, op.gate)):
         return None
     elif op.gate == ZPOW_GATE_Z_EQUIVALENT:
@@ -184,8 +183,8 @@ def _replace_gate(op: cirq.Operation) -> Optional[cirq.Operation]:
         return cirq.Z.on(op.qubits[0])
     elif op.gate == CZPOW_GATE_CZ_EQUIVALENT:
         return cirq.CZ.on(op.qubits[0], op.qubits[1])
-
-    return op
+    else:
+        return op
 
 
 def _simplify_gates(ops: Iterable[cirq.Operation]) -> List[cirq.Operation]:
