@@ -1,8 +1,9 @@
 ################################################################################
 # © Copyright 2022-2023 Zapata Computing Inc.
 ################################################################################
-import time
 import logging
+import time
+
 from benchq import BasicArchitectureModel
 from benchq.algorithms.time_evolution import get_qsp_time_evolution_program
 from benchq.problem_ingestion import generate_jw_qubit_hamiltonian_from_mol_data
@@ -89,13 +90,7 @@ def main():
         print("OF resource estimation took:", end - start, "seconds")
         ### END OPENFERMION ESTIMATES
 
-        error_budget = {
-            "total_error": 1e-2,
-            "qsp_required_precision": 1e-3,
-            "tolerable_circuit_error_rate": 1e-3,
-            "synthesis_error_rate": 1e-3,
-            "ec_error_rate": 1e-3,
-        }
+        error_budget = ErrorBudget(ultimate_failure_tolerance=1e-3)
 
         architecture_model = BasicArchitectureModel(
             physical_gate_error_rate=1e-3,
