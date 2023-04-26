@@ -60,7 +60,6 @@ def main():
         )
     print("Circuit generation time:", t_info.total)
 
-    # We show two different ways of performing resource estimation. The first one
     # First we perform resource estimation with gate synthesis at the circuit level.
     # It's more accurate and leads to lower estimates, but also more expensive
     # in terms of runtime and memory usage.
