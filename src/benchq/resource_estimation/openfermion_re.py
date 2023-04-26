@@ -11,7 +11,6 @@ from openfermion.resource_estimates.surface_code_compilation.physical_costing im
 def model_toffoli_and_qubit_cost_from_single_factorized_mean_field_object(
     mean_field_object, rank, DE, CHI
 ):
-
     num_orb = len(mean_field_object.mo_coeff)
     num_spinorb = num_orb * 2
 
@@ -33,7 +32,6 @@ def get_qpe_resource_estimates_from_mean_field_object(
     target_accuracy=0.001,
     bits_precision_state_prep=10,
 ):
-
     # Set rank in order to satisfy
     # rank + 1 > bL where
     # bL = nL + bits_precision_state_prep + 2

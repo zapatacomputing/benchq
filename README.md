@@ -17,20 +17,46 @@ If you're a Windows user, please consider using [WSL](https://learn.microsoft.co
 ### Extra dependencies
 
 Graph compilation requires non-Python dependencies to be installed.
+Either:
 1. Install a recent Julia version from the [Julia website](https://julialang.org/downloads/).
 2. Make sure `julia` executable is on your `$PATH`. You can test it by running `julia` in a new terminal window.
-3. Install Julia dependencies: open `julia` REPL, press `]`, run `add JSON` and `add Jabalizer`.
+3. Install Julia dependencies: open `julia` REPL, press `]`, run `add Jabalizer`.
 
-To run resource estimation for Microsoft, one needs to have Microsoft Resource Estimation package configured. I'm not sure if that's even possible for a general audience at the moment.
+Or:
+1. Run `python setup_julia.py` in repo root.
+
+If you plan to use PySCF to generate Hamiltonians, use the `pyscf` install extra:
+```bash
+pip install '.[pyscf]'
+```
+
+To run resource estimation using Azure Quantum Resource Estimation (QRE) tool, one needs to have Azure QRE package configured, please see [this tutorial](https://learn.microsoft.com/en-us/azure/quantum/intro-to-resource-estimation).
 
 ## Usage
 
 Please take a look at the `examples` directory. 
 We have multiple examples there:
-- `h_chain_te.py` shows how to use graph state compilation on a simple hydrogen chain example
-- `h_chain_qasm.py` shows how to use graph state compilation when the circuit is loaded from QASM
-- `qsp_vlasov.py` shows how to perform resource estimation 
+- `h_chain_trotter.py` shows how to use graph state compilation on a simple hydrogen chain example. (Requires `pyscf` install extra.)
+- `resource_estimate_from_qasm.py` shows how to use graph state compilation when the circuit is loaded from QASM.
+- `qsp_vlasov.py` shows how to perform resource estimation.
 
+## Running benchmarks
+
+To run the benchmarks run 
+
+``` bash
+pytest benchmarks/
+```
+
+from the top-level directory of this repo. By default, this will skip some benchmarks that run extremely low. If you want to run
+those too, set environmental variable `SLOW_BENCHMARKS` to any value, e.g.:
+
+``` bash
+SLOW_BENCHMARKS=1 pytest benchmarks/
+```
+
+`
+`
 
 ## Development and Contribution
 
@@ -47,6 +73,8 @@ There are codestyle-related [Github Actions](.github/workflows/style.yml) runnin
 
 Unit tests for this project can be run using `make coverage` command from the main directory.
 Alternatively you can also run `pytest .`.
+
+Since tests of integration with Azure QRE require additional setup, they are disabled by default. You can enable them by setting environmental variable `BENCHQ_TEST_AZURE` to any value.
 
 ### Style
 
