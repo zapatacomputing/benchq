@@ -3,23 +3,21 @@ Workflow & task defs.
 
 To run this on Orquestra see the ``run.py`` script in the same directory.
 """
-import time
+
+import os
 
 from orquestra import sdk
-from orquestra.quantum.evolution import time_evolution
 
-from benchq.compilation import (
-    get_algorithmic_graph_from_Jabalizer,
-    pyliqtr_transpile_to_clifford_t,
-)
+from benchq.algorithms.time_evolution import qsp_time_evolution_algorithm
+from benchq.data_structures import BasicArchitectureModel, ErrorBudget
 from benchq.problem_ingestion import get_vlasov_hamiltonian
+from benchq.resource_estimation.azure import AzureResourceEstimator
 from benchq.resource_estimation.graph import (
     GraphResourceEstimator,
     create_big_graph_from_subcircuits,
     run_resource_estimation_pipeline,
     simplify_rotations,
 )
-from benchq.algorithms.time_evolution import qsp_time_evolution_algorithm
 
 task_deps = [sdk.PythonImports("pyscf==2.2.0", "openfermionpyscf==0.5")]
 ms_task_deps = [
@@ -33,7 +31,9 @@ ms_task_deps = [
     )
 ]
 standard_task = sdk.task(
-    source_import=sdk.GitImport.infer(), dependency_imports=task_deps
+    source_import=sdk.GitImport.infer(),
+    dependency_imports=task_deps,
+    resources=sdk.Resources(memory="4Gi"),
 )
 
 task_with_julia = sdk.task(
@@ -58,30 +58,6 @@ def get_operator(problem_size):
     return get_vlasov_hamiltonian(N=problem_size, k=2.0, alpha=0.6, nu=0)
 
 
-@standard_task
-def time_evolution_task(operator, time):
-    return time_evolution(operator, time)
-
-
-@standard_task
-def transpile_to_clifford_t(circuit, circuit_precision):
-    return pyliqtr_transpile_to_clifford_t(circuit, circuit_precision=circuit_precision)
-
-
-@task_with_julia
-def get_algorithmic_graph_task(circuit):
-    return get_algorithmic_graph_from_Jabalizer(circuit)
-
-
-@standard_task
-def get_resource_estimations_for_graph_task(
-    graph, architecture_model, synthesis_accuracy
-):
-    return get_resource_estimations_for_graph(
-        graph, architecture_model, synthesis_accuracy
-    )
-
-
 @ms_task
 def gsc_estimates(program, error_budget, architecture_model):
     return run_resource_estimation_pipeline(
@@ -95,14 +71,6 @@ def gsc_estimates(program, error_budget, architecture_model):
     )
 
 
-from orquestra import sdk
-import os
-from benchq.data_structures import ErrorBudget, BasicArchitectureModel
-from benchq.resource_estimation.azure import AzureResourceEstimator
-from benchq.resource_estimation.graph import run_resource_estimation_pipeline
-from orquestra.sdk.exceptions import NotFoundError
-
-
 @ms_task
 def azure_estimates(program, error_budget, architecture_model):
     try:
@@ -110,8 +78,11 @@ def azure_estimates(program, error_budget, architecture_model):
         os.environ["AZURE_TENANT_ID"] = sdk.secrets.get("AZURE-TENANT-ID")
         os.environ["AZURE_CLIENT_SECRET"] = sdk.secrets.get("AZURE-CLIENT-SECRET")
         os.environ["AZURE_RESOURCE_ID"] = sdk.secrets.get("AZURE-RESOURCE-ID")
-    except NotFoundError as e:
-        print("Cannot load the Azure secrets, assuming code is running locally")
+    except sdk.exceptions.NotFoundError as e:
+        print(
+            "Cannot load the Azure secrets for execution on cluster, "
+            "assuming code is running locally"
+        )
         print("Original error message:", e)
 
     return run_resource_estimation_pipeline(

@@ -16,9 +16,8 @@ from .defs import example_workflow
 
 
 def main():
-    # uncomment which workflow do you want to run:
-    wf = example_workflow()  # general hydrogen workflow to calculate estimates
-    # wf = ms_estimates()  # calculate resource estimates using MS tool
+    # example workflow which roughly reproduces ex_3_packages_comparison
+    wf = example_workflow()
 
     # Run locally, sequentially, in a single Python process. Useful for debugging, but
     # doesn't use Orquestra to its full potential.
