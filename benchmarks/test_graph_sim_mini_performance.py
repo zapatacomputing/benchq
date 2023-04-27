@@ -9,7 +9,11 @@ from qiskit import QuantumCircuit
 from benchq.compilation import jl, pyliqtr_transpile_to_clifford_t
 
 H_CHAIN_CIRCUIT_PATH = (
-    Path(__file__).parent / "../examples/circuits/h_chain_circuit.qasm"
+    Path(__file__).parent.parent
+    / "tests"
+    / "benchq"
+    / "compilation"
+    / "h_chain_circuit.qasm"
 )
 
 
