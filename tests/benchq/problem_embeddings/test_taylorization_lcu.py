@@ -1,28 +1,29 @@
 #####################################################################
 # © Copyright 2023 Zapata Computing Inc.
 ################################################################################
-import pytest
-from openfermion.ops import QubitOperator, FermionOperator
-from openfermion.linalg import get_sparse_operator
-from scipy.sparse.linalg import expm_multiply
-import numpy as np
-from qiskit import QuantumCircuit, transpile, Aer
 import cmath
 import math
+
+import numpy as np
+import pytest
+from openfermion import fermi_hubbard
+from openfermion.linalg import get_sparse_operator
+from openfermion.ops import FermionOperator, QubitOperator
+from openfermion.transforms import bravyi_kitaev, jordan_wigner
+from openfermion.utils import count_qubits
+from qiskit import Aer, QuantumCircuit, transpile
+from scipy.sparse.linalg import expm_multiply
+
 from benchq.problem_embeddings._taylorization_lcu import (
-    generate_taylor_series,
+    generate_lcu_taylorization_program,
     generate_prepare_circuits,
-    get_pauliword_list,
+    generate_taylor_series,
+    get_pauli_word,
     get_pauli_word_coefficient,
+    get_pauliword_list,
     get_unitaries,
     select_and_prep_dagger,
-    get_pauli_word,
-    generate_lcu_taylorization_program,
 )
-from openfermion import fermi_hubbard
-from openfermion.utils import count_qubits
-from openfermion.transforms import jordan_wigner, bravyi_kitaev
-from qiskit import execute, Aer
 
 ### This script contains necessary tests for the functions that are defined in the file
 ### _taylorization_lcu.py
@@ -31,8 +32,8 @@ from qiskit import execute, Aer
 def generate_fermi_hubbard_qubit_hamiltonian(
     hamiltonian: FermionOperator, transform: str
 ):
-    """Given an OpenFermion FermionOperator type Hamiltonian generates a qubit hamiltonian using either
-    Jordan Wigner or Brayi Kitaev transformation"""
+    """Given an OpenFermion FermionOperator type Hamiltonian generates a qubit
+    hamiltonian using either Jordan Wigner or Brayi Kitaev transformation"""
     if transform.lower() == "jordan_wigner":
         hubbard_qubit_hamiltonian = jordan_wigner(hamiltonian)
     elif transform.lower() == "bravyi_kitaev":
@@ -74,9 +75,11 @@ for i in range(4):
 
 @pytest.mark.parametrize("time, steps, order, hamiltonian", params)
 def test_generate_taylor_series(time, steps, order, hamiltonian):
-    """Tests for the function generate_taylor_series function. the function generates the taylor series expansion
-    of e^(-iHt/r) upt to order k. t is duration of simulation, and r is the number of timesteps in the simulation.
-    Should take in a Hamiltonian of the OpenFermion QubitOperator class type and return another QubitOperator object."""
+    """Tests for the function generate_taylor_series function. the function generates
+    the taylor series expansion of e^(-iHt/r) upt to order k. t is duration
+    of simulation, and r is the number of timesteps in the simulation. Should take in
+    a Hamiltonian of the OpenFermion QubitOperator class type and return another
+    QubitOperator object."""
     n_qubits = count_qubits(hamiltonian)
 
     def is_float_or_int(variable):
@@ -103,7 +106,6 @@ def test_generate_taylor_series(time, steps, order, hamiltonian):
     assert count_qubits(taylor_series) == n_qubits
 
 
-terms_list = []
 coefficients_and_angles_list = []
 params_for_test_select_and_prep_dagger = []
 params_for_test_prepare_circuit = []
@@ -141,14 +143,16 @@ for i in range(4):
     "taylor_series, prep, unitaries", params_for_test_prepare_circuit
 )
 def test_generate_prepare_circuit(taylor_series, prep, unitaries):
-    """Tests for the prepare circuit, which should take in a taylor series of e^(-iHt/r) of a QubitOperator object and
-    return a quantum circuit of the QuantumCircuit object type, which prepares the correct vector of amplitudes
-    (i.e. the magnitude of coefficients in taylor series) from the initialized all zero state."""
+    """Tests for the prepare circuit, which should take in a taylor series of e^(-iHt/r)
+    of a QubitOperator object and return a quantum circuit of the QuantumCircuit
+    object type, which prepares the correct vector of amplitudes (i.e. the magnitude
+    of coefficients in taylor series) from the initialized all zero state."""
 
     def fidelity_prepare_circuit(
         taylor_expansion: QubitOperator, prepare_circuit: QuantumCircuit
     ):
-        """ "Checks the overlap between desired amplitudes of basis states, and the result of quantum circuit."""
+        """ "Checks the overlap between desired amplitudes of basis states,
+        and the result of quantum circuit."""
         coeffs = list(taylor_expansion.terms.values())
         coeff_magnitude = []
         for i, term in enumerate(coeffs):
@@ -173,15 +177,14 @@ def test_generate_prepare_circuit(taylor_series, prep, unitaries):
                 state_vector.append(cmath.sqrt(coefficient) / np.sqrt(prefactor))
                 single_terms.append(get_pauli_word(p))
 
-        ### if the number of terms is not a power of two, pad with zeros to make state vector length a power of 2
+        ### if the number of terms is not a power of two, pad with zeros
+        # to make state vector length a power of 2
         if not np.log2(len(state_vector)).is_integer():
             n_qubits = int(np.ceil(np.log2(len(state_vector))))
             state_vector.extend([0] * (2**n_qubits - len(state_vector)))
         elif int(np.ceil(np.log2(len(state_vector)))) == 0:
             n_qubits = 1
             state_vector.extend([0] * (2**n_qubits - len(state_vector)))
-        state_vector = np.array(state_vector)
-        normalized_state_vector = state_vector
 
         backend = Aer.get_backend("statevector_simulator")
         job = backend.run(prepare_circuit)
@@ -191,7 +194,7 @@ def test_generate_prepare_circuit(taylor_series, prep, unitaries):
         outputstate = result.get_statevector(prepare_circuit, decimals=5)
         outputstate = np.array(outputstate)
 
-        overlap = abs(np.inner(np.conjugate(normalized_state_vector), outputstate)) ** 2
+        overlap = abs(np.inner(np.conjugate(state_vector), outputstate)) ** 2
 
         return math.isclose(overlap, 1, rel_tol=1e-4)
 
@@ -225,8 +228,9 @@ def test_select_and_prep_dagger(
     coeffs_and_angles,
     operators_and_qubits,
 ):
-    """Test for the final output of LCU circuit algorithm. If this test passes, then the hamiltonian simulation
-    circuit result matches the result of the exact solution, as determined by the overlap - up to some error."""
+    """Test for the final output of LCU circuit algorithm. If this test passes,
+    then the hamiltonian simulation circuit result matches the result of the exact
+    solution, as determined by the overlap - up to some error."""
     n_qubits = count_qubits(qubit_hamiltonian)
     initial_state_string = ""
     for i in range(n_qubits):
@@ -277,13 +281,11 @@ def test_select_and_prep_dagger(
         ### defining all zero initial state
         q_0 = [1, 0]
         if num_ancillae == 1:
-            for j in range(num_ancillae - 1):
+            for _ in range(num_ancillae - 1):
                 q_0.append(0)
         else:
-            for j in range(2**num_ancillae - 2):
+            for _ in range(2**num_ancillae - 2):
                 q_0.append(0)
-
-        q_0 = np.array(q_0)
 
         ## making projector |0><0|_a
         ancillae_projector = np.kron(
@@ -291,9 +293,7 @@ def test_select_and_prep_dagger(
         )
         # Tensor exact evolution with ancillae all zero state
         exact_evolution = np.kron(q_0, exact_evolution)
-        ###Normalize
         exact_evolution = exact_evolution / np.linalg.norm(exact_evolution)
-        ###Transpile LCU circuit
         transpiled_circuit = transpile(
             linear_comb_unitaries_circuit,
             basis_gates=["id", "rx", "ry", "rz", "h", "cx"],
@@ -301,7 +301,7 @@ def test_select_and_prep_dagger(
         backend = Aer.get_backend("statevector_simulator")
         job = backend.run(transpiled_circuit)
         result = job.result()
-        ###gettng result of circuit and computing overlap with the exact evolution
+        # Gettng result of circuit and computing overlap with the exact evolution
         output_state = np.array(result.get_statevector(transpiled_circuit, decimals=3))
         collapsed_state = np.matmul(ancillae_projector, output_state)
         collapsed_state = collapsed_state / np.linalg.norm(collapsed_state)

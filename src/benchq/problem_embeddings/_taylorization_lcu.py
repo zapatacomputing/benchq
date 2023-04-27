@@ -1,22 +1,18 @@
-import random
-from openfermion.ops import QubitOperator
-import math
-import numpy as np
-from qiskit import QuantumCircuit, transpile, QuantumRegister
 import cmath
-from qiskit.circuit.library import RZGate
-from qiskit.circuit.library import PhaseGate
+import math
+import random
 from typing import Optional, Union
-from orquestra.quantum.operators import PauliRepresentation, PauliSum
+
+import numpy as np
+from openfermion import count_qubits
+from openfermion.ops import QubitOperator
 from orquestra.integrations.cirq.conversions import to_openfermion
 from orquestra.integrations.qiskit.conversions import import_from_qiskit
-from ..data_structures import QuantumProgram
-from openfermion import count_qubits
+from orquestra.quantum.operators import PauliRepresentation, PauliSum
+from qiskit import QuantumCircuit, QuantumRegister, transpile
+from qiskit.circuit.library import PhaseGate, RZGate
+
 from ..data_structures import QuantumProgram, get_program_from_circuit
-
-
-from qiskit import QuantumCircuit
-import math
 
 
 def get_angles_for_taylor_steps(taylor_steps):
@@ -31,8 +27,9 @@ def get_angles_for_taylor_steps(taylor_steps):
 
 
 def generate_random_initial_state(n_qubits):
-    """Makes a random Hartree-Fock initial state as input to LCU algorithm. Useful for testing purposes, and can be used
-    as a general template for making HF states."""
+    """Makes a random Hartree-Fock initial state as input to LCU algorithm.
+    Useful for testing purposes, and can be used as a general template
+    for making HF states."""
 
     def rand_key(p):
         key1 = ""
@@ -109,7 +106,9 @@ def get_pauli_word(pauli: QubitOperator):
 
 
 def get_unitaries(taylor_sequences: list):
-    """Given a list of pauli words, extracts the individual pauli operators in each word and the qubits they act on."""
+    """Given a list of pauli words, extracts the individual pauli operators
+    in each word and the qubits they act on.
+    """
     ### instantiate empty list to contain
     unitaries_and_qubits = []
 
@@ -145,9 +144,10 @@ def generate_taylor_series(
 
 
 def generate_prepare_circuits(taylor_expansion: QubitOperator):
-    """Returns prepare circuit for the coefficients in the taylor series expansion, as well as the unitaries to be
-    applied to input initial state."""
-    ### create a vector of the coefficients of the pauli words in the taylor series expansion
+    """Returns prepare circuit for the coefficients in the taylor series expansion,
+    as well as the unitaries to be applied to input initial state."""
+    ### create a vector of the coefficients of the pauli words
+    # in the taylor series expansion
     non_normalized = []
     coeffs = list(taylor_expansion.terms.values())
     coeff_magnitude = [abs(term) for term in coeffs]
@@ -166,7 +166,8 @@ def generate_prepare_circuits(taylor_expansion: QubitOperator):
         single_terms.append(get_pauli_word(p))
         non_normalized.append(abs(coefficient))
 
-    ### if the number of terms is not a power of two, pad with zeros to make state vector length a power of 2
+    ### if the number of terms is not a power of two, pad with zeros
+    # to make state vector length a power of 2
     if not np.log2(len(state_vector)).is_integer():
         n_qubits = int(np.ceil(np.log2(len(state_vector))))
         state_vector.extend([0] * (2**n_qubits - len(state_vector)))
@@ -175,38 +176,21 @@ def generate_prepare_circuits(taylor_expansion: QubitOperator):
         n_qubits = 1
         state_vector.extend([0] * (2**n_qubits - len(state_vector)))
         non_normalized.extend([0] * (2**n_qubits - len(state_vector)))
-    state_vector = np.array(state_vector)
+
     n_qubits = np.log2(len(state_vector))
     ### normalize the state vector
     norm = np.linalg.norm(state_vector)
-    normalized_state_vector = state_vector / norm
+    normalized_state_vector = np.array(state_vector) / norm
     ### now generate a circuit that will prepare desired linear comb. of basis states
     q = QuantumRegister(n_qubits, name="q")
     prep = QuantumCircuit(q)
-    from qiskit.circuit.library import StatePreparation
-
-    # prep = StatePreparation(normalized_state_vector)._define_synthesis()
-
     prep.initialize(normalized_state_vector, qubits=q)
-    basis_gates = ["cx", "h", "rx", "ry", "rz"]
-    prep = transpile(prep, basis_gates=basis_gates)
-
-    # TODO: I think it's not needed
-    ### here just transpiling into one set for now, just for testing purposes. Will add more choices.
-    ### can choose optimization level from 1-3, gretaer optimization takes more time
-    ### so just took middle ground of optimization level = 2
-    # prep = transpile(
-    #     prep, basis_gates=["id", "rx", "ry", "rz", "h", "cx"], optimization_level=2
-    # )
+    # We need to transpile the circuit to the basis_gates in order
+    # to perform resource estimation.
+    prep = transpile(
+        prep, basis_gates=["id", "rx", "ry", "rz", "h", "cx"], optimization_level=2
+    )
     return prep, single_terms
-
-
-def get_binary(i: int, n_qubits: int):
-    """Returns the binary representation of basis states in LCU. This function is important for the controlled unitaries
-    in the select operator work correctly"""
-    getbinary = lambda x, n: format(x, "b").zfill(n)
-    bit_string = getbinary(i, n_qubits)
-    return bit_string
 
 
 def select_and_prep_dagger(
@@ -215,7 +199,8 @@ def select_and_prep_dagger(
     prepare_circuit: QuantumCircuit,
     initial_state: QuantumCircuit,
 ):
-    """Given a list of pauli words, a prepare circuit, and an input initial state, returns the SELECT operator for LCU,
+    """Given a list of pauli words, a prepare circuit, and an input initial state,
+    returns the SELECT operator for LCU,
     as well as appending prepare dagger thus completing the circuit"""
     n_ancillae = len(prepare_circuit.qubits)
     n_qubits = len(initial_state.qubits)
@@ -252,8 +237,9 @@ def select_and_prep_dagger(
     def mc_phase_shift(
         theta, control: int, n_ancillae: int, lcu_circuit: QuantumCircuit
     ):
-        """ "For complex coefficients of form Z=|r|(cos(theta) + isin(theta)), loads in the complex phase to the
-        controlled unitaries using controlled phase-shift. Where a controlled phase shift of theta is achieved
+        """ "For complex coefficients of form Z=|r|(cos(theta) + isin(theta)),
+        loads in the complex phase to the controlled unitaries using controlled
+        phase-shift. Where a controlled phase shift of theta is achieved
         using CPhase_shift(theta) = P(theta)XP(theta)X"""
         mc_phase = PhaseGate(theta).control(n_ancillae, label=None)
         qubits = list(range(0, n_ancillae))
@@ -264,7 +250,7 @@ def select_and_prep_dagger(
         mcx(control, n_ancillae, lcu_circuit)
 
     for i, paulis in enumerate(unitaries_and_qubits):
-        bit_string = get_binary(i, n_ancillae)[::-1]
+        bit_string = format(i, "b").zfill(n_ancillae)[::-1]
 
         if len(paulis) == 0:
             if isinstance(coefficients[i][0], complex):
@@ -314,13 +300,16 @@ def select_and_prep_dagger(
 
 def generate_lcu_taylorization_program(
     operator: PauliRepresentation,
-    t: int = 1,
+    time: int = 1,
     steps: int = 2,
     order: int = 15,
     initial_state: Optional[QuantumCircuit] = None,
 ) -> QuantumProgram:
-    # We could calculate steps automatically -> see eq 3 in https://arxiv.org/pdf/1412.4687.pdf
-    taylor_series = generate_taylor_series(operator, order=order, time=t, steps=steps)
+    # We could calculate steps automatically
+    # see eq 4 in https://arxiv.org/pdf/1412.4687.pdf
+    taylor_series = generate_taylor_series(
+        operator, order=order, time=time, steps=steps
+    )
 
     n_qubits = count_qubits(operator)
     if initial_state is None:
