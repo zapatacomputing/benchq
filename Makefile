@@ -15,5 +15,5 @@ github_actions-default:
 
 # (no override)
 style-fix:
-	black src tests examples
-	isort --profile=black src tests examples
+	black src tests examples benchmarks
+	isort --profile=black src tests examples benchmarks

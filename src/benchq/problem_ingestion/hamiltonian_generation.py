@@ -17,7 +17,6 @@ from pyLIQTR.QSP.Hamiltonian import Hamiltonian as pyH
 
 from benchq.conversions import pyliqtr_to_openfermion
 
-# TODO: export openfermion to cirq
 ### General generators
 
 
@@ -44,10 +43,8 @@ def generate_fermi_hubbard_jw_qubit_hamiltonian(
     return from_openfermion(hamiltonian_jw)
 
 
-def generate_jw_qubit_hamiltonian_from_mol_data(
-    molecular_data, occupied_indices=None, active_indices=None
-) -> PauliSum:
-    hamiltonian = molecular_data.get_active_space_hamiltonian()
+def generate_jw_qubit_hamiltonian_from_mol_data(chemistry_instance) -> PauliSum:
+    hamiltonian = chemistry_instance.get_active_space_hamiltonian()
 
     # # Convert to a FermionOperator
     # hamiltonian_ferm_op = of.get_fermion_operator(hamiltonian)
