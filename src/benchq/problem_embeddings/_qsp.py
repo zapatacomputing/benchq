@@ -151,20 +151,9 @@ def _replace_named_qubits(ops: Iterable[cirq.Operation]) -> List[cirq.Operation]
     ]
 
 
-XPOW_IDENTITY_1 = cirq.XPowGate(exponent=-1)
-XPOW_IDENTITY_2 = cirq.XPowGate(global_shift=-0.25)
+XPOW_X_1 = cirq.XPowGate(exponent=-1)
+XPOW_X_2 = cirq.XPowGate(global_shift=-0.25)
 RESET_CHANNEL = cirq.ResetChannel()
-
-
-def _is_identity(gate: cirq.Gate) -> bool:
-    return (
-        gate == cirq.I
-        or (
-            isinstance(gate, cirq.XPowGate)
-            and (gate == XPOW_IDENTITY_1 or gate == XPOW_IDENTITY_2)
-        )
-        or gate == RESET_CHANNEL
-    )
 
 
 ZPOW_GATE_Z_EQUIVALENT = cirq.ZPowGate(exponent=-1)
@@ -176,7 +165,11 @@ def _replace_gate(op: cirq.Operation) -> Optional[cirq.Operation]:
         return cirq.Ry(rads=op.gate.exponent / np.pi).on(op.qubits[0])
     elif isinstance(op.gate, cirq.YPowGate) and op.gate.exponent == -0.5:
         return cirq.Ry(rads=-op.gate.exponent / np.pi).on(op.qubits[0])
-    elif _is_identity(cast(cirq.Gate, op.gate)):
+    elif isinstance(op.gate, cirq.XPowGate) and op.gate == XPOW_X_1:
+        return cirq.X(op.qubits[0])
+    elif isinstance(op.gate, cirq.XPowGate) and op.gate == XPOW_X_2:
+        return cirq.X(op.qubits[0])
+    elif op.gate == cirq.I or op.gate == RESET_CHANNEL:
         return None
     elif op.gate == ZPOW_GATE_Z_EQUIVALENT:
         # TODO: requires verification!
