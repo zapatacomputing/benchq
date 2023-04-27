@@ -311,7 +311,7 @@ def generate_lcu_taylorization_program(
         operator, order=order, time=time, steps=steps
     )
 
-    n_qubits = count_qubits(operator)
+    n_qubits = operator.n_qubits
     if initial_state is None:
         initial_state = generate_random_initial_state(n_qubits)[1]
     prepare_circuit, terms = generate_prepare_circuits(
