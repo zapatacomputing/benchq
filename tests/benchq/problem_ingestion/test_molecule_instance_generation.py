@@ -2,6 +2,7 @@ import pytest
 
 from benchq.problem_ingestion.molecule_instance_generation import (
     ChemistryApplicationInstance,
+    SCFConvergenceError,
     generate_hydrogen_chain_instance,
 )
 
@@ -118,3 +119,13 @@ def test_get_occupied_and_active_indicies_with_FNO_no_virtual_frozen_orbitals(
 
     assert len(occupied_indices) == 0
     assert len(active_indicies) < molecular_data.n_orbitals
+
+
+@pytest.mark.parametrize(
+    "method", ["get_active_space_meanfield_object", "get_active_space_hamiltonian"]
+)
+def test_get_active_space_meanfield_object_raises_scf_convergence_error(method):
+    instance = generate_hydrogen_chain_instance(2)
+    instance.scf_options = {"max_cycle": 1}
+    with pytest.raises(SCFConvergenceError):
+        getattr(instance, method)()
