@@ -18,12 +18,12 @@ import logging
 from orquestra.integrations.qiskit.conversions import import_from_qiskit
 from qiskit.circuit import QuantumCircuit
 
-from benchq import BasicArchitectureModel
+from benchq import BasicSCArchitectureModel
 from benchq.data_structures import ErrorBudget, get_program_from_circuit
 from benchq.resource_estimation.graph import (
     GraphResourceEstimator,
     create_big_graph_from_subcircuits,
-    run_resource_estimation_pipeline,
+    run_custom_resource_estimation_pipeline,
     simplify_rotations,
     synthesize_clifford_t,
 )
@@ -39,17 +39,14 @@ def main(file_name):
 
     error_budget = ErrorBudget(ultimate_failure_tolerance=1e-3)
 
-    architecture_model = BasicArchitectureModel(
-        physical_gate_error_rate=1e-3,
-        physical_gate_time_in_seconds=1e-6,
-    )
+    architecture_model = BasicSCArchitectureModel
 
     with measure_time() as t_info:
         ### TODO: error budget is needed both for transforming AND
         ### in the estimation
-        ### Hence, I suggest passing it once to run_resource_estimation_pipeline
+        ### Hence, I suggest passing it once to run_custom_resource_estimation_pipeline
         ### And then propagating it through transformer and estimator
-        gsc_resource_estimates = run_resource_estimation_pipeline(
+        gsc_resource_estimates = run_custom_resource_estimation_pipeline(
             quantum_program,
             error_budget,
             estimator=GraphResourceEstimator(architecture_model),

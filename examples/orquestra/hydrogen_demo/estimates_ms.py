@@ -3,7 +3,7 @@
 ################################################################################
 from orquestra import sdk
 
-from benchq import BasicArchitectureModel
+from benchq import BasicSCArchitectureModel
 from benchq.resource_estimation.azure import (
     get_resource_estimations_for_program as azure_re_for_program,
 )
@@ -40,7 +40,7 @@ def ms_estimates():
         qsp_required_precision = tolerable_circuit_error_rate / 2
         remaining_error_budget = tolerable_circuit_error_rate - qsp_required_precision
 
-        architecture_model = BasicArchitectureModel(
+        architecture_model = BasicSCArchitectureModel(
             physical_gate_error_rate=1e-3,
             physical_gate_time_in_seconds=1e-6,
         )

@@ -2,9 +2,9 @@ import os
 
 import numpy as np
 import pytest
-from orquestra.quantum.circuits import CNOT, RX, RY, RZ, Circuit, H, T
+from orquestra.quantum.circuits import CNOT, RZ, Circuit, H
 
-from benchq.data_structures import BasicArchitectureModel, ErrorBudget
+from benchq.data_structures import BasicSCArchitectureModel, ErrorBudget
 from benchq.data_structures.quantum_program import get_program_from_circuit
 from benchq.resource_estimation.azure import AzureResourceEstimator
 
@@ -19,11 +19,11 @@ SKIP_AZURE = pytest.mark.skipif(
     "It looks like Azure does not take information about the hardware into account"
 )
 def test_better_architecture_does_not_require_more_resources():
-    low_quality_architecture_model = BasicArchitectureModel(
+    low_quality_architecture_model = BasicSCArchitectureModel(
         physical_gate_error_rate=1e-4,
         physical_gate_time_in_seconds=1e-6,
     )
-    high_quality_architecture_model = BasicArchitectureModel(
+    high_quality_architecture_model = BasicSCArchitectureModel(
         physical_gate_error_rate=1e-3,
         physical_gate_time_in_seconds=1e-9,
     )

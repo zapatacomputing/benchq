@@ -4,5 +4,9 @@
 from .algorithm_description import AlgorithmDescription
 from .decoder import DecoderModel
 from .error_budget import ErrorBudget
-from .hardware_architecture_models import BasicArchitectureModel
+from .hardware_architecture_models import (
+    BasicArchitectureModel,
+    BasicIonTrapArchitectureModel,
+    BasicSCArchitectureModel,
+)
 from .quantum_program import QuantumProgram, get_program_from_circuit

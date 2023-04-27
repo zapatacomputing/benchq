@@ -3,7 +3,7 @@
 ################################################################################
 from pprint import pprint
 
-from benchq import BasicArchitectureModel
+from benchq import BasicSCArchitectureModel
 from benchq.algorithms.time_evolution import get_qsp_time_evolution_program
 from benchq.data_structures import ErrorBudget, get_program_from_circuit
 from benchq.problem_ingestion import get_vlasov_hamiltonian
@@ -11,7 +11,7 @@ from benchq.resource_estimation.azure import AzureResourceEstimator
 from benchq.resource_estimation.graph import (
     GraphResourceEstimator,
     create_big_graph_from_subcircuits,
-    run_resource_estimation_pipeline,
+    run_custom_resource_estimation_pipeline,
     simplify_rotations,
 )
 from benchq.timing import measure_time
@@ -34,7 +34,7 @@ def main():
 
     error_budget = ErrorBudget(ultimate_failure_tolerance=1e-3)
 
-    architecture_model = BasicArchitectureModel(
+    architecture_model = BasicSCArchitectureModel(
         physical_gate_error_rate=1e-3,
         physical_gate_time_in_seconds=1e-6,
     )
@@ -61,7 +61,7 @@ def main():
     # TA 2 part: model hardware resources
 
     with measure_time() as t_info:
-        gsc_resource_estimates = run_resource_estimation_pipeline(
+        gsc_resource_estimates = run_custom_resource_estimation_pipeline(
             program,
             error_budget,
             estimator=GraphResourceEstimator(architecture_model),
@@ -75,7 +75,7 @@ def main():
     pprint(gsc_resource_estimates)
 
     with measure_time() as t_info:
-        azure_resource_estimates = run_resource_estimation_pipeline(
+        azure_resource_estimates = run_custom_resource_estimation_pipeline(
             program,
             error_budget,
             estimator=AzureResourceEstimator(architecture_model),

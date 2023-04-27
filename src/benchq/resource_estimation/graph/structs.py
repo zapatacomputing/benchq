@@ -19,11 +19,12 @@ class GraphPartition:
 
     @property
     def n_nodes(self) -> int:
-        n_nodes = sum(
-            len(graph) * multiplicity
-            for graph, multiplicity in zip(self.subgraphs, self.program.multiplicities)
-        )
-        # account for double counting of data qubits coming from each graph
-        return n_nodes - self.program.num_data_qubits * (
-            len(self.program.subroutine_sequence) - 1
-        )
+        return self.program.n_nodes
+
+    @property
+    def n_t_gates(self) -> int:
+        return self.program.n_t_gates
+
+    @property
+    def n_rotation_gates(self) -> int:
+        return self.program.n_rotation_gates

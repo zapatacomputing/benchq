@@ -3,14 +3,14 @@
 ################################################################################
 from pprint import pprint
 
-from benchq import BasicArchitectureModel
+from benchq import BasicSCArchitectureModel
 from benchq.algorithms.time_evolution import qsp_time_evolution_algorithm
 from benchq.data_structures import ErrorBudget
 from benchq.problem_ingestion import get_vlasov_hamiltonian
 from benchq.resource_estimation.graph import (
     GraphResourceEstimator,
     create_big_graph_from_subcircuits,
-    run_resource_estimation_pipeline,
+    run_custom_resource_estimation_pipeline,
     simplify_rotations,
     synthesize_clifford_t,
 )
@@ -26,10 +26,7 @@ def main():
 
     error_budget = ErrorBudget(ultimate_failure_tolerance=1e-3)
 
-    architecture_model = BasicArchitectureModel(
-        physical_gate_error_rate=1e-3,
-        physical_gate_time_in_seconds=1e-6,
-    )
+    architecture_model = BasicSCArchitectureModel
 
     # TA 1 part: specify the core computational capability
     with measure_time() as t_info:
@@ -52,7 +49,7 @@ def main():
     # TA 2 part: model hardware resources
 
     with measure_time() as t_info:
-        gsc_resource_estimates = run_resource_estimation_pipeline(
+        gsc_resource_estimates = run_custom_resource_estimation_pipeline(
             algorithm.program,
             error_budget,
             estimator=GraphResourceEstimator(architecture_model),
@@ -66,7 +63,7 @@ def main():
     pprint(gsc_resource_estimates)
 
     with measure_time() as t_info:
-        gsc_resource_estimates = run_resource_estimation_pipeline(
+        gsc_resource_estimates = run_custom_resource_estimation_pipeline(
             algorithm.program,
             error_budget,
             estimator=GraphResourceEstimator(architecture_model),

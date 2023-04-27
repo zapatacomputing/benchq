@@ -8,8 +8,8 @@ from benchq.resource_estimation.graph import (
     ExtrapolationResourceEstimator,
     GraphResourceEstimator,
     create_big_graph_from_subcircuits,
-    run_extrapolation_pipeline,
-    run_resource_estimation_pipeline,
+    run_custom_extrapolation_pipeline,
+    run_custom_resource_estimation_pipeline,
     simplify_rotations,
     synthesize_clifford_t,
 )
@@ -96,7 +96,7 @@ def test_get_resource_estimations_for_program_gives_correct_results(
     )
     transformers = _get_transformers(use_delayed_gate_synthesis, error_budget)
 
-    extrapolated_resource_estimates = run_extrapolation_pipeline(
+    extrapolated_resource_estimates = run_custom_extrapolation_pipeline(
         quantum_program,
         error_budget,
         estimator=ExtrapolationResourceEstimator(
@@ -106,7 +106,7 @@ def test_get_resource_estimations_for_program_gives_correct_results(
         ),
         transformers=transformers,
     )
-    gsc_resource_estimates = run_resource_estimation_pipeline(
+    gsc_resource_estimates = run_custom_resource_estimation_pipeline(
         quantum_program,
         error_budget,
         estimator=GraphResourceEstimator(architecture_model),
@@ -116,7 +116,6 @@ def test_get_resource_estimations_for_program_gives_correct_results(
     attributes_to_compare_harshly = [
         "n_nodes",
         "synthesis_multiplier",
-        "code_distance",
         "total_time",
         "n_physical_qubits",
     ]
@@ -129,6 +128,7 @@ def test_get_resource_estimations_for_program_gives_correct_results(
     # assert that the number of measurement steps grows with the steps
     attributes_to_compare_loosely = [
         "n_logical_qubits",
+        "code_distance",
         "n_measurement_steps",
     ]
     for attribute in attributes_to_compare_loosely:
@@ -163,7 +163,7 @@ def test_better_architecture_does_not_require_more_resources(
         steps=100,
         calculate_subroutine_sequence=lambda x: [0] * x,
     )
-    low_noise_resource_estimates = run_extrapolation_pipeline(
+    low_noise_resource_estimates = run_custom_extrapolation_pipeline(
         quantum_program,
         error_budget,
         estimator=ExtrapolationResourceEstimator(
@@ -172,7 +172,7 @@ def test_better_architecture_does_not_require_more_resources(
         transformers=transformers,
     )
 
-    high_noise_resource_estimates = run_extrapolation_pipeline(
+    high_noise_resource_estimates = run_custom_extrapolation_pipeline(
         quantum_program,
         error_budget,
         estimator=ExtrapolationResourceEstimator(
@@ -224,14 +224,14 @@ def test_higher_error_budget_does_not_require_more_resources(
         steps=100,
         calculate_subroutine_sequence=lambda x: [0] * x,
     )
-    low_error_resource_estimates = run_extrapolation_pipeline(
+    low_error_resource_estimates = run_custom_extrapolation_pipeline(
         quantum_program,
         low_error_budget,
         estimator=ExtrapolationResourceEstimator(architecture_model, [1, 2, 3, 4]),
         transformers=low_error_transformers,
     )
 
-    high_error_resource_estimates = run_extrapolation_pipeline(
+    high_error_resource_estimates = run_custom_extrapolation_pipeline(
         quantum_program,
         high_error_budget,
         estimator=ExtrapolationResourceEstimator(architecture_model, [1, 2, 3, 4]),

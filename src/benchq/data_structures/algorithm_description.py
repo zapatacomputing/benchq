@@ -1,10 +1,13 @@
 from dataclasses import dataclass
+from typing import Union
 
+from ..resource_estimation.graph.structs import GraphPartition
+from .error_budget import ErrorBudget
 from .quantum_program import QuantumProgram
 
 
 @dataclass
 class AlgorithmDescription:
-    program: QuantumProgram
+    program: Union[QuantumProgram, GraphPartition]
     n_calls: int
-    failure_tolerance: float
+    error_budget: ErrorBudget

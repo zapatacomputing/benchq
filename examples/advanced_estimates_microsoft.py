@@ -3,7 +3,7 @@
 ################################################################################
 import time
 
-from benchq import BasicArchitectureModel
+from benchq import BasicSCArchitectureModel
 from benchq.algorithms import get_qsp_time_evolution_program
 from benchq.problem_ingestion import generate_jw_qubit_hamiltonian_from_mol_data
 from benchq.problem_ingestion.molecule_instance_generation import (
@@ -45,7 +45,7 @@ def main():
         remaining_error_budget = tolerable_circuit_error_rate - qsp_required_precision
         ### THOUGH I THINK IT WORKS
 
-        architecture_model = BasicArchitectureModel(
+        architecture_model = BasicSCArchitectureModel(
             physical_gate_error_rate=1e-3,
             physical_gate_time_in_seconds=1e-6,
         )

@@ -4,7 +4,8 @@ from typing import List, Optional
 
 import numpy as np
 
-from ...data_structures import BasicArchitectureModel, DecoderModel, ErrorBudget
+from ...data_structures import AlgorithmDescription, DecoderModel, QuantumProgram
+from ...data_structures.hardware_architecture_models import BasicArchitectureModel
 from .graph_estimator import GraphData, GraphResourceEstimator, ResourceInfo
 
 
@@ -12,14 +13,12 @@ from .graph_estimator import GraphData, GraphResourceEstimator, ResourceInfo
 class ExtrapolatedGraphData(GraphData):
     max_graph_degree_r_squared: float
     n_measurement_steps_r_squared: float
-    n_nodes_r_squared: float
 
 
 @dataclass
 class ExtrapolatedResourceInfo(ResourceInfo):
     n_logical_qubits_r_squared: float
     n_measurement_steps_r_squared: float
-    n_nodes_r_squared: float
     data_used_to_extrapolate: List[ResourceInfo]
     steps_to_extrapolate_to: int
 
@@ -27,7 +26,6 @@ class ExtrapolatedResourceInfo(ResourceInfo):
         new_necessary_info = [
             "n_logical_qubits_r_squared",
             "n_measurement_steps_r_squared",
-            "n_nodes_r_squared",
         ]
         inherited_necessary_info = super().__repr__() + "\n"
 
@@ -50,8 +48,11 @@ class ExtrapolationResourceEstimator(GraphResourceEstimator):
         self.n_measurement_steps_fit_type = n_measurement_steps_fit_type
 
     def _get_extrapolated_graph_data(
-        self, data: List[ResourceInfo], steps_to_extrapolate_to: int
+        self,
+        data: List[ResourceInfo],
+        program: QuantumProgram,
     ) -> ExtrapolatedGraphData:
+        steps_to_extrapolate_to = program.steps
 
         max_graph_degree, max_graph_degree_r_squared = _get_linear_extrapolation(
             self.steps_to_extrapolate_from,
@@ -84,51 +85,45 @@ class ExtrapolationResourceEstimator(GraphResourceEstimator):
                 f", not {self.n_measurement_steps_fit_type}"
             )
 
-        n_nodes, n_nodes_r_squared = _get_linear_extrapolation(
-            self.steps_to_extrapolate_from,
-            np.array([d.n_nodes for d in data]),
-            steps_to_extrapolate_to,
-        )
-
         return ExtrapolatedGraphData(
             max_graph_degree=max_graph_degree,
             n_measurement_steps=n_measurement_steps,
-            n_nodes=n_nodes,
+            n_nodes=program.n_t_gates + program.n_rotation_gates,
+            n_t_gates=program.n_t_gates,
+            n_rotation_gates=program.n_rotation_gates,
             max_graph_degree_r_squared=max_graph_degree_r_squared,
             n_measurement_steps_r_squared=n_measurement_steps_r_squared,
-            n_nodes_r_squared=n_nodes_r_squared,
         )
 
     def estimate_via_extrapolation(
         self,
+        algorithm_description: AlgorithmDescription,
         data: List[ResourceInfo],
-        error_budget: ErrorBudget,
-        delayed_gate_synthesis: bool,
-        steps_to_extrapolate_to: int,
     ):
+        assert isinstance(algorithm_description.program, QuantumProgram)
         extrapolated_info = self._get_extrapolated_graph_data(
-            data, steps_to_extrapolate_to
+            data, algorithm_description.program
         )
         resource_info = self._estimate_resources_from_graph_data(
-            extrapolated_info, delayed_gate_synthesis, error_budget
+            extrapolated_info, algorithm_description
         )
         return ExtrapolatedResourceInfo(
             n_logical_qubits=resource_info.n_logical_qubits,
             n_measurement_steps=resource_info.n_measurement_steps,
-            n_nodes=resource_info.n_nodes,
-            synthesis_multiplier=resource_info.synthesis_multiplier,
+            n_nodes=algorithm_description.program.n_nodes,
+            n_t_gates=resource_info.n_t_gates,
+            n_rotation_gates=resource_info.n_rotation_gates,
             code_distance=resource_info.code_distance,
             logical_error_rate=resource_info.logical_error_rate,
-            total_time=resource_info.total_time,
+            total_time_in_seconds=resource_info.total_time_in_seconds,
             n_physical_qubits=resource_info.n_physical_qubits,
             decoder_power=resource_info.decoder_power,
             decoder_area=resource_info.decoder_area,
             max_decodable_distance=resource_info.max_decodable_distance,
             n_logical_qubits_r_squared=extrapolated_info.max_graph_degree_r_squared,
             n_measurement_steps_r_squared=extrapolated_info.n_measurement_steps_r_squared,  # noqa: E501
-            n_nodes_r_squared=extrapolated_info.n_nodes_r_squared,
             data_used_to_extrapolate=data,
-            steps_to_extrapolate_to=steps_to_extrapolate_to,
+            steps_to_extrapolate_to=algorithm_description.program.steps,
         )
 
 

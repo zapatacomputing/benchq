@@ -1,7 +1,6 @@
 ################################################################################
 # © Copyright 2022 Zapata Computing Inc.
 ################################################################################
-from math import ceil, log10
 from typing import Optional, Union
 
 from cirq.circuits import Circuit as CirqCircuit

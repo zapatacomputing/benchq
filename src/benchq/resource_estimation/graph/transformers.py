@@ -53,6 +53,13 @@ def create_big_graph_from_subcircuits(
     graph_production_method=get_algorithmic_graph_from_graph_sim_mini,
 ) -> Callable[[QuantumProgram], GraphPartition]:
     def _transformer(program: QuantumProgram) -> GraphPartition:
+        if not delayed_gate_synthesis and program.n_rotation_gates > 0:
+            raise ValueError(
+                "Cannot create full graph from subcircuits when delayed gate "
+                "synthesis is disabled and there are rotation gates in the program. "
+                "You must transpile to a clifford + T gate set first."
+            )
+
         big_circuit = program.full_circuit
         new_program = get_program_from_circuit(big_circuit)
         graph = graph_production_method(big_circuit)

@@ -8,7 +8,7 @@ import time
 from orquestra import sdk
 from orquestra.quantum.evolution import time_evolution
 
-from benchq import BasicArchitectureModel
+from benchq import BasicSCArchitectureModel
 from benchq.algorithms import get_qsp_time_evolution_program
 from benchq.compilation import (
     get_algorithmic_graph_from_Jabalizer,
@@ -121,7 +121,7 @@ def get_of_resource_estimates(n_hydrogens):
 @sdk.workflow
 def hydrogen_workflow():
     synthesis_accuracy = 1e-7
-    architecture_model = BasicArchitectureModel(
+    architecture_model = BasicSCArchitectureModel(
         physical_gate_error_rate=1e-5,
         physical_gate_time_in_seconds=1e-8,
     )
@@ -170,7 +170,7 @@ def original_main():
         graph = get_algorithmic_graph_from_Jabalizer(clifford_t_circuit)
 
         # TA 2 part: model hardware resources
-        architecture_model = BasicArchitectureModel(
+        architecture_model = BasicSCArchitectureModel(
             physical_gate_error_rate=1e-3,
             physical_gate_time_in_seconds=1e-6,
         )
