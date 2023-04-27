@@ -2,11 +2,11 @@
 # © Copyright 2022 Zapata Computing Inc.
 ################################################################################
 import numpy as np
+import pyscf
 from openfermion.resource_estimates import sf
 from openfermion.resource_estimates.surface_code_compilation.physical_costing import (
     cost_estimator,
 )
-import pyscf
 
 
 def model_toffoli_and_qubit_cost_from_single_factorized_mean_field_object(
@@ -50,6 +50,11 @@ def get_qpe_resource_estimates_from_mean_field_object(
     # ERI must be represented using S1 permutation symmetry.
     if not meanfield_object._eri.shape == (meanfield_object._eri.shape[0],) * 4:
         meanfield_object._eri = _get_unsymmetrized_eri(meanfield_object)
+
+    if not np.allclose(
+        np.transpose(meanfield_object._eri, (2, 3, 0, 1)), meanfield_object._eri
+    ):
+        raise ValueError("ERI do not have (ij | kl) == (kl | ij) symmetry.")
 
     # Set rank in order to satisfy
     # rank + 1 > bL where
