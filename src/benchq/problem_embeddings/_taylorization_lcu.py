@@ -1,12 +1,33 @@
 import random
-from openfermion.ops import QubitOperator, FermionOperator
+from openfermion.ops import QubitOperator
 import math
 import numpy as np
 from qiskit import QuantumCircuit, transpile, QuantumRegister
-from openfermion.transforms import jordan_wigner, bravyi_kitaev
 import cmath
 from qiskit.circuit.library import RZGate
 from qiskit.circuit.library import PhaseGate
+from typing import Optional, Union
+from orquestra.quantum.operators import PauliRepresentation, PauliSum
+from orquestra.integrations.cirq.conversions import to_openfermion
+from orquestra.integrations.qiskit.conversions import import_from_qiskit
+from ..data_structures import QuantumProgram
+from openfermion import count_qubits
+from ..data_structures import QuantumProgram, get_program_from_circuit
+
+
+from qiskit import QuantumCircuit
+import math
+
+
+def get_angles_for_taylor_steps(taylor_steps):
+    coefficients_and_angles = []
+    words = get_pauliword_list(taylor_steps)
+    for i, word in enumerate(words):
+        coefficient = get_pauli_word_coefficient(word)
+        coefficients_and_angles.append(
+            tuple((coefficient, cmath.polar(coefficient)[1]))
+        )
+    return coefficients_and_angles
 
 
 def generate_random_initial_state(n_qubits):
@@ -52,26 +73,8 @@ def generate_random_initial_state(n_qubits):
     return random_initial_state, random_initial_state_circuit, str1
 
 
-def generate_fermi_hubbard_qubit_hamiltonian(
-    hamiltonian: FermionOperator, transform: str
-):
-    """Given an OpenFermion FermionOperator type Hamiltonian generates a qubit hamiltonian using either
-    Jordan Wigner or Brayi Kitaev transformation"""
-    if transform.lower() == "jordan_wigner":
-        hubbard_qubit_hamiltonian = jordan_wigner(hamiltonian)
-    elif transform.lower() == "bravyi_kitaev":
-        hubbard_qubit_hamiltonian = bravyi_kitaev(hamiltonian)
-    else:
-        raise ValueError(
-            "Qubit Transform entered is not recognized. Accepted entries are: "
-            '"Bravyi_Kitaev", or "Jordan_Wigner".'
-        )
-    return hubbard_qubit_hamiltonian
-
-
 def get_pauli_word_tuple(pauli: QubitOperator):
-    """Given a single pauli word Pauli, extract the tuple representing the word.
-    """
+    """Given a single pauli word Pauli, extract the tuple representing the word."""
     words = list(pauli.terms.keys())
     if len(words) != 1:
         raise (ValueError("Pauli given is not a single pauli word"))
@@ -90,8 +93,7 @@ def get_pauliword_list(hamiltonian: QubitOperator, ignore_identity=False):
 
 
 def get_pauli_word_coefficient(pauli: QubitOperator):
-    """Given a single pauli word (pauli), extract its coefficient.
-    """
+    """Given a single pauli word (pauli), extract its coefficient."""
     coeffs = list(pauli.terms.values())
     if len(coeffs) != 1:
         raise (ValueError("P given is not a single pauli word"))
@@ -99,8 +101,7 @@ def get_pauli_word_coefficient(pauli: QubitOperator):
 
 
 def get_pauli_word(pauli: QubitOperator):
-    """Given a single pauli word (pauli), extract the same word with coefficient 1.
-    """
+    """Given a single pauli word (pauli), extract the same word with coefficient 1."""
     words = list(pauli.terms.keys())
     if len(words) != 1:
         raise (ValueError("P given is not a single pauli word"))
@@ -120,34 +121,36 @@ def get_unitaries(taylor_sequences: list):
 
 
 def generate_taylor_series(
-    hamiltonian: QubitOperator, order: int, time: float, steps: int
-):
+    hamiltonian: Union[PauliRepresentation, QubitOperator],
+    order: int,
+    time: float,
+    steps: int,
+) -> QubitOperator:
     """Generates the taylor series expansion of e^(-iHt/r) upt to order k.
     t is duration of simulation, and r is the number of timesteps in the simulation"""
+    if isinstance(hamiltonian, PauliSum):
+        hamiltonian = to_openfermion(hamiltonian)
     ### just defining imaginary unit here for convenience ###
     im = 1j
     ### list each order in the taylor series ###
-    orders = []
-    for i in range(order + 1):
-        orders.append(i)
+    orders = list(range(order + 1))
     ### return a list of taylor sequences up to order k, for each time step ###
     lcu = QubitOperator()
-    for j, order in enumerate(orders):
+    for order in orders:
         lcu += (((time / steps) ** order) / math.factorial(order)) * (
             (-im) * hamiltonian
         ) ** order
+
     return lcu
 
 
 def generate_prepare_circuits(taylor_expansion: QubitOperator):
     """Returns prepare circuit for the coefficients in the taylor series expansion, as well as the unitaries to be
-    applied to input initial state. """
+    applied to input initial state."""
     ### create a vector of the coefficients of the pauli words in the taylor series expansion
     non_normalized = []
     coeffs = list(taylor_expansion.terms.values())
-    coeff_magnitude = []
-    for i, term in enumerate(coeffs):
-        coeff_magnitude.append(abs(term))
+    coeff_magnitude = [abs(term) for term in coeffs]
     prefactor = sum(coeff_magnitude)
     paulis = get_pauliword_list(taylor_expansion)
     state_vector = []
@@ -156,46 +159,45 @@ def generate_prepare_circuits(taylor_expansion: QubitOperator):
         coefficient = get_pauli_word_coefficient(p)
 
         ### If coefficient, c_i is complex add |c_i| to amplitude vector
-        if isinstance(coefficient, complex):
+        if isinstance(coefficient, complex) or coefficient < 0:
             state_vector.append(np.sqrt(abs(coefficient)) / np.sqrt(prefactor))
-            single_terms.append(get_pauli_word(p))
-            non_normalized.append(abs(coefficient))
-
-        ### if coefficent c_i < 0, add |c_i| to amplitude vector
-        elif coefficient < 0:
-            state_vector.append(np.sqrt(abs(coefficient)) / np.sqrt(prefactor))
-            single_terms.append(get_pauli_word(p))
-            non_normalized.append(abs(coefficient))
         else:
             state_vector.append(cmath.sqrt(coefficient) / np.sqrt(prefactor))
-            single_terms.append(get_pauli_word(p))
-            non_normalized.append(abs(coefficient))
+        single_terms.append(get_pauli_word(p))
+        non_normalized.append(abs(coefficient))
 
     ### if the number of terms is not a power of two, pad with zeros to make state vector length a power of 2
     if not np.log2(len(state_vector)).is_integer():
         n_qubits = int(np.ceil(np.log2(len(state_vector))))
-        state_vector.extend([0] * (2 ** n_qubits - len(state_vector)))
-        non_normalized.extend([0] * (2 ** n_qubits - len(state_vector)))
+        state_vector.extend([0] * (2**n_qubits - len(state_vector)))
+        non_normalized.extend([0] * (2**n_qubits - len(state_vector)))
     elif int(np.ceil(np.log2(len(state_vector)))) == 0:
         n_qubits = 1
-        state_vector.extend([0] * (2 ** n_qubits - len(state_vector)))
-        non_normalized.extend([0] * (2 ** n_qubits - len(state_vector)))
+        state_vector.extend([0] * (2**n_qubits - len(state_vector)))
+        non_normalized.extend([0] * (2**n_qubits - len(state_vector)))
     state_vector = np.array(state_vector)
     n_qubits = np.log2(len(state_vector))
     ### normalize the state vector
     norm = np.linalg.norm(state_vector)
-    normalized_state_vector = state_vector
+    normalized_state_vector = state_vector / norm
     ### now generate a circuit that will prepare desired linear comb. of basis states
     q = QuantumRegister(n_qubits, name="q")
     prep = QuantumCircuit(q)
-    prep.initialize(normalized_state_vector, [(*q)])
+    from qiskit.circuit.library import StatePreparation
 
+    # prep = StatePreparation(normalized_state_vector)._define_synthesis()
+
+    prep.initialize(normalized_state_vector, qubits=q)
+    basis_gates = ["cx", "h", "rx", "ry", "rz"]
+    prep = transpile(prep, basis_gates=basis_gates)
+
+    # TODO: I think it's not needed
     ### here just transpiling into one set for now, just for testing purposes. Will add more choices.
     ### can choose optimization level from 1-3, gretaer optimization takes more time
     ### so just took middle ground of optimization level = 2
-    prep = transpile(
-        prep, basis_gates=["id", "rx", "ry", "rz", "h", "cx"], optimization_level=2
-    )
+    # prep = transpile(
+    #     prep, basis_gates=["id", "rx", "ry", "rz", "h", "cx"], optimization_level=2
+    # )
     return prep, single_terms
 
 
@@ -250,7 +252,7 @@ def select_and_prep_dagger(
     def mc_phase_shift(
         theta, control: int, n_ancillae: int, lcu_circuit: QuantumCircuit
     ):
-        """"For complex coefficients of form Z=|r|(cos(theta) + isin(theta)), loads in the complex phase to the
+        """ "For complex coefficients of form Z=|r|(cos(theta) + isin(theta)), loads in the complex phase to the
         controlled unitaries using controlled phase-shift. Where a controlled phase shift of theta is achieved
         using CPhase_shift(theta) = P(theta)XP(theta)X"""
         mc_phase = PhaseGate(theta).control(n_ancillae, label=None)
@@ -308,3 +310,32 @@ def select_and_prep_dagger(
     lcu_circuit = lcu_circuit.compose(prepare_circuit.inverse(), range(0, n_ancillae))
 
     return lcu_circuit
+
+
+def generate_lcu_taylorization_program(
+    operator: PauliRepresentation,
+    t: int = 1,
+    steps: int = 2,
+    order: int = 15,
+    initial_state: Optional[QuantumCircuit] = None,
+) -> QuantumProgram:
+    # We could calculate steps automatically -> see eq 3 in https://arxiv.org/pdf/1412.4687.pdf
+    taylor_series = generate_taylor_series(operator, order=order, time=t, steps=steps)
+
+    n_qubits = count_qubits(operator)
+    if initial_state is None:
+        initial_state = generate_random_initial_state(n_qubits)[1]
+    prepare_circuit, terms = generate_prepare_circuits(
+        taylor_series
+    )  # This goes to ancilla qubits
+    unitaries_and_qubits = get_unitaries(terms)
+    coefficients_and_angles = get_angles_for_taylor_steps(taylor_series)
+
+    lcu_circuit = select_and_prep_dagger(
+        unitaries_and_qubits,
+        coefficients_and_angles,
+        prepare_circuit,
+        initial_state,
+    )
+    lcu_circuit = import_from_qiskit(lcu_circuit)
+    return get_program_from_circuit(lcu_circuit)

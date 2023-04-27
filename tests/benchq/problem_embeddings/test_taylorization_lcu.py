@@ -6,16 +6,43 @@ from openfermion.ops import QubitOperator, FermionOperator
 from openfermion.linalg import get_sparse_operator
 from scipy.sparse.linalg import expm_multiply
 import numpy as np
-from qiskit import QuantumCircuit, transpile, QuantumRegister, Aer
+from qiskit import QuantumCircuit, transpile, Aer
 import cmath
 import math
-from taylorization_lcu_circuit_generation import *
+from benchq.problem_embeddings._taylorization_lcu import (
+    generate_taylor_series,
+    generate_prepare_circuits,
+    get_pauliword_list,
+    get_pauli_word_coefficient,
+    get_unitaries,
+    select_and_prep_dagger,
+    get_pauli_word,
+    generate_lcu_taylorization_program,
+)
 from openfermion import fermi_hubbard
 from openfermion.utils import count_qubits
-
+from openfermion.transforms import jordan_wigner, bravyi_kitaev
+from qiskit import execute, Aer
 
 ### This script contains necessary tests for the functions that are defined in the file
 ### _taylorization_lcu.py
+
+
+def generate_fermi_hubbard_qubit_hamiltonian(
+    hamiltonian: FermionOperator, transform: str
+):
+    """Given an OpenFermion FermionOperator type Hamiltonian generates a qubit hamiltonian using either
+    Jordan Wigner or Brayi Kitaev transformation"""
+    if transform.lower() == "jordan_wigner":
+        hubbard_qubit_hamiltonian = jordan_wigner(hamiltonian)
+    elif transform.lower() == "bravyi_kitaev":
+        hubbard_qubit_hamiltonian = bravyi_kitaev(hamiltonian)
+    else:
+        raise ValueError(
+            "Qubit Transform entered is not recognized. Accepted entries are: "
+            '"Bravyi_Kitaev", or "Jordan_Wigner".'
+        )
+    return hubbard_qubit_hamiltonian
 
 
 ham_1 = fermi_hubbard(
@@ -34,29 +61,6 @@ ham_4 = fermi_hubbard(
 hamiltonians = [ham_1, ham_2, ham_3, ham_4]
 
 
-@pytest.mark.parameterize("fermion_hamiltonian", hamiltonians)
-def test_generate_fermi_hubbard_qubit_hamiltonian(fermion_hamiltonian):
-    """Tests for generate_fermi_hubbard_qubit_hamiltonian function. The function should take a hamiltonian
-    in the form of an OPenFermion FermionOperator class type and encode it as a qubit hamiltonian of the
-    OpenFermion class type QubitOperator"""
-    assert isinstance(
-        fermion_hamiltonian, FermionOperator
-    ), "Hamiltonian provided is not FermionOperator class type"
-    qubit_hubbard = generate_fermi_hubbard_qubit_hamiltonian(
-        fermion_hamiltonian, "Bravyi_Kitaev"
-    )
-    assert isinstance(
-        qubit_hubbard, QubitOperator
-    ), "qubit_hubbard is not a QubitOperator class type"
-    qubit_hubbard = generate_fermi_hubbard_qubit_hamiltonian(
-        fermion_hamiltonian, "Jordan_Wigner"
-    )
-    assert isinstance(
-        qubit_hubbard, QubitOperator
-    ), "qubit_hubbard is not a QubitOperator class type"
-    return qubit_hubbard
-
-
 ts = 1
 steps = 2
 orders = 15
@@ -68,15 +72,15 @@ for i in range(4):
     params.append((ts, steps, orders, q_hamiltonian))
 
 
-@pytest.mark.parametrize("time, steps, order, qubit_hubbard", params)
-def test_generate_taylor_series(time, steps, order, qubit_hubbard):
+@pytest.mark.parametrize("time, steps, order, hamiltonian", params)
+def test_generate_taylor_series(time, steps, order, hamiltonian):
     """Tests for the function generate_taylor_series function. the function generates the taylor series expansion
     of e^(-iHt/r) upt to order k. t is duration of simulation, and r is the number of timesteps in the simulation.
     Should take in a Hamiltonian of the OpenFermion QubitOperator class type and return another QubitOperator object."""
-    n_qubits = count_qubits(qubit_hubbard)
+    n_qubits = count_qubits(hamiltonian)
 
     def is_float_or_int(variable):
-        if isinstance(variable, float) or isinstance(variable, int):
+        if isinstance(variable, (float, int)):
             if variable > 0:
                 return True
         else:
@@ -91,7 +95,7 @@ def test_generate_taylor_series(time, steps, order, qubit_hubbard):
     assert isinstance(steps, int), "Number of steps must be a positive integer"
     assert steps > 0, "Number of steps must be a positive integer"
     taylor_series = generate_taylor_series(
-        qubit_hubbard, order=order, time=time, steps=steps
+        hamiltonian, order=order, time=time, steps=steps
     )
     assert isinstance(
         taylor_series, QubitOperator
@@ -133,16 +137,18 @@ for i in range(4):
     )
 
 
-@pytest.mark.parametrize("taylor_series, prep, terms", params_for_test_prepare_circuit)
+@pytest.mark.parametrize(
+    "taylor_series, prep, unitaries", params_for_test_prepare_circuit
+)
 def test_generate_prepare_circuit(taylor_series, prep, unitaries):
     """Tests for the prepare circuit, which should take in a taylor series of e^(-iHt/r) of a QubitOperator object and
     return a quantum circuit of the QuantumCircuit object type, which prepares the correct vector of amplitudes
-    (i.e. the magnitude of coefficients in taylor series) from the initialized all zero state. """
+    (i.e. the magnitude of coefficients in taylor series) from the initialized all zero state."""
 
     def fidelity_prepare_circuit(
         taylor_expansion: QubitOperator, prepare_circuit: QuantumCircuit
     ):
-        """"Checks the overlap between desired amplitudes of basis states, and the result of quantum circuit."""
+        """ "Checks the overlap between desired amplitudes of basis states, and the result of quantum circuit."""
         coeffs = list(taylor_expansion.terms.values())
         coeff_magnitude = []
         for i, term in enumerate(coeffs):
@@ -170,10 +176,10 @@ def test_generate_prepare_circuit(taylor_series, prep, unitaries):
         ### if the number of terms is not a power of two, pad with zeros to make state vector length a power of 2
         if not np.log2(len(state_vector)).is_integer():
             n_qubits = int(np.ceil(np.log2(len(state_vector))))
-            state_vector.extend([0] * (2 ** n_qubits - len(state_vector)))
+            state_vector.extend([0] * (2**n_qubits - len(state_vector)))
         elif int(np.ceil(np.log2(len(state_vector)))) == 0:
             n_qubits = 1
-            state_vector.extend([0] * (2 ** n_qubits - len(state_vector)))
+            state_vector.extend([0] * (2**n_qubits - len(state_vector)))
         state_vector = np.array(state_vector)
         normalized_state_vector = state_vector
 
@@ -195,7 +201,7 @@ def test_generate_prepare_circuit(taylor_series, prep, unitaries):
         "Number of terms for the select operator is not equal to number of "
         "terms in taylor series"
     )
-    assert 2 ** n_ancillae >= len(
+    assert 2**n_ancillae >= len(
         taylor_series.terms
     ), "Error, not enough qubits in prepare circuits"
     assert fidelity_prepare_circuit(taylor_series, prep), (
@@ -205,17 +211,23 @@ def test_generate_prepare_circuit(taylor_series, prep, unitaries):
 
 @pytest.mark.parametrize(
     "qubit_hamiltonian, "
-    "time, steps, order, "
-    "prepare_circuit,"
+    "delta_t, n_segments, order, "
+    "prepare,"
     "coeffs_and_angles, operators_and_qubits",
     params_for_test_select_and_prep_dagger,
 )
 def test_select_and_prep_dagger(
-    q_ham, n_segments, delta_t, order, prepare, coeffs_and_angles, operators_and_qubits,
+    qubit_hamiltonian,
+    delta_t,
+    n_segments,
+    order,
+    prepare,
+    coeffs_and_angles,
+    operators_and_qubits,
 ):
     """Test for the final output of LCU circuit algorithm. If this test passes, then the hamiltonian simulation
     circuit result matches the result of the exact solution, as determined by the overlap - up to some error."""
-    n_qubits = count_qubits(q_ham)
+    n_qubits = count_qubits(qubit_hamiltonian)
     initial_state_string = ""
     for i in range(n_qubits):
         temp = str(1)
@@ -268,14 +280,14 @@ def test_select_and_prep_dagger(
             for j in range(num_ancillae - 1):
                 q_0.append(0)
         else:
-            for j in range(2 ** num_ancillae - 2):
+            for j in range(2**num_ancillae - 2):
                 q_0.append(0)
 
         q_0 = np.array(q_0)
 
         ## making projector |0><0|_a
         ancillae_projector = np.kron(
-            np.outer(q_0, np.conjugate(q_0)), np.identity(2 ** n_qubits)
+            np.outer(q_0, np.conjugate(q_0)), np.identity(2**n_qubits)
         )
         # Tensor exact evolution with ancillae all zero state
         exact_evolution = np.kron(q_0, exact_evolution)
@@ -302,8 +314,21 @@ def test_select_and_prep_dagger(
             return False
 
     lcu_circuit = select_and_prep_dagger(
-        operators_and_qubits, coeffs_and_angles, prepare, initial_state_circuit,
+        operators_and_qubits,
+        coeffs_and_angles,
+        prepare,
+        initial_state_circuit,
     )
     assert fidelity_select_and_prep_dagger(
-        initial_state_vector, q_ham, lcu_circuit, n_ancillae
+        initial_state_vector, qubit_hamiltonian, lcu_circuit, n_ancillae
     ), "Lcu circuit is not resulting in the correct final output! (error is too high)"
+
+
+def test_generate_lcu_taylorization_program():
+    hamiltonian = fermi_hubbard(
+        x_dimension=1, y_dimension=1, tunneling=1, coulomb=1, periodic=False
+    )
+    operator = generate_fermi_hubbard_qubit_hamiltonian(hamiltonian, "Bravyi_Kitaev")
+    program = generate_lcu_taylorization_program(operator)
+    assert len(program.subroutines) == 1
+    assert program.steps == 1
