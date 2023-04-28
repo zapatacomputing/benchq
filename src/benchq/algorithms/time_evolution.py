@@ -46,7 +46,7 @@ def qsp_time_evolution_algorithm(
         hamiltonian, time, failure_tolerance
     )
     program = get_qsp_program(hamiltonian, n_block_encodings)
-    return AlgorithmDescription(program, 1, ErrorBudget(failure_tolerance))
+    return AlgorithmDescription(program, ErrorBudget(failure_tolerance), 1)
 
 
 # TODO: This method of calculating number of steps is not exact.
@@ -69,4 +69,4 @@ def trotter_time_evolution_algorithm(
 
     n_trotter_steps = _n_trotter_steps(time, failure_tolerance)
     program = get_trotter_program(hamiltonian, time, n_trotter_steps)
-    return AlgorithmDescription(program, 1, ErrorBudget(failure_tolerance))
+    return AlgorithmDescription(program, ErrorBudget(failure_tolerance), 1)

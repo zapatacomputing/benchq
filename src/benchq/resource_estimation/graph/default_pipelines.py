@@ -24,7 +24,7 @@ def run_estimate_using_graph_estimator_without_delayed_gate_synthesis(
         estimator,
         transformers=[
             synthesize_clifford_t(algorithm_description.error_budget),
-            create_big_graph_from_subcircuits(delayed_gate_synthesis=False),
+            create_big_graph_from_subcircuits(),
         ],
     )
 
@@ -41,7 +41,6 @@ def run_estimate_using_graph_estimator_with_delayed_gate_synthesis(
         estimator,
         transformers=[
             create_big_graph_from_subcircuits(
-                delayed_gate_synthesis=True,
                 graph_production_method=get_algorithmic_graph_from_Jabalizer,
             )
         ],
@@ -67,7 +66,7 @@ def run_estimate_using_extrapolation_estimator_without_delayed_gate_synthesis(
         estimator,
         transformers=[
             synthesize_clifford_t(algorithm_description.error_budget),
-            create_big_graph_from_subcircuits(delayed_gate_synthesis=False),
+            create_big_graph_from_subcircuits(),
         ],
     )
 
@@ -91,7 +90,6 @@ def run_estimate_using_extrapolation_estimator_with_delayed_gate_synthesis(
         estimator,
         transformers=[
             create_big_graph_from_subcircuits(
-                delayed_gate_synthesis=True,
                 graph_production_method=get_algorithmic_graph_from_Jabalizer,
             )
         ],

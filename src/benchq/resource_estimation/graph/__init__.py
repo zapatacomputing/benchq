@@ -14,6 +14,7 @@ from .transformers import (
 )
 
 __all__ = [
+    "automatic_resource_estimator",
     "run_custom_resource_estimation_pipeline",
     "run_custom_extrapolation_pipeline",
     "synthesize_clifford_t",

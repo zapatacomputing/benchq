@@ -131,7 +131,10 @@ def _get_linear_extrapolation(x, y, steps_to_extrapolate_to):
     coeffs, sum_of_residuals, _, _, _ = np.polyfit(x, y, 1, full=True)
     r_squared = 1 - (sum_of_residuals[0] / (len(y) * np.var(y)))
     m, c = coeffs
-    return ceil(m * steps_to_extrapolate_to + c), r_squared
+
+    # get rid of floating point errors
+    rounded_point = round(m * steps_to_extrapolate_to + c, 5)
+    return ceil(rounded_point), r_squared
 
 
 def _get_logarithmic_extrapolation(x, y, steps_to_extrapolate_to):
@@ -139,4 +142,7 @@ def _get_logarithmic_extrapolation(x, y, steps_to_extrapolate_to):
     coeffs, sum_of_residuals, _, _, _ = np.polyfit(log_x, y, 1, full=True)
     r_squared = 1 - (sum_of_residuals[0] / (len(y) * np.var(y)))
     m, c = coeffs
-    return ceil(m * np.log(steps_to_extrapolate_to) + c), r_squared
+
+    # get rid of floating point errors
+    rounded_point = round(m * np.log(steps_to_extrapolate_to) + c, 5)
+    return ceil(rounded_point), r_squared

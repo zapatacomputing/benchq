@@ -6,7 +6,7 @@ from cirq.circuits.circuit import Circuit as CirqCircuit
 from orquestra.quantum.circuits import Circuit as OrquestraCircuit
 from qiskit.circuit import QuantumCircuit as QiskitCircuit
 
-from ...data_structures import QuantumProgram
+from .quantum_program import QuantumProgram
 
 AnyCircuit = Union[OrquestraCircuit, CirqCircuit, QiskitCircuit]
 
@@ -15,7 +15,6 @@ AnyCircuit = Union[OrquestraCircuit, CirqCircuit, QiskitCircuit]
 class GraphPartition:
     program: QuantumProgram
     subgraphs: List[nx.Graph]
-    delayed_gate_synthesis: bool
 
     @property
     def n_nodes(self) -> int:

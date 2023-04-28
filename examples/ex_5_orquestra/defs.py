@@ -66,7 +66,7 @@ def gsc_estimates(program, error_budget, architecture_model):
         estimator=GraphResourceEstimator(hw_model=architecture_model),
         transformers=[
             simplify_rotations,
-            create_big_graph_from_subcircuits(delayed_gate_synthesis=True),
+            create_big_graph_from_subcircuits(),
         ],
     )
 

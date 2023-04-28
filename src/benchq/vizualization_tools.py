@@ -1,14 +1,15 @@
 ################################################################################
 # © Copyright 2022-2023 Zapata Computing Inc.
 ################################################################################
-from math import ceil, floor
-from typing import List
+from math import floor
+from typing import List, Optional
 
 import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
 
 from .resource_estimation.graph.extrapolation_estimator import ExtrapolatedResourceInfo
+from .resource_estimation.graph.graph_estimator import ResourceInfo
 
 
 def plot_graph_state_with_measurement_steps(
@@ -38,15 +39,19 @@ def plot_extrapolations(
     info: ExtrapolatedResourceInfo,
     steps_to_extrapolate_from: List[int],
     n_measurement_steps_fit_type: str = "logarithmic",
+    exact_info: Optional[ResourceInfo] = None,
 ):
     """Here we allow one to inspect the fits given by extrapolating a problem
-    from a smaller number of steps.
+    from a smaller number of steps. If exact_info is provided, we also plot the
+    exact values for the problem size in green. The extrapolated point is plotted
+    in black. The points used to extrapolate are plotted in blue. The fit is plotted
+    in red.
     """
     figure, axis = plt.subplots(3, 1)
     figure.tight_layout(pad=1.5)
 
     for i, property in enumerate(
-        ["n_logical_qubits", "n_nodes", "n_measurement_steps"]
+        ["n_logical_qubits", "n_measurement_steps", "n_nodes"]
     ):
         x = np.array(steps_to_extrapolate_from)
         y = np.array([getattr(d, property) for d in info.data_used_to_extrapolate])
@@ -68,9 +73,8 @@ def plot_extrapolations(
             and n_measurement_steps_fit_type == "logarithmic"
         ):
             x = np.exp(x)  # rescale the x values for plotting
-            extrapolated_point = ceil(m * np.log(info.steps_to_extrapolate_to) + c)
 
-            all_x = np.arange(1, info.steps_to_extrapolate_to, 1)
+            all_x = np.arange(1, info.steps_to_extrapolate_to + 1, 1)
             axis[i].plot(
                 all_x,
                 m * np.log(all_x) + c,
@@ -78,8 +82,6 @@ def plot_extrapolations(
                 label="fitted line",
             )
         else:
-            extrapolated_point = ceil(m * info.steps_to_extrapolate_to + c)
-
             axis[i].plot(
                 [0, info.steps_to_extrapolate_to],
                 [c, m * info.steps_to_extrapolate_to + c],
@@ -87,13 +89,20 @@ def plot_extrapolations(
                 label="fitted line",
             )
 
-        axis[i].plot(x, y, "o")
+        axis[i].plot(x, y, "bo")
         axis[i].plot(
             [info.steps_to_extrapolate_to],
-            [extrapolated_point],
+            [getattr(info, property)],
             "ko",
         )
-        plt.yticks(range(floor(min(y)) - 1, extrapolated_point + 1))
+        if exact_info is not None:
+            axis[i].plot(
+                [info.steps_to_extrapolate_to],
+                [getattr(exact_info, property)],
+                "go",
+            )
+
+        plt.yticks(range(floor(min(y)) - 1, getattr(info, property) + 1))
 
         axis[i].plot([], [], " ", label="r_squared: " + str(r_squared))
         axis[i].legend()

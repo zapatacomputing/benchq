@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Optional
 
 
 @dataclass
@@ -22,6 +23,7 @@ class ErrorBudget:
     circuit_generation_weight: float = 1
     synthesis_weight: float = 1
     ec_weight: float = 1
+    synthesis_failure_tolerance_set_value: Optional[float] = None
 
     @property
     def total_weights(self):
@@ -37,9 +39,15 @@ class ErrorBudget:
 
     @property
     def synthesis_failure_tolerance(self):
+        if self.synthesis_failure_tolerance_set_value:
+            return self.synthesis_failure_tolerance_set_value
         return (
             self.ultimate_failure_tolerance * self.synthesis_weight / self.total_weights
         )
+
+    @synthesis_failure_tolerance.setter
+    def synthesis_failure_tolerance(self, value):
+        self.synthesis_failure_tolerance_set_value = value
 
     @property
     def ec_failure_tolerance(self):

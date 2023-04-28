@@ -8,12 +8,16 @@ Basic example of how to perform resource estimation of a circuit from a QASM fil
 from orquestra.integrations.qiskit.conversions import import_from_qiskit
 from qiskit.circuit import QuantumCircuit
 
-from benchq import BasicArchitectureModel
-from benchq.data_structures import ErrorBudget, get_program_from_circuit
+from benchq.data_structures import (
+    AlgorithmDescription,
+    BasicArchitectureModel,
+    ErrorBudget,
+    get_program_from_circuit,
+)
 from benchq.resource_estimation.graph import (
     GraphResourceEstimator,
     create_big_graph_from_subcircuits,
-    run_resource_estimation_pipeline,
+    run_custom_resource_estimation_pipeline,
     simplify_rotations,
     synthesize_clifford_t,
 )
@@ -34,6 +38,11 @@ def main(file_name):
     # parts of the calculation, such as gate synthesis or circuit generation.
     error_budget = ErrorBudget(ultimate_failure_tolerance=1e-3)
 
+    # Algorithm description encapsulates the how the algorithm is implemented
+    # including the program, the number of times the program must be repeated,
+    # and the error budget which will be used in the circuit.
+    algorithm_description = AlgorithmDescription(quantum_program, error_budget, 1)
+
     # Architecture model is used to define the hardware model.
     architecture_model = BasicArchitectureModel(
         physical_gate_error_rate=1e-3,
@@ -50,14 +59,13 @@ def main(file_name):
     # a graph from subcircuits. It is needed to perform resource estimation using
     # the graph resource estimator. In this case we use delayed gate synthesis, as
     # we have already performed gate synthesis in the previous step.
-    gsc_resource_estimates = run_resource_estimation_pipeline(
-        quantum_program,
-        error_budget,
+    gsc_resource_estimates = run_custom_resource_estimation_pipeline(
+        algorithm_description,
         estimator=GraphResourceEstimator(architecture_model),
         transformers=[
             simplify_rotations,
             synthesize_clifford_t(error_budget),
-            create_big_graph_from_subcircuits(delayed_gate_synthesis=False),
+            create_big_graph_from_subcircuits(),
         ],
     )
     print("Resource estimation results:")

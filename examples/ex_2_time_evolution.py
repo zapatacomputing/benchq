@@ -11,6 +11,7 @@ but is also more expensive in terms of runtime and memory usage.
 Most of the objects has been described in the `1_from_qasm.py` examples, here
 we only explain new concepts.
 """
+from copy import copy
 from pprint import pprint
 
 from benchq import BasicSCArchitectureModel
@@ -30,7 +31,6 @@ from benchq.timing import measure_time
 def main():
 
     evolution_time = 5
-    error_budget = ErrorBudget(ultimate_failure_tolerance=1e-3)
 
     architecture_model = BasicSCArchitectureModel
 
@@ -52,9 +52,7 @@ def main():
     # information such as what subroutine needs to be executed and how many times.
     # In this example we perform time evolution using the QSP algorithm.
     with measure_time() as t_info:
-        algorithm = qsp_time_evolution_algorithm(
-            operator, evolution_time, error_budget.circuit_generation_weight
-        )
+        algorithm = qsp_time_evolution_algorithm(operator, evolution_time, 1e-3)
     print("Circuit generation time:", t_info.total)
 
     # First we perform resource estimation with gate synthesis at the circuit level.
@@ -63,13 +61,12 @@ def main():
     # Then we perform resource estimation with gate synthesis during the measurement,
     # which we call "delayed gate synthesis".
     with measure_time() as t_info:
-        gsc_resource_estimates = run_resource_estimation_pipeline(
-            algorithm.program,
-            error_budget,
+        gsc_resource_estimates = run_custom_resource_estimation_pipeline(
+            copy(algorithm),
             estimator=GraphResourceEstimator(architecture_model),
             transformers=[
-                synthesize_clifford_t(error_budget),
-                create_big_graph_from_subcircuits(delayed_gate_synthesis=False),
+                synthesize_clifford_t(algorithm.error_budget),
+                create_big_graph_from_subcircuits(),
             ],
         )
 
@@ -78,12 +75,11 @@ def main():
 
     with measure_time() as t_info:
         gsc_resource_estimates = run_custom_resource_estimation_pipeline(
-            algorithm.program,
-            error_budget,
+            copy(algorithm),
             estimator=GraphResourceEstimator(architecture_model),
             transformers=[
                 simplify_rotations,
-                create_big_graph_from_subcircuits(delayed_gate_synthesis=True),
+                create_big_graph_from_subcircuits(),
             ],
         )
 

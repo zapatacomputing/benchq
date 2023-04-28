@@ -1,3 +1,5 @@
+# WARNING! This feature is still in development and is untested. Use at your own risk.
+
 from functools import partial
 from typing import Any, Optional
 

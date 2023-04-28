@@ -6,9 +6,8 @@ import numpy as np
 from graph_state_generation.optimizers import greedy_stabilizer_measurement_scheduler
 from graph_state_generation.substrate_scheduler import TwoRowSubstrateScheduler
 
-from ...data_structures import AlgorithmDescription, DecoderModel
+from ...data_structures import AlgorithmDescription, DecoderModel, GraphPartition
 from ...data_structures.hardware_architecture_models import BasicArchitectureModel
-from .structs import GraphPartition
 
 INITIAL_SYNTHESIS_ACCURACY = 0.0001
 
@@ -57,7 +56,7 @@ class ResourceInfo:
             "code_distance",
             "logical_error_rate",
             "n_logical_qubits",
-            "total_time",
+            "total_time_in_seconds",
             "decoder_power",
             "decoder_area",
             "n_measurement_steps",
