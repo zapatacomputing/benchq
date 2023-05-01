@@ -12,7 +12,7 @@ import time
 
 from orquestra.sdk.schema.workflow_run import State
 
-from .defs import example_workflow
+from ex_5_orquestra.defs import example_workflow
 
 
 def main():

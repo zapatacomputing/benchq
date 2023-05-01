@@ -16,7 +16,14 @@ from pprint import pprint
 from benchq import BasicArchitectureModel
 from benchq.algorithms.time_evolution import qsp_time_evolution_algorithm
 from benchq.data_structures import ErrorBudget
-from benchq.problem_ingestion import get_vlasov_hamiltonian
+from benchq.problem_ingestion import (
+    generate_jw_qubit_hamiltonian_from_mol_data,
+    get_vlasov_hamiltonian,
+)
+from benchq.compilation import get_algorithmic_graph_from_Jabalizer
+from benchq.problem_ingestion.molecule_instance_generation import (
+    generate_hydrogen_chain_instance,
+)
 from benchq.resource_estimation.graph import (
     GraphResourceEstimator,
     create_big_graph_from_subcircuits,
@@ -24,13 +31,14 @@ from benchq.resource_estimation.graph import (
     simplify_rotations,
     synthesize_clifford_t,
 )
+
 from benchq.timing import measure_time
 
 
 def main():
 
     evolution_time = 5
-    error_budget = ErrorBudget(ultimate_failure_tolerance=1e-3)
+    error_budget = ErrorBudget(ultimate_failure_tolerance=1e-5)
 
     architecture_model = BasicArchitectureModel(
         physical_gate_error_rate=1e-3,
@@ -43,7 +51,9 @@ def main():
     # the code inside the with statement.
     with measure_time() as t_info:
         N = 2  # Problem size
-        operator = get_vlasov_hamiltonian(N=N, k=2.0, alpha=0.6, nu=0)
+        # operator = get_vlasov_hamiltonian(N=N, k=2.0, alpha=0.6, nu=0)
+        application_instance = generate_hydrogen_chain_instance(N, basis="STO-3G")
+        operator = generate_jw_qubit_hamiltonian_from_mol_data(application_instance)
 
         ## Alternative operator: 1D Heisenberg model
         # N = 100
@@ -72,7 +82,10 @@ def main():
             estimator=GraphResourceEstimator(architecture_model),
             transformers=[
                 synthesize_clifford_t(error_budget),
-                create_big_graph_from_subcircuits(delayed_gate_synthesis=False),
+                create_big_graph_from_subcircuits(
+                    delayed_gate_synthesis=False,
+                    graph_production_method=get_algorithmic_graph_from_Jabalizer,
+                ),
             ],
         )
 
