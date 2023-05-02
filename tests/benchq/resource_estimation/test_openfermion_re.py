@@ -21,7 +21,8 @@ def test_physical_qubit_count_is_larger_than_number_of_spin_orbitals(
     instance.avas_minao = avas_minao
     mean_field_object = instance.get_active_space_meanfield_object()
     qpe_resource_estimates = get_qpe_resource_estimates_from_mean_field_object(
-        mean_field_object
+        mean_field_object,
+        20
     )
     assert (
         qpe_resource_estimates["physical_qubit_count"]
@@ -36,4 +37,4 @@ def test_invalid_eri_raise_exception():
     mean_field_object = instance.get_active_space_meanfield_object()
     mean_field_object._eri[0, 1, 2, 3] += 0.1
     with pytest.raises(ValueError):
-        get_qpe_resource_estimates_from_mean_field_object(mean_field_object)
+        get_qpe_resource_estimates_from_mean_field_object(mean_field_object, 20)
