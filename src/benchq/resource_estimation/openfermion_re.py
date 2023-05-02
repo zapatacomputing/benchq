@@ -2,6 +2,7 @@
 # © Copyright 2022 Zapata Computing Inc.
 ################################################################################
 import numpy as np
+import pyscf
 from openfermion.resource_estimates import sf
 from openfermion.resource_estimates.surface_code_compilation.physical_costing import (
     cost_estimator,
@@ -27,11 +28,34 @@ def model_toffoli_and_qubit_cost_from_single_factorized_mean_field_object(
     return sf_total_toffoli_cost, sf_logical_qubits
 
 
+def _get_unsymmetrized_eri(meanfield_object: pyscf.scf.hf.SCF) -> np.ndarray:
+    """Get the ERI for molecular orbitals in the S1 symmetry representation.
+
+    Args:
+        meanfield_object: A PySCF mean field object.
+
+    Returns:
+        The ERI in the S1 symmetry representation."""
+
+    eri = pyscf.ao2mo.kernel(meanfield_object.mol, meanfield_object.mo_coeff)
+    return pyscf.ao2mo.restore("s1", eri, meanfield_object.mol.nao_nr())
+
+
 def get_qpe_resource_estimates_from_mean_field_object(
-    mean_field_object,
+    meanfield_object,
     target_accuracy=0.001,
     bits_precision_state_prep=10,
 ):
+
+    # ERI must be represented using S1 permutation symmetry.
+    if not meanfield_object._eri.shape == (meanfield_object._eri.shape[0],) * 4:
+        meanfield_object._eri = _get_unsymmetrized_eri(meanfield_object)
+
+    if not np.allclose(
+        np.transpose(meanfield_object._eri, (2, 3, 0, 1)), meanfield_object._eri
+    ):
+        raise ValueError("ERI do not have (ij | kl) == (kl | ij) symmetry.")
+
     # Set rank in order to satisfy
     # rank + 1 > bL where
     # bL = nL + bits_precision_state_prep + 2
@@ -43,7 +67,7 @@ def get_qpe_resource_estimates_from_mean_field_object(
         sf_total_toffoli_cost,
         sf_logical_qubits,
     ) = model_toffoli_and_qubit_cost_from_single_factorized_mean_field_object(
-        mean_field_object, rank, target_accuracy, bits_precision_state_prep
+        meanfield_object, rank, target_accuracy, bits_precision_state_prep
     )
     print("Number of Toffoli's is:", sf_total_toffoli_cost)
     print("Number of logical qubits is:", sf_logical_qubits)
