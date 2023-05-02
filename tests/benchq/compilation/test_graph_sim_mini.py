@@ -1,6 +1,8 @@
 ################################################################################
 # © Copyright 2022-2023 Zapata Computing Inc.
 ################################################################################
+import os
+
 import numpy as np
 import pytest
 import stim
@@ -63,7 +65,7 @@ def test_stabilizer_states_are_the_same_for_simple_circuits(circuit):
     "filename",
     [
         "single_rotation.qasm",
-        "h_chain_circuit.qasm",
+        "example_circuit.qasm",
     ],
 )
 def test_stabilizer_states_are_the_same_for_larger_circuits(filename):
@@ -73,7 +75,7 @@ def test_stabilizer_states_are_the_same_for_larger_circuits(filename):
         qiskit_circuit = import_from_qiskit(QuantumCircuit.from_qasm_file(filename))
     except FileNotFoundError:
         qiskit_circuit = import_from_qiskit(
-            QuantumCircuit.from_qasm_file("examples/circuits/" + filename)
+            QuantumCircuit.from_qasm_file(os.path.join("examples", "data", filename))
         )
 
     for i in range(1, 10):
