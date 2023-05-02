@@ -1,14 +1,14 @@
 ################################################################################
 # © Copyright 2022 Zapata Computing Inc.
 ################################################################################
+from typing import Any, Dict
+
 import numpy as np
 import pyscf
 from openfermion.resource_estimates import sf
 from openfermion.resource_estimates.surface_code_compilation.physical_costing import (
     cost_estimator,
 )
-from typing import Dict, Any
-import pyscf
 
 
 def model_toffoli_and_qubit_cost_from_single_factorized_mean_field_object(
@@ -58,7 +58,6 @@ def get_qpe_resource_estimates_from_mean_field_object(
         np.transpose(meanfield_object._eri, (2, 3, 0, 1)), meanfield_object._eri
     ):
         raise ValueError("ERI do not have (ij | kl) == (kl | ij) symmetry.")
-
 
     (
         sf_total_toffoli_cost,
