@@ -12,21 +12,19 @@ import time
 
 from orquestra.sdk.schema.workflow_run import State
 
-from .defs import hydrogen_workflow
-from .estimates_ms import ms_estimates
+from .defs import example_workflow
 
 
 def main():
-    # uncomment which workflow do you want to run:
-    wf = hydrogen_workflow()  # general hydrogen workflow to calculate estimates
-    # wf = ms_estimates()  # calculate resource estimates using MS tool
+    # example workflow which roughly reproduces ex_3_packages_comparison
+    wf = example_workflow()
 
     # Run locally, sequentially, in a single Python process. Useful for debugging, but
     # doesn't use Orquestra to its full potential.
     wf_run = wf.run("in_process")
 
     # Run remotely on Orquestra Platform.
-    # wf_run = wf.run("prod-d")
+    # wf_run = wf.run("darpa-benchmarking")
 
     print(f"Workflow {wf_run.run_id} submitted!")
 
