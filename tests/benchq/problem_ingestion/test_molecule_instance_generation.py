@@ -2,6 +2,7 @@ import pytest
 
 from benchq.problem_ingestion.molecule_instance_generation import (
     ChemistryApplicationInstance,
+    SCFConvergenceError,
     generate_hydrogen_chain_instance,
 )
 
@@ -164,3 +165,11 @@ def test_get_active_space_hamiltonian_avas_frozen_core(water_instance):
         active_space_hamiltonian_frozen_core.one_body_tensor.shape[0]
         < active_space_hamiltonian_no_frozen_core.one_body_tensor.shape[0]
     )
+@pytest.mark.parametrize(
+    "method", ["get_active_space_meanfield_object", "get_active_space_hamiltonian"]
+)
+def test_get_active_space_meanfield_object_raises_scf_convergence_error(method):
+    instance = generate_hydrogen_chain_instance(2)
+    instance.scf_options = {"max_cycle": 1}
+    with pytest.raises(SCFConvergenceError):
+        getattr(instance, method)()

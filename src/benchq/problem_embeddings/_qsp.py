@@ -1,6 +1,8 @@
 ################################################################################
 # © Copyright 2022-2023 Zapata Computing Inc.
 ################################################################################
+from typing import Any, Dict, Iterable, List, Optional, cast
+
 import cirq
 import numpy as np
 import pyLIQTR.QSP as QSP
@@ -49,9 +51,11 @@ def get_qsp_circuit(
 
     qsp_circ = qsp_generator.circuit()
 
-    circuit = _sanitize_cirq_circuit(qsp_circ)
-
-    return import_from_cirq(circuit)
+    return Circuit(
+        [
+            import_from_cirq(op) for op in _sanitize_cirq_circuit(qsp_circ)
+        ]  # type: ignore
+    )
 
 
 def get_qsp_program(
@@ -75,21 +79,34 @@ def get_qsp_program(
     reflection_circuit = qsp_generator.initialize_circuit()
     reflection_circuit = qsp_generator.add_reflection(reflection_circuit, angles[2])
     circuits = [rotation_circuit, select_v_circuit, reflection_circuit]
-    sanitized_circuits = [
-        import_from_cirq(_sanitize_cirq_circuit(circuit)) for circuit in circuits
-    ]
+    sanitized_circuits = cast(
+        List[Circuit],
+        [
+            Circuit(
+                [
+                    import_from_cirq(op) for op in _sanitize_cirq_circuit(circuit)
+                ]  # type: ignore
+            )
+            for circuit in circuits
+        ],
+    )
 
     # pad with identity so all subroutines have same number of qubits
     total_n_qubits = max(circuit.n_qubits for circuit in sanitized_circuits)
-    padded_sanitized_circuits = []
-    for circuit in sanitized_circuits:
-        new_circuit = Circuit()
-        n_qubits = circuit.n_qubits
-        shift = total_n_qubits - n_qubits
-        # in this case we know qubits only need to be moved up.
-        for op in circuit.operations:
-            new_circuit += op.gate(*[shift + index for index in op.qubit_indices])
-        padded_sanitized_circuits.append(new_circuit)
+    padded_sanitized_circuits = [
+        Circuit(
+            [
+                op.gate(
+                    *[
+                        total_n_qubits - circuit.n_qubits + index
+                        for index in op.qubit_indices
+                    ]
+                )
+                for op in circuit.operations
+            ]
+        )
+        for circuit in sanitized_circuits
+    ]
 
     def subroutine_sequence_for_qsp(n_block_encodings):
         my_subroutines = []
@@ -108,17 +125,15 @@ def get_qsp_program(
     )
 
 
-def _sanitize_cirq_circuit(circuit: cirq.Circuit) -> cirq.Circuit:
-    decomposed_circuit = cirq.Circuit(cirq.decompose(circuit))
-    circuit_without_resets = _replace_resets(decomposed_circuit)
-    simplified_circuit = _simplify_gates(circuit_without_resets)
-    circuit_with_line_qubits = _replace_named_qubit(simplified_circuit)
-    return circuit_with_line_qubits
+def _sanitize_cirq_circuit(circuit: cirq.Circuit) -> Iterable[cirq.Operation]:
+    decomposed_ops = cirq.decompose(circuit)
+    simplified_ops = _simplify_gates(decomposed_ops)
+    return _replace_named_qubits(simplified_ops)
 
 
-def _replace_named_qubit(circuit: cirq.Circuit) -> cirq.Circuit:
-    all_qubits = circuit.all_qubits()
-    qubit_map = {}
+def _replace_named_qubits(ops: Iterable[cirq.Operation]) -> List[cirq.Operation]:
+    all_qubits = set([qubit for op in ops for qubit in op.qubits])
+    qubit_map: Dict[Any, cirq.LineQubit] = {}
     max_line_id = 0
     for qubit in all_qubits:
         if isinstance(qubit, cirq.LineQubit) and qubit.x > max_line_id:
@@ -130,47 +145,40 @@ def _replace_named_qubit(circuit: cirq.Circuit) -> cirq.Circuit:
             qubit_map[qubit] = cirq.LineQubit(current_qubit_id)
             current_qubit_id += 1
 
-    return circuit.transform_qubits(qubit_map)  # type: ignore
+    return [
+        cast(cirq.Gate, op.gate).on(*[qubit_map.get(q, q) for q in op.qubits])
+        for op in ops
+    ]
 
 
-def _replace_resets(circuit: cirq.Circuit) -> cirq.Circuit:
-    def replace_resets_with_I(op: cirq.Operation, _: int) -> cirq.OP_TREE:
-        if op.gate == cirq.ResetChannel():
-            yield cirq.I(op.qubits[0])
-        else:
-            yield op
-
-    return cirq.map_operations_and_unroll(circuit, replace_resets_with_I)
+XPOW_X_1 = cirq.XPowGate(exponent=-1)
+XPOW_X_2 = cirq.XPowGate(global_shift=-0.25)
+RESET_CHANNEL = cirq.ResetChannel()
 
 
-def _simplify_gates(circuit: cirq.Circuit) -> cirq.Circuit:
-    def _replace_gates(op: cirq.Operation, _: int) -> cirq.OP_TREE:
-        # TODO: account for special cases - i.e. close to pi, close to 0, etc.
-        # This is basically just dropping a global phase, needed for
-        # interframework compatibility reasons.
+ZPOW_GATE_Z_EQUIVALENT = cirq.ZPowGate(exponent=-1)
+CZPOW_GATE_CZ_EQUIVALENT = cirq.CZPowGate(exponent=-1)
 
-        if isinstance(op.gate, cirq.YPowGate):
-            if op.gate.exponent == 0.5:
-                yield cirq.Ry(rads=op.gate.exponent / np.pi).on(op.qubits[0])
-            if op.gate.exponent == -0.5:
-                yield cirq.Ry(rads=-op.gate.exponent / np.pi).on(op.qubits[0])
-        elif op.gate == cirq.XPowGate(global_shift=-0.25):
-            # No need to include identity gates
-            # yield cirq.I.on(op.qubits[0])
-            pass
-        elif op.gate == cirq.XPowGate(exponent=-1):
-            # No need to include identity gates
-            # yield cirq.I.on(op.qubits[0])
-            pass
-        elif op.gate == cirq.ZPowGate(exponent=-1):
-            # TODO: requires verification!
-            yield cirq.Z.on(op.qubits[0])
-        elif op.gate == cirq.CZPowGate(exponent=-1):
-            yield cirq.CZ.on(op.qubits[0], op.qubits[1])
-        elif op.gate == cirq.I:
-            # No need to include identity gates
-            pass
-        else:
-            yield op
 
-    return cirq.map_operations_and_unroll(circuit, _replace_gates)
+def _replace_gate(op: cirq.Operation) -> Optional[cirq.Operation]:
+    if isinstance(op.gate, cirq.YPowGate) and op.gate.exponent == 0.5:
+        return cirq.Ry(rads=op.gate.exponent / np.pi).on(op.qubits[0])
+    elif isinstance(op.gate, cirq.YPowGate) and op.gate.exponent == -0.5:
+        return cirq.Ry(rads=-op.gate.exponent / np.pi).on(op.qubits[0])
+    elif isinstance(op.gate, cirq.XPowGate) and op.gate == XPOW_X_1:
+        return cirq.X(op.qubits[0])
+    elif isinstance(op.gate, cirq.XPowGate) and op.gate == XPOW_X_2:
+        return cirq.X(op.qubits[0])
+    elif op.gate == cirq.I or op.gate == RESET_CHANNEL:
+        return None
+    elif op.gate == ZPOW_GATE_Z_EQUIVALENT:
+        # TODO: requires verification!
+        return cirq.Z.on(op.qubits[0])
+    elif op.gate == CZPOW_GATE_CZ_EQUIVALENT:
+        return cirq.CZ.on(op.qubits[0], op.qubits[1])
+    else:
+        return op
+
+
+def _simplify_gates(ops: Iterable[cirq.Operation]) -> List[cirq.Operation]:
+    return [new_op for op in ops if (new_op := _replace_gate(op)) is not None]

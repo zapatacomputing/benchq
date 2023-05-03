@@ -17,6 +17,10 @@ from openfermionpyscf._run_pyscf import compute_integrals
 from pyscf import gto, mp, scf
 
 
+class SCFConvergenceError(Exception):
+    pass
+
+
 @dataclass
 class ChemistryApplicationInstance:
     """Class for representing chemistry application instances.
@@ -97,6 +101,9 @@ class ChemistryApplicationInstance:
         Returns:
             Tuple whose first element is the PySCF molecule object after AVAS reduction
                 and whose second is the meanfield object containing the SCF solution.
+
+        Raises:
+            SCFConvergenceError: If the SCF calculation does not converge.
         """
         molecule = self.get_pyscf_molecule()
         mean_field_object = (scf.RHF if self.multiplicity == 1 else scf.ROHF)(molecule)
@@ -105,6 +112,9 @@ class ChemistryApplicationInstance:
             mean_field_object.run(**self.scf_options)
         else:
             mean_field_object.run()
+
+        if not mean_field_object.converged:
+            raise SCFConvergenceError()
 
         if self.avas_atomic_orbitals or self.avas_minao:
             _, mean_field_object = truncate_with_avas(
@@ -127,6 +137,9 @@ class ChemistryApplicationInstance:
             occupied_indices: A list of molecular orbitals not in the active space.
                               They need to be consecutive values.
             active_indicies: A list of molecular orbitals to include in the active space. # noqa:E501
+
+        Raises:
+            SCFConvergenceError: If the SCF calculation does not converge.
         """
         molecular_data = self._get_molecular_data()
         mean_field_object = molecular_data._pyscf_data["scf"]
@@ -200,6 +213,9 @@ class ChemistryApplicationInstance:
             The fermionic Hamiltonian corresponding to the instance's active space. Note
                 that the active space will account for both AVAS and the
                 occupied_indices/active_indices attributes.
+
+        Raises:
+            SCFConvergenceError: If the SCF calculation does not converge.
         """
         if (
             self.fno_percentage_occupation_number is not None
@@ -251,6 +267,9 @@ class ChemistryApplicationInstance:
         Returns:
             A meanfield object corresponding to the instance's active space, accounting
                 for AVAS.
+
+        Raises:
+            SCFConvergenceError: If the SCF calculation does not converge.
         """
         if (
             self.active_indices
@@ -273,6 +292,9 @@ class ChemistryApplicationInstance:
         Returns:
             A PyscfMolecularData object corresponding to the meanfield object and
                 molecule.
+
+        Raises:
+            SCFConvergenceError: If the SCF calculation does not converge.
         """
         molecular_data = MolecularData(
             geometry=self.geometry,
