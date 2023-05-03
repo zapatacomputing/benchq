@@ -40,11 +40,11 @@ class ExtrapolationResourceEstimator(GraphResourceEstimator):
         hw_model: BasicArchitectureModel,
         steps_to_extrapolate_from: List[int],
         decoder_model: Optional[DecoderModel] = None,
+        distillation_widget: str = "(15-to-1)_7,3,3",
         n_measurement_steps_fit_type: str = "logarithmic",
     ):
-        self.hw_model = hw_model
+        super().__init__(hw_model, decoder_model, distillation_widget)
         self.steps_to_extrapolate_from = steps_to_extrapolate_from
-        self.decoder_model = decoder_model
         self.n_measurement_steps_fit_type = n_measurement_steps_fit_type
 
     def _get_extrapolated_graph_data(

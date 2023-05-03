@@ -6,6 +6,8 @@ import numpy as np
 from graph_state_generation.optimizers import greedy_stabilizer_measurement_scheduler
 from graph_state_generation.substrate_scheduler import TwoRowSubstrateScheduler
 
+from ..magic_state_distillation import get_specs_for_t_state_widget
+
 from ...data_structures import AlgorithmDescription, DecoderModel, GraphPartition
 from ...data_structures.hardware_architecture_models import BasicArchitectureModel
 
@@ -70,18 +72,11 @@ class GraphResourceEstimator:
         self,
         hw_model: BasicArchitectureModel,
         decoder_model: Optional[DecoderModel] = None,
+        distillation_widget: str = "(15-to-1)_7,3,3",
     ):
         self.hw_model = hw_model
         self.decoder_model = decoder_model
-
-    N_TOCKS_PER_T_GATE_FACTORY = 15
-    # We are not sure if names below are the best choice
-    # 21 comes from Game of surface codes (Litinski):
-    # https://quantum-journal.org/papers/q-2019-03-05-128/
-    # We are not sure where does 12 come from
-    BOX_WIDTH = 21
-    # litinski box is 21x11 but we add one more row for the qubits used to compute
-    BOX_HEIGHT = 12
+        self.widget_specs = get_specs_for_t_state_widget(distillation_widget)
 
     # Assumes gridsynth scaling
     SYNTHESIS_SCALING = 4
@@ -103,19 +98,19 @@ class GraphResourceEstimator:
 
     def _minimize_code_distance(
         self,
-        n_t_gates: int,
-        max_graph_degree: int,
+        n_total_t_gates: int,
+        graph_data: GraphData,
         ec_failure_tolerance: float,
         min_d: int = 4,
         max_d: int = 100,
     ) -> int:
-        for distance in range(min_d, max_d):
+        for code_distance in range(min_d, max_d):
             ec_error_rate_at_this_distance = 1 - (
-                1 - self._logical_cell_error_rate(distance)
-            ) ** self.get_logical_st_volume(n_t_gates, max_graph_degree)
+                1 - self._logical_cell_error_rate(code_distance)
+            ) ** self.get_logical_st_volume(n_total_t_gates, graph_data, code_distance)
 
             if ec_error_rate_at_this_distance < ec_failure_tolerance:
-                return distance
+                return code_distance
 
         raise RuntimeError(f"Not found good error rates under distance code: {max_d}.")
 
@@ -130,12 +125,21 @@ class GraphResourceEstimator:
             ** distance
         )
 
-    def get_logical_st_volume(self, n_t_gates: int, max_graph_degree: int):
-        num_boxes = np.ceil((max_graph_degree + 1) / self.BOX_WIDTH)
-        space = self.BOX_WIDTH * self.BOX_HEIGHT * num_boxes
-        # Time component assuming all graph nodes are measured sequentially
-        time = self.N_TOCKS_PER_T_GATE_FACTORY * n_t_gates
-        return space * time
+    def get_logical_st_volume(
+        self, n_total_t_gates: int, graph_data: GraphData, code_distance: int
+    ):
+        # For example, check that we are properly including/excluding
+        # the distillation spacetime volume
+        ## Time component assuming all graph nodes are measured sequentially
+        st_volume = (
+            2
+            * graph_data.max_graph_degree
+            * (
+                graph_data.n_measurement_steps * code_distance
+                + (self.widget_specs["time"] + code_distance) * n_total_t_gates
+            )
+        )
+        return st_volume
 
     def find_max_decodable_distance(self, min_d=4, max_d=100):
         max_distance = 0
@@ -170,32 +174,44 @@ class GraphResourceEstimator:
 
         code_distance = self._minimize_code_distance(
             n_total_t_gates,
-            graph_data.max_graph_degree,
+            graph_data,
             algorithm_description.error_budget.ec_failure_tolerance,
         )
 
         # get error rate after correction
         logical_cell_error_rate = self._logical_cell_error_rate(code_distance)
         space_time_volume = self.get_logical_st_volume(
-            n_total_t_gates, graph_data.max_graph_degree
+            n_total_t_gates, graph_data, code_distance
         )
+
         total_logical_error_rate = logical_cell_error_rate * space_time_volume
 
         # get number of physical qubits needed for the computation
-        num_boxes = np.ceil((graph_data.max_graph_degree + 1) / self.BOX_WIDTH)
         patch_size = 2 * code_distance**2
-        n_physical_qubits = self.BOX_WIDTH * self.BOX_HEIGHT * num_boxes * patch_size
+        n_physical_qubits = (
+            2 * graph_data.max_graph_degree * patch_size + self.widget_specs["qubits"]
+        )
 
         # get total time to run algorithm
-        time_of_logical_t_gate_in_seconds = (
-            6 * self.hw_model.physical_gate_time_in_seconds * code_distance
-        )
         time_per_circuit_in_seconds = (
-            graph_data.n_measurement_steps * time_of_logical_t_gate_in_seconds
-            + time_of_logical_t_gate_in_seconds
-            * self.N_TOCKS_PER_T_GATE_FACTORY
-            * n_total_t_gates
+            6
+            * self.hw_model.physical_gate_time_in_seconds
+            * (
+                graph_data.n_measurement_steps * code_distance
+                + (self.widget_specs["time"] + code_distance) * n_total_t_gates
+            )
         )
+
+        # The total space time volume, prior to measurements is,
+        # V_{graph}= 2\Delta S (where we measure each of the steps,
+        # S in terms of tocks, corresponding to d cycle times.
+        # d will be solved for later).  For each distilled T-state,
+        # C-cycles are needed to prepare the state and 1-Tock is required
+        # to interact the state with the graph node and measure it in
+        # the X or Z-basis.  Hence for each node measurement (assuming
+        # T-basis measurements), the volume increases to,
+        # V = 2*Delta*S*d+ 2*Delta*(C+d).
+
         total_time_in_seconds = (
             time_per_circuit_in_seconds * algorithm_description.n_calls
         )
