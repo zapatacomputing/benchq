@@ -1,6 +1,7 @@
 ################################################################################
 # © Copyright 2022 Zapata Computing Inc.
 ################################################################################
+import os
 from dataclasses import dataclass
 from typing import Iterable, List, Optional, Tuple, Union
 
@@ -15,7 +16,7 @@ from openfermion.resource_estimates.molecule import (
 from openfermionpyscf import PyscfMolecularData
 from openfermionpyscf._run_pyscf import compute_integrals
 from pyscf import gto, mp, scf
-import os
+
 
 class SCFConvergenceError(Exception):
     pass
@@ -79,8 +80,9 @@ class ChemistryApplicationInstance:
     fno_threshold: Optional[float] = None
     fno_n_virtual_natural_orbitals: Optional[int] = None
     scf_options: Optional[dict] = None
-    scf_output_name: Optional[Union[str,os.PathLike]] = None
-    scf_chkfile_name: Optional[Union[str,os.PathLike]] = None
+    scf_output_name: Optional[Union[str, os.PathLike]] = None
+    scf_chkfile_name: Optional[Union[str, os.PathLike]] = None
+    scf_chkfile_name_input: Optional[Union[str, os.PathLike]] = None
 
     def get_pyscf_molecule(self) -> gto.Mole:
         "Generate the PySCF molecule object describing the system to be calculated."
@@ -110,11 +112,17 @@ class ChemistryApplicationInstance:
         molecule = self.get_pyscf_molecule()
         mean_field_object = (scf.RHF if self.multiplicity == 1 else scf.ROHF)(molecule)
 
-        # Remove linear dependecies
-        mean_field_object = molecule.RHF().apply(scf.addons.remove_linear_dep_)
+        if self.scf_chkfile_name_input is not None:
+            mean_field_object = scf.chkfile.load_scf(self.scf_chkfile_name_input)
 
-        if self.scf_chkfile_name:
-            mean_field_object.chkfile = self.scf_chkfile_name # Do we need '.chk' extension
+        # Remove linear dependecies
+        # mean_field_object = molecule.RHF().apply(scf.addons.remove_linear_dep_)
+
+        if self.scf_chkfile_name is not None:
+            mean_field_object.chkfile = (
+                self.scf_chkfile_name
+            )  # Do we need '.chk' extension
+
         if self.scf_options is not None:
             mean_field_object.run(**self.scf_options)
         else:
