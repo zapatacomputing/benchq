@@ -65,8 +65,10 @@ def get_single_factorized_qpe_resource_estimate(
     2, 030305.
 
     Args:
-        h1 (np.ndarray): Matrix elements of the one-body operator that includes kinetic energy operator and electorn-nuclear Coulomb operator.
-        eri (np.ndarray): Four-dimensional array containing electron-repulsion integrals.
+        h1 (np.ndarray): Matrix elements of the one-body operator that includes kinetic
+            energy operator and electorn-nuclear Coulomb operator.
+        eri (np.ndarray): Four-dimensional array containing electron-repulsion
+            integrals.
         rank (int): Rank of the factorization.
         allowable_phase_estimation_error (float): Allowable error in phase estimation.
             Corresponds to epsilon_QPE in the paper.
