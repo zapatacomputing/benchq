@@ -1,6 +1,8 @@
 ################################################################################
 # © Copyright 2022 Zapata Computing Inc.
 ################################################################################
+from typing import Any, Dict
+
 import numpy as np
 import pyscf
 from openfermion.resource_estimates import sf
@@ -42,10 +44,11 @@ def _get_unsymmetrized_eri(meanfield_object: pyscf.scf.hf.SCF) -> np.ndarray:
 
 
 def get_qpe_resource_estimates_from_mean_field_object(
-    meanfield_object,
-    target_accuracy=0.001,
-    bits_precision_state_prep=10,
-):
+    meanfield_object: pyscf.scf.hf.SCF,
+    rank: int,
+    target_accuracy: float = 0.001,
+    bits_precision_state_prep: int = 10,
+) -> Dict[str, Any]:
 
     # ERI must be represented using S1 permutation symmetry.
     if not meanfield_object._eri.shape == (meanfield_object._eri.shape[0],) * 4:
@@ -55,13 +58,6 @@ def get_qpe_resource_estimates_from_mean_field_object(
         np.transpose(meanfield_object._eri, (2, 3, 0, 1)), meanfield_object._eri
     ):
         raise ValueError("ERI do not have (ij | kl) == (kl | ij) symmetry.")
-
-    # Set rank in order to satisfy
-    # rank + 1 > bL where
-    # bL = nL + bits_precision_state_prep + 2
-    initial_rank = 4
-    nL = np.ceil(np.log2(initial_rank + 1))
-    rank = int(nL + bits_precision_state_prep + 2)
 
     (
         sf_total_toffoli_cost,
