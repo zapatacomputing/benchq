@@ -12,12 +12,12 @@ using Jabalizer
 
 include("graph_sim_data.jl")
 
-const AdjList = Set{Int32}
+const AdjList = Vector{Int32}
 
 const Qubit = UInt32
 
 struct ICMOp
-    name::String
+    code::LCO
     qubit1::Qubit
     qubit2::Qubit
 
@@ -56,21 +56,21 @@ function get_graph_state_data(icm_circuit::Vector{ICMOp}, n_qubits)
             last_10_percent_completed += 10
         end
 
-        op_name = icm_op.name
+        op_code = icm_op.code
         qubit_1 = icm_op.qubit1
-        if op_name == "H"
+        if op_code == H_code
             lco[qubit_1] = multiply_h[lco[qubit_1]]
-        elseif op_name == "S"
+        elseif op_code == S_code
             lco[qubit_1] = multiply_s[lco[qubit_1]]
-        elseif op_name == "CNOT"
-            # CNOT = (I \otimes H) CZ (I \otimes H)
+        elseif op_code == CNOT_code
+            # CNOT = (I ⊗ H) CZ (I ⊗ H)
             qubit_2 = icm_op.qubit2
             lco[qubit_2] = multiply_h[lco[qubit_2]]
             cz(lco, adj, qubit_1, qubit_2)
             lco[qubit_2] = multiply_h[lco[qubit_2]]
-        elseif op_name == "CZ"
+        elseif op_code == CZ_code
             cz(lco, adj, qubit_1, icm_op.qubit2)
-        else # "S_Dagger"
+        else # S_Dagger_code
             lco[qubit_1] = multiply_d[lco[qubit_1]]
         end
     end
@@ -80,33 +80,14 @@ end
 
 """Unpacks the values in the cz table and updates the lco values)"""
 @inline function update_lco(table, lco, vertex_1, vertex_2)
+    # Get the packed value from the table
     val = table[lco[vertex_1], lco[vertex_2]]
+    # The code for the first vertex is stored in the top byte, and the second in the bottom byte
     lco[vertex_1] = (val >> 8) & 0x7f
     lco[vertex_2] = val & 0xff
+    # return if the top bit is set, which indicates if it is isolated or connected
     (val & 0x8000) != 0x0000
 end
-
-"""
-Apply a CZ gate to the graph on the given vertices.
-
-Args:
-    lco::Vector{LCO}      local clifford operation on each node
-    adj::Vector{AdjList}  adjacency list describing the graph state
-    vertex_1::Int         vertex to enact the CZ gate on
-    vertex_2::Int         vertex to enact the CZ gate on
-"""
-function cz(lco, adj, vertex_1, vertex_2)
-    check_almost_isolated(adj[vertex_1], vertex_2) || remove_lco(lco, adj, vertex_1, vertex_2)
-    check_almost_isolated(adj[vertex_2], vertex_1) || remove_lco(lco, adj, vertex_2, vertex_1)
-    check_almost_isolated(adj[vertex_1], vertex_2) || remove_lco(lco, adj, vertex_1, vertex_2)
-
-    if vertex_2 in adj[vertex_1]
-        update_lco(cz_connected, lco, vertex_1, vertex_2) || remove_edge!(adj, vertex_1, vertex_2)
-    else
-        update_lco(cz_isolated, lco, vertex_1, vertex_2) && add_edge!(adj, vertex_1, vertex_2)
-    end
-end
-
 
 """
 Check if a vertex is almost isolated. A vertex is almost isolated if it has no
@@ -121,7 +102,33 @@ Returns:
 """
 function check_almost_isolated(set, vertex)
     len = length(set)
-    return (len == 0) || (len == 1 && vertex in set)
+    return (len == 0) || (len == 1 && set[1] == vertex)
+end
+
+"""
+Apply a CZ gate to the graph on the given vertices.
+
+Args:
+    lco::Vector{LCO}      local clifford operation on each node
+    adj::Vector{AdjList}  adjacency list describing the graph state
+    vertex_1::Int         vertex to enact the CZ gate on
+    vertex_2::Int         vertex to enact the CZ gate on
+"""
+function cz(lco, adj, vertex_1, vertex_2)
+    lst1, lst2 = adj[vertex_1], adj[vertex_2]
+
+    if check_almost_isolated(lst1, vertex_2)
+        check_almost_isolated(lst2, vertex_1) || remove_lco(lco, adj, vertex_2, vertex_1)
+    else
+        remove_lco(lco, adj, vertex_1, vertex_2)
+        check_almost_isolated(lst2, vertex_1) || remove_lco(lco, adj, vertex_2, vertex_1)
+        check_almost_isolated(lst1, vertex_2) || remove_lco(lco, adj, vertex_1, vertex_2)
+    end
+    if insorted(vertex_2, lst1)
+        update_lco(cz_connected, lco, vertex_1, vertex_2) || remove_edge!(adj, vertex_1, vertex_2)
+    else
+        update_lco(cz_isolated, lco, vertex_1, vertex_2) && add_edge!(adj, vertex_1, vertex_2)
+    end
 end
 
 function get_neighbor(neighbors, avoid)
@@ -129,16 +136,10 @@ function get_neighbor(neighbors, avoid)
     # vb will be set to avoid if there are no neighbors, or avoid is the only neighbor,
     # otherwise it will pick the first neighbor it sees that is not avoid
     isempty(neighbors) && return avoid
-    # This is looking into the internal Set implementation for optimal speed!
-    dict = neighbors.dict
-    slots = dict.slots
-    for i = dict.idxfloor:length(slots)
-        @inbounds if slots[i] == 0x1 # make sure slot is actually filled
-            vb = dict.keys[i]
-            vb != avoid && return vb
-        end
-    end
-    avoid
+    vb = neighbors[1]
+    # if there is only one element, or the first element is not avoid, just return it,
+    # otherwise, pick the second element
+    (length(neighbors) == 1 || vb != avoid) ? vb : neighbors[2]
 end
 
 
@@ -165,16 +166,16 @@ function remove_lco(lco, adj, v, avoid)
     # This uses a precomputed decomposition table, length is stored in top 3 bits
     # Other 5 bits when set indicate using sqrt(Z) gate instead of sqrt(X) gate
     tab = decomp_tab[lco[v]]
-    if tab & 0x1f # check if there are any sqrt(Z) gates
+    if (tab & 0x1f) == 0 # check if there are any sqrt(Z) gates
+        # Faster code for 4 of the 24 gates that don't have sqrt(Z)
+        for i = 1:(tab>>5)
+            local_complement!(lco, adj, v)
+        end
+    else
         vb = get_neighbor(adj[v], avoid)
         for i = 1:(tab>>5)
             local_complement!(lco, adj, ifelse((tab & 0x1) == 0x0, v, vb))
             tab >>= 1
-        end
-    else
-        # Faster code for 4 of the 24 gates that don't have sqrt(Z)
-        for i = 1:(tab>>5)
-            local_complement!(lco, adj, v)
         end
     end
 end
@@ -189,7 +190,7 @@ Args:
     v::Int                index node to take the local complement of
 """
 function local_complement!(lco, adj, v)
-    neighbors = collect(adj[v])
+    neighbors = adj[v]
     len = length(neighbors)
     for i in 1:len, j in i+1:len
         toggle_edge!(adj, neighbors[i], neighbors[j])
@@ -203,14 +204,16 @@ end
 
 """Add an edge between the two vertices given"""
 @inline function add_edge!(adj, vertex_1, vertex_2)
-    push!(adj[vertex_1], vertex_2)
-    push!(adj[vertex_2], vertex_1)
+    lst1, lst2 = adj[vertex_1], adj[vertex_2]
+    insert!(lst1, searchsortedfirst(lst1, vertex_2), vertex_2)
+    insert!(lst2, searchsortedfirst(lst2, vertex_1), vertex_1)
 end    
 
 """Remove an edge between the two vertices given"""
 @inline function remove_edge!(adj, vertex_1, vertex_2)
-    delete!(adj[vertex_1], vertex_2)
-    delete!(adj[vertex_2], vertex_1)
+    lst1, lst2 = adj[vertex_1], adj[vertex_2]
+    deleteat!(lst1, searchsortedfirst(lst1, vertex_2))
+    deleteat!(lst2, searchsortedfirst(lst2, vertex_1))
 end
 
 """
@@ -223,70 +226,61 @@ Args:
     vertex_2::Int         index of vertex to be connected or disconnected
 """
 function toggle_edge!(adj, vertex_1, vertex_2)
-    if vertex_2 in adj[vertex_1]
+    if insorted(vertex_2, adj[vertex_1])
         remove_edge!(adj, vertex_1, vertex_2)
     else
         add_edge!(adj, vertex_1, vertex_2)
     end
 end
 
-# Change this find the op out of a table, don't create a new string for every op
-"""Get op name as Julia string"""
-get_op_name(op) = Jabalizer.pyconvert(String, op.gate.name)
+get_qubit_1(op) = Jabalizer.pyconvert(Int, op.qubit_indices[0])
+get_qubit_2(op) = Jabalizer.pyconvert(Int, op.qubit_indices[1])
 
-"""Get qubit(s) as a tuple"""
-function get_qubit(op)
-    indices = op.qubit_indices
-    len = length(indices)
-    if len == 1
-        return ( Jabalizer.pyconvert(Int, indices[0]), 0 )
-    elseif len == 2
-        return ( Jabalizer.pyconvert(Int, indices[0]), Jabalizer.pyconvert(Int, indices[1]) )
-    else
-        error("Invalid number of qubits $len")
-    end
-end
+const op_list = ["I", "X", "Y", "Z", "H", "S", "S_Dagger", "CZ", "CNOT",
+                 "T", "T_Dagger", "RX", "RY", "RZ"]
+const code_list = LCO[0, 0, 0, 0, H_code, S_code, S_Dagger_code, CZ_code, CNOT_code,
+                      T_code, T_Dagger_code, RX_code, RY_code, RZ_code]
+
+"""Get Python version of op_list of to speed up getting index"""
+get_op_list() = Jabalizer.pylist(op_list)
+
+"""Get index of operation name"""
+get_op_index(op_list, op) = Jabalizer.pyconvert(Int, op_list.index(op.gate.name)) + 1
+
+ignore_op(index) = index < 5 # i.e. I, X, Y, Z
+single_qubit_op(index) = 4 < index < 8   # H, S, S_Dagger
+double_qubit_op(index) = 7 < index < 10  # CZ, CNOT
+decompose_op(index) = index > 9 # T, T_Dagger, RX, RY, RZ
 
 """
 Performs gates decomposition to provide a circuit in the icm format.
 Reference: https://arxiv.org/abs/1509.02004
 """
-function get_icm(
-    circuit,
-    n_qubits::Int,
-    gates_to_decompose::Vector{String},
-    with_measurements::Bool=false
-)
+function get_icm(circuit, n_qubits::Int, with_measurements::Bool=false)
     # mapping from qubit to its compiled version
     qubit_map = [Qubit(i) for i = 0:n_qubits-1]
     compiled_circuit = ICMOp[]
+    ops = get_op_list()
     curr_qubits = n_qubits
     for op in circuit
-        op_name = get_op_name(op)
-        if op_name in ["I", "X", "Y", "Z"]
-            continue
-        elseif op_name == "H" || op_name == "S" || op_name == "S_Dagger"
+        op_index = get_op_index(ops, op)
+        if single_qubit_op(op_index)
+            push!(compiled_circuit, ICMOp(code_list[op_index], qubit_map[get_qubit_1(op)+1]))
+        elseif double_qubit_op(op_index)
             push!(compiled_circuit,
-                  ICMOp(op_name, qubit_map[op_gates[1]+1]))
-        elseif op_name == "CNOT" || op_name == "CZ"
-            push!(compiled_circuit,
-                  ICMOp(op_name, qubit_map[op_gates[1]+1], qubit_map[op_gates[2]+1]))
-        elseif op_name in gates_to_decompose
-            for original_qubit in op_gates
-                compiled_qubit = qubit_map[original_qubit+1]
-                qubit_map[original_qubit+1] = new_qubit = curr_qubits
-                curr_qubits += 1
+                  ICMOp(code_list[op_index],
+                        qubit_map[get_qubit_1(op)+1], qubit_map[get_qubit_2(op)+1]))
+        elseif decompose_op(op_index)
+            # Note: these are currently all single qubit gates
+            original_qubit = get_qubit_1(op)
+            compiled_qubit = qubit_map[original_qubit+1]
+            qubit_map[original_qubit+1] = new_qubit = curr_qubits
+            curr_qubits += 1
 
-                push!(compiled_circuit, ICMOp("CNOT", compiled_qubit, new_qubit))
-                if with_measurements
-                    push!(compiled_circuit,
-                          ICMOp("$(op_name)_measurement", compiled_qubit))
-                    push!(compiled_circuit,
-                          ICMOp("Gate_Conditioned_on_$(compiled_qubit)_Measurement", new_qubit))
-                end
-            end
-        else
-            error("Unknown gate: $op_name")
+            push!(compiled_circuit, ICMOp(CNOT_code, compiled_qubit, new_qubit))
+            with_measurements &&
+                push!(compiled_circuit,
+                      ICMOp(code_list[op_index]+MEASURE_OFFSET, compiled_qubit, new_qubit))
         end
     end
 
@@ -306,16 +300,18 @@ Returns:
     lco::Vector{LCO}      local clifford operations on each node
 """
 function run_graph_sim_mini(circuit)
-    print("ICM compilation: qubits=$n_qubits, gates=$(length(bare_circuit))\n\t")
-    @time (icm_circuit, icm_n_qubits) = get_icm(circuit.operations,
-                                                Jabalizer.pyconvert(Int, circuit.n_qubits),
-                                                ["T", "T_Dagger", "RX", "RY", "RZ"])
-
+    n_qubits = Jabalizer.pyconvert(Int, circuit.n_qubits)
+    ops = circuit.operations
+    print("ICM compilation: qubits=$n_qubits, gates=$(length(ops))\n\t")
+    @time (icm_circuit, icm_n_qubits) = get_icm(ops, n_qubits)
     print("Graph Sim Mini: qubits=$icm_n_qubits, gates=$(length(icm_circuit))\n\t")
     @time lco, adj = get_graph_state_data(icm_circuit, icm_n_qubits)
-
+    print("Convert lco:\t")
+    @time py_lco = Jabalizer.pylist(lco)
+    print("Convert adj:\t")
+    @time py_adj = python_adjlist!(adj)
     println("Graph Sim Mini finished")
-    return Jabalizer.pylist(lco), python_adjlist!(adj)
+    return py_lco, py_adj
 end
 
 """

@@ -105,8 +105,26 @@ const H_code        = LCO(11)
 const S_code        = LCO(7)
 const S_Dagger_code = LCO(6)
 const SQRT_X_code   = LCO(15)
+
+# Two qubit gates
 const CZ_code       = LCO(25)
 const CNOT_code     = LCO(26)
+
+# Gates that get decomposed
+const T_code        = LCO(27)
+const T_Dagger_code = LCO(28)
+const RX_code       = LCO(29)
+const RY_code       = LCO(30)
+const RZ_code       = LCO(31)
+
+const MEASURE_OFFSET = (RZ_code - T_code + 0x1)
+
+# Measurement markers
+const M_T_code        = MEASURE_OFFSET + T_code
+const M_T_Dagger_code = MEASURE_OFFSET + T_Dagger_code
+const M_RX_code       = MEASURE_OFFSET + RX_code
+const M_RY_code       = MEASURE_OFFSET + RY_code
+const M_RZ_code       = MEASURE_OFFSET + RZ_code
 
 const multiply_h = multiply_lco[H_code, :]
 const multiply_s = multiply_lco[S_code, :]
