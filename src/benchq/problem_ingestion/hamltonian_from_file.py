@@ -1,3 +1,7 @@
+################################################################################
+# © Copyright 2023 Zapata Computing Inc.
+################################################################################
+
 import json
 import os
 from typing import List, Union
@@ -115,7 +119,9 @@ def _get_hamiltonian_from_hdf5(file_name: str) -> PauliSum:
     else:
         raise ValueError(
             f"Hamiltonian extraction failed for {file_name}. "
-            f"File format is not supported."
+            f"File format is not recognized. Please use formatting from either "
+            f"Guoming Wang's QAOA implementation or Alex Kunitsa's molecule "
+            f"implementation."
         )
 
 
