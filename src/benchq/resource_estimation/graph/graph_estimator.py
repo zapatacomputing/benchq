@@ -50,6 +50,7 @@ class ResourceInfo:
     n_measurement_steps: int
     total_time_in_seconds: float
     max_decodable_distance: Optional[int]
+    decoder_total_energy_consumption: Optional[float]
     decoder_power: Optional[float]
     decoder_area: Optional[float]
 
@@ -59,6 +60,7 @@ class ResourceInfo:
             "logical_error_rate",
             "n_logical_qubits",
             "total_time_in_seconds",
+            "decoder_total_energy_consumption",
             "decoder_power",
             "decoder_area",
             "n_measurement_steps",
@@ -130,15 +132,13 @@ class GraphResourceEstimator:
     ):
         # For example, check that we are properly including/excluding
         # the distillation spacetime volume
+        space = 2 * graph_data.max_graph_degree
         ## Time component assuming all graph nodes are measured sequentially
-        st_volume = (
-            2
-            * graph_data.max_graph_degree
-            * (
-                graph_data.n_measurement_steps * code_distance
-                + (self.widget_specs["time"] + code_distance) * n_total_t_gates
-            )
+        time = (
+            graph_data.n_measurement_steps * code_distance
+            + (self.widget_specs["time"] + code_distance) * n_total_t_gates
         )
+        st_volume = space * time
         return st_volume
 
     def find_max_decodable_distance(self, min_d=4, max_d=100):
@@ -218,12 +218,22 @@ class GraphResourceEstimator:
 
         # get decoder requirements
         if self.decoder_model:
-            decoder_power = space_time_volume * self.decoder_model.power(code_distance)
+            decoder_total_energy_consumption = (
+                space_time_volume
+                * self.decoder_model.power(code_distance)
+                * self.decoder_model.delay(code_distance)
+            )
+            decoder_power = (
+                2
+                * graph_data.max_graph_degree
+                * self.decoder_model.power(code_distance)
+            )
             decoder_area = graph_data.max_graph_degree * self.decoder_model.area(
                 code_distance
             )
             max_decodable_distance = self.find_max_decodable_distance()
         else:
+            decoder_total_energy_consumption = None
             decoder_power = None
             decoder_area = None
             max_decodable_distance = None
@@ -239,6 +249,7 @@ class GraphResourceEstimator:
             n_measurement_steps=graph_data.n_measurement_steps,
             total_time_in_seconds=total_time_in_seconds,
             n_physical_qubits=n_physical_qubits,
+            decoder_total_energy_consumption=decoder_total_energy_consumption,
             decoder_power=decoder_power,
             decoder_area=decoder_area,
             max_decodable_distance=max_decodable_distance,
