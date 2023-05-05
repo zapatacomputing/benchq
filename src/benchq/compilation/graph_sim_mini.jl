@@ -43,18 +43,22 @@ function get_graph_state_data(icm_circuit::Vector{ICMOp}, n_qubits)
     lco = fill(H_code, n_qubits)   # local clifford operation on each node
     adj = [AdjList() for _ in 1:n_qubits]  # adjacency list
 
+    #=
     # for keeping track of progress
     total_length = length(icm_circuit)
     last_10_percent_completed = 0
     i = 0
+    =#
 
     for icm_op in icm_circuit
+        #=
         i += 1
         percent_completed = round(100 * i / total_length)
         if percent_completed >= last_10_percent_completed + 10
             println("GraphSim Mini is $percent_completed% completed")
             last_10_percent_completed += 10
         end
+        =#
 
         op_code = icm_op.code
         qubit_1 = icm_op.qubit1
@@ -299,7 +303,7 @@ Returns:
     adj::Vector{AdjList}  adjacency list describing the graph state
     lco::Vector{LCO}      local clifford operations on each node
 """
-function run_graph_sim_mini(circuit)
+function _run_graph_sim_mini(circuit)
     n_qubits = Jabalizer.pyconvert(Int, circuit.n_qubits)
     ops = circuit.operations
     print("ICM compilation: qubits=$n_qubits, gates=$(length(ops))\n\t")
@@ -310,8 +314,13 @@ function run_graph_sim_mini(circuit)
     @time py_lco = Jabalizer.pylist(lco)
     print("Convert adj:\t")
     @time py_adj = python_adjlist!(adj)
-    println("Graph Sim Mini finished")
+    println()
     return py_lco, py_adj
+end
+
+function run_graph_sim_mini(circuit)
+    @time res = _run_graph_sim_mini(circuit)
+    return res
 end
 
 """
