@@ -71,12 +71,12 @@ def _get_transformers(use_delayed_gate_synthesis, error_budget):
             ),
             {"n_measurement_steps": 6, "n_nodes": 6, "n_logical_qubits": 5},
         ),
-        # (
-        #     get_program_from_circuit(
-        #         Circuit([H(0), T(0), CNOT(0, 1), T(2), CNOT(2, 3)])
-        #     ),
-        #     {"n_measurement_steps": 3, "n_nodes": 3, "n_logical_qubits": 2},
-        # ),
+        (
+            get_program_from_circuit(
+                Circuit([H(0), T(0), CNOT(0, 1), T(2), CNOT(2, 3)])
+            ),
+            {"n_measurement_steps": 3, "n_nodes": 6, "n_logical_qubits": 2},
+        ),
     ],
 )
 def test_get_resource_estimations_for_program_gives_correct_results(
