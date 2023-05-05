@@ -90,12 +90,14 @@ def test_get_resource_estimations_for_program_gives_correct_results(
         ultimate_failure_tolerance=1e-2, circuit_generation_weight=0
     )
     transformers = _get_transformers(use_delayed_gate_synthesis, error_budget)
-    gsc_resource_estimates = asdict(run_resource_estimation_pipeline(
-        quantum_program,
-        error_budget,
-        estimator=GraphResourceEstimator(architecture_model),
-        transformers=transformers,
-    ))
+    gsc_resource_estimates = asdict(
+        run_resource_estimation_pipeline(
+            quantum_program,
+            error_budget,
+            estimator=GraphResourceEstimator(architecture_model),
+            transformers=transformers,
+        )
+    )
 
     # Extract only keys that we want to compare
     assert {
