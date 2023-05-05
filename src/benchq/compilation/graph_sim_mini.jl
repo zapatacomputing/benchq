@@ -15,7 +15,7 @@ const to = TimerOutput()
 
 include("graph_sim_data.jl")
 
-const AdjList = Vector{Int32}
+const AdjList = Set{Int32}
 
 const Qubit = UInt32
 
@@ -109,7 +109,7 @@ Returns:
 """
 function check_almost_isolated(set, vertex)
     len = length(set)
-    return (len == 0) || (len == 1 && set[1] == vertex)
+    return (len == 0) || (len == 1 && vertex in set)
 end
 
 """
@@ -138,6 +138,7 @@ function cz(lco, adj, vertex_1, vertex_2)
     end
 end
 
+#=
 function get_neighbor(neighbors, avoid)
     # Avoid copying and modifying adjacency vector
     # vb will be set to avoid if there are no neighbors, or avoid is the only neighbor,
@@ -148,7 +149,24 @@ function get_neighbor(neighbors, avoid)
     # otherwise, pick the second element
     (length(neighbors) == 1 || vb != avoid) ? vb : neighbors[2]
 end
+=#
 
+function get_neighbor(neighbors, avoid)
+    # Avoid copying and modifying adjacency vector
+    # vb will be set to avoid if there are no neighbors, or avoid is the only neighbor,
+    # otherwise it will pick the first neighbor it sees that is not avoid
+    isempty(neighbors) && return avoid
+    # This is looking into the internal Set implementation for optimal speed!
+    dict = neighbors.dict
+    slots = dict.slots
+    for i = dict.idxfloor:length(slots)
+        @inbounds if slots[i] == 0x1 # make sure slot is actually filled
+            vb = dict.keys[i]
+            vb != avoid && return vb
+        end
+    end
+    avoid
+end
 
 """
 Remove all local clifford operations on a vertex v. Needs use of a neighbor
@@ -200,7 +218,7 @@ Args:
 """
 function local_complement!(lco, adj, v)
     @timeit to "lc toggle" begin
-    neighbors = adj[v]
+    neighbors = collect(adj[v])
     len = length(neighbors)
     for i in 1:len, j in i+1:len
         toggle_edge!(adj, neighbors[i], neighbors[j])
@@ -217,16 +235,24 @@ end
 
 """Add an edge between the two vertices given"""
 @inline function add_edge!(adj, vertex_1, vertex_2)
+    #=
     lst1, lst2 = adj[vertex_1], adj[vertex_2]
     insert!(lst1, searchsortedfirst(lst1, vertex_2), vertex_2)
     insert!(lst2, searchsortedfirst(lst2, vertex_1), vertex_1)
+    =#
+    push!(adj[vertex_1], vertex_2)
+    push!(adj[vertex_2], vertex_1)
 end    
 
 """Remove an edge between the two vertices given"""
 @inline function remove_edge!(adj, vertex_1, vertex_2)
+    #=
     lst1, lst2 = adj[vertex_1], adj[vertex_2]
     deleteat!(lst1, searchsortedfirst(lst1, vertex_2))
     deleteat!(lst2, searchsortedfirst(lst2, vertex_1))
+    =#
+    delete!(adj[vertex_1], vertex_2)
+    delete!(adj[vertex_2], vertex_1)
 end
 
 """
@@ -239,7 +265,8 @@ Args:
     vertex_2::Int         index of vertex to be connected or disconnected
 """
 function toggle_edge!(adj, vertex_1, vertex_2)
-    if insorted(vertex_2, adj[vertex_1])
+    # if insorted(vertex_2, adj[vertex_1])
+    if vertex_2 in adj[vertex_1]
         remove_edge!(adj, vertex_1, vertex_2)
     else
         add_edge!(adj, vertex_1, vertex_2)
