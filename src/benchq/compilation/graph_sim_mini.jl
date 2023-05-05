@@ -126,12 +126,16 @@ function cz(lco, adj, vertex_1, vertex_2)
 
     if check_almost_isolated(lst1, vertex_2)
         check_almost_isolated(lst2, vertex_1) || remove_lco(lco, adj, vertex_2, vertex_1)
+        # if you don't remove vertex_2 from lst1, then you don't need to check again
     else
         remove_lco(lco, adj, vertex_1, vertex_2)
-        check_almost_isolated(lst2, vertex_1) || remove_lco(lco, adj, vertex_2, vertex_1)
-        check_almost_isolated(lst1, vertex_2) || remove_lco(lco, adj, vertex_1, vertex_2)
+        if !check_almost_isolated(lst2, vertex_1)
+            remove_lco(lco, adj, vertex_2, vertex_1)
+            # recheck the adjacency list of vertex_1, because it might have been removed
+            check_almost_isolated(lst1, vertex_2) || remove_lco(lco, adj, vertex_1, vertex_2)
+        end
     end
-    if insorted(vertex_2, lst1)
+    if vertex_2 in lst1
         update_lco(cz_connected, lco, vertex_1, vertex_2) || remove_edge!(adj, vertex_1, vertex_2)
     else
         update_lco(cz_isolated, lco, vertex_1, vertex_2) && add_edge!(adj, vertex_1, vertex_2)
@@ -331,18 +335,19 @@ end
 Destructively convert this to a Python adjacency list
 """
 function python_adjlist!(adj)
+    #=
     # Use this to free up memory if possible when converting to a Python list
     empty_adj = AdjList()
     py_adj = Jabalizer.pylist()
     for i = 1:length(adj)
         lst = adj[i]
         adj[i] = empty_adj # let it be garbage collected as soon as possible
-        # subtract 1 to convert to 0-indexing
-        lst .-= 1
         # build up Python list of adjacency lists
-        py_adj.append(Jabalizer.pylist(lst))
+        py_adj.append(Jabalizer.pylist(lst .- 1))
     end
     py_adj
+    =#
+    Jabalizer.pylist([Jabalizer.pylist(adj[i] .- 1) for i in 1:length(adj)])
 end
 
 """
@@ -365,7 +370,7 @@ function _run_graph_sim_mini(circuit)
     print("Graph Sim Mini: qubits=$icm_n_qubits, gates=$(length(icm_circuit))\n\t")
     @time (lco, adj) = get_graph_state_data(icm_circuit, icm_n_qubits)
     py_lco = Jabalizer.pylist(lco)
-    print("Convert adj:\t")
+    print("Convert adj:\n\t")
     @time py_adj = python_adjlist!(adj)
     println()
     return py_lco, py_adj
@@ -378,7 +383,7 @@ function run_graph_sim_mini(circuit)
     @time res = _run_graph_sim_mini(circuit)
     show(to)
     reset_timer!(to)
-    println("\nOld graph code:\n")
+    println("\n\nOld graph code:\n")
     @time res2 = OldSimMini._run_graph_sim_mini(circuit)
     return res
 end
