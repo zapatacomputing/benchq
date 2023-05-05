@@ -9,6 +9,9 @@ Anders, Hans J. Briegel. https://arxiv.org/abs/quant-ph/0504117"
 =#
 
 using Jabalizer
+using TimerOutputs
+
+const to = TimerOutput()
 
 include("graph_sim_data.jl")
 
@@ -70,10 +73,10 @@ function get_graph_state_data(icm_circuit::Vector{ICMOp}, n_qubits)
             # CNOT = (I ⊗ H) CZ (I ⊗ H)
             qubit_2 = icm_op.qubit2
             lco[qubit_2] = multiply_h[lco[qubit_2]]
-            cz(lco, adj, qubit_1, qubit_2)
+            @timeit to "cz" cz(lco, adj, qubit_1, qubit_2)
             lco[qubit_2] = multiply_h[lco[qubit_2]]
         elseif op_code == CZ_code
-            cz(lco, adj, qubit_1, icm_op.qubit2)
+            @timeit to "cz" cz(lco, adj, qubit_1, icm_op.qubit2)
         else # S_Dagger_code
             lco[qubit_1] = multiply_d[lco[qubit_1]]
         end
@@ -167,6 +170,7 @@ function remove_lco(lco, adj, v, avoid)
         local_complement(lco, adj, factor == 'U' ? v : vb)
     end
     =#
+    @timeit to "remove_lco" begin
     # This uses a precomputed decomposition table, length is stored in top 3 bits
     # Other 5 bits when set indicate using sqrt(Z) gate instead of sqrt(X) gate
     tab = decomp_tab[lco[v]]
@@ -182,6 +186,7 @@ function remove_lco(lco, adj, v, avoid)
             tab >>= 1
         end
     end
+    end
 end
 
 
@@ -194,15 +199,19 @@ Args:
     v::Int                index node to take the local complement of
 """
 function local_complement!(lco, adj, v)
+    @timeit to "lc toggle" begin
     neighbors = adj[v]
     len = length(neighbors)
     for i in 1:len, j in i+1:len
         toggle_edge!(adj, neighbors[i], neighbors[j])
     end
+    end
 
+    @timeit to "lc multiply lco" begin
     lco[v] = multiply_by_sqrt_x[lco[v]]
     for i in adj[v]
         lco[i] = multiply_by_s[lco[i]]
+    end
     end
 end
 
@@ -292,6 +301,24 @@ function get_icm(circuit, n_qubits::Int, with_measurements::Bool=false)
 end
 
 """
+Destructively convert this to a Python adjacency list
+"""
+function python_adjlist!(adj)
+    # Use this to free up memory if possible when converting to a Python list
+    empty_adj = AdjList()
+    py_adj = Jabalizer.pylist()
+    for i = 1:length(adj)
+        lst = adj[i]
+        adj[i] = empty_adj # let it be garbage collected as soon as possible
+        # subtract 1 to convert to 0-indexing
+        lst .-= 1
+        # build up Python list of adjacency lists
+        py_adj.append(Jabalizer.pylist(lst))
+    end
+    py_adj
+end
+
+"""
 Converts a given circuit in Clifford + T form to icm form and simulates the icm 
 circuit using the graph sim mini simulator. Returns the adjacency list of the graph
 state created by the icm circuit along with the single qubit operations on each vertex.
@@ -309,34 +336,22 @@ function _run_graph_sim_mini(circuit)
     print("ICM compilation: qubits=$n_qubits, gates=$(length(ops))\n\t")
     @time (icm_circuit, icm_n_qubits) = get_icm(ops, n_qubits)
     print("Graph Sim Mini: qubits=$icm_n_qubits, gates=$(length(icm_circuit))\n\t")
-    @time lco, adj = get_graph_state_data(icm_circuit, icm_n_qubits)
-    print("Convert lco:\t")
-    @time py_lco = Jabalizer.pylist(lco)
+    @time (lco, adj) = get_graph_state_data(icm_circuit, icm_n_qubits)
+    py_lco = Jabalizer.pylist(lco)
     print("Convert adj:\t")
     @time py_adj = python_adjlist!(adj)
     println()
     return py_lco, py_adj
 end
 
-function run_graph_sim_mini(circuit)
-    @time res = _run_graph_sim_mini(circuit)
-    return res
-end
+include("old_graph_sim_mini.jl")
 
-"""
-Destructively convert this to a Python adjacency list
-"""
-function python_adjlist!(adj)
-    # Use this to free up memory if possible when converting to a Python list
-    empty_adj = AdjList()
-    py_adj = Jabalizer.pylist()
-    for i = 1:length(adj)
-        lst = adj[i]
-        adj[i] = empty_adj # let it be garbage collected as soon as possible
-        # subtract 1 to convert to 0-indexing
-        lst .-= 1
-        # build up Python list of adjacency lists
-        py_adj.append(Jabalizer.pylist(lst))
-    end
-    py_adj
+function run_graph_sim_mini(circuit)
+    println("\nNew graph code:\n")
+    @time res = _run_graph_sim_mini(circuit)
+    show(to)
+    reset_timer!(to)
+    println("\nOld graph code:\n")
+    @time res2 = OldSimMini._run_graph_sim_mini(circuit)
+    return res
 end
