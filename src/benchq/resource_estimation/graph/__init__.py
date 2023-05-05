@@ -1,5 +1,5 @@
 """Initialization file for benchq.resource_estimation.v2 subpackage."""
-from .default_pipelines import (
+from .customizable_pipelines import (
     run_custom_extrapolation_pipeline,
     run_custom_resource_estimation_pipeline,
 )
