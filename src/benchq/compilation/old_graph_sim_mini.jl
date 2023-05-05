@@ -379,26 +379,25 @@ Returns:
     lco (List[int]): local clifford operations on each node
 """
 function _run_graph_sim_mini(circuit)
-    print("Python to Julia conversion:\t")
-    @time begin
     n_qubits = Jabalizer.pyconvert(Int, circuit.n_qubits)
+    print("ICM compilation: qubits=$n_qubits, gates=$(length(circuit.operations))\n\t")
+    @time begin
     bare_circuit = Jabalizer.ICMGate[]
     for op in circuit.operations
         name = Jabalizer.pyconvert(String, op.gate.name)
         indices = [string(Jabalizer.pyconvert(Int, qubit)) for qubit in op.qubit_indices]
         push!(bare_circuit, (name, indices))
     end
-    end
 
-    print("ICM compilation: qubits=$n_qubits, gates=$(length(bare_circuit))\n\t")
-    @time (icm_circuit, icm_n_qubits) = get_icm(bare_circuit, n_qubits, ["T", "T_Dagger", "RX", "RY", "RZ"])
+    (icm_circuit, icm_n_qubits) = get_icm(bare_circuit, n_qubits, ["T", "T_Dagger", "RX", "RY", "RZ"])
+    end
     
     print("Graph Sim Mini: qubits=$icm_n_qubits, gates=$(length(icm_circuit))\n\t")
     @time (loc, adj) = get_graph_state_data(icm_circuit, icm_n_qubits)
 
     # println("Graph Sim Mini finished")
 
-    print("Convert adj:\t")
+    print("Convert adj:\n\t")
     @time py_adj = pylist([pylist(adj[i] .- 1) for i in 1:length(adj)]) # subtract 1 to convert to 0-indexing
     py_loc = pylist(loc)
 
