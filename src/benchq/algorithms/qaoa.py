@@ -23,7 +23,7 @@ def get_qaoa_circuit(hamiltonian: PauliSum, n_layers: int = 1) -> Circuit:
           a QAOA circuit with random parameters for the QUBO instance
     """
 
-    qaoa = QAOA.default(cost_hamiltonian=hamiltonian, n_layers=1)
+    qaoa = QAOA.default(cost_hamiltonian=hamiltonian, n_layers=n_layers)
     random_params = np.random.uniform(-np.pi, np.pi, 2 * n_layers)
     return qaoa.get_circuit(random_params)
 

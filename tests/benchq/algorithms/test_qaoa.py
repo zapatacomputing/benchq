@@ -5,7 +5,7 @@
 from orquestra.quantum.circuits import Circuit
 from orquestra.quantum.operators import PauliSum, PauliTerm
 
-from benchq.algorithms._qaoa import get_qaoa_circuit
+from benchq.algorithms.qaoa import get_qaoa_circuit
 
 
 def test_get_qaoa_circuit_produces_correct_output_for_small_coefficeints():
@@ -63,7 +63,7 @@ def test_get_qaoa_circuit_produces_correct_output_for_small_coefficeints():
             assert circuit.operations[i * 11 + 12].qubit_indices == (1,)
 
 
-def test_get_qaoa_circuit_produces_correct_output_for_meduim_coefficeints():
+def test_get_qaoa_circuit_produces_correct_output_for_medium_coefficeints():
     term_1 = PauliTerm("I0", 1.0)
     term_2 = PauliTerm("Z1", -0.5)
     term_3 = PauliTerm("Z0 * Z1", -0.5)

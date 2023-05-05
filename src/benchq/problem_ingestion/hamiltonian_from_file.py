@@ -98,9 +98,9 @@ def _get_hamiltonian_from_json(file_name: str) -> PauliSum:
 
 
 def _get_hamiltonian_from_hdf5(file_name: str) -> PauliSum:
-    """Given a file with a hamiltonian, generate QAOA circuit corresponding to it.
+    """Given a file with a hamiltonian, generate hamiltonian terms corresponding to it.
     This function only accepts hamiltonians in the format used by Guoming Wang's
-    QAOA implementation and Alex Kunita's molecule implementation.
+    QAOA implementation and Alex Kunitsa's molecule implementation.
 
     Args:
           file_name (str): The name of the hdf5 file containing the hamiltonian
@@ -113,9 +113,9 @@ def _get_hamiltonian_from_hdf5(file_name: str) -> PauliSum:
     data = h5py.File(file_name, "r")
 
     if "q_matrix" in data.keys():
-        return _guoming_qaoa_hamiltonian_from_hdf5(data)
+        return _qaoa_hamiltonian_from_hdf5(data)
     elif "basis" in data.attrs:
-        return _alex_molecule_hamiltonian_from_hdf5(data)
+        return _molecule_hamiltonian_from_hdf5(data)
     else:
         raise ValueError(
             f"Hamiltonian extraction failed for {file_name}. "
@@ -125,7 +125,17 @@ def _get_hamiltonian_from_hdf5(file_name: str) -> PauliSum:
         )
 
 
-def _guoming_qaoa_hamiltonian_from_hdf5(data: h5py.File) -> PauliSum:
+def _qaoa_hamiltonian_from_hdf5(data: h5py.File) -> PauliSum:
+    """Given a file with a hamiltonian, generate hamiltonian terms corresponding to it.
+    This function only accepts hamiltonians in the format where the hamiltonian is
+    stored as a q_matrix property of an hdf5 file   .
+
+    Args:
+        data (h5py.File): The hdf5 file containing the hamiltonian
+
+    Returns:
+        PauliSum: the hamiltonian stored in the file
+    """
     q_matrix = np.array(data["q_matrix"][()])
     assert q_matrix.shape[0] == q_matrix.shape[1]
 
@@ -155,7 +165,17 @@ def _guoming_qaoa_hamiltonian_from_hdf5(data: h5py.File) -> PauliSum:
     return hamiltonian
 
 
-def _alex_molecule_hamiltonian_from_hdf5(data: h5py.File) -> PauliSum:
+def _molecule_hamiltonian_from_hdf5(data: h5py.File) -> PauliSum:
+    """Given a file with a hamiltonian, generate hamiltonian terms corresponding to it.
+    This function only accepts hamiltonians in the format with one and two body terms as
+    attributes of the hdf5 file.
+
+    Args:
+        data (h5py.File): a file with a hamiltonian described by one and two body terms
+
+    Returns:
+        PauliSum: the terms of the haimltonian
+    """
     one_body_term = data["one_body_tensor"]
     two_body_term = data["two_body_tensor"]
 
