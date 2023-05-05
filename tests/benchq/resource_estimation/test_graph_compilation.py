@@ -3,7 +3,7 @@ from dataclasses import asdict
 
 import numpy as np
 import pytest
-from orquestra.quantum.circuits import CNOT, RZ, Circuit, H, T
+from orquestra.quantum.circuits import CNOT, RX, RY, RZ, Circuit, H, T
 
 from benchq.data_structures import (
     BasicArchitectureModel,
@@ -90,21 +90,23 @@ def test_get_resource_estimations_for_program_gives_correct_results(
         ultimate_failure_tolerance=1e-2, circuit_generation_weight=0
     )
     transformers = _get_transformers(use_delayed_gate_synthesis, error_budget)
-    gsc_resource_estimates = run_resource_estimation_pipeline(
+    gsc_resource_estimates = asdict(run_resource_estimation_pipeline(
         quantum_program,
         error_budget,
         estimator=GraphResourceEstimator(architecture_model),
         transformers=transformers,
-    )
+    ))
 
-    for key in expected_results.keys():
-        assert asdict(gsc_resource_estimates)[key] == expected_results[key]
+    # Extract only keys that we want to compare
+    assert {
+        key: gsc_resource_estimates[key] for key in expected_results
+    } == expected_results
 
     # Note that error_budget is a bound for the sum of the gate synthesis error and
     # logical error. Therefore the expression below is a loose upper bound for the
     # logical error rate.
     assert (
-        asdict(gsc_resource_estimates)["logical_error_rate"]
+        gsc_resource_estimates["logical_error_rate"]
         < error_budget.ultimate_failure_tolerance
     )
 
