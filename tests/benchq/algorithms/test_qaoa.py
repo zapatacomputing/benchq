@@ -2,8 +2,9 @@
 # © Copyright 2023 Zapata Computing Inc.
 ################################################################################
 
-from orquestra.quantum.operators import PauliSum, PauliTerm
 from orquestra.quantum.circuits import Circuit
+from orquestra.quantum.operators import PauliSum, PauliTerm
+
 from benchq.algorithms._qaoa import get_qaoa_circuit
 
 
