@@ -1,49 +1,92 @@
 ################################################################################
 # © Copyright 2022 Zapata Computing Inc.
 ################################################################################
+from typing import Any, Dict, Tuple
+
 import numpy as np
 from openfermion.resource_estimates import sf
 from openfermion.resource_estimates.surface_code_compilation.physical_costing import (
     cost_estimator,
 )
 
+from benchq.resource_estimation._compute_lambda_sf import compute_lambda
 
-def model_toffoli_and_qubit_cost_from_single_factorized_mean_field_object(
-    mean_field_object, rank, DE, CHI
-):
-    num_orb = len(mean_field_object.mo_coeff)
+
+def get_single_factorized_qpe_toffoli_and_qubit_cost(
+    h1: np.ndarray,
+    eri: np.ndarray,
+    rank: int,
+    allowable_phase_estimation_error: float,
+    bits_precision_state_prep: float,
+) -> Tuple[int, int]:
+    """Get the number of Toffoli gates and logical qubits for single factorized QPE.
+
+    See get_single_factorized_qpe_resource_estimate for descriptions of arguments.
+
+    Returns:
+        The number of Toffoli gates and logical qubits.
+    """
+    num_orb = h1.shape[0]
     num_spinorb = num_orb * 2
 
     # First, up: lambda and CCSD(T)
-    eri_rr, LR = sf.factorize(mean_field_object._eri, rank)
-    lam = sf.compute_lambda(mean_field_object, LR)
+    eri_rr, LR = sf.factorize(eri, rank)
+    lam = compute_lambda(h1, eri_rr, LR)
 
     # now do costing
-    stps1 = sf.compute_cost(num_spinorb, lam, DE, L=rank, chi=CHI, stps=20000)[0]
+    stps1 = sf.compute_cost(
+        num_spinorb,
+        lam,
+        allowable_phase_estimation_error,
+        L=rank,
+        chi=bits_precision_state_prep,
+        stps=20000,
+    )[0]
 
     _, sf_total_toffoli_cost, sf_logical_qubits = sf.compute_cost(
-        num_spinorb, lam, DE, L=rank, chi=CHI, stps=stps1
+        num_spinorb,
+        lam,
+        allowable_phase_estimation_error,
+        L=rank,
+        chi=bits_precision_state_prep,
+        stps=stps1,
     )
     return sf_total_toffoli_cost, sf_logical_qubits
 
 
-def get_qpe_resource_estimates_from_mean_field_object(
-    mean_field_object,
-    target_accuracy=0.001,
-    bits_precision_state_prep=10,
-):
-    # Set rank in order to satisfy
-    # rank + 1 > bL where
-    # bL = nL + bits_precision_state_prep + 2
-    initial_rank = 4
-    nL = np.ceil(np.log2(initial_rank + 1))
-    rank = int(nL + bits_precision_state_prep + 2)
+def get_single_factorized_qpe_resource_estimate(
+    h1: np.ndarray,
+    eri: np.ndarray,
+    rank: int,
+    allowable_phase_estimation_error: float = 0.001,
+    bits_precision_state_prep: int = 10,
+) -> Dict[str, Any]:
+    """Get the estimated resources for single factorized QPE as described in PRX Quantum
+    2, 030305.
+
+    Args:
+        h1 (np.ndarray): Matrix elements of the one-body operator that includes kinetic
+            energy operator and electorn-nuclear Coulomb operator.
+        eri (np.ndarray): Four-dimensional array containing electron-repulsion
+            integrals.
+        rank (int): Rank of the factorization.
+        allowable_phase_estimation_error (float): Allowable error in phase estimation.
+            Corresponds to epsilon_QPE in the paper.
+        bits_precision_state_prep (float): The number of bits for the representation of
+            the coefficients. Corresponds to aleph_1 and aleph_2 in the paper.
+
+    Returns:
+        A dictionary containing the estimated time and physical qubit requirements.
+    """
+
+    if not np.allclose(np.transpose(eri, (2, 3, 0, 1)), eri):
+        raise ValueError("ERI do not have (ij | kl) == (kl | ij) symmetry.")
 
     (
         sf_total_toffoli_cost,
         sf_logical_qubits,
-    ) = model_toffoli_and_qubit_cost_from_single_factorized_mean_field_object(
-        mean_field_object, rank, target_accuracy, bits_precision_state_prep
+    ) = get_single_factorized_qpe_toffoli_and_qubit_cost(
+        h1, eri, rank, allowable_phase_estimation_error, bits_precision_state_prep
     )
     print("Number of Toffoli's is:", sf_total_toffoli_cost)
     print("Number of logical qubits is:", sf_logical_qubits)

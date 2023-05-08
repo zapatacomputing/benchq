@@ -3,7 +3,7 @@ from dataclasses import asdict
 
 import numpy as np
 import pytest
-from orquestra.quantum.circuits import CNOT, RZ, Circuit, H, T
+from orquestra.quantum.circuits import CNOT, RX, RY, RZ, Circuit, H, T
 
 from benchq.data_structures import (
     AlgorithmImplementation,
@@ -50,12 +50,12 @@ def _get_transformers(use_delayed_gate_synthesis, error_budget):
             ),
             {"n_measurement_steps": 3, "n_nodes": 3, "n_logical_qubits": 2},
         ),
-        # (
-        #     get_program_from_circuit(
-        #         Circuit([RX(np.pi / 4)(0), RY(np.pi / 4)(0), CNOT(0, 1)])
-        #     ),
-        #     {"n_measurement_steps": 3, "n_nodes": 4, "n_logical_qubits": 2},
-        # ),
+        (
+            get_program_from_circuit(
+                Circuit([RX(np.pi / 4)(0), RY(np.pi / 4)(0), CNOT(0, 1)])
+            ),
+            {"n_measurement_steps": 4, "n_nodes": 4, "n_logical_qubits": 3},
+        ),
         (
             get_program_from_circuit(
                 Circuit([H(0)] + [CNOT(i, i + 1) for i in range(3)])
@@ -68,12 +68,12 @@ def _get_transformers(use_delayed_gate_synthesis, error_budget):
             ),
             {"n_measurement_steps": 6, "n_nodes": 6, "n_logical_qubits": 5},
         ),
-        # (
-        #     get_program_from_circuit(
-        #         Circuit([H(0), T(0), CNOT(0, 1), T(2), CNOT(2, 3)])
-        #     ),
-        #     {"n_measurement_steps": 3, "n_nodes": 3, "n_logical_qubits": 2},
-        # ),
+        (
+            get_program_from_circuit(
+                Circuit([H(0), T(0), CNOT(0, 1), T(2), CNOT(2, 3)])
+            ),
+            {"n_measurement_steps": 3, "n_nodes": 6, "n_logical_qubits": 2},
+        ),
     ],
 )
 def test_get_resource_estimations_for_program_gives_correct_results(
@@ -88,21 +88,26 @@ def test_get_resource_estimations_for_program_gives_correct_results(
     algorithm_description = AlgorithmImplementation(quantum_program, error_budget, 1)
 
     transformers = _get_transformers(use_delayed_gate_synthesis, error_budget)
-    gsc_resource_estimates = run_custom_resource_estimation_pipeline(
-        algorithm_description,
-        estimator=GraphResourceEstimator(architecture_model),
-        transformers=transformers,
+    gsc_resource_estimates = asdict(
+        run_custom_resource_estimation_pipeline(
+            algorithm_description,
+            error_budget,
+            estimator=GraphResourceEstimator(architecture_model),
+            transformers=transformers,
+        )
     )
 
-    for key in expected_results.keys():
-        assert asdict(gsc_resource_estimates)[key] == expected_results[key]
+    # Extract only keys that we want to compare
+    assert {
+        key: gsc_resource_estimates[key] for key in expected_results
+    } == expected_results
 
     # Note that error_budget is a bound for the sum of the gate synthesis error and
     # logical error. Therefore the expression below is a loose upper bound for the
     # logical error rate.
     assert (
-        asdict(gsc_resource_estimates)["logical_error_rate"]
-        < error_budget.total_failure_tolerance
+        gsc_resource_estimates["logical_error_rate"]
+        < error_budget.ultimate_failure_tolerance
     )
 
 
