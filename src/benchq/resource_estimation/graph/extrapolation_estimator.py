@@ -4,7 +4,7 @@ from typing import List, Optional
 
 import numpy as np
 
-from ...data_structures import AlgorithmDescription, DecoderModel, QuantumProgram
+from ...data_structures import AlgorithmImplementation, DecoderModel, QuantumProgram
 from ...data_structures.hardware_architecture_models import BasicArchitectureModel
 from .graph_estimator import GraphData, GraphResourceEstimator, ResourceInfo
 
@@ -97,7 +97,7 @@ class ExtrapolationResourceEstimator(GraphResourceEstimator):
 
     def estimate_via_extrapolation(
         self,
-        algorithm_description: AlgorithmDescription,
+        algorithm_description: AlgorithmImplementation,
         data: List[ResourceInfo],
     ):
         assert isinstance(algorithm_description.program, QuantumProgram)
@@ -117,7 +117,7 @@ class ExtrapolationResourceEstimator(GraphResourceEstimator):
             logical_error_rate=resource_info.logical_error_rate,
             total_time_in_seconds=resource_info.total_time_in_seconds,
             n_physical_qubits=resource_info.n_physical_qubits,
-            decoder_total_energy_consumption=resource_info.decoder_total_energy_consumption,
+            decoder_total_energy_consumption=resource_info.decoder_total_energy_consumption,  # noqa: E501
             decoder_power=resource_info.decoder_power,
             decoder_area=resource_info.decoder_area,
             max_decodable_distance=resource_info.max_decodable_distance,

@@ -19,5 +19,5 @@ class BasicArchitectureModel(ABCArchitectureModel):
         self.physical_gate_time_in_seconds = physical_gate_time_in_seconds
 
 
-BasicIonTrapArchitectureModel = BasicArchitectureModel(1e-4, 1e-5)
-BasicSCArchitectureModel = BasicArchitectureModel(1e-3, 1e-7)
+BASIC_ION_TRAP_ARCHITECTURE_MODEL = BasicArchitectureModel(1e-4, 1e-5)
+BASIC_SC_ARCHITECTURE_MODEL = BasicArchitectureModel(1e-3, 1e-7)

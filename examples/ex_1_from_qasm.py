@@ -9,7 +9,7 @@ from orquestra.integrations.qiskit.conversions import import_from_qiskit
 from qiskit.circuit import QuantumCircuit
 
 from benchq.data_structures import (
-    AlgorithmDescription,
+    AlgorithmImplementation,
     BasicArchitectureModel,
     ErrorBudget,
     get_program_from_circuit,
@@ -36,12 +36,12 @@ def main(file_name):
     # Error budget is used to define what should be the failure rate of running
     # the whole calculation. It also allows to set relative weights for different
     # parts of the calculation, such as gate synthesis or circuit generation.
-    error_budget = ErrorBudget(ultimate_failure_tolerance=1e-3)
+    error_budget = ErrorBudget.from_even_split(total_failure_tolerance=1e-3)
 
-    # Algorithm description encapsulates the how the algorithm is implemented
+    # algorithm implementation encapsulates the how the algorithm is implemented
     # including the program, the number of times the program must be repeated,
     # and the error budget which will be used in the circuit.
-    algorithm_description = AlgorithmDescription(quantum_program, error_budget, 1)
+    algorithm_description = AlgorithmImplementation(quantum_program, error_budget, 1)
 
     # Architecture model is used to define the hardware model.
     architecture_model = BasicArchitectureModel(

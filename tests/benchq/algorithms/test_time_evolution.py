@@ -20,7 +20,7 @@ def test_qsp_te_alg_creates_correct_alg_description():
     algorithm = qsp_time_evolution_algorithm(hamiltonian, time, failure_tolerance)
 
     assert algorithm.n_calls == 1
-    assert algorithm.error_budget.ultimate_failure_tolerance == failure_tolerance
+    assert algorithm.error_budget.total_failure_tolerance == failure_tolerance
 
 
 def test_te_alg_creates_longer_circuit_for_longer_time(te_alg_generator):

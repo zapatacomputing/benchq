@@ -6,10 +6,9 @@ import numpy as np
 from graph_state_generation.optimizers import greedy_stabilizer_measurement_scheduler
 from graph_state_generation.substrate_scheduler import TwoRowSubstrateScheduler
 
-from ..magic_state_distillation import get_specs_for_t_state_widget
-
-from ...data_structures import AlgorithmDescription, DecoderModel, GraphPartition
+from ...data_structures import AlgorithmImplementation, DecoderModel, GraphPartition
 from ...data_structures.hardware_architecture_models import BasicArchitectureModel
+from ..magic_state_distillation import get_specs_for_t_state_widget
 
 INITIAL_SYNTHESIS_ACCURACY = 0.0001
 
@@ -155,7 +154,7 @@ class GraphResourceEstimator:
     def _estimate_resources_from_graph_data(
         self,
         graph_data: GraphData,
-        algorithm_description: AlgorithmDescription,
+        algorithm_description: AlgorithmImplementation,
     ) -> ResourceInfo:
         if graph_data.n_rotation_gates != 0:
             per_gate_synthesis_accuracy = 1 - (
@@ -255,7 +254,7 @@ class GraphResourceEstimator:
             max_decodable_distance=max_decodable_distance,
         )
 
-    def estimate(self, algorithm_description: AlgorithmDescription) -> ResourceInfo:
+    def estimate(self, algorithm_description: AlgorithmImplementation) -> ResourceInfo:
         assert isinstance(algorithm_description.program, GraphPartition)
         if len(algorithm_description.program.subgraphs) == 1:
             graph_data = self._get_graph_data_for_single_graph(

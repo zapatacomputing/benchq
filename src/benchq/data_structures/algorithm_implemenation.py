@@ -7,7 +7,7 @@ from .quantum_program import QuantumProgram, get_program_from_circuit
 
 
 @dataclass
-class AlgorithmDescription:
+class AlgorithmImplementation:
     program: Union[QuantumProgram, GraphPartition]
     error_budget: ErrorBudget
     n_calls: int
@@ -15,4 +15,4 @@ class AlgorithmDescription:
 
 def get_algorithm_description_from_circuit(circuit, error_budget, n_calls=1):
     quantum_program = get_program_from_circuit(circuit)
-    return AlgorithmDescription(quantum_program, error_budget, n_calls)
+    return AlgorithmImplementation(quantum_program, error_budget, n_calls)

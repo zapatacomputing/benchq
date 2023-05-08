@@ -1,6 +1,7 @@
-from copy import deepcopy
+from copy import copy
+from dataclasses import replace
 
-from ...data_structures import AlgorithmDescription, QuantumProgram
+from ...data_structures import AlgorithmImplementation, QuantumProgram
 from .extrapolation_estimator import (
     ExtrapolatedResourceInfo,
     ExtrapolationResourceEstimator,
@@ -8,20 +9,24 @@ from .extrapolation_estimator import (
 
 
 def run_custom_resource_estimation_pipeline(
-    algorithm_description: AlgorithmDescription,
+    algorithm_description: AlgorithmImplementation,
     estimator,
     transformers,
 ):
+    internal_algorthm_description = copy(algorithm_description)
+
     for transformer in transformers:
         # all transformers give back QuantumPrograms except the last one
-        assert isinstance(algorithm_description.program, QuantumProgram)
-        algorithm_description.program = transformer(algorithm_description.program)
+        assert isinstance(internal_algorthm_description.program, QuantumProgram)
+        internal_algorthm_description.program = transformer(
+            internal_algorthm_description.program
+        )
 
-    return estimator.estimate(algorithm_description)
+    return estimator.estimate(internal_algorthm_description)
 
 
 def run_custom_extrapolation_pipeline(
-    algorithm_description: AlgorithmDescription,
+    algorithm_description: AlgorithmImplementation,
     estimator: ExtrapolationResourceEstimator,
     transformers,
 ) -> ExtrapolatedResourceInfo:
@@ -29,13 +34,16 @@ def run_custom_extrapolation_pipeline(
         1 - algorithm_description.error_budget.synthesis_failure_tolerance
     ) ** (1 / algorithm_description.program.n_rotation_gates)
 
+    internal_algorthm_description = copy(algorithm_description)
+
     small_programs_resource_info = []
     for i in estimator.steps_to_extrapolate_from:
         # create copy of program for each number of steps
-        small_algorithm_description = deepcopy(algorithm_description)
-        small_algorithm_description.error_budget.synthesis_failure_tolerance = (
-            synthesis_accuracy_for_each_rotation
-            * small_algorithm_description.program.n_rotation_gates
+        small_algorithm_description = copy(algorithm_description)
+        small_algorithm_description.error_budget = replace(
+            algorithm_description.error_budget,
+            synthesis_failure_tolerance=synthesis_accuracy_for_each_rotation
+            * small_algorithm_description.program.n_rotation_gates,
         )
 
         for transformer in transformers:
@@ -50,11 +58,12 @@ def run_custom_extrapolation_pipeline(
         small_programs_resource_info.append(resource_info)
 
     # get rid of graph compilation step
-    new_transformers = transformers[:-1]
-    for transformer in new_transformers:
-        algorithm_description.program = transformer(algorithm_description.program)
+    for transformer in transformers[:-1]:
+        internal_algorthm_description.program = transformer(
+            internal_algorthm_description.program
+        )
 
     return estimator.estimate_via_extrapolation(
-        algorithm_description,
+        internal_algorthm_description,
         small_programs_resource_info,
     )

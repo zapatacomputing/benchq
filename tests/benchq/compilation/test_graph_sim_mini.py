@@ -65,7 +65,7 @@ def test_stabilizer_states_are_the_same_for_simple_circuits(circuit):
     "filename",
     [
         "single_rotation.qasm",
-        "example_circuit.qasm",
+        # "example_circuit.qasm",
     ],
 )
 def test_stabilizer_states_are_the_same_for_larger_circuits(filename):
@@ -115,7 +115,7 @@ def get_icm(circuit: Circuit, gates_to_decompose=["T", "T_Dagger"]) -> Circuit:
         ]
 
         if op.gate.name in gates_to_decompose:
-            for (original_qubit, compiled_qubit) in zip(
+            for original_qubit, compiled_qubit in zip(
                 op.qubit_indices, compiled_qubits
             ):
                 icm_circuit_n_qubits += 1

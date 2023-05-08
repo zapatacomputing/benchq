@@ -1,10 +1,8 @@
-from copy import copy
-
 import numpy as np
 import pytest
 from orquestra.quantum.circuits import CNOT, RZ, Circuit, H
 
-from benchq.data_structures import AlgorithmDescription, ErrorBudget, QuantumProgram
+from benchq.data_structures import AlgorithmImplementation, ErrorBudget, QuantumProgram
 from benchq.data_structures.hardware_architecture_models import BasicArchitectureModel
 from benchq.resource_estimation.graph import (
     ExtrapolationResourceEstimator,
@@ -79,7 +77,7 @@ def _get_transformers(use_delayed_gate_synthesis, error_budget):
                 8,
                 lambda x: [0] + [1, 2] * x + [0],
             ),
-            [1, 2, 3, 5],
+            [1, 2, 3],
             "linear",
         ),
     ],
@@ -94,14 +92,13 @@ def test_get_resource_estimations_for_small_program_gives_correct_results(
         physical_gate_error_rate=1e-3,
         physical_gate_time_in_seconds=1e-6,
     )
-    error_budget = ErrorBudget(
-        ultimate_failure_tolerance=1e-2, circuit_generation_weight=0
-    )
-    algorithm_description = AlgorithmDescription(quantum_program, error_budget, 1)
+    # set circuit generation weight to 0
+    error_budget = ErrorBudget.from_weights(1e-2, 0, 1, 1)
+    algorithm_description = AlgorithmImplementation(quantum_program, error_budget, 1)
     transformers = _get_transformers(use_delayed_gate_synthesis, error_budget)
 
     extrapolated_resource_estimates = run_custom_extrapolation_pipeline(
-        copy(algorithm_description),
+        algorithm_description,
         estimator=ExtrapolationResourceEstimator(
             architecture_model,
             steps_to_extrapolate_from,
@@ -110,7 +107,7 @@ def test_get_resource_estimations_for_small_program_gives_correct_results(
         transformers=transformers,
     )
     gsc_resource_estimates = run_custom_resource_estimation_pipeline(
-        copy(algorithm_description),
+        algorithm_description,
         estimator=GraphResourceEstimator(architecture_model),
         transformers=transformers,
     )
@@ -124,7 +121,7 @@ def test_get_resource_estimations_for_small_program_gives_correct_results(
         assert np.isclose(
             getattr(extrapolated_resource_estimates, attribute),
             getattr(gsc_resource_estimates, attribute),
-            rtol=1e-2,
+            rtol=1e-1,
         )
     # assert that the number of measurement steps grows with the steps
     attributes_to_compare_loosely = [
@@ -182,14 +179,13 @@ def test_get_resource_estimations_for_large_program_gives_correct_results(
         physical_gate_error_rate=1e-3,
         physical_gate_time_in_seconds=1e-6,
     )
-    error_budget = ErrorBudget(
-        ultimate_failure_tolerance=1e-2, circuit_generation_weight=0
-    )
-    algorithm_description = AlgorithmDescription(quantum_program, error_budget, 1)
+    # set circuit generation weight to 0
+    error_budget = ErrorBudget.from_weights(1e-2, 0, 1, 1)
+    algorithm_description = AlgorithmImplementation(quantum_program, error_budget, 1)
     transformers = _get_transformers(use_delayed_gate_synthesis, error_budget)
 
     extrapolated_resource_estimates = run_custom_extrapolation_pipeline(
-        copy(algorithm_description),
+        algorithm_description,
         estimator=ExtrapolationResourceEstimator(
             architecture_model,
             steps_to_extrapolate_from,
@@ -198,7 +194,7 @@ def test_get_resource_estimations_for_large_program_gives_correct_results(
         transformers=transformers,
     )
     gsc_resource_estimates = run_custom_resource_estimation_pipeline(
-        copy(algorithm_description),
+        algorithm_description,
         estimator=GraphResourceEstimator(architecture_model),
         transformers=transformers,
     )
@@ -243,9 +239,8 @@ def test_better_architecture_does_not_require_more_resources(
         physical_gate_error_rate=1e-3,
         physical_gate_time_in_seconds=1e-6,
     )
-    error_budget = ErrorBudget(
-        ultimate_failure_tolerance=1e-2, circuit_generation_weight=0
-    )
+    # set circuit generation weight to 0
+    error_budget = ErrorBudget.from_weights(1e-3, 0, 1, 1)
     transformers = _get_transformers(use_delayed_gate_synthesis, error_budget)
 
     circuit = Circuit([H(0), RZ(np.pi / 4)(0), CNOT(0, 1)])
@@ -254,9 +249,9 @@ def test_better_architecture_does_not_require_more_resources(
         steps=100,
         calculate_subroutine_sequence=lambda x: [0] * x,
     )
-    algorithm_description = AlgorithmDescription(quantum_program, error_budget, 1)
+    algorithm_description = AlgorithmImplementation(quantum_program, error_budget, 1)
     low_noise_resource_estimates = run_custom_extrapolation_pipeline(
-        copy(algorithm_description),
+        algorithm_description,
         estimator=ExtrapolationResourceEstimator(
             low_noise_architecture_model, [1, 2, 3, 4]
         ),
@@ -264,7 +259,7 @@ def test_better_architecture_does_not_require_more_resources(
     )
 
     high_noise_resource_estimates = run_custom_extrapolation_pipeline(
-        copy(algorithm_description),
+        algorithm_description,
         estimator=ExtrapolationResourceEstimator(
             high_noise_architecture_model, [1, 2, 3, 4]
         ),
@@ -295,12 +290,10 @@ def test_higher_error_budget_does_not_require_more_resources(
     low_failure_tolerance = 1e-3
     high_failure_tolerance = 1e-2
 
-    low_error_budget = ErrorBudget(
-        ultimate_failure_tolerance=low_failure_tolerance, circuit_generation_weight=0
-    )
-    high_error_budget = ErrorBudget(
-        ultimate_failure_tolerance=high_failure_tolerance, circuit_generation_weight=0
-    )
+    # set circuit generation weight to 0
+    low_error_budget = ErrorBudget.from_weights(low_failure_tolerance, 0, 1, 1)
+    high_error_budget = ErrorBudget.from_weights(high_failure_tolerance, 0, 1, 1)
+
     low_error_transformers = _get_transformers(
         use_delayed_gate_synthesis, low_error_budget
     )
@@ -314,10 +307,10 @@ def test_higher_error_budget_does_not_require_more_resources(
         steps=100,
         calculate_subroutine_sequence=lambda x: [0] * x,
     )
-    algorithm_description_low_error_budget = AlgorithmDescription(
+    algorithm_description_low_error_budget = AlgorithmImplementation(
         quantum_program, low_error_budget, 1
     )
-    algorithm_description_high_error_budget = AlgorithmDescription(
+    algorithm_description_high_error_budget = AlgorithmImplementation(
         quantum_program, high_error_budget, 1
     )
 

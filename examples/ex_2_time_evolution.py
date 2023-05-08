@@ -14,7 +14,7 @@ we only explain new concepts.
 from copy import copy
 from pprint import pprint
 
-from benchq import BasicSCArchitectureModel
+from benchq import BASIC_SC_ARCHITECTURE_MODEL
 from benchq.algorithms.time_evolution import qsp_time_evolution_algorithm
 from benchq.data_structures import ErrorBudget
 from benchq.problem_ingestion import get_vlasov_hamiltonian
@@ -32,7 +32,7 @@ def main():
 
     evolution_time = 5
 
-    architecture_model = BasicSCArchitectureModel
+    architecture_model = BASIC_SC_ARCHITECTURE_MODEL
 
     # Generating Hamiltonian for a given set of parameters, which
     # defines the problem we try to solve.
@@ -48,7 +48,7 @@ def main():
 
     print("Operator generation time:", t_info.total)
 
-    # Here we generate the AlgorithmDescription structure, which contains
+    # Here we generate the AlgorithmImplementation structure, which contains
     # information such as what subroutine needs to be executed and how many times.
     # In this example we perform time evolution using the QSP algorithm.
     with measure_time() as t_info:

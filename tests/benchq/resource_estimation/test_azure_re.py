@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 from orquestra.quantum.circuits import CNOT, RZ, Circuit, H
 
-from benchq.data_structures import BasicSCArchitectureModel, ErrorBudget
+from benchq.data_structures import BASIC_SC_ARCHITECTURE_MODEL, ErrorBudget
 from benchq.data_structures.quantum_program import get_program_from_circuit
 from benchq.resource_estimation.azure import AzureResourceEstimator
 
@@ -19,17 +19,16 @@ SKIP_AZURE = pytest.mark.skipif(
     "It looks like Azure does not take information about the hardware into account"
 )
 def test_better_architecture_does_not_require_more_resources():
-    low_quality_architecture_model = BasicSCArchitectureModel(
+    low_quality_architecture_model = BASIC_SC_ARCHITECTURE_MODEL(
         physical_gate_error_rate=1e-4,
         physical_gate_time_in_seconds=1e-6,
     )
-    high_quality_architecture_model = BasicSCArchitectureModel(
+    high_quality_architecture_model = BASIC_SC_ARCHITECTURE_MODEL(
         physical_gate_error_rate=1e-3,
         physical_gate_time_in_seconds=1e-9,
     )
-    error_budget = ErrorBudget(
-        ultimate_failure_tolerance=1e-3, circuit_generation_weight=0
-    )
+    # set circuit generation weight to 0
+    error_budget = ErrorBudget.from_weights(1e-3, 0, 1, 1)
 
     quantum_program = get_program_from_circuit(
         Circuit([H(0), RZ(np.pi / 4)(0), CNOT(0, 1)])
@@ -65,12 +64,9 @@ def test_higher_error_budget_requires_less_resources():
     low_failure_tolerance = 1e-5
     high_failure_tolerance = 1e-3
 
-    low_error_budget = ErrorBudget(
-        ultimate_failure_tolerance=low_failure_tolerance, circuit_generation_weight=0
-    )
-    high_error_budget = ErrorBudget(
-        ultimate_failure_tolerance=high_failure_tolerance, circuit_generation_weight=0
-    )
+    # set circuit generation weight to 0
+    low_error_budget = ErrorBudget.from_weights(low_failure_tolerance, 0, 1, 1)
+    high_error_budget = ErrorBudget.from_weights(high_failure_tolerance, 0, 1, 1)
 
     quantum_program = get_program_from_circuit(
         Circuit([H(0), RZ(np.pi / 4)(0), CNOT(0, 1)])

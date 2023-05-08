@@ -1,11 +1,11 @@
 """Initialization file for benchq.resource_estimation.v2 subpackage."""
+from .automatic_resource_estimator import automatic_resource_estimator
 from .customizable_pipelines import (
     run_custom_extrapolation_pipeline,
     run_custom_resource_estimation_pipeline,
 )
 from .extrapolation_estimator import ExtrapolationResourceEstimator
 from .graph_estimator import GraphResourceEstimator, substrate_scheduler
-from .pipeline_picker import automatic_resource_estimator
 from .transformers import (
     create_big_graph_from_subcircuits,
     create_graphs_for_subcircuits,

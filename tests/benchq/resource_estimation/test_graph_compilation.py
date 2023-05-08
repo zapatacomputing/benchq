@@ -1,5 +1,4 @@
 import os
-from copy import copy
 from dataclasses import asdict
 
 import numpy as np
@@ -7,7 +6,7 @@ import pytest
 from orquestra.quantum.circuits import CNOT, RZ, Circuit, H, T
 
 from benchq.data_structures import (
-    AlgorithmDescription,
+    AlgorithmImplementation,
     BasicArchitectureModel,
     DecoderModel,
     ErrorBudget,
@@ -84,10 +83,9 @@ def test_get_resource_estimations_for_program_gives_correct_results(
         physical_gate_error_rate=1e-3,
         physical_gate_time_in_seconds=1e-6,
     )
-    error_budget = ErrorBudget(
-        ultimate_failure_tolerance=1e-2, circuit_generation_weight=0
-    )
-    algorithm_description = AlgorithmDescription(quantum_program, error_budget, 1)
+    # set circuit generation weight to 0
+    error_budget = ErrorBudget.from_weights(1e-3, 0, 1, 1)
+    algorithm_description = AlgorithmImplementation(quantum_program, error_budget, 1)
 
     transformers = _get_transformers(use_delayed_gate_synthesis, error_budget)
     gsc_resource_estimates = run_custom_resource_estimation_pipeline(
@@ -104,7 +102,7 @@ def test_get_resource_estimations_for_program_gives_correct_results(
     # logical error rate.
     assert (
         asdict(gsc_resource_estimates)["logical_error_rate"]
-        < error_budget.ultimate_failure_tolerance
+        < error_budget.total_failure_tolerance
     )
 
 
@@ -119,23 +117,23 @@ def test_better_architecture_does_not_require_more_resources(
         physical_gate_error_rate=1e-3,
         physical_gate_time_in_seconds=1e-6,
     )
-    error_budget = ErrorBudget(
-        ultimate_failure_tolerance=1e-2, circuit_generation_weight=0
+    error_budget = ErrorBudget.from_weights(
+        total_failure_tolerance=1e-2, circuit_generation_weight=0
     )
     transformers = _get_transformers(use_delayed_gate_synthesis, error_budget)
 
     quantum_program = get_program_from_circuit(
         Circuit([H(0), RZ(np.pi / 4)(0), CNOT(0, 1)])
     )
-    algorithm_description = AlgorithmDescription(quantum_program, error_budget, 1)
+    algorithm_description = AlgorithmImplementation(quantum_program, error_budget, 1)
     low_noise_resource_estimates = run_custom_resource_estimation_pipeline(
-        copy(algorithm_description),
+        algorithm_description,
         estimator=GraphResourceEstimator(low_noise_architecture_model),
         transformers=transformers,
     )
 
     high_noise_resource_estimates = run_custom_resource_estimation_pipeline(
-        copy(algorithm_description),
+        algorithm_description,
         estimator=GraphResourceEstimator(high_noise_architecture_model),
         transformers=transformers,
     )
@@ -164,12 +162,10 @@ def test_higher_error_budget_does_not_require_more_resources(
     low_failure_tolerance = 1e-3
     high_failure_tolerance = 1e-2
 
-    low_error_budget = ErrorBudget(
-        ultimate_failure_tolerance=low_failure_tolerance, circuit_generation_weight=0
-    )
-    high_error_budget = ErrorBudget(
-        ultimate_failure_tolerance=high_failure_tolerance, circuit_generation_weight=0
-    )
+    # set circuit generation weight to 0
+    low_error_budget = ErrorBudget.from_weights(low_failure_tolerance, 0, 1, 1)
+    high_error_budget = ErrorBudget.from_weights(high_failure_tolerance, 0, 1, 1)
+
     low_error_transformers = _get_transformers(
         use_delayed_gate_synthesis, low_error_budget
     )
@@ -180,10 +176,10 @@ def test_higher_error_budget_does_not_require_more_resources(
     quantum_program = get_program_from_circuit(
         Circuit([H(0), RZ(np.pi / 4)(0), CNOT(0, 1)])
     )
-    algorithm_description_low_error_budget = AlgorithmDescription(
+    algorithm_description_low_error_budget = AlgorithmImplementation(
         quantum_program, low_error_budget, 1
     )
-    algorithm_description_high_error_budget = AlgorithmDescription(
+    algorithm_description_high_error_budget = AlgorithmImplementation(
         quantum_program, high_error_budget, 1
     )
 
@@ -218,17 +214,16 @@ def test_get_resource_estimations_for_program_accounts_for_decoder():
         physical_gate_error_rate=1e-3,
         physical_gate_time_in_seconds=1e-6,
     )
-    error_budget = ErrorBudget(
-        ultimate_failure_tolerance=1e-2, circuit_generation_weight=0
-    )
+    # set circuit generation weight to 0
+    error_budget = ErrorBudget.from_weights(1e-3, 0, 1, 1)
     quantum_program = get_program_from_circuit(
         Circuit([H(0), RZ(np.pi / 4)(0), CNOT(0, 1)])
     )
-    algorithm_description = AlgorithmDescription(quantum_program, error_budget, 1)
+    algorithm_description = AlgorithmImplementation(quantum_program, error_budget, 1)
 
     transformers = _get_transformers(True, error_budget)
     gsc_resource_estimates_no_decoder = run_custom_resource_estimation_pipeline(
-        copy(algorithm_description),
+        algorithm_description,
         estimator=GraphResourceEstimator(architecture_model, decoder_model=None),
         transformers=transformers,
     )
@@ -240,7 +235,7 @@ def test_get_resource_estimations_for_program_accounts_for_decoder():
 
     decoder = DecoderModel.from_csv(file_path)
     gsc_resource_estimates_with_decoder = run_custom_resource_estimation_pipeline(
-        copy(algorithm_description),
+        algorithm_description,
         estimator=GraphResourceEstimator(architecture_model, decoder_model=decoder),
         transformers=transformers,
     )
