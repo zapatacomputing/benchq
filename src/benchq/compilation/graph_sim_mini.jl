@@ -211,6 +211,13 @@ function remove_lco(lco, adj, v, avoid)
     end
 end
 
+"""Find the first valid slot starting at index i"""
+@inline function _firstvalid(slots, i, len)
+    while i <= len && slots[i] != 0x1
+        i += 1
+    end
+    i
+end
 
 """
 Take the local complement of a vertex v.
@@ -222,11 +229,28 @@ Args:
 """
 function local_complement!(lco, adj, v)
     @timeit to "lc toggle" begin
+        #=
     neighbors = collect(adj[v])
     len = length(neighbors)
     for i in 1:len, j in i+1:len
         toggle_edge!(adj, neighbors[i], neighbors[j])
     end
+        =#
+        dict = adj[v].dict
+        keys = dict.keys
+        slots = dict.slots
+        len = length(slots)
+        i = dict.idxfloor
+        while (i = _firstvalid(slots, i, len)) <= len
+            neighbor = keys[i]
+            lst = adj[neighbor]
+            i += 1
+            j = i
+            while (j = _firstvalid(slots, j, len)) <= len
+                toggle_edge!(adj, neighbor, keys[j])
+                j += 1
+            end
+        end
     end
 
     @timeit to "lc multiply lco" begin
