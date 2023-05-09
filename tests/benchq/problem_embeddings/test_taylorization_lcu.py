@@ -11,6 +11,7 @@ from openfermion.linalg import get_sparse_operator
 from openfermion.ops import FermionOperator, QubitOperator
 from openfermion.transforms import bravyi_kitaev, jordan_wigner
 from openfermion.utils import count_qubits
+from orquestra.integrations.cirq.conversions import from_openfermion
 from qiskit import Aer, QuantumCircuit, transpile
 from scipy.sparse.linalg import expm_multiply
 
@@ -328,7 +329,9 @@ def test_generate_lcu_taylorization_program():
     hamiltonian = fermi_hubbard(
         x_dimension=1, y_dimension=1, tunneling=1, coulomb=1, periodic=False
     )
-    operator = generate_fermi_hubbard_qubit_hamiltonian(hamiltonian, "Bravyi_Kitaev")
+    operator = from_openfermion(
+        generate_fermi_hubbard_qubit_hamiltonian(hamiltonian, "Bravyi_Kitaev")
+    )
     program = generate_lcu_taylorization_program(operator)
     assert len(program.subroutines) == 1
     assert program.steps == 1
