@@ -11,15 +11,14 @@ the Azure QRE.
 from pathlib import Path
 from pprint import pprint
 
-from benchq import BasicArchitectureModel
 from benchq.algorithms.time_evolution import qsp_time_evolution_algorithm
-from benchq.data_structures import DecoderModel, ErrorBudget
+from benchq.data_structures import BasicArchitectureModel, DecoderModel, ErrorBudget
 from benchq.problem_ingestion import get_vlasov_hamiltonian
 from benchq.resource_estimation.azure import AzureResourceEstimator
 from benchq.resource_estimation.graph import (
     GraphResourceEstimator,
     create_big_graph_from_subcircuits,
-    run_resource_estimation_pipeline,
+    run_custom_resource_estimation_pipeline,
     simplify_rotations,
 )
 from benchq.timing import measure_time
@@ -27,7 +26,6 @@ from benchq.timing import measure_time
 
 def main():
     evolution_time = 5.0
-    error_budget = ErrorBudget(ultimate_failure_tolerance=1e-3)
     architecture_model = BasicArchitectureModel(
         physical_gate_error_rate=1e-3,
         physical_gate_time_in_seconds=1e-6,
@@ -43,25 +41,22 @@ def main():
     print("Operator generation time:", t_info.total)
 
     with measure_time() as t_info:
-        algorithm = qsp_time_evolution_algorithm(
-            operator, evolution_time, error_budget.circuit_generation_weight
-        )
+        algorithm = qsp_time_evolution_algorithm(operator, evolution_time, 1e-3)
 
     print("Circuit generation time:", t_info.total)
 
     # We run the resource estimation pipeline using the graph state compilation method.
-    # In this example we use delayed_gate_synthesis=True, as this is more similar to
-    # how Azure QRE works.
+    # In this example we do not transpile to a clifford + T circuit, as this is more
+    # similar to how Azure QRE works.
     with measure_time() as t_info:
-        gsc_resource_estimates = run_resource_estimation_pipeline(
-            algorithm.program,
-            error_budget,
+        gsc_resource_estimates = run_custom_resource_estimation_pipeline(
+            algorithm,
             estimator=GraphResourceEstimator(
                 hw_model=architecture_model, decoder_model=decoder_model
             ),
             transformers=[
                 simplify_rotations,
-                create_big_graph_from_subcircuits(delayed_gate_synthesis=True),
+                create_big_graph_from_subcircuits(),
             ],
         )
 
@@ -74,9 +69,8 @@ def main():
     # Azure QRE takes in quantum circuits as input and performs compilation internally,
     # so there's no need for using any transformers.
     with measure_time() as t_info:
-        azure_resource_estimates = run_resource_estimation_pipeline(
-            algorithm.program,
-            error_budget,
+        azure_resource_estimates = run_custom_resource_estimation_pipeline(
+            algorithm,
             estimator=AzureResourceEstimator(),
             transformers=[],
         )

@@ -59,6 +59,37 @@ class QuantumProgram:
             recreated_circuit += self.subroutines[i]
         return recreated_circuit
 
+    @property
+    def n_rotation_gates(self) -> int:
+        return self.count_gates_in_program(["RX", "RY", "RZ"])
+
+    @property
+    def n_t_gates(self) -> int:
+        return self.count_gates_in_program(["T", "Tdag"])
+
+    @property
+    def n_nodes(self) -> int:
+        return self.n_t_gates + self.n_rotation_gates + self.subroutines[0].n_qubits
+
+    def count_gates_in_subroutine(self, step: int, gates: Sequence[str]) -> int:
+        n_gates = 0
+        for op in self.subroutines[step].operations:
+            if op.gate.name in gates:
+                n_gates += 1
+        return n_gates
+
+    def count_gates_in_program(self, gates: Sequence[str]) -> int:
+        n_gates_per_subroutine = [
+            self.count_gates_in_subroutine(subroutine, gates)
+            for subroutine in range(len(self.subroutines))
+        ]
+
+        total_gates = 0
+        for step in self.calculate_subroutine_sequence(self.steps):
+            total_gates += n_gates_per_subroutine[step]
+
+        return total_gates
+
     def replace_circuits(self, new_circuits: Sequence[Circuit]) -> "QuantumProgram":
         return QuantumProgram(
             subroutines=new_circuits,

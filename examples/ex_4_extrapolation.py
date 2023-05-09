@@ -13,9 +13,8 @@ and then we extrapolate the results to estimate resources for full problem.
 from pathlib import Path
 from pprint import pprint
 
-from benchq import BasicArchitectureModel
 from benchq.algorithms.time_evolution import qsp_time_evolution_algorithm
-from benchq.data_structures import DecoderModel, ErrorBudget
+from benchq.data_structures import BasicArchitectureModel, DecoderModel, ErrorBudget
 from benchq.problem_ingestion import (
     generate_jw_qubit_hamiltonian_from_mol_data,
     get_vlasov_hamiltonian,
@@ -26,7 +25,7 @@ from benchq.problem_ingestion.molecule_instance_generation import (
 from benchq.resource_estimation.graph import (
     ExtrapolationResourceEstimator,
     create_big_graph_from_subcircuits,
-    run_extrapolation_pipeline,
+    run_custom_extrapolation_pipeline,
     simplify_rotations,
 )
 from benchq.timing import measure_time
@@ -34,7 +33,6 @@ from benchq.timing import measure_time
 
 def main(use_hydrogen=True):
     evolution_time = 5.0
-    error_budget = ErrorBudget(ultimate_failure_tolerance=1e-3)
     architecture_model = BasicArchitectureModel(
         physical_gate_error_rate=1e-3,
         physical_gate_time_in_seconds=1e-6,
@@ -56,15 +54,12 @@ def main(use_hydrogen=True):
     print("Operator generation time:", t_info.total)
 
     with measure_time() as t_info:
-        algorithm = qsp_time_evolution_algorithm(
-            operator, evolution_time, error_budget.circuit_generation_weight
-        )
+        algorithm = qsp_time_evolution_algorithm(operator, evolution_time, 1e-3)
     print("Circuit generation time:", t_info.total)
 
     with measure_time() as t_info:
-        extrapolated_resource_estimates = run_extrapolation_pipeline(
-            algorithm.program,
-            error_budget,
+        extrapolated_resource_estimates = run_custom_extrapolation_pipeline(
+            algorithm,
             estimator=ExtrapolationResourceEstimator(
                 architecture_model,
                 steps_to_extrapolate_from,
@@ -73,7 +68,7 @@ def main(use_hydrogen=True):
             ),
             transformers=[
                 simplify_rotations,
-                create_big_graph_from_subcircuits(delayed_gate_synthesis=True),
+                create_big_graph_from_subcircuits(),
             ],
         )
 

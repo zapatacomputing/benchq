@@ -87,7 +87,7 @@ class DecoderModel:
         data = np.genfromtxt(file_path, delimiter=",")
         if data.shape != (3, 8):
             raise ValueError(
-                "Data for creating DecoderModel don't comply to the required format."
+                "Data for creating DecoderModel doesn't comply to the required format."
             )
         power_d_26 = data[0][0]
         power_ranks = data[0][1:4]
