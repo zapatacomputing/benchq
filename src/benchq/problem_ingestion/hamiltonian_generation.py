@@ -1,15 +1,11 @@
 ################################################################################
 # © Copyright 2022 Zapata Computing Inc.
 ################################################################################
-import json
-
 import numpy as np
 import openfermion as of
 import pyLIQTR.sim_methods.quantum_ops as qops
-from openfermion import QubitOperator
 from orquestra.integrations.cirq.conversions import from_openfermion
 from orquestra.quantum.operators import PauliSum
-from orquestra.quantum.utils import ensure_open
 
 # At this stage of development we are aware that there are some issues with methods
 # 2 and 3 and they do not necessarily yield correct results.
@@ -87,20 +83,3 @@ def generate_1d_heisenberg_hamiltonian(N):
     for term in pauli_sum.terms:
         term.coefficient = term.coefficient.real
     return pauli_sum
-
-
-def fast_load_qubit_op(file):
-    with ensure_open(file, "r") as f:
-        data = json.load(f)
-
-    full_operator = QubitOperator()
-    for term_dict in data["terms"]:
-        operator = []
-        for pauli_op in term_dict["pauli_ops"]:
-            operator.append((pauli_op["qubit"], pauli_op["op"]))
-        coefficient = term_dict["coefficient"]["real"]
-        if term_dict["coefficient"].get("imag"):
-            coefficient += 1j * term_dict["coefficient"]["imag"]
-        full_operator += QubitOperator(operator, coefficient)
-
-    return from_openfermion(full_operator)
