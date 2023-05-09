@@ -145,5 +145,5 @@ def _get_logarithmic_extrapolation(x, y, steps_to_extrapolate_to):
     m, c = coeffs
 
     # get rid of floating point errors
-    rounded_point = round(m * np.log(steps_to_extrapolate_to) + c, 5)
+    rounded_point = m * np.log(steps_to_extrapolate_to) + c
     return ceil(rounded_point), r_squared
