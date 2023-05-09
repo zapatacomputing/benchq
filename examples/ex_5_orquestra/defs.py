@@ -48,7 +48,7 @@ ms_task = sdk.task(source_import=sdk.GitImport.infer(), dependency_imports=ms_ta
 @standard_task
 def get_program(operator, evolution_time, error_budget):
     algorithm = qsp_time_evolution_algorithm(
-        operator, evolution_time, error_budget.circuit_generation_weight
+        operator, evolution_time, error_budget.total_failure_tolerance
     )
     return algorithm.program
 
@@ -66,7 +66,7 @@ def gsc_estimates(program, error_budget, architecture_model):
         estimator=GraphResourceEstimator(hw_model=architecture_model),
         transformers=[
             simplify_rotations,
-            create_big_graph_from_subcircuits(delayed_gate_synthesis=True),
+            create_big_graph_from_subcircuits(),
         ],
     )
 
@@ -95,9 +95,8 @@ def azure_estimates(program, error_budget, architecture_model):
 
 @sdk.workflow
 def example_workflow():
-
     evolution_time = 5.0
-    error_budget = ErrorBudget(ultimate_failure_tolerance=1e-3)
+    error_budget = ErrorBudget.from_even_split(total_failure_tolerance=1e-3)
     architecture_model = BasicArchitectureModel(
         physical_gate_error_rate=1e-3,
         physical_gate_time_in_seconds=1e-6,

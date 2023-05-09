@@ -8,21 +8,21 @@ import time
 import pytest
 from orquestra.sdk.schema.workflow_run import State
 
-from examples.ex_1_from_qasm import main as from_qasm_main
-from examples.ex_2_time_evolution import main as time_evolution_main
-from examples.ex_3_packages_comparison import main as packages_comparison_main
-from examples.ex_4_extrapolation import main as extrapolation_main
+MAIN_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, os.path.dirname(MAIN_DIR))
+
+from examples.ex_1_from_qasm import main as from_qasm_main  # noqa: E402
+from examples.ex_2_time_evolution import main as time_evolution_main  # noqa: E402
+from examples.ex_3_packages_comparison import (  # noqa: E402
+    main as packages_comparison_main,
+)
+from examples.ex_4_extrapolation import main as extrapolation_main  # noqa: E402
 
 SKIP_AZURE = pytest.mark.skipif(
     os.getenv("BENCHQ_TEST_AZURE") is None,
     reason="Azure tests can only run if BENCHQ_TEST_AZURE env variable is defined",
 )
 
-MAIN_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-sys.path.insert(0, os.path.dirname(MAIN_DIR))
-
-print(sys.path)
-print(MAIN_DIR)
 
 # def test_orquestra_example():
 #     """

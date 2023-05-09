@@ -1,13 +1,14 @@
 from dataclasses import dataclass
-from typing import Callable, Optional
+from typing import Optional
 
 import networkx as nx
 import numpy as np
 from graph_state_generation.optimizers import greedy_stabilizer_measurement_scheduler
 from graph_state_generation.substrate_scheduler import TwoRowSubstrateScheduler
 
-from ...data_structures import BasicArchitectureModel, DecoderModel, ErrorBudget
-from .structs import GraphPartition
+from ...data_structures import AlgorithmImplementation, DecoderModel, GraphPartition
+from ...data_structures.hardware_architecture_models import BasicArchitectureModel
+from ..magic_state_distillation import get_specs_for_t_state_widget
 
 INITIAL_SYNTHESIS_ACCURACY = 0.0001
 
@@ -29,6 +30,8 @@ class GraphData:
 
     max_graph_degree: int
     n_nodes: int
+    n_t_gates: int
+    n_rotation_gates: int
     n_measurement_steps: int
 
 
@@ -36,15 +39,17 @@ class GraphData:
 class ResourceInfo:
     """Contains all resource estimated for a problem instance."""
 
-    synthesis_multiplier: float
     code_distance: int
     logical_error_rate: float
     n_logical_qubits: int
     n_nodes: int
+    n_t_gates: int
+    n_rotation_gates: int
     n_physical_qubits: int
     n_measurement_steps: int
-    total_time: float
+    total_time_in_seconds: float
     max_decodable_distance: Optional[int]
+    decoder_total_energy_consumption: Optional[float]
     decoder_power: Optional[float]
     decoder_area: Optional[float]
 
@@ -53,7 +58,8 @@ class ResourceInfo:
             "code_distance",
             "logical_error_rate",
             "n_logical_qubits",
-            "total_time",
+            "total_time_in_seconds",
+            "decoder_total_energy_consumption",
             "decoder_power",
             "decoder_area",
             "n_measurement_steps",
@@ -67,74 +73,72 @@ class GraphResourceEstimator:
         self,
         hw_model: BasicArchitectureModel,
         decoder_model: Optional[DecoderModel] = None,
-        combine_partition: bool = True,
+        distillation_widget: str = "(15-to-1)_7,3,3",
     ):
         self.hw_model = hw_model
-        self.combine_partition = combine_partition
         self.decoder_model = decoder_model
+        self.widget_specs = get_specs_for_t_state_widget(distillation_widget)
 
-    N_TOCKS_PER_T_GATE_FACTORY = 15
-    # We are not sure if names below are the best choice
-    # 21 comes from Game of surface codes (Litinski):
-    # https://quantum-journal.org/papers/q-2019-03-05-128/
-    # We are not sure where does 12 come from
-    BOX_WIDTH = 21
-    BOX_HEIGHT = 12
-
-    # Assumes gridsynth scaling and full Euler angle decompositions
-    SYNTHESIS_SCALING = 3 * 4
-
-    def _logical_cell_failure_rate(self, distance: int) -> float:
-        return (
-            # 0.3 and 70 come from numerical simulations
-            distance
-            * 0.3
-            * (70 * self.hw_model.physical_gate_error_rate) ** ((distance + 1) / 2)
-        )
-
-    def _minimize_code_distance(
-        self,
-        n_nodes: int,
-        max_graph_degree: int,
-        error_budget: ErrorBudget,
-        error_rate: Callable[[int, int, int], float],
-        min_d: int = 4,
-        max_d: int = 100,
-    ) -> int:
-
-        for distance in range(min_d, max_d):
-            if (
-                error_rate(distance, n_nodes, max_graph_degree)
-                < error_budget.ec_failure_tolerance
-            ):
-                return distance
-
-        raise RuntimeError(f"Not found good error rates under distance code: {max_d}.")
+    # Assumes gridsynth scaling
+    SYNTHESIS_SCALING = 4
 
     def _get_n_measurement_steps(self, graph) -> int:
         return len(substrate_scheduler(graph).measurement_steps)
 
-    def _ec_error_rate_delayed_gate_synthesis(
-        self, distance: int, n_nodes: int, max_graph_degree: int
-    ) -> float:
-        _, ec_error_rate = self.balance_logical_error_rate_and_synthesis_accuracy(
-            n_nodes, distance, max_graph_degree
-        )
-        return ec_error_rate
-
-    def _ec_error_rate(
-        self, distance: int, n_nodes: int, max_graph_degree: int
-    ) -> float:
-        return self._logical_cell_failure_rate(distance) * self.get_logical_st_volume(
-            n_nodes, max_graph_degree
+    def _get_graph_data_for_single_graph(self, problem: GraphPartition) -> GraphData:
+        graph = problem.subgraphs[0]
+        max_graph_degree = max(deg for _, deg in graph.degree())
+        n_measurement_steps = self._get_n_measurement_steps(graph)
+        return GraphData(
+            max_graph_degree=max_graph_degree,
+            n_nodes=problem.n_nodes,
+            n_t_gates=problem.n_t_gates,
+            n_rotation_gates=problem.n_rotation_gates,
+            n_measurement_steps=n_measurement_steps,
         )
 
-    def get_logical_st_volume(self, n_nodes: int, max_graph_degree: int):
-        num_boxes = np.ceil((max_graph_degree + 1) / self.BOX_WIDTH)
-        space = self.BOX_WIDTH * self.BOX_HEIGHT * num_boxes
-        # Time component assuming all graph nodes are measured sequentially
-        time = self.N_TOCKS_PER_T_GATE_FACTORY * n_nodes
-        return space * time
+    def _minimize_code_distance(
+        self,
+        n_total_t_gates: int,
+        graph_data: GraphData,
+        ec_failure_tolerance: float,
+        min_d: int = 4,
+        max_d: int = 100,
+    ) -> int:
+        for code_distance in range(min_d, max_d):
+            ec_error_rate_at_this_distance = 1 - (
+                1 - self._logical_cell_error_rate(code_distance)
+            ) ** self.get_logical_st_volume(n_total_t_gates, graph_data, code_distance)
+
+            if ec_error_rate_at_this_distance < ec_failure_tolerance:
+                return code_distance
+
+        raise RuntimeError(f"Not found good error rates under distance code: {max_d}.")
+
+    def _logical_cell_error_rate(self, distance: int) -> float:
+        return (
+            1
+            - (
+                1
+                - 0.3
+                * (70 * self.hw_model.physical_gate_error_rate) ** ((distance + 1) / 2)
+            )
+            ** distance
+        )
+
+    def get_logical_st_volume(
+        self, n_total_t_gates: int, graph_data: GraphData, code_distance: int
+    ):
+        # For example, check that we are properly including/excluding
+        # the distillation spacetime volume
+        space = 2 * graph_data.max_graph_degree
+        ## Time component assuming all graph nodes are measured sequentially
+        time = (
+            graph_data.n_measurement_steps * code_distance
+            + (self.widget_specs["time"] + code_distance) * n_total_t_gates
+        )
+        st_volume = space * time
+        return st_volume
 
     def find_max_decodable_distance(self, min_d=4, max_d=100):
         max_distance = 0
@@ -147,134 +151,119 @@ class GraphResourceEstimator:
 
         return max_distance
 
-    # TODO: We need to make sure it's doing scientifically what it should be doing
-    def balance_logical_error_rate_and_synthesis_accuracy(
-        self, n_nodes, distance, max_graph_degree
-    ):
-        """
-        This function is basically finding such a value of synthesis error rate, that
-        it is 1/(12*N) smaller than circuit error rate, where N is the number of nodes
-        in the graph.
-        """
-        current_synthesis_accuracy = INITIAL_SYNTHESIS_ACCURACY
-        for _ in range(20):
-            ec_error_rate = self._ec_error_rate(
-                distance,
-                n_nodes,
-                max_graph_degree,
-            )
-            new_synthesis_accuracy = (1 / (12 * n_nodes)) * ec_error_rate
-            # This is for cases where the algorithm diverges terribly, to avoid
-            # "divide by 0" and similar warnings.
-            # TODO: Hacky! We should come up with a more stable solution in future!
-            if new_synthesis_accuracy <= 0 or np.isnan(new_synthesis_accuracy):
-                return np.inf, np.inf
-
-            current_synthesis_accuracy = new_synthesis_accuracy
-        return current_synthesis_accuracy, ec_error_rate
-
-    def _get_graph_data(self, graph: nx.Graph, n_nodes: int) -> GraphData:
-        max_graph_degree = max(deg for _, deg in graph.degree())
-        n_nodes = n_nodes
-        n_measurement_steps = self._get_n_measurement_steps(graph)
-        return GraphData(
-            max_graph_degree=max_graph_degree,
-            n_nodes=n_nodes,
-            n_measurement_steps=n_measurement_steps,
-        )
-
     def _estimate_resources_from_graph_data(
         self,
         graph_data: GraphData,
-        delayed_gate_synthesis: bool,
-        error_budget: ErrorBudget,
+        algorithm_description: AlgorithmImplementation,
     ) -> ResourceInfo:
-        ec_error_rate_func = (
-            self._ec_error_rate_delayed_gate_synthesis
-            if delayed_gate_synthesis
-            else self._ec_error_rate
-        )
+        if graph_data.n_rotation_gates != 0:
+            per_gate_synthesis_accuracy = 1 - (
+                1 - algorithm_description.error_budget.synthesis_failure_tolerance
+            ) ** (1 / graph_data.n_rotation_gates)
+
+            n_t_gates_used_at_measurement = (
+                graph_data.n_rotation_gates
+                * self.SYNTHESIS_SCALING
+                * np.log2(1 / per_gate_synthesis_accuracy)
+            )
+        else:
+            n_t_gates_used_at_measurement = 0
+
+        n_total_t_gates = graph_data.n_t_gates + n_t_gates_used_at_measurement
 
         code_distance = self._minimize_code_distance(
-            graph_data.n_nodes,
-            graph_data.max_graph_degree,
-            error_budget,
-            ec_error_rate_func,
+            n_total_t_gates,
+            graph_data,
+            algorithm_description.error_budget.ec_failure_tolerance,
         )
+
+        # get error rate after correction
+        logical_cell_error_rate = self._logical_cell_error_rate(code_distance)
         space_time_volume = self.get_logical_st_volume(
-            graph_data.n_nodes, graph_data.max_graph_degree
-        )
-        logical_cell_error_rate = self._logical_cell_failure_rate(code_distance)
-
-        # Isolate differences between synthesized and not synthesized case
-        if not delayed_gate_synthesis:
-            total_logical_error_rate = logical_cell_error_rate * space_time_volume
-            synthesis_multiplier = 1
-        else:
-            (
-                synthesis_accuracy,
-                total_logical_error_rate,
-            ) = self.balance_logical_error_rate_and_synthesis_accuracy(
-                graph_data.n_nodes, code_distance, graph_data.max_graph_degree
-            )
-
-            synthesis_multiplier = self.SYNTHESIS_SCALING * np.log2(
-                1 / synthesis_accuracy
-            )
-
-        time_of_logical_t_gate = (
-            6 * self.hw_model.physical_gate_time_in_seconds * code_distance
+            n_total_t_gates, graph_data, code_distance
         )
 
-        num_boxes = np.ceil((graph_data.max_graph_degree + 1) / self.BOX_WIDTH)
+        total_logical_error_rate = logical_cell_error_rate * space_time_volume
+
+        # get number of physical qubits needed for the computation
         patch_size = 2 * code_distance**2
-        n_physical_qubits = self.BOX_WIDTH * self.BOX_HEIGHT * num_boxes * patch_size
-
-        wall_time = (
-            graph_data.n_measurement_steps * time_of_logical_t_gate
-            + time_of_logical_t_gate
-            * self.N_TOCKS_PER_T_GATE_FACTORY
-            * graph_data.n_nodes
-            * synthesis_multiplier
+        n_physical_qubits = (
+            2 * graph_data.max_graph_degree * patch_size + self.widget_specs["qubits"]
         )
 
+        # get total time to run algorithm
+        time_per_circuit_in_seconds = (
+            6
+            * self.hw_model.physical_gate_time_in_seconds
+            * (
+                graph_data.n_measurement_steps * code_distance
+                + (self.widget_specs["time"] + code_distance) * n_total_t_gates
+            )
+        )
+
+        # The total space time volume, prior to measurements is,
+        # V_{graph}= 2\Delta S (where we measure each of the steps,
+        # S in terms of tocks, corresponding to d cycle times.
+        # d will be solved for later).  For each distilled T-state,
+        # C-cycles are needed to prepare the state and 1-Tock is required
+        # to interact the state with the graph node and measure it in
+        # the X or Z-basis.  Hence for each node measurement (assuming
+        # T-basis measurements), the volume increases to,
+        # V = 2*Delta*S*d+ 2*Delta*(C+d).
+
+        total_time_in_seconds = (
+            time_per_circuit_in_seconds * algorithm_description.n_calls
+        )
+
+        # get decoder requirements
         if self.decoder_model:
-            decoder_power = space_time_volume * self.decoder_model.power(code_distance)
+            decoder_total_energy_consumption = (
+                space_time_volume
+                * self.decoder_model.power(code_distance)
+                * self.decoder_model.delay(code_distance)
+            )
+            decoder_power = (
+                2
+                * graph_data.max_graph_degree
+                * self.decoder_model.power(code_distance)
+            )
             decoder_area = graph_data.max_graph_degree * self.decoder_model.area(
                 code_distance
             )
             max_decodable_distance = self.find_max_decodable_distance()
         else:
+            decoder_total_energy_consumption = None
             decoder_power = None
             decoder_area = None
             max_decodable_distance = None
 
         return ResourceInfo(
-            synthesis_multiplier=synthesis_multiplier,
             code_distance=code_distance,
             logical_error_rate=total_logical_error_rate,
             # estimate the number of logical qubits using max node degree
             n_logical_qubits=graph_data.max_graph_degree,
             n_nodes=graph_data.n_nodes,
+            n_t_gates=graph_data.n_t_gates,
+            n_rotation_gates=graph_data.n_rotation_gates,
             n_measurement_steps=graph_data.n_measurement_steps,
-            total_time=wall_time,
+            total_time_in_seconds=total_time_in_seconds,
             n_physical_qubits=n_physical_qubits,
+            decoder_total_energy_consumption=decoder_total_energy_consumption,
             decoder_power=decoder_power,
             decoder_area=decoder_area,
             max_decodable_distance=max_decodable_distance,
         )
 
-    def estimate(
-        self, problem: GraphPartition, error_budget: ErrorBudget
-    ) -> ResourceInfo:
-        n_nodes = problem.n_nodes
-        if len(problem.subgraphs) == 1:
-            graph_data = self._get_graph_data(problem.subgraphs[0], n_nodes)
-            return self._estimate_resources_from_graph_data(
-                graph_data,
-                problem.delayed_gate_synthesis,
-                error_budget,
+    def estimate(self, algorithm_description: AlgorithmImplementation) -> ResourceInfo:
+        assert isinstance(algorithm_description.program, GraphPartition)
+        if len(algorithm_description.program.subgraphs) == 1:
+            graph_data = self._get_graph_data_for_single_graph(
+                algorithm_description.program
             )
+            resource_info = self._estimate_resources_from_graph_data(
+                graph_data, algorithm_description
+            )
+            return resource_info
         else:
             raise NotImplementedError(
                 "Resource estimation without combining subgraphs is not yet "
