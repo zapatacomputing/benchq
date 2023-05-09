@@ -13,7 +13,6 @@ def run_custom_resource_estimation_pipeline(
     estimator,
     transformers,
 ):
-
     for transformer in transformers:
         # all transformers give back QuantumPrograms except the last one
         assert isinstance(algorithm_description.program, QuantumProgram)

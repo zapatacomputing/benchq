@@ -73,17 +73,20 @@ class AzureResourceEstimator:
         self.use_full_circuit = use_full_circuit
 
     def estimate(
-        self, program: QuantumProgram, error_budget: Optional[ErrorBudget] = None
+        self,
+        algorithm,
     ) -> AzureResourceInfo:
         azure_error_budget: Dict[str, float] = {}
-        if error_budget is not None:
+        if algorithm.error_budget is not None:
             azure_error_budget = {}
-            azure_error_budget["rotations"] = error_budget.synthesis_failure_tolerance
-            remaining_error = error_budget.ec_failure_tolerance
+            azure_error_budget[
+                "rotations"
+            ] = algorithm.error_budget.synthesis_failure_tolerance
+            remaining_error = algorithm.error_budget.ec_failure_tolerance
             azure_error_budget["logical"] = remaining_error / 2
             azure_error_budget["tstates"] = remaining_error / 2
         if self.use_full_circuit:
-            circuit = program.full_circuit
+            circuit = algorithm.program.full_circuit
             return self._estimate_resources_for_circuit(circuit, azure_error_budget)
         else:
             raise NotImplementedError(
