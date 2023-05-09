@@ -73,12 +73,15 @@ class AzureResourceEstimator:
         self.use_full_circuit = use_full_circuit
 
     def estimate(
-        self, algorithm,
+        self,
+        algorithm,
     ) -> AzureResourceInfo:
         azure_error_budget: Dict[str, float] = {}
         if algorithm.error_budget is not None:
             azure_error_budget = {}
-            azure_error_budget["rotations"] = algorithm.error_budget.synthesis_failure_tolerance
+            azure_error_budget[
+                "rotations"
+            ] = algorithm.error_budget.synthesis_failure_tolerance
             remaining_error = algorithm.error_budget.ec_failure_tolerance
             azure_error_budget["logical"] = remaining_error / 2
             azure_error_budget["tstates"] = remaining_error / 2
