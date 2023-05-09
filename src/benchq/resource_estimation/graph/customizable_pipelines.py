@@ -13,16 +13,15 @@ def run_custom_resource_estimation_pipeline(
     estimator,
     transformers,
 ):
-    internal_algorthm_description = copy(algorithm_description)
 
     for transformer in transformers:
         # all transformers give back QuantumPrograms except the last one
-        assert isinstance(internal_algorthm_description.program, QuantumProgram)
-        internal_algorthm_description.program = transformer(
-            internal_algorthm_description.program
+        assert isinstance(algorithm_description.program, QuantumProgram)
+        algorithm_description = replace(
+            algorithm_description, program=transformer(algorithm_description.program)
         )
 
-    return estimator.estimate(internal_algorthm_description)
+    return estimator.estimate(algorithm_description)
 
 
 def run_custom_extrapolation_pipeline(
@@ -33,8 +32,6 @@ def run_custom_extrapolation_pipeline(
     synthesis_accuracy_for_each_rotation = 1 - (
         1 - algorithm_description.error_budget.synthesis_failure_tolerance
     ) ** (1 / algorithm_description.program.n_rotation_gates)
-
-    internal_algorthm_description = copy(algorithm_description)
 
     small_programs_resource_info = []
     for i in estimator.steps_to_extrapolate_from:
@@ -59,11 +56,11 @@ def run_custom_extrapolation_pipeline(
 
     # get rid of graph compilation step
     for transformer in transformers[:-1]:
-        internal_algorthm_description.program = transformer(
-            internal_algorthm_description.program
+        algorithm_description = replace(
+            algorithm_description, program=transformer(algorithm_description.program)
         )
 
     return estimator.estimate_via_extrapolation(
-        internal_algorthm_description,
+        algorithm_description,
         small_programs_resource_info,
     )

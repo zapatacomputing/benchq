@@ -6,7 +6,7 @@
 
 class ABCArchitectureModel:
     def __init__(self):
-        return self
+        pass
 
 
 class BasicArchitectureModel(ABCArchitectureModel):
