@@ -91,7 +91,6 @@ def test_get_resource_estimations_for_program_gives_correct_results(
     gsc_resource_estimates = asdict(
         run_custom_resource_estimation_pipeline(
             algorithm_description,
-            error_budget,
             estimator=GraphResourceEstimator(architecture_model),
             transformers=transformers,
         )
@@ -107,7 +106,7 @@ def test_get_resource_estimations_for_program_gives_correct_results(
     # logical error rate.
     assert (
         gsc_resource_estimates["logical_error_rate"]
-        < error_budget.ultimate_failure_tolerance
+        < error_budget.total_failure_tolerance
     )
 
 
