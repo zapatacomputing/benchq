@@ -15,7 +15,7 @@ from benchq.resource_estimation.azure import AzureResourceEstimator
 from benchq.resource_estimation.graph import (
     GraphResourceEstimator,
     create_big_graph_from_subcircuits,
-    run_resource_estimation_pipeline,
+    run_custom_resource_estimation_pipeline,
     simplify_rotations,
 )
 
@@ -46,11 +46,11 @@ ms_task = sdk.task(source_import=sdk.GitImport.infer(), dependency_imports=ms_ta
 
 
 @standard_task
-def get_program(operator, evolution_time, error_budget):
+def get_algorithm(operator, evolution_time, error_budget):
     algorithm = qsp_time_evolution_algorithm(
         operator, evolution_time, error_budget.total_failure_tolerance
     )
-    return algorithm.program
+    return algorithm
 
 
 @standard_task
@@ -59,10 +59,9 @@ def get_operator(problem_size):
 
 
 @ms_task
-def gsc_estimates(program, error_budget, architecture_model):
-    return run_resource_estimation_pipeline(
-        program,
-        error_budget,
+def gsc_estimates(algorithm, architecture_model):
+    return run_custom_resource_estimation_pipeline(
+        algorithm,
         estimator=GraphResourceEstimator(hw_model=architecture_model),
         transformers=[
             simplify_rotations,
@@ -72,7 +71,7 @@ def gsc_estimates(program, error_budget, architecture_model):
 
 
 @ms_task
-def azure_estimates(program, error_budget, architecture_model):
+def azure_estimates(algorithm, architecture_model):
     try:
         os.environ["AZURE_CLIENT_ID"] = sdk.secrets.get("AZURE-CLIENT-ID")
         os.environ["AZURE_TENANT_ID"] = sdk.secrets.get("AZURE-TENANT-ID")
@@ -85,9 +84,8 @@ def azure_estimates(program, error_budget, architecture_model):
         )
         print("Original error message:", e)
 
-    return run_resource_estimation_pipeline(
-        program,
-        error_budget,
+    return run_custom_resource_estimation_pipeline(
+        algorithm,
         estimator=AzureResourceEstimator(),
         transformers=[],
     )
@@ -107,9 +105,9 @@ def example_workflow():
     for problem_size in [2]:
         operator = get_operator(problem_size)
 
-        program = get_program(operator, evolution_time, error_budget)
+        algorithm = get_algorithm(operator, evolution_time, error_budget)
 
-        results.append(azure_estimates(program, error_budget, architecture_model))
-        results.append(gsc_estimates(program, error_budget, architecture_model))
+        results.append(azure_estimates(algorithm, architecture_model))
+        results.append(gsc_estimates(algorithm, architecture_model))
 
     return results
