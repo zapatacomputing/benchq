@@ -40,6 +40,7 @@ module = [
     'graph_state_generation.*',
     'matplotlib.*',
     'stim.*',
+    'h5py.*',
 ]
 ignore_missing_imports = true
 
