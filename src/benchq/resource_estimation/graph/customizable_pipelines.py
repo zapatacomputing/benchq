@@ -31,7 +31,7 @@ def run_custom_extrapolation_pipeline(
     synthesis_accuracy_for_each_rotation = 1 - (
         1 - algorithm_description.error_budget.synthesis_failure_tolerance
     ) ** (1 / algorithm_description.program.n_rotation_gates)
-    
+
     small_programs_resource_info = []
     for i in estimator.steps_to_extrapolate_from:
         # create copy of program for each number of steps
