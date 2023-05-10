@@ -228,6 +228,9 @@ class ChemistryApplicationInstance:
                 active_indices,
             ) = self.get_occupied_and_active_indicies_with_FNO()
 
+            print("Occ indices: ", len(occupied_indices))
+            print("Active indices: ", len(active_indices))
+
             return molecular_data.get_molecular_hamiltonian(
                 occupied_indices=occupied_indices, active_indices=active_indices
             )
