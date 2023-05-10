@@ -167,7 +167,7 @@ class ChemistryApplicationInstance:
             mp2 = mp.MP2(mean_field_object)
 
         mp2.verbose = 4
-        mp2.run()
+        mp2 = mp2.density_fit().run()
         mp2_energy = mean_field_object.e_tot + mp2.e_corr
         molecular_data._pyscf_data["mp2"] = mp2_energy
 
