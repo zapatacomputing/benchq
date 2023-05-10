@@ -101,9 +101,15 @@ class ChemistryApplicationInstance:
         molecule = self.get_pyscf_molecule()
         # mean_field_object = (scf.RHF if self.multiplicity == 1 else scf.ROHF)(molecule)
 
+        """
         mean_field_object = dft.RKS(molecule)
         mean_field_object.xc = "b3lyp"
         mean_field_object = scf.addons.frac_occ(mean_field_object)
+        """
+
+        mean_field_object = (
+            molecule.RKS(xc="wb97x-d").apply(scf.addons.remove_linear_dep_)
+        )
 
         """
         if "soscf" in self.scf_options and self.scf_options["soscf"] == True:
