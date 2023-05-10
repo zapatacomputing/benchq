@@ -4,7 +4,7 @@
 """
 In this example, we compare the resource estimation results obtained using different
 packages. We use the same circuit as in the previous example (2_time_evolution.py)
-and compare the results obtained using the BenchQ's graph state compilation method and 
+and compare the results obtained using the BenchQ's graph state compilation method and
 the Azure QRE.
 """
 

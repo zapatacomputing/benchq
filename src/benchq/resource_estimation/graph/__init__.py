@@ -22,4 +22,5 @@ __all__ = [
     "create_big_graph_from_subcircuits",
     "create_graphs_for_subcircuits",
     "GraphResourceEstimator",
+    "GraphResourceEstimator",
 ]

@@ -29,7 +29,6 @@ from benchq.timing import measure_time
 
 
 def main():
-
     evolution_time = 5
 
     architecture_model = BASIC_SC_ARCHITECTURE_MODEL

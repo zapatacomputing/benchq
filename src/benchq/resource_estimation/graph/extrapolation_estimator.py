@@ -22,6 +22,18 @@ class ExtrapolatedResourceInfo(ResourceInfo):
     data_used_to_extrapolate: List[ResourceInfo]
     steps_to_extrapolate_to: int
 
+    @property
+    def graph_data(self) -> ExtrapolatedGraphData:
+        return ExtrapolatedGraphData(
+            max_graph_degree=self.n_logical_qubits,
+            n_measurement_steps=self.n_measurement_steps,
+            n_nodes=self.n_nodes,
+            n_t_gates=self.n_t_gates,
+            n_rotation_gates=self.n_rotation_gates,
+            max_graph_degree_r_squared=self.n_logical_qubits_r_squared,
+            n_measurement_steps_r_squared=self.n_measurement_steps_r_squared,
+        )
+
     def __repr__(self):
         new_necessary_info = [
             "n_logical_qubits_r_squared",
@@ -40,10 +52,11 @@ class ExtrapolationResourceEstimator(GraphResourceEstimator):
         hw_model: BasicArchitectureModel,
         steps_to_extrapolate_from: List[int],
         decoder_model: Optional[DecoderModel] = None,
+        optimization: str = "time",
         distillation_widget: str = "(15-to-1)_7,3,3",
         n_measurement_steps_fit_type: str = "logarithmic",
     ):
-        super().__init__(hw_model, decoder_model, distillation_widget)
+        super().__init__(hw_model, decoder_model, distillation_widget, optimization)
         self.steps_to_extrapolate_from = steps_to_extrapolate_from
         self.n_measurement_steps_fit_type = n_measurement_steps_fit_type
 
@@ -104,7 +117,7 @@ class ExtrapolationResourceEstimator(GraphResourceEstimator):
         extrapolated_info = self._get_extrapolated_graph_data(
             data, algorithm_description.program
         )
-        resource_info = self._estimate_resources_from_graph_data(
+        resource_info = self.estimate_resources_from_graph_data(
             extrapolated_info, algorithm_description
         )
         return ExtrapolatedResourceInfo(

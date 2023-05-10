@@ -22,6 +22,11 @@ from benchq.resource_estimation.graph import (
 )
 
 
+@pytest.fixture(params=["time", "space"])
+def optimization(request):
+    return request.param
+
+
 @pytest.fixture(params=[True, False])
 def use_delayed_gate_synthesis(request):
     return request.param
@@ -77,7 +82,7 @@ def _get_transformers(use_delayed_gate_synthesis, error_budget):
     ],
 )
 def test_get_resource_estimations_for_program_gives_correct_results(
-    quantum_program, expected_results, use_delayed_gate_synthesis
+    quantum_program, expected_results, optimization, use_delayed_gate_synthesis
 ):
     architecture_model = BasicArchitectureModel(
         physical_gate_error_rate=1e-3,
@@ -91,7 +96,9 @@ def test_get_resource_estimations_for_program_gives_correct_results(
     gsc_resource_estimates = asdict(
         run_custom_resource_estimation_pipeline(
             algorithm_description,
-            estimator=GraphResourceEstimator(architecture_model),
+            estimator=GraphResourceEstimator(
+                architecture_model, optimization=optimization
+            ),
             transformers=transformers,
         )
     )
@@ -111,6 +118,7 @@ def test_get_resource_estimations_for_program_gives_correct_results(
 
 
 def test_better_architecture_does_not_require_more_resources(
+    optimization,
     use_delayed_gate_synthesis,
 ):
     low_noise_architecture_model = BasicArchitectureModel(
@@ -132,13 +140,17 @@ def test_better_architecture_does_not_require_more_resources(
     algorithm_description = AlgorithmImplementation(quantum_program, error_budget, 1)
     low_noise_resource_estimates = run_custom_resource_estimation_pipeline(
         algorithm_description,
-        estimator=GraphResourceEstimator(low_noise_architecture_model),
+        estimator=GraphResourceEstimator(
+            low_noise_architecture_model, optimization=optimization
+        ),
         transformers=transformers,
     )
 
     high_noise_resource_estimates = run_custom_resource_estimation_pipeline(
         algorithm_description,
-        estimator=GraphResourceEstimator(high_noise_architecture_model),
+        estimator=GraphResourceEstimator(
+            high_noise_architecture_model, optimization=optimization
+        ),
         transformers=transformers,
     )
 
@@ -157,6 +169,7 @@ def test_better_architecture_does_not_require_more_resources(
 
 
 def test_higher_error_budget_does_not_require_more_resources(
+    optimization,
     use_delayed_gate_synthesis,
 ):
     architecture_model = BasicArchitectureModel(
@@ -189,13 +202,13 @@ def test_higher_error_budget_does_not_require_more_resources(
 
     low_error_resource_estimates = run_custom_resource_estimation_pipeline(
         algorithm_description_low_error_budget,
-        estimator=GraphResourceEstimator(architecture_model),
+        estimator=GraphResourceEstimator(architecture_model, optimization=optimization),
         transformers=low_error_transformers,
     )
 
     high_error_resource_estimates = run_custom_resource_estimation_pipeline(
         algorithm_description_high_error_budget,
-        estimator=GraphResourceEstimator(architecture_model),
+        estimator=GraphResourceEstimator(architecture_model, optimization=optimization),
         transformers=high_error_transformers,
     )
 
@@ -213,7 +226,7 @@ def test_higher_error_budget_does_not_require_more_resources(
     )
 
 
-def test_get_resource_estimations_for_program_accounts_for_decoder():
+def test_get_resource_estimations_for_program_accounts_for_decoder(optimization):
     architecture_model = BasicArchitectureModel(
         physical_gate_error_rate=1e-3,
         physical_gate_time_in_seconds=1e-6,

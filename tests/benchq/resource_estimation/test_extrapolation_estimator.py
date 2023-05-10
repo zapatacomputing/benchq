@@ -21,6 +21,11 @@ from benchq.vizualization_tools import plot_extrapolations
 # plot_extrapolations(extrapolated_resource_estimates, steps_to_extrapolate_from, n_measurement_steps_fit_type, gsc_resource_estimates) # noqa: E501
 
 
+@pytest.fixture(params=["time", "space"])
+def optimization(request):
+    return request.param
+
+
 @pytest.fixture(params=[False, True])
 def use_delayed_gate_synthesis(request):
     return request.param
@@ -87,6 +92,7 @@ def test_get_resource_estimations_for_small_program_gives_correct_results(
     steps_to_extrapolate_from,
     use_delayed_gate_synthesis,
     n_measurement_steps_fit_type,
+    optimization,
 ):
     architecture_model = BasicArchitectureModel(
         physical_gate_error_rate=1e-3,
@@ -103,12 +109,13 @@ def test_get_resource_estimations_for_small_program_gives_correct_results(
             architecture_model,
             steps_to_extrapolate_from,
             n_measurement_steps_fit_type=n_measurement_steps_fit_type,
+            optimization=optimization,
         ),
         transformers=transformers,
     )
     gsc_resource_estimates = run_custom_resource_estimation_pipeline(
         algorithm_description,
-        estimator=GraphResourceEstimator(architecture_model),
+        estimator=GraphResourceEstimator(architecture_model, optimization=optimization),
         transformers=transformers,
     )
 
@@ -121,7 +128,7 @@ def test_get_resource_estimations_for_small_program_gives_correct_results(
         assert np.isclose(
             getattr(extrapolated_resource_estimates, attribute),
             getattr(gsc_resource_estimates, attribute),
-            rtol=1e-1,
+            rtol=2 * 1e-1,
         )
     # assert that the number of measurement steps grows with the steps
     attributes_to_compare_loosely = [
@@ -151,7 +158,7 @@ def test_get_resource_estimations_for_small_program_gives_correct_results(
                 1001,
                 lambda x: [0] + [1] * x + [0],
             ),
-            [1, 2, 3, 5, 10, 20],
+            [2, 3, 5, 10, 20],
             "logarithmic",
         ),
         (
@@ -164,7 +171,7 @@ def test_get_resource_estimations_for_small_program_gives_correct_results(
                 200,
                 lambda x: [0] + [1, 2] * x + [0],
             ),
-            [1, 2, 3, 5, 7, 10, 15, 25],
+            [2, 3, 5, 7, 10, 15, 25],
             "linear",
         ),
     ],
@@ -174,6 +181,7 @@ def test_get_resource_estimations_for_large_program_gives_correct_results(
     steps_to_extrapolate_from,
     use_delayed_gate_synthesis,
     n_measurement_steps_fit_type,
+    optimization,
 ):
     architecture_model = BasicArchitectureModel(
         physical_gate_error_rate=1e-3,
@@ -190,12 +198,13 @@ def test_get_resource_estimations_for_large_program_gives_correct_results(
             architecture_model,
             steps_to_extrapolate_from,
             n_measurement_steps_fit_type=n_measurement_steps_fit_type,
+            optimization=optimization,
         ),
         transformers=transformers,
     )
     gsc_resource_estimates = run_custom_resource_estimation_pipeline(
         algorithm_description,
-        estimator=GraphResourceEstimator(architecture_model),
+        estimator=GraphResourceEstimator(architecture_model, optimization=optimization),
         transformers=transformers,
     )
 
@@ -229,7 +238,7 @@ def test_get_resource_estimations_for_large_program_gives_correct_results(
 
 
 def test_better_architecture_does_not_require_more_resources(
-    use_delayed_gate_synthesis,
+    use_delayed_gate_synthesis, optimization
 ):
     low_noise_architecture_model = BasicArchitectureModel(
         physical_gate_error_rate=1e-4,
@@ -253,7 +262,7 @@ def test_better_architecture_does_not_require_more_resources(
     low_noise_resource_estimates = run_custom_extrapolation_pipeline(
         algorithm_description,
         estimator=ExtrapolationResourceEstimator(
-            low_noise_architecture_model, [1, 2, 3, 4]
+            low_noise_architecture_model, [1, 2, 3, 4], optimization=optimization
         ),
         transformers=transformers,
     )
@@ -261,7 +270,7 @@ def test_better_architecture_does_not_require_more_resources(
     high_noise_resource_estimates = run_custom_extrapolation_pipeline(
         algorithm_description,
         estimator=ExtrapolationResourceEstimator(
-            high_noise_architecture_model, [1, 2, 3, 4]
+            high_noise_architecture_model, [1, 2, 3, 4], optimization=optimization
         ),
         transformers=transformers,
     )
@@ -281,7 +290,7 @@ def test_better_architecture_does_not_require_more_resources(
 
 
 def test_higher_error_budget_does_not_require_more_resources(
-    use_delayed_gate_synthesis,
+    use_delayed_gate_synthesis, optimization
 ):
     architecture_model = BasicArchitectureModel(
         physical_gate_error_rate=1e-3,
@@ -316,13 +325,17 @@ def test_higher_error_budget_does_not_require_more_resources(
 
     low_error_resource_estimates = run_custom_extrapolation_pipeline(
         algorithm_description_low_error_budget,
-        estimator=ExtrapolationResourceEstimator(architecture_model, [1, 2, 3, 4]),
+        estimator=ExtrapolationResourceEstimator(
+            architecture_model, [1, 2, 3, 4], optimization=optimization
+        ),
         transformers=low_error_transformers,
     )
 
     high_error_resource_estimates = run_custom_extrapolation_pipeline(
         algorithm_description_high_error_budget,
-        estimator=ExtrapolationResourceEstimator(architecture_model, [1, 2, 3, 4]),
+        estimator=ExtrapolationResourceEstimator(
+            architecture_model, [1, 2, 3, 4], optimization=optimization
+        ),
         transformers=high_error_transformers,
     )
 

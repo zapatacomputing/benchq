@@ -65,7 +65,7 @@ def test_stabilizer_states_are_the_same_for_simple_circuits(circuit):
     "filename",
     [
         "single_rotation.qasm",
-        # "example_circuit.qasm",
+        "example_circuit.qasm",
     ],
 )
 def test_stabilizer_states_are_the_same_for_larger_circuits(filename):
