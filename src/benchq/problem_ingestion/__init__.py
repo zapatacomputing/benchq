@@ -10,3 +10,5 @@ from .hamiltonian_generation import (
     generate_jw_qubit_hamiltonian_from_mol_data,
 )
 from .vlasov import get_vlasov_hamiltonian
+
+from .molecule_instance_generation import SCF_CONVERGANCE_TIME
