@@ -15,6 +15,7 @@ from openfermion.resource_estimates.molecule import (
 from openfermionpyscf import PyscfMolecularData
 from openfermionpyscf._run_pyscf import compute_integrals
 from pyscf import gto, mp, scf
+import time
 
 
 class SCFConvergenceError(Exception):
@@ -79,6 +80,7 @@ class ChemistryApplicationInstance:
     fno_threshold: Optional[float] = None
     fno_n_virtual_natural_orbitals: Optional[int] = None
     scf_options: Optional[dict] = None
+    scf_time: Optional[float] = None
 
     def get_pyscf_molecule(self) -> gto.Mole:
         "Generate the PySCF molecule object describing the system to be calculated."
@@ -109,9 +111,13 @@ class ChemistryApplicationInstance:
         mean_field_object = (scf.RHF if self.multiplicity == 1 else scf.ROHF)(molecule)
 
         if self.scf_options is not None:
+            time0 = time.time()
             mean_field_object.run(**self.scf_options)
+            self.scf_time = time.time() - time0
         else:
+            time0 = time.time()
             mean_field_object.run()
+            self.scf_time = time.time() - time0
 
         if not mean_field_object.converged:
             raise SCFConvergenceError()
@@ -193,12 +199,9 @@ class ChemistryApplicationInstance:
         molecular_data.canonical_orbitals = natural_orbital_coefficients
         mean_field_object.mo_coeff = molecular_data.canonical_orbitals
 
-        print("Before comp ints")
         one_body_integrals, two_body_integrals = compute_integrals(
             mean_field_object._eri, mean_field_object
         )
-        print("After comp ints")
-
         molecular_data.one_body_integrals = one_body_integrals
         molecular_data.two_body_integrals = two_body_integrals
         molecular_data.overlap_integrals = mean_field_object.get_ovlp()
@@ -311,8 +314,6 @@ class ChemistryApplicationInstance:
         molecular_data.n_orbitals = int(molecule.nao_nr())
         molecular_data.n_qubits = 2 * molecular_data.n_orbitals
         molecular_data.nuclear_repulsion = float(molecule.energy_nuc())
-
-        print("Number of orbitals: ", molecular_data.n_orbitals)
 
         molecular_data.hf_energy = float(mean_field_object.e_tot)
 
