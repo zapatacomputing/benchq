@@ -197,7 +197,7 @@ class ChemistryApplicationInstance:
         one_body_integrals, two_body_integrals = compute_integrals(
             mean_field_object._eri, mean_field_object
         )
-         print("After comp ints")
+        print("After comp ints")
 
         molecular_data.one_body_integrals = one_body_integrals
         molecular_data.two_body_integrals = two_body_integrals
