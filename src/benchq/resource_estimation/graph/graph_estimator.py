@@ -84,8 +84,23 @@ class ResourceInfo:
 
 
 class GraphResourceEstimator:
-    """Estimates the resources needed to run a graph state algorithm on a given hardware
-    optimizing for the smallest possible number of qubits."""
+    """Estimates resources needed to run an algorithm using graph state compilation.
+
+    ATTRIBUTES:
+        hw_model (BasicArchitectureModel): The hardware model to use for the estimate.
+            typically, one would choose between the BASIC_SC_ARCHITECTURE_MODEL and
+            BASIC_ION_TRAP_ARCHITECTURE_MODEL.
+        decoder_model (Optional[DecoderModel]): The decoder model used to estimate.
+            If None, no estimates on the number of decoder are provided.
+        distillation_widget (str): The distillation widget to use for the estimate.
+            The widget is specified as a string of the form "(15-to-1)_7,3,3", where
+            the first part specifies the distillation ratio and the second part
+            specifies the size of the widget.
+        optimization (str): The optimization to use for the estimate. Either estimate
+            the resources needed to run the algorithm in the shortest time possible
+            ("time") or the resources needed to run the algorithm with the smallest
+            number of physical qubits ("space").
+    """
 
     def __init__(
         self,
@@ -215,7 +230,9 @@ class GraphResourceEstimator:
                 )
             )
         else:
-            raise NotImplementedError("Must use eithe time or space optimal estimator.")
+            raise NotImplementedError(
+                "Must use either time or space optimal estimator."
+            )
 
     def _get_n_physical_qubits(
         self,
@@ -240,7 +257,9 @@ class GraphResourceEstimator:
                 + self.widget_specs["qubits"]
             )
         else:
-            raise NotImplementedError("Must use eithe time or space optimal estimator.")
+            raise NotImplementedError(
+                "Must use either time or space optimal estimator."
+            )
 
     def estimate_resources_from_graph_data(
         self,

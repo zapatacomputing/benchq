@@ -3,6 +3,25 @@ from .graph_estimator import GraphData, GraphResourceEstimator, ResourceInfo
 
 
 class SubroutineInfo:
+    """Estimates resources needed to run an algorithm using a footprint analysis
+    which is derived from graph state compilation.
+
+    ATTRIBUTES:
+        hw_model (BasicArchitectureModel): The hardware model to use for the estimate.
+            typically, one would choose between the BASIC_SC_ARCHITECTURE_MODEL and
+            BASIC_ION_TRAP_ARCHITECTURE_MODEL.
+        decoder_model (Optional[DecoderModel]): The decoder model used to estimate.
+            If None, no estimates on the number of decoder are provided.
+        distillation_widget (str): The distillation widget to use for the estimate.
+            The widget is specified as a string of the form "(15-to-1)_7,3,3", where
+            the first part specifies the distillation ratio and the second part
+            specifies the size of the widget.
+        optimization (str): The optimization to use for the estimate. Either estimate
+            the resources needed to run the algorithm in the shortest time possible
+            ("time") or the resources needed to run the algorithm with the smallest
+            number of physical qubits ("space").
+    """
+
     def __init__(self, n_qubits: int):
         self.n_edges_in_active_nodes = [0] * n_qubits
         self.highest_degree_in_inactive_nodes = 0
@@ -15,6 +34,16 @@ class FootprintResourceEstimator(GraphResourceEstimator):
         self,
         algorithm_implementation: AlgorithmImplementation,
     ) -> ResourceInfo:
+        """Estimates the resources needed to run an algorithm using a footprint analysis
+        which is derived from graph state compilation.
+
+        Args:
+            algorithm_implementation (AlgorithmImplementation): The algorithm
+                implementation to estimate the resources for.
+
+        Returns:
+            ResourceInfo: The estimated resources needed to run the algorithm.
+        """
         assert isinstance(algorithm_implementation.program, QuantumProgram)
 
         estimated_max_graph_degree = self.estimate_max_graph_degree(
@@ -36,6 +65,15 @@ class FootprintResourceEstimator(GraphResourceEstimator):
         )
 
     def estimate_max_graph_degree(self, program: QuantumProgram) -> int:
+        """Estimates the maximum degree of the graph state that is created by the
+        given program.
+
+        Args:
+            program (QuantumProgram): The program to estimate the maximum graph degree
+
+        Returns:
+            int: the estimated maximum graph degree
+        """
         # identify which gates change the graph structure
         node_creation_gates = ["T", "Tdag", "RX", "RY", "RZ"]
         edge_gates = ["CX", "CZ", "CNOT"]
