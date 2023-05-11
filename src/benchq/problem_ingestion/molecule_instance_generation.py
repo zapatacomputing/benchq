@@ -141,7 +141,7 @@ class ChemistryApplicationInstance:
         Raises:
             SCFConvergenceError: If the SCF calculation does not converge.
         """
-        molecular_data = self._get_molecular_data()
+        molecular_data = self._get_basis_molecular_data()
         mean_field_object = molecular_data._pyscf_data["scf"]
 
         if molecular_data.multiplicity != 1:
@@ -241,9 +241,6 @@ class ChemistryApplicationInstance:
                 active_indices,
             ) = self.get_occupied_and_active_indicies_with_FNO()
 
-            print("Occ indices: ", len(occupied_indices))
-            print("Active indices: ", len(active_indices))
-
             return molecular_data.get_molecular_hamiltonian(
                 occupied_indices=occupied_indices, active_indices=active_indices
             )
@@ -330,6 +327,42 @@ class ChemistryApplicationInstance:
         molecular_data.one_body_integrals = one_body_integrals
         molecular_data.two_body_integrals = two_body_integrals
         molecular_data.overlap_integrals = mean_field_object.get_ovlp()
+
+        pyscf_molecular_data = PyscfMolecularData.__new__(PyscfMolecularData)
+        pyscf_molecular_data.__dict__.update(molecule.__dict__)
+
+        return molecular_data
+
+    def _get_basis_molecular_data(self):
+        """Given a PySCF meanfield object and molecule, return a PyscfMolecularData
+        object.
+
+        Returns:
+            A PyscfMolecularData object corresponding to the meanfield object and
+                molecule.
+
+        Raises:
+            SCFConvergenceError: If the SCF calculation does not converge.
+        """
+        molecular_data = MolecularData(
+            geometry=self.geometry,
+            basis=self.basis,
+            multiplicity=self.multiplicity,
+            charge=self.charge,
+        )
+
+        molecule, mean_field_object = self._run_pyscf()
+        molecular_data.n_orbitals = int(molecule.nao_nr())
+        molecular_data.n_qubits = 2 * molecular_data.n_orbitals
+        molecular_data.nuclear_repulsion = float(molecule.energy_nuc())
+        molecular_data.hf_energy = float(mean_field_object.e_tot)
+
+        molecular_data._pyscf_data = pyscf_data = {}
+        pyscf_data["mol"] = molecule
+        pyscf_data["scf"] = mean_field_object
+
+        molecular_data.canonical_orbitals = mean_field_object.mo_coeff.astype(float)
+        molecular_data.orbital_energies = mean_field_object.mo_energy.astype(float)
 
         pyscf_molecular_data = PyscfMolecularData.__new__(PyscfMolecularData)
         pyscf_molecular_data.__dict__.update(molecule.__dict__)
