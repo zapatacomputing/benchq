@@ -177,6 +177,19 @@ class ChemistryApplicationInstance:
             self.fno_n_virtual_natural_orbitals,
         )
 
+        all_orbital_indicies = list(range(molecular_data.n_orbitals))
+        occupied_indices = list(range(n_frozen_core_orbitals))
+
+        if len(frozen_natural_orbitals) != 0:
+            active_indicies = all_orbital_indicies[
+                len(occupied_indices) : -len(frozen_natural_orbitals)
+            ]
+        else:
+            active_indicies = all_orbital_indicies[len(occupied_indices) :]
+
+        print("Occ indices: ", len(occupied_indices))
+        print("Active indices: ", len(active_indicies))
+
         molecular_data.canonical_orbitals = natural_orbital_coefficients
         mean_field_object.mo_coeff = molecular_data.canonical_orbitals
 
@@ -299,6 +312,8 @@ class ChemistryApplicationInstance:
         molecular_data.n_orbitals = int(molecule.nao_nr())
         molecular_data.n_qubits = 2 * molecular_data.n_orbitals
         molecular_data.nuclear_repulsion = float(molecule.energy_nuc())
+
+        print("Number of orbitals: ", molecular_data.n_orbitals)
 
         molecular_data.hf_energy = float(mean_field_object.e_tot)
 
