@@ -4,7 +4,7 @@
 """
 In this example, we compare the resource estimation results obtained using different
 packages. We use the same circuit as in the previous example (2_time_evolution.py)
-and compare the results obtained using the BenchQ's graph state compilation method and 
+and compare the results obtained using the BenchQ's graph state compilation method and
 the Azure QRE.
 """
 
@@ -27,8 +27,8 @@ from benchq.timing import measure_time
 def main():
     evolution_time = 5.0
     architecture_model = BasicArchitectureModel(
-        physical_gate_error_rate=1e-3,
-        physical_gate_time_in_seconds=1e-6,
+        physical_t_gate_error_rate=1e-3,
+        surface_code_cycle_time_in_seconds=1e-6,
     )
 
     decoder_file_path = str(Path(__file__).parent / "data" / "sample_decoder_data.csv")

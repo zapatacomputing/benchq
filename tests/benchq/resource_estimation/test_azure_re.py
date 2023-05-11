@@ -20,12 +20,12 @@ SKIP_AZURE = pytest.mark.skipif(
 )
 def test_better_architecture_does_not_require_more_resources():
     low_quality_architecture_model = BASIC_SC_ARCHITECTURE_MODEL(
-        physical_gate_error_rate=1e-4,
-        physical_gate_time_in_seconds=1e-6,
+        physical_t_gate_error_rate=1e-4,
+        surface_code_cycle_time_in_seconds=1e-6,
     )
     high_quality_architecture_model = BASIC_SC_ARCHITECTURE_MODEL(
-        physical_gate_error_rate=1e-3,
-        physical_gate_time_in_seconds=1e-9,
+        physical_t_gate_error_rate=1e-3,
+        surface_code_cycle_time_in_seconds=1e-9,
     )
     # set circuit generation weight to 0
     error_budget = ErrorBudget.from_weights(1e-3, 0, 1, 1)

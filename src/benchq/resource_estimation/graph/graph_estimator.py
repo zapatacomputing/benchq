@@ -121,7 +121,8 @@ class GraphResourceEstimator:
             - (
                 1
                 - 0.3
-                * (70 * self.hw_model.physical_gate_error_rate) ** ((distance + 1) / 2)
+                * (70 * self.hw_model.physical_t_gate_error_rate)
+                ** ((distance + 1) / 2)
             )
             ** distance
         )
@@ -144,7 +145,7 @@ class GraphResourceEstimator:
         max_distance = 0
         for distance in range(min_d, max_d):
             time_for_logical_operation = (
-                6 * self.hw_model.physical_gate_time_in_seconds * distance
+                6 * self.hw_model.surface_code_cycle_time_in_seconds * distance
             )
             if self.decoder_model.delay(distance) < time_for_logical_operation:
                 max_distance = distance
@@ -194,7 +195,7 @@ class GraphResourceEstimator:
         # get total time to run algorithm
         time_per_circuit_in_seconds = (
             6
-            * self.hw_model.physical_gate_time_in_seconds
+            * self.hw_model.surface_code_cycle_time_in_seconds
             * (
                 graph_data.n_measurement_steps * code_distance
                 + (self.widget_specs["time"] + code_distance) * n_total_t_gates

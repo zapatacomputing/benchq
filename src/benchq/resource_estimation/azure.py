@@ -98,14 +98,14 @@ class AzureResourceEstimator:
         self, circuit: Circuit, error_budget: Dict[str, float]
     ) -> AzureResourceInfo:
         if self.hw_model is not None:
-            gate_time = self.hw_model.physical_gate_time_in_seconds
+            gate_time = self.hw_model.surface_code_cycle_time_in_seconds
             gate_time_string = f"{int(gate_time * 1e9)} ns"
             qubitParams = {
                 "name": "custom gate-based",
                 "instructionSet": "GateBased",
                 "oneQubitGateTime": gate_time_string,
                 # "oneQubitMeasurementTime": "30 μs",
-                "oneQubitGateErrorRate": self.hw_model.physical_gate_error_rate,
+                "oneQubitGateErrorRate": self.hw_model.physical_t_gate_error_rate,
                 # "tStateErrorRate": 1e-3
             }
         else:
