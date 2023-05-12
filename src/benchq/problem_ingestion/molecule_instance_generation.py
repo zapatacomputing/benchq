@@ -108,7 +108,11 @@ class ChemistryApplicationInstance:
             SCFConvergenceError: If the SCF calculation does not converge.
         """
         molecule = self.get_pyscf_molecule()
-        mean_field_object = (scf.RHF if self.multiplicity == 1 else scf.ROHF)(molecule)
+        # mean_field_object = (scf.RHF if self.multiplicity == 1 else scf.ROHF)(molecule)
+
+        mean_field_object = molecule.RKS(xc="wb97x-d").apply(
+            scf.addons.remove_linear_dep_
+        )
 
         if self.scf_options is not None:
             time0 = time.time()
