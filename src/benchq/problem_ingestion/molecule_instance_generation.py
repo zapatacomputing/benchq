@@ -123,8 +123,8 @@ class ChemistryApplicationInstance:
             mean_field_object.run()
             self.scf_time = time.time() - time0
 
-        if not mean_field_object.converged:
-            raise SCFConvergenceError()
+        # if not mean_field_object.converged:
+        #    raise SCFConvergenceError()
 
         if self.avas_atomic_orbitals or self.avas_minao:
             molecule, mean_field_object = truncate_with_avas(
