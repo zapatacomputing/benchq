@@ -108,13 +108,13 @@ class ChemistryApplicationInstance:
             SCFConvergenceError: If the SCF calculation does not converge.
         """
         molecule = self.get_pyscf_molecule()
-        # mean_field_object = (scf.RHF if self.multiplicity == 1 else scf.ROHF)(molecule)
+        mean_field_object = (scf.RHF if self.multiplicity == 1 else scf.ROHF)(molecule)
 
         # mean_field_object = molecule.RKS(xc="wb97x-d").apply(
         #    scf.addons.remove_linear_dep_
         # )
 
-        mean_field_object = scf.addons.convert_to_uhf(mean_field_object)
+        # mean_field_object = scf.addons.convert_to_uhf(mean_field_object)
 
         if self.scf_options is not None:
             time0 = time.time()
@@ -125,8 +125,8 @@ class ChemistryApplicationInstance:
             mean_field_object.run()
             self.scf_time = time.time() - time0
 
-        # if not mean_field_object.converged:
-        #    raise SCFConvergenceError()
+        if not mean_field_object.converged:
+            raise SCFConvergenceError()
 
         if self.avas_atomic_orbitals or self.avas_minao:
             molecule, mean_field_object = truncate_with_avas(
