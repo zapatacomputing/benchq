@@ -6,7 +6,12 @@ import numpy as np
 from graph_state_generation.optimizers import greedy_stabilizer_measurement_scheduler
 from graph_state_generation.substrate_scheduler import TwoRowSubstrateScheduler
 
-from ...data_structures import AlgorithmImplementation, DecoderModel, GraphPartition
+from ...data_structures import (
+    AlgorithmImplementation,
+    DecoderModel,
+    GraphPartition,
+    ResourceInfo,
+)
 from ...data_structures.hardware_architecture_models import BasicArchitectureModel
 from ..magic_state_distillation import get_specs_for_t_state_widget
 
@@ -33,39 +38,6 @@ class GraphData:
     n_t_gates: int
     n_rotation_gates: int
     n_measurement_steps: int
-
-
-@dataclass
-class ResourceInfo:
-    """Contains all resource estimated for a problem instance."""
-
-    code_distance: int
-    logical_error_rate: float
-    n_logical_qubits: int
-    n_nodes: int
-    n_t_gates: int
-    n_rotation_gates: int
-    n_physical_qubits: int
-    n_measurement_steps: int
-    total_time_in_seconds: float
-    max_decodable_distance: Optional[int]
-    decoder_total_energy_consumption: Optional[float]
-    decoder_power: Optional[float]
-    decoder_area: Optional[float]
-
-    def __repr__(self):
-        necessary_info = [
-            "code_distance",
-            "logical_error_rate",
-            "n_logical_qubits",
-            "total_time_in_seconds",
-            "decoder_total_energy_consumption",
-            "decoder_power",
-            "decoder_area",
-            "n_measurement_steps",
-            "n_physical_qubits",
-        ]
-        return "\n".join(f"{info}: {getattr(self, info)}" for info in necessary_info)
 
 
 class GraphResourceEstimator:
