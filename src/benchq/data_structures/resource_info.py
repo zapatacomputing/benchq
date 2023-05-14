@@ -7,6 +7,14 @@ from typing import Optional
 
 
 @dataclass
+class DecoderInfo:
+    total_energy_consumption: float
+    power: float
+    area: float
+    max_decodable_distance: int = field(repr=False)
+
+
+@dataclass
 class ResourceInfo:
     """Contains all resource estimated for a problem instance."""
 
@@ -19,7 +27,4 @@ class ResourceInfo:
     n_physical_qubits: int
     n_measurement_steps: int
     total_time_in_seconds: float
-    max_decodable_distance: Optional[int] = field(repr=False)
-    decoder_total_energy_consumption: Optional[float]
-    decoder_power: Optional[float]
-    decoder_area: Optional[float]
+    decoder_info: Optional[DecoderInfo]

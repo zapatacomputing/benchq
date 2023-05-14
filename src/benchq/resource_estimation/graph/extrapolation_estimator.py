@@ -117,10 +117,7 @@ class ExtrapolationResourceEstimator(GraphResourceEstimator):
             logical_error_rate=resource_info.logical_error_rate,
             total_time_in_seconds=resource_info.total_time_in_seconds,
             n_physical_qubits=resource_info.n_physical_qubits,
-            decoder_total_energy_consumption=resource_info.decoder_total_energy_consumption,  # noqa: E501
-            decoder_power=resource_info.decoder_power,
-            decoder_area=resource_info.decoder_area,
-            max_decodable_distance=resource_info.max_decodable_distance,
+            decoder_info=resource_info.decoder_info,
             n_logical_qubits_r_squared=extrapolated_info.max_graph_degree_r_squared,
             n_measurement_steps_r_squared=extrapolated_info.n_measurement_steps_r_squared,  # noqa: E501
             data_used_to_extrapolate=data,

@@ -8,6 +8,7 @@ from graph_state_generation.substrate_scheduler import TwoRowSubstrateScheduler
 
 from ...data_structures import (
     AlgorithmImplementation,
+    DecoderInfo,
     DecoderModel,
     GraphPartition,
     ResourceInfo,
@@ -203,11 +204,14 @@ class GraphResourceEstimator:
                 code_distance
             )
             max_decodable_distance = self.find_max_decodable_distance()
+            decoder_info = DecoderInfo(
+                total_energy_consumption=decoder_total_energy_consumption,
+                power=decoder_power,
+                area=decoder_area,
+                max_decodable_distance=max_decodable_distance,
+            )
         else:
-            decoder_total_energy_consumption = None
-            decoder_power = None
-            decoder_area = None
-            max_decodable_distance = None
+            decoder_info = None
 
         return ResourceInfo(
             code_distance=code_distance,
@@ -220,10 +224,7 @@ class GraphResourceEstimator:
             n_measurement_steps=graph_data.n_measurement_steps,
             total_time_in_seconds=total_time_in_seconds,
             n_physical_qubits=n_physical_qubits,
-            decoder_total_energy_consumption=decoder_total_energy_consumption,
-            decoder_power=decoder_power,
-            decoder_area=decoder_area,
-            max_decodable_distance=max_decodable_distance,
+            decoder_info=decoder_info,
         )
 
     def estimate(self, algorithm_description: AlgorithmImplementation) -> ResourceInfo:
