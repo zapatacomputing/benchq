@@ -8,13 +8,13 @@ from graph_state_generation.substrate_scheduler import TwoRowSubstrateScheduler
 
 from ...data_structures import (
     AlgorithmImplementation,
+    BasicArchitectureModel,
     DecoderInfo,
     DecoderModel,
     GraphData,
     GraphPartition,
     GraphResourceInfo,
 )
-from ...data_structures.hardware_architecture_models import BasicArchitectureModel
 from ..magic_state_distillation import get_specs_for_t_state_widget
 
 INITIAL_SYNTHESIS_ACCURACY = 0.0001

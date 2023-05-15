@@ -1,11 +1,9 @@
 from copy import copy
 from dataclasses import replace
 
-from benchq.data_structures.resource_info import ExtrapolatedGraphResourceInfo
-
 from ...data_structures import (
     AlgorithmImplementation,
-    ExtrapolatedGraphData,
+    ExtrapolatedGraphResourceInfo,
     QuantumProgram,
 )
 from .extrapolation_estimator import ExtrapolationResourceEstimator

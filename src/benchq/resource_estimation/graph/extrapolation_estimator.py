@@ -4,16 +4,15 @@ from typing import List, Optional
 
 import numpy as np
 
-from benchq.data_structures.resource_info import ExtrapolatedGraphResourceInfo
-
 from ...data_structures import (
     AlgorithmImplementation,
+    BasicArchitectureModel,
     DecoderModel,
     ExtrapolatedGraphData,
+    ExtrapolatedGraphResourceInfo,
     QuantumProgram,
     ResourceInfo,
 )
-from ...data_structures.hardware_architecture_models import BasicArchitectureModel
 from .graph_estimator import GraphResourceEstimator
 
 

@@ -8,8 +8,8 @@ from benchq.data_structures import (
     AlgorithmImplementation,
     BasicArchitectureModel,
     ErrorBudget,
+    get_program_from_circuit,
 )
-from benchq.data_structures.quantum_program import get_program_from_circuit
 from benchq.resource_estimation.azure import AzureResourceEstimator
 
 SKIP_AZURE = pytest.mark.skipif(
