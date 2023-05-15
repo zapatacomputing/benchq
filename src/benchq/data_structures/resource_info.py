@@ -10,6 +10,8 @@ TExtra = TypeVar("TExtra")
 
 @dataclass
 class DecoderInfo:
+    """Information relating the deceoder."""
+
     total_energy_consumption: float
     power: float
     area: float
@@ -18,7 +20,16 @@ class DecoderInfo:
 
 @dataclass
 class ResourceInfo(Generic[TExtra]):
-    """Contains all resource estimated for a problem instance."""
+    """Generic information about estimated resources with possible extras.
+
+    The generic parameter of this class is a type of extra information stored
+    in the extra field. This information should relate to the specific
+    compilation method or algorithm used for estimating resources.
+
+    Other fields are commont between estimation methods that we currently have.
+
+    There are several variants of this class aliased below.
+    """
 
     code_distance: int
     logical_error_rate: float
@@ -31,7 +42,7 @@ class ResourceInfo(Generic[TExtra]):
 
 @dataclass
 class GraphData:
-    """Contains minimal set of data to get a resource estimate for a graph."""
+    """Minimal set of graph-related data needed for resource estimation."""
 
     max_graph_degree: int
     n_nodes: int
@@ -40,11 +51,14 @@ class GraphData:
     n_measurement_steps: int
 
 
+# Alias for type of resource info returned by GraphResourceEstimator
 GraphResourceInfo = ResourceInfo[GraphData]
 
 
 @dataclass
 class ExtrapolatedGraphData(GraphData):
+    """GraphData extended with extrapolation-related info."""
+
     n_logical_qubits_r_squared: float
     n_measurement_steps_r_squared: float
     data_used_to_extrapolate: List[GraphResourceInfo] = field(repr=False)
@@ -55,14 +69,18 @@ class ExtrapolatedGraphData(GraphData):
         return self.n_logical_qubits_r_squared
 
 
+# Alias for type of resource info returned by ExtrapolationResourceEstimator
 ExtrapolatedGraphResourceInfo = ResourceInfo[ExtrapolatedGraphData]
 
 
 @dataclass
 class AzureExtra:
+    """Extra info relating to resource estimation on Azure."""
+
     depth: int
     cycle_time: float
     raw_data: dict
 
 
+# Alias for type of resource info returned by AzureResourceEstimator
 AzureResourceInfo = ResourceInfo[AzureExtra]
