@@ -8,8 +8,8 @@ import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
 
+from .data_structures import ResourceInfo
 from .resource_estimation.graph.extrapolation_estimator import ExtrapolatedResourceInfo
-from .resource_estimation.graph.graph_estimator import ResourceInfo
 
 
 def plot_graph_state_with_measurement_steps(

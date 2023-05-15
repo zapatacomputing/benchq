@@ -1,12 +1,17 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from math import ceil
 from typing import List, Optional
 
 import numpy as np
 
-from ...data_structures import AlgorithmImplementation, DecoderModel, QuantumProgram
+from ...data_structures import (
+    AlgorithmImplementation,
+    DecoderModel,
+    QuantumProgram,
+    ResourceInfo,
+)
 from ...data_structures.hardware_architecture_models import BasicArchitectureModel
-from .graph_estimator import GraphData, GraphResourceEstimator, ResourceInfo
+from .graph_estimator import GraphData, GraphResourceEstimator
 
 
 @dataclass
@@ -67,7 +72,7 @@ class ExtrapolationResourceEstimator(GraphResourceEstimator):
                 n_measurement_steps_r_squared,
             ) = _get_logarithmic_extrapolation(
                 self.steps_to_extrapolate_from,
-                np.array([d.n_measurement_steps for d in data]),
+                np.array([d.extra.n_measurement_steps for d in data]),
                 steps_to_extrapolate_to,
             )
         elif self.n_measurement_steps_fit_type == "linear":
@@ -76,7 +81,7 @@ class ExtrapolationResourceEstimator(GraphResourceEstimator):
                 n_measurement_steps_r_squared,
             ) = _get_linear_extrapolation(
                 self.steps_to_extrapolate_from,
-                np.array([d.n_measurement_steps for d in data]),
+                np.array([d.extra.n_measurement_steps for d in data]),
                 steps_to_extrapolate_to,
             )
         else:
@@ -109,10 +114,9 @@ class ExtrapolationResourceEstimator(GraphResourceEstimator):
         )
         return ExtrapolatedResourceInfo(
             n_logical_qubits=resource_info.n_logical_qubits,
-            n_measurement_steps=resource_info.n_measurement_steps,
-            n_nodes=algorithm_description.program.n_nodes,
-            n_t_gates=resource_info.n_t_gates,
-            n_rotation_gates=resource_info.n_rotation_gates,
+            extra=replace(
+                resource_info.extra, n_nodes=algorithm_description.program.n_nodes
+            ),
             code_distance=resource_info.code_distance,
             logical_error_rate=resource_info.logical_error_rate,
             total_time_in_seconds=resource_info.total_time_in_seconds,

@@ -10,8 +10,9 @@ from ...data_structures import (
     AlgorithmImplementation,
     DecoderInfo,
     DecoderModel,
+    GraphCompilationResourceInfo,
+    GraphData,
     GraphPartition,
-    ResourceInfo,
 )
 from ...data_structures.hardware_architecture_models import BasicArchitectureModel
 from ..magic_state_distillation import get_specs_for_t_state_widget
@@ -28,17 +29,6 @@ def substrate_scheduler(graph: nx.Graph) -> TwoRowSubstrateScheduler:
     )
     scheduler_only_compiler.run()
     return scheduler_only_compiler
-
-
-@dataclass
-class GraphData:
-    """Contains minimal set of data to get a resource estimate for a graph."""
-
-    max_graph_degree: int
-    n_nodes: int
-    n_t_gates: int
-    n_rotation_gates: int
-    n_measurement_steps: int
 
 
 class GraphResourceEstimator:
@@ -128,7 +118,7 @@ class GraphResourceEstimator:
         self,
         graph_data: GraphData,
         algorithm_description: AlgorithmImplementation,
-    ) -> ResourceInfo:
+    ) -> GraphCompilationResourceInfo:
         if graph_data.n_rotation_gates != 0:
             per_gate_synthesis_accuracy = 1 - (
                 1 - algorithm_description.error_budget.synthesis_failure_tolerance
@@ -213,21 +203,20 @@ class GraphResourceEstimator:
         else:
             decoder_info = None
 
-        return ResourceInfo(
+        return GraphCompilationResourceInfo(
             code_distance=code_distance,
             logical_error_rate=total_logical_error_rate,
             # estimate the number of logical qubits using max node degree
             n_logical_qubits=graph_data.max_graph_degree,
-            n_nodes=graph_data.n_nodes,
-            n_t_gates=graph_data.n_t_gates,
-            n_rotation_gates=graph_data.n_rotation_gates,
-            n_measurement_steps=graph_data.n_measurement_steps,
             total_time_in_seconds=total_time_in_seconds,
             n_physical_qubits=n_physical_qubits,
             decoder_info=decoder_info,
+            extra=graph_data,
         )
 
-    def estimate(self, algorithm_description: AlgorithmImplementation) -> ResourceInfo:
+    def estimate(
+        self, algorithm_description: AlgorithmImplementation
+    ) -> GraphCompilationResourceInfo:
         assert isinstance(algorithm_description.program, GraphPartition)
         if len(algorithm_description.program.subgraphs) == 1:
             graph_data = self._get_graph_data_for_single_graph(

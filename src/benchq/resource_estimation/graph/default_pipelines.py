@@ -1,7 +1,7 @@
 from typing import List, Optional
 
 from ...compilation import get_algorithmic_graph_from_Jabalizer
-from ...data_structures import AlgorithmImplementation, DecoderModel
+from ...data_structures import AlgorithmImplementation, DecoderModel, ResourceInfo
 from ...data_structures.hardware_architecture_models import BasicArchitectureModel
 from .customizable_pipelines import (
     run_custom_extrapolation_pipeline,
@@ -11,7 +11,7 @@ from .extrapolation_estimator import (
     ExtrapolatedResourceInfo,
     ExtrapolationResourceEstimator,
 )
-from .graph_estimator import GraphResourceEstimator, ResourceInfo
+from .graph_estimator import GraphResourceEstimator
 from .transformers import create_big_graph_from_subcircuits, synthesize_clifford_t
 
 
