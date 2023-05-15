@@ -10,9 +10,9 @@ from ...data_structures import (
     AlgorithmImplementation,
     DecoderInfo,
     DecoderModel,
-    GraphCompilationResourceInfo,
     GraphData,
     GraphPartition,
+    GraphResourceInfo,
 )
 from ...data_structures.hardware_architecture_models import BasicArchitectureModel
 from ..magic_state_distillation import get_specs_for_t_state_widget
@@ -118,7 +118,7 @@ class GraphResourceEstimator:
         self,
         graph_data: GraphData,
         algorithm_description: AlgorithmImplementation,
-    ) -> GraphCompilationResourceInfo:
+    ) -> GraphResourceInfo:
         if graph_data.n_rotation_gates != 0:
             per_gate_synthesis_accuracy = 1 - (
                 1 - algorithm_description.error_budget.synthesis_failure_tolerance
@@ -203,7 +203,7 @@ class GraphResourceEstimator:
         else:
             decoder_info = None
 
-        return GraphCompilationResourceInfo(
+        return GraphResourceInfo(
             code_distance=code_distance,
             logical_error_rate=total_logical_error_rate,
             # estimate the number of logical qubits using max node degree
@@ -216,7 +216,7 @@ class GraphResourceEstimator:
 
     def estimate(
         self, algorithm_description: AlgorithmImplementation
-    ) -> GraphCompilationResourceInfo:
+    ) -> GraphResourceInfo:
         assert isinstance(algorithm_description.program, GraphPartition)
         if len(algorithm_description.program.subgraphs) == 1:
             graph_data = self._get_graph_data_for_single_graph(

@@ -40,12 +40,12 @@ class GraphData:
     n_measurement_steps: int
 
 
-GraphCompilationResourceInfo = ResourceInfo[GraphData]
+GraphResourceInfo = ResourceInfo[GraphData]
 
 
 @dataclass
 class ExtrapolatedGraphData(GraphData):
     n_logical_qubits_r_squared: float
     n_measurement_steps_r_squared: float
-    data_used_to_extrapolate: List[GraphCompilationResourceInfo]
+    data_used_to_extrapolate: List[GraphResourceInfo]
     steps_to_extrapolate_to: int
