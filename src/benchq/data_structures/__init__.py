@@ -14,7 +14,14 @@ from .hardware_architecture_models import (
     BasicArchitectureModel,
 )
 from .quantum_program import QuantumProgram, get_program_from_circuit
-from .resource_info import DecoderInfo, GraphData, GraphResourceInfo, ResourceInfo
+from .resource_info import (
+    DecoderInfo,
+    ExtrapolatedGraphData,
+    ExtrapolatedGraphResourceInfo,
+    GraphData,
+    GraphResourceInfo,
+    ResourceInfo,
+)
 
 __all__ = [
     "AlgorithmImplementation",
@@ -31,4 +38,6 @@ __all__ = [
     "DecoderInfo",
     "GraphResourceInfo",
     "GraphData",
+    "ExtrapolatedGraphData",
+    "ExtrapolatedGraphResourceInfo",
 ]

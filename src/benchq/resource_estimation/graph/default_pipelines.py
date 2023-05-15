@@ -1,16 +1,18 @@
 from typing import List, Optional
 
 from ...compilation import get_algorithmic_graph_from_Jabalizer
-from ...data_structures import AlgorithmImplementation, DecoderModel, ResourceInfo
+from ...data_structures import (
+    AlgorithmImplementation,
+    DecoderModel,
+    ExtrapolatedGraphResourceInfo,
+    ResourceInfo,
+)
 from ...data_structures.hardware_architecture_models import BasicArchitectureModel
 from .customizable_pipelines import (
     run_custom_extrapolation_pipeline,
     run_custom_resource_estimation_pipeline,
 )
-from .extrapolation_estimator import (
-    ExtrapolatedResourceInfo,
-    ExtrapolationResourceEstimator,
-)
+from .extrapolation_estimator import ExtrapolationResourceEstimator
 from .graph_estimator import GraphResourceEstimator
 from .transformers import create_big_graph_from_subcircuits, synthesize_clifford_t
 
@@ -95,7 +97,7 @@ def run_precise_extrapolation_estimate(
     steps_to_extrapolate_from: List[int],
     decoder_model: Optional[DecoderModel] = None,
     n_measurement_steps_fit_type: str = "logarithmic",
-) -> ExtrapolatedResourceInfo:
+) -> ExtrapolatedGraphResourceInfo:
     """Run a faster resource estimate that's based on extrapolating from smaller
     circuits.
 
@@ -138,7 +140,7 @@ def run_fast_extrapolation_estimate(
     steps_to_extrapolate_from: List[int],
     decoder_model: Optional[DecoderModel] = None,
     n_measurement_steps_fit_type: str = "logarithmic",
-) -> ExtrapolatedResourceInfo:
+) -> ExtrapolatedGraphResourceInfo:
     """The fastest resource estimate method, but also the least accurate one.
 
     Run a resource estimate by creating a part graph created by of the full

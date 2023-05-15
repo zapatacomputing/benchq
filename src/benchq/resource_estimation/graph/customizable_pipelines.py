@@ -1,11 +1,14 @@
 from copy import copy
 from dataclasses import replace
 
-from ...data_structures import AlgorithmImplementation, QuantumProgram
-from .extrapolation_estimator import (
-    ExtrapolatedResourceInfo,
-    ExtrapolationResourceEstimator,
+from benchq.data_structures.resource_info import ExtrapolatedGraphResourceInfo
+
+from ...data_structures import (
+    AlgorithmImplementation,
+    ExtrapolatedGraphData,
+    QuantumProgram,
 )
+from .extrapolation_estimator import ExtrapolationResourceEstimator
 
 
 def run_custom_resource_estimation_pipeline(
@@ -27,7 +30,7 @@ def run_custom_extrapolation_pipeline(
     algorithm_description: AlgorithmImplementation,
     estimator: ExtrapolationResourceEstimator,
     transformers,
-) -> ExtrapolatedResourceInfo:
+) -> ExtrapolatedGraphResourceInfo:
     synthesis_accuracy_for_each_rotation = 1 - (
         1 - algorithm_description.error_budget.synthesis_failure_tolerance
     ) ** (1 / algorithm_description.program.n_rotation_gates)

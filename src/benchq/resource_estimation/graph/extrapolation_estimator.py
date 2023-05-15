@@ -4,39 +4,17 @@ from typing import List, Optional
 
 import numpy as np
 
+from benchq.data_structures.resource_info import ExtrapolatedGraphResourceInfo
+
 from ...data_structures import (
     AlgorithmImplementation,
     DecoderModel,
+    ExtrapolatedGraphData,
     QuantumProgram,
     ResourceInfo,
 )
 from ...data_structures.hardware_architecture_models import BasicArchitectureModel
-from .graph_estimator import GraphData, GraphResourceEstimator
-
-
-@dataclass
-class ExtrapolatedGraphData(GraphData):
-    max_graph_degree_r_squared: float
-    n_measurement_steps_r_squared: float
-
-
-@dataclass
-class ExtrapolatedResourceInfo(ResourceInfo):
-    n_logical_qubits_r_squared: float
-    n_measurement_steps_r_squared: float
-    data_used_to_extrapolate: List[ResourceInfo]
-    steps_to_extrapolate_to: int
-
-    def __repr__(self):
-        new_necessary_info = [
-            "n_logical_qubits_r_squared",
-            "n_measurement_steps_r_squared",
-        ]
-        inherited_necessary_info = super().__repr__() + "\n"
-
-        return inherited_necessary_info + "\n".join(
-            f"{info}: {getattr(self, info)}" for info in new_necessary_info
-        )
+from .graph_estimator import GraphResourceEstimator
 
 
 class ExtrapolationResourceEstimator(GraphResourceEstimator):
@@ -96,8 +74,10 @@ class ExtrapolationResourceEstimator(GraphResourceEstimator):
             n_nodes=program.n_t_gates + program.n_rotation_gates,
             n_t_gates=program.n_t_gates,
             n_rotation_gates=program.n_rotation_gates,
-            max_graph_degree_r_squared=max_graph_degree_r_squared,
+            n_logical_qubits_r_squared=max_graph_degree_r_squared,
             n_measurement_steps_r_squared=n_measurement_steps_r_squared,
+            data_used_to_extrapolate=data,
+            steps_to_extrapolate_to=steps_to_extrapolate_to,
         )
 
     def estimate_via_extrapolation(
@@ -112,20 +92,16 @@ class ExtrapolationResourceEstimator(GraphResourceEstimator):
         resource_info = self._estimate_resources_from_graph_data(
             extrapolated_info, algorithm_description
         )
-        return ExtrapolatedResourceInfo(
+        return ExtrapolatedGraphResourceInfo(
             n_logical_qubits=resource_info.n_logical_qubits,
             extra=replace(
-                resource_info.extra, n_nodes=algorithm_description.program.n_nodes
+                extrapolated_info, n_nodes=algorithm_description.program.n_nodes
             ),
             code_distance=resource_info.code_distance,
             logical_error_rate=resource_info.logical_error_rate,
             total_time_in_seconds=resource_info.total_time_in_seconds,
             n_physical_qubits=resource_info.n_physical_qubits,
             decoder_info=resource_info.decoder_info,
-            n_logical_qubits_r_squared=extrapolated_info.max_graph_degree_r_squared,
-            n_measurement_steps_r_squared=extrapolated_info.n_measurement_steps_r_squared,  # noqa: E501
-            data_used_to_extrapolate=data,
-            steps_to_extrapolate_to=algorithm_description.program.steps,
         )
 
 

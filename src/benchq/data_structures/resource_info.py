@@ -47,5 +47,12 @@ GraphResourceInfo = ResourceInfo[GraphData]
 class ExtrapolatedGraphData(GraphData):
     n_logical_qubits_r_squared: float
     n_measurement_steps_r_squared: float
-    data_used_to_extrapolate: List[GraphResourceInfo]
-    steps_to_extrapolate_to: int
+    data_used_to_extrapolate: List[GraphResourceInfo] = field(repr=False)
+    steps_to_extrapolate_to: int = field(repr=False)
+
+    @property
+    def max_graph_degree_r_squared(self) -> float:
+        return self.n_logical_qubits_r_squared
+
+
+ExtrapolatedGraphResourceInfo = ResourceInfo[ExtrapolatedGraphData]
