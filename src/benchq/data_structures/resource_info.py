@@ -56,3 +56,13 @@ class ExtrapolatedGraphData(GraphData):
 
 
 ExtrapolatedGraphResourceInfo = ResourceInfo[ExtrapolatedGraphData]
+
+
+@dataclass
+class AzureExtra:
+    depth: int
+    cycle_time: float
+    raw_data: dict
+
+
+AzureResourceInfo = ResourceInfo[AzureExtra]

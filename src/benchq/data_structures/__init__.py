@@ -15,6 +15,8 @@ from .hardware_architecture_models import (
 )
 from .quantum_program import QuantumProgram, get_program_from_circuit
 from .resource_info import (
+    AzureExtra,
+    AzureResourceInfo,
     DecoderInfo,
     ExtrapolatedGraphData,
     ExtrapolatedGraphResourceInfo,
@@ -40,4 +42,6 @@ __all__ = [
     "GraphData",
     "ExtrapolatedGraphData",
     "ExtrapolatedGraphResourceInfo",
+    "AzureResourceInfo",
+    "AzureExtra",
 ]
