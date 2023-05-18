@@ -4,8 +4,12 @@ import numpy as np
 import pytest
 from orquestra.quantum.circuits import CNOT, RZ, Circuit, H
 
-from benchq.data_structures import BASIC_SC_ARCHITECTURE_MODEL, ErrorBudget
-from benchq.data_structures.quantum_program import get_program_from_circuit
+from benchq.data_structures import (
+    AlgorithmImplementation,
+    BasicArchitectureModel,
+    ErrorBudget,
+    get_program_from_circuit,
+)
 from benchq.resource_estimation.azure import AzureResourceEstimator
 
 SKIP_AZURE = pytest.mark.skipif(
@@ -18,75 +22,86 @@ SKIP_AZURE = pytest.mark.skipif(
 @pytest.mark.skip(
     "It looks like Azure does not take information about the hardware into account"
 )
-def test_better_architecture_does_not_require_more_resources():
-    low_quality_architecture_model = BASIC_SC_ARCHITECTURE_MODEL(
+def test_better_architecture_does_not_require_more_resources() -> None:
+    low_quality_architecture_model = BasicArchitectureModel(
         physical_t_gate_error_rate=1e-4,
         surface_code_cycle_time_in_seconds=1e-6,
     )
-    high_quality_architecture_model = BASIC_SC_ARCHITECTURE_MODEL(
+    high_quality_architecture_model = BasicArchitectureModel(
         physical_t_gate_error_rate=1e-3,
         surface_code_cycle_time_in_seconds=1e-9,
     )
+
     # set circuit generation weight to 0
     error_budget = ErrorBudget.from_weights(1e-3, 0, 1, 1)
 
     quantum_program = get_program_from_circuit(
         Circuit([H(0), RZ(np.pi / 4)(0), CNOT(0, 1)])
     )
+
+    alg_impl = AlgorithmImplementation(
+        program=quantum_program, error_budget=error_budget, n_calls=1
+    )
+
     low_quality_azure_re = AzureResourceEstimator(
         hw_model=low_quality_architecture_model
     )
     high_quality_azure_re = AzureResourceEstimator(
         hw_model=high_quality_architecture_model
     )
-    low_quality_resource_estimates = low_quality_azure_re.estimate(
-        quantum_program, error_budget
-    )
-    high_quality_resource_estimates = high_quality_azure_re.estimate(
-        quantum_program, error_budget
+    low_quality_resource_estimates = low_quality_azure_re.estimate(alg_impl)
+
+    high_quality_resource_estimates = high_quality_azure_re.estimate(alg_impl)
+
+    assert (
+        low_quality_resource_estimates.n_physical_qubits
+        < high_quality_resource_estimates.n_physical_qubits
     )
     assert (
-        low_quality_resource_estimates.physical_qubit_count
-        < high_quality_resource_estimates.physical_qubit_count
+        low_quality_resource_estimates.code_distance
+        <= high_quality_resource_estimates.code_distance
     )
     assert (
-        low_quality_resource_estimates.distance
-        <= high_quality_resource_estimates.distance
-    )
-    assert (
-        low_quality_resource_estimates.total_time
-        < high_quality_resource_estimates.total_time
+        low_quality_resource_estimates.total_time_in_seconds
+        < high_quality_resource_estimates.total_time_in_seconds
     )
 
 
 @SKIP_AZURE
-def test_higher_error_budget_requires_less_resources():
+def test_higher_error_budget_requires_less_resources() -> None:
     low_failure_tolerance = 1e-5
     high_failure_tolerance = 1e-3
-
-    # set circuit generation weight to 0
-    low_error_budget = ErrorBudget.from_weights(low_failure_tolerance, 0, 1, 1)
-    high_error_budget = ErrorBudget.from_weights(high_failure_tolerance, 0, 1, 1)
 
     quantum_program = get_program_from_circuit(
         Circuit([H(0), RZ(np.pi / 4)(0), CNOT(0, 1)])
     )
+
+    # set circuit generation weight to 0
+    low_error_budget_impl = AlgorithmImplementation(
+        program=quantum_program,
+        error_budget=ErrorBudget.from_weights(low_failure_tolerance, 0, 1, 1),
+        n_calls=1,
+    )
+
+    high_error_budget_impl = AlgorithmImplementation(
+        program=quantum_program,
+        error_budget=ErrorBudget.from_weights(high_failure_tolerance, 0, 1, 1),
+        n_calls=1,
+    )
     azure_re = AzureResourceEstimator()
 
-    low_budget_resource_estimates = azure_re.estimate(quantum_program, low_error_budget)
-    high_budget_resource_estimates = azure_re.estimate(
-        quantum_program, high_error_budget
-    )
+    low_budget_resource_estimates = azure_re.estimate(low_error_budget_impl)
+    high_budget_resource_estimates = azure_re.estimate(high_error_budget_impl)
 
     assert (
-        low_budget_resource_estimates.physical_qubit_count
-        > high_budget_resource_estimates.physical_qubit_count
+        low_budget_resource_estimates.n_physical_qubits
+        > high_budget_resource_estimates.n_physical_qubits
     )
     assert (
-        low_budget_resource_estimates.distance
-        >= high_budget_resource_estimates.distance
+        low_budget_resource_estimates.code_distance
+        >= high_budget_resource_estimates.code_distance
     )
     assert (
-        low_budget_resource_estimates.total_time
-        > high_budget_resource_estimates.total_time
+        low_budget_resource_estimates.total_time_in_seconds
+        > high_budget_resource_estimates.total_time_in_seconds
     )
