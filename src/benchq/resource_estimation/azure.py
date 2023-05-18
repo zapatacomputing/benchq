@@ -11,34 +11,24 @@ from orquestra.integrations.qiskit.conversions import export_to_qiskit
 from orquestra.quantum.circuits import Circuit
 from qiskit.tools.monitor import job_monitor
 
-from ..data_structures import ErrorBudget, QuantumProgram
-from ..data_structures.hardware_architecture_models import BasicArchitectureModel
-
-
-@dataclass
-class AzureResourceInfo:
-    physical_qubit_count: int
-    logical_qubit_count: int
-    total_time: float
-    depth: int
-    distance: int
-    cycle_time: float
-    logical_error_rate: float
-    raw_data: dict
+from ..data_structures import AzureExtra, AzureResourceInfo, BasicArchitectureModel
 
 
 def _azure_result_to_resource_info(job_results: dict) -> AzureResourceInfo:
     return AzureResourceInfo(
-        physical_qubit_count=job_results["physicalCounts"]["physicalQubits"],
-        logical_qubit_count=job_results["physicalCounts"]["breakdown"][
+        n_physical_qubits=job_results["physicalCounts"]["physicalQubits"],
+        n_logical_qubits=job_results["physicalCounts"]["breakdown"][
             "algorithmicLogicalQubits"
         ],
-        total_time=job_results["physicalCounts"]["runtime_in_s"],
-        depth=job_results["physicalCounts"]["breakdown"]["algorithmicLogicalDepth"],
-        distance=job_results["logicalQubit"]["codeDistance"],
-        cycle_time=job_results["logicalQubit"]["logicalCycleTime"],
+        total_time_in_seconds=job_results["physicalCounts"]["runtime_in_s"],
+        code_distance=job_results["logicalQubit"]["codeDistance"],
         logical_error_rate=job_results["errorBudget"]["logical"],
-        raw_data=job_results,
+        decoder_info=None,
+        extra=AzureExtra(
+            cycle_time=job_results["logicalQubit"]["logicalCycleTime"],
+            depth=job_results["physicalCounts"]["breakdown"]["algorithmicLogicalDepth"],
+            raw_data=job_results,
+        ),
     )
 
 

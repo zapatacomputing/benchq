@@ -1,37 +1,19 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from math import ceil
 from typing import List, Optional
 
 import numpy as np
 
-from ...data_structures import AlgorithmImplementation, DecoderModel, QuantumProgram
-from ...data_structures.hardware_architecture_models import BasicArchitectureModel
-from .graph_estimator import GraphData, GraphResourceEstimator, ResourceInfo
-
-
-@dataclass
-class ExtrapolatedGraphData(GraphData):
-    max_graph_degree_r_squared: float
-    n_measurement_steps_r_squared: float
-
-
-@dataclass
-class ExtrapolatedResourceInfo(ResourceInfo):
-    n_logical_qubits_r_squared: float
-    n_measurement_steps_r_squared: float
-    data_used_to_extrapolate: List[ResourceInfo]
-    steps_to_extrapolate_to: int
-
-    def __repr__(self):
-        new_necessary_info = [
-            "n_logical_qubits_r_squared",
-            "n_measurement_steps_r_squared",
-        ]
-        inherited_necessary_info = super().__repr__() + "\n"
-
-        return inherited_necessary_info + "\n".join(
-            f"{info}: {getattr(self, info)}" for info in new_necessary_info
-        )
+from ...data_structures import (
+    AlgorithmImplementation,
+    BasicArchitectureModel,
+    DecoderModel,
+    ExtrapolatedGraphData,
+    ExtrapolatedGraphResourceInfo,
+    QuantumProgram,
+    ResourceInfo,
+)
+from .graph_estimator import GraphResourceEstimator
 
 
 class ExtrapolationResourceEstimator(GraphResourceEstimator):
@@ -67,7 +49,7 @@ class ExtrapolationResourceEstimator(GraphResourceEstimator):
                 n_measurement_steps_r_squared,
             ) = _get_logarithmic_extrapolation(
                 self.steps_to_extrapolate_from,
-                np.array([d.n_measurement_steps for d in data]),
+                np.array([d.extra.n_measurement_steps for d in data]),
                 steps_to_extrapolate_to,
             )
         elif self.n_measurement_steps_fit_type == "linear":
@@ -76,7 +58,7 @@ class ExtrapolationResourceEstimator(GraphResourceEstimator):
                 n_measurement_steps_r_squared,
             ) = _get_linear_extrapolation(
                 self.steps_to_extrapolate_from,
-                np.array([d.n_measurement_steps for d in data]),
+                np.array([d.extra.n_measurement_steps for d in data]),
                 steps_to_extrapolate_to,
             )
         else:
@@ -91,8 +73,10 @@ class ExtrapolationResourceEstimator(GraphResourceEstimator):
             n_nodes=program.n_t_gates + program.n_rotation_gates,
             n_t_gates=program.n_t_gates,
             n_rotation_gates=program.n_rotation_gates,
-            max_graph_degree_r_squared=max_graph_degree_r_squared,
+            n_logical_qubits_r_squared=max_graph_degree_r_squared,
             n_measurement_steps_r_squared=n_measurement_steps_r_squared,
+            data_used_to_extrapolate=data,
+            steps_to_extrapolate_to=steps_to_extrapolate_to,
         )
 
     def estimate_via_extrapolation(
@@ -107,24 +91,16 @@ class ExtrapolationResourceEstimator(GraphResourceEstimator):
         resource_info = self._estimate_resources_from_graph_data(
             extrapolated_info, algorithm_description
         )
-        return ExtrapolatedResourceInfo(
+        return ExtrapolatedGraphResourceInfo(
             n_logical_qubits=resource_info.n_logical_qubits,
-            n_measurement_steps=resource_info.n_measurement_steps,
-            n_nodes=algorithm_description.program.n_nodes,
-            n_t_gates=resource_info.n_t_gates,
-            n_rotation_gates=resource_info.n_rotation_gates,
+            extra=replace(
+                extrapolated_info, n_nodes=algorithm_description.program.n_nodes
+            ),
             code_distance=resource_info.code_distance,
             logical_error_rate=resource_info.logical_error_rate,
             total_time_in_seconds=resource_info.total_time_in_seconds,
             n_physical_qubits=resource_info.n_physical_qubits,
-            decoder_total_energy_consumption=resource_info.decoder_total_energy_consumption,  # noqa: E501
-            decoder_power=resource_info.decoder_power,
-            decoder_area=resource_info.decoder_area,
-            max_decodable_distance=resource_info.max_decodable_distance,
-            n_logical_qubits_r_squared=extrapolated_info.max_graph_degree_r_squared,
-            n_measurement_steps_r_squared=extrapolated_info.n_measurement_steps_r_squared,  # noqa: E501
-            data_used_to_extrapolate=data,
-            steps_to_extrapolate_to=algorithm_description.program.steps,
+            decoder_info=resource_info.decoder_info,
         )
 
 

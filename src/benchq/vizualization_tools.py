@@ -8,8 +8,7 @@ import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
 
-from .resource_estimation.graph.extrapolation_estimator import ExtrapolatedResourceInfo
-from .resource_estimation.graph.graph_estimator import ResourceInfo
+from .data_structures import ExtrapolatedGraphResourceInfo, ResourceInfo
 
 
 def plot_graph_state_with_measurement_steps(
@@ -36,7 +35,7 @@ def plot_graph_state_with_measurement_steps(
 
 
 def plot_extrapolations(
-    info: ExtrapolatedResourceInfo,
+    info: ExtrapolatedGraphResourceInfo,
     steps_to_extrapolate_from: List[int],
     n_measurement_steps_fit_type: str = "logarithmic",
     exact_info: Optional[ResourceInfo] = None,
@@ -54,7 +53,9 @@ def plot_extrapolations(
         ["n_logical_qubits", "n_measurement_steps", "n_nodes"]
     ):
         x = np.array(steps_to_extrapolate_from)
-        y = np.array([getattr(d, property) for d in info.data_used_to_extrapolate])
+        y = np.array(
+            [getattr(d, property) for d in info.extra.data_used_to_extrapolate]
+        )
 
         # logarithmic extrapolation
         if (
@@ -74,7 +75,7 @@ def plot_extrapolations(
         ):
             x = np.exp(x)  # rescale the x values for plotting
 
-            all_x = np.arange(1, info.steps_to_extrapolate_to + 1, 1)
+            all_x = np.arange(1, info.extra.steps_to_extrapolate_to + 1, 1)
             axis[i].plot(
                 all_x,
                 m * np.log(all_x) + c,
@@ -83,21 +84,21 @@ def plot_extrapolations(
             )
         else:
             axis[i].plot(
-                [0, info.steps_to_extrapolate_to],
-                [c, m * info.steps_to_extrapolate_to + c],
+                [0, info.extra.steps_to_extrapolate_to],
+                [c, m * info.extra.steps_to_extrapolate_to + c],
                 "r",
                 label="fitted line",
             )
 
         axis[i].plot(x, y, "bo")
         axis[i].plot(
-            [info.steps_to_extrapolate_to],
+            [info.extra.steps_to_extrapolate_to],
             [getattr(info, property)],
             "ko",
         )
         if exact_info is not None:
             axis[i].plot(
-                [info.steps_to_extrapolate_to],
+                [info.extra.steps_to_extrapolate_to],
                 [getattr(exact_info, property)],
                 "go",
             )

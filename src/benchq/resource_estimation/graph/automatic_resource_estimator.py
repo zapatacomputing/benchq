@@ -5,7 +5,12 @@ from typing import Any, Optional
 
 import numpy as np
 
-from ...data_structures import AlgorithmImplementation, DecoderModel, QuantumProgram
+from ...data_structures import (
+    AlgorithmImplementation,
+    DecoderModel,
+    QuantumProgram,
+    ResourceInfo,
+)
 from ...data_structures.hardware_architecture_models import BasicArchitectureModel
 from .default_pipelines import (
     run_fast_extrapolation_estimate,
@@ -13,7 +18,7 @@ from .default_pipelines import (
     run_precise_extrapolation_estimate,
     run_precise_graph_estimate,
 )
-from .graph_estimator import GraphResourceEstimator, ResourceInfo
+from .graph_estimator import GraphResourceEstimator
 
 LARGEST_GRAPH_TOLERANCE = 1e8
 DEFAULT_STEPS_TO_EXTRAPOLATE_FROM = [1, 2, 3]
