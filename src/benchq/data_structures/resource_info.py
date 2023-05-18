@@ -86,15 +86,6 @@ class AzureExtra:
     raw_data: dict
 
 
-@dataclass
-class OpenFermionExtra:
-    """Extra info relating to resource estimation on Azure."""
-
-    depth: int
-    cycle_time: float
-    raw_data: dict
-
-
 # Alias for type of resource info returned by AzureResourceEstimator
 AzureResourceInfo = ResourceInfo[AzureExtra]
 
