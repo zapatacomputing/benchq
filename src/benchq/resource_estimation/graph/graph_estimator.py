@@ -10,10 +10,13 @@ from graph_state_generation.substrate_scheduler import TwoRowSubstrateScheduler
 from ...data_structures import (
     AlgorithmImplementation,
     BasicArchitectureModel,
+    DecoderInfo,
     DecoderModel,
+    GraphData,
     GraphPartition,
+    GraphResourceInfo,
 )
-from ..magic_state_distillation import Widget, WidgetIterator
+from ..magic_state_distillation import get_specs_for_t_state_widget
 
 INITIAL_SYNTHESIS_ACCURACY = 0.0001
 
@@ -27,60 +30,6 @@ def substrate_scheduler(graph: nx.Graph) -> TwoRowSubstrateScheduler:
     )
     scheduler_only_compiler.run()
     return scheduler_only_compiler
-
-
-@dataclass
-class GraphData:
-    """Contains minimal set of data to get a resource estimate for a graph."""
-
-    max_graph_degree: int
-    n_nodes: int
-    n_t_gates: int
-    n_rotation_gates: int
-    n_measurement_steps: int
-
-
-@dataclass
-class ResourceInfo:
-    """Contains all resource estimated for a problem instance."""
-
-    code_distance: int
-    logical_error_rate: float
-    n_logical_qubits: int
-    n_nodes: int
-    n_t_gates: int
-    n_rotation_gates: int
-    n_physical_qubits: int
-    n_measurement_steps: int
-    total_time_in_seconds: float
-    max_decodable_distance: Optional[int]
-    decoder_total_energy_consumption: Optional[float]
-    decoder_power: Optional[float]
-    decoder_area: Optional[float]
-
-    @property
-    def graph_data(self) -> GraphData:
-        return GraphData(
-            max_graph_degree=self.n_logical_qubits,
-            n_nodes=self.n_nodes,
-            n_t_gates=self.n_t_gates,
-            n_rotation_gates=self.n_rotation_gates,
-            n_measurement_steps=self.n_measurement_steps,
-        )
-
-    def __repr__(self):
-        necessary_info = [
-            "code_distance",
-            "logical_error_rate",
-            "n_logical_qubits",
-            "total_time_in_seconds",
-            "decoder_total_energy_consumption",
-            "decoder_power",
-            "decoder_area",
-            "n_measurement_steps",
-            "n_physical_qubits",
-        ]
-        return "\n".join(f"{info}: {getattr(self, info)}" for info in necessary_info)
 
 
 class GraphResourceEstimator:
@@ -208,11 +157,20 @@ class GraphResourceEstimator:
 
         return max_distance
 
+<<<<<<< HEAD
     def get_n_total_t_gates(
         self, n_t_gates: int, n_rotation_gates: int, synthesis_failure_tolerance: float
     ) -> int:
         getcontext().prec = 100
         if n_rotation_gates != 0:
+=======
+    def _estimate_resources_from_graph_data(
+        self,
+        graph_data: GraphData,
+        algorithm_description: AlgorithmImplementation,
+    ) -> GraphResourceInfo:
+        if graph_data.n_rotation_gates != 0:
+>>>>>>> main
             per_gate_synthesis_accuracy = 1 - (
                 1 - Decimal(synthesis_failure_tolerance)
             ) ** Decimal(1 / n_rotation_gates)
@@ -368,33 +326,46 @@ class GraphResourceEstimator:
                 code_distance
             )
             max_decodable_distance = self.find_max_decodable_distance()
+            decoder_info = DecoderInfo(
+                total_energy_consumption=decoder_total_energy_consumption,
+                power=decoder_power,
+                area=decoder_area,
+                max_decodable_distance=max_decodable_distance,
+            )
         else:
+<<<<<<< HEAD
             decoder_total_energy_consumption = None
             decoder_power = None
             decoder_area = None
             max_decodable_distance = None
         return ResourceInfo(
+=======
+            decoder_info = None
+
+        return GraphResourceInfo(
+>>>>>>> main
             code_distance=code_distance,
             logical_error_rate=total_logical_error_rate,
             # estimate the number of logical qubits using max node degree
             n_logical_qubits=graph_data.max_graph_degree,
-            n_nodes=graph_data.n_nodes,
-            n_t_gates=graph_data.n_t_gates,
-            n_rotation_gates=graph_data.n_rotation_gates,
-            n_measurement_steps=graph_data.n_measurement_steps,
             total_time_in_seconds=total_time_in_seconds,
             n_physical_qubits=n_physical_qubits,
-            decoder_total_energy_consumption=decoder_total_energy_consumption,
-            decoder_power=decoder_power,
-            decoder_area=decoder_area,
-            max_decodable_distance=max_decodable_distance,
+            decoder_info=decoder_info,
+            extra=graph_data,
         )
 
     def estimate(
+<<<<<<< HEAD
         self, algorithm_implementation: AlgorithmImplementation
     ) -> ResourceInfo:
         assert isinstance(algorithm_implementation.program, GraphPartition)
         if len(algorithm_implementation.program.subgraphs) == 1:
+=======
+        self, algorithm_description: AlgorithmImplementation
+    ) -> GraphResourceInfo:
+        assert isinstance(algorithm_description.program, GraphPartition)
+        if len(algorithm_description.program.subgraphs) == 1:
+>>>>>>> main
             graph_data = self._get_graph_data_for_single_graph(
                 algorithm_implementation.program
             )

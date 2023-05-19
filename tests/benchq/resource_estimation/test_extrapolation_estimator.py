@@ -119,31 +119,27 @@ def test_get_resource_estimations_for_small_program_gives_correct_results(
         transformers=transformers,
     )
 
-    attributes_to_compare_harshly = [
-        "n_nodes",
-        "total_time_in_seconds",
-        "n_physical_qubits",
-    ]
-    for attribute in attributes_to_compare_harshly:
-        assert np.isclose(
-            getattr(extrapolated_resource_estimates, attribute),
-            getattr(gsc_resource_estimates, attribute),
-            rtol=2 * 1e-1,
-        )
-    # assert that the number of measurement steps grows with the steps
-    attributes_to_compare_loosely = [
-        "n_logical_qubits",
-        "n_measurement_steps",
-        "code_distance",
-    ]
-    for attribute in attributes_to_compare_loosely:
-        assert (
-            abs(
-                getattr(extrapolated_resource_estimates, attribute)
-                - getattr(gsc_resource_estimates, attribute)
-            )
-            <= 3
-        )
+    def _results_to_compare_harshly(resource_info):
+        return {
+            "n_nodes": resource_info.extra.n_nodes,
+            "total_time_in_seconds": resource_info.total_time_in_seconds,
+            "n_physical_qubits": resource_info.n_physical_qubits,
+        }
+
+    assert _results_to_compare_harshly(
+        extrapolated_resource_estimates
+    ) == pytest.approx(_results_to_compare_harshly(gsc_resource_estimates), rel=1e-1)
+
+    def _results_to_compare_loosely(resource_info):
+        return {
+            "n_logical_qubits": resource_info.n_logical_qubits,
+            "n_measurement_steps": resource_info.extra.n_measurement_steps,
+            "code_distance": resource_info.code_distance,
+        }
+
+    assert _results_to_compare_loosely(
+        extrapolated_resource_estimates
+    ) == pytest.approx(_results_to_compare_loosely(gsc_resource_estimates), abs=3)
 
 
 @pytest.mark.parametrize(
@@ -208,18 +204,17 @@ def test_get_resource_estimations_for_large_program_gives_correct_results(
         transformers=transformers,
     )
 
-    attributes_to_compare_relatively = [
-        "n_nodes",
-        "total_time_in_seconds",
-        "n_physical_qubits",
-        "n_logical_qubits",
-    ]
-    for attribute in attributes_to_compare_relatively:
-        assert np.isclose(
-            getattr(extrapolated_resource_estimates, attribute),
-            getattr(gsc_resource_estimates, attribute),
-            rtol=1e-1,
-        )
+    def _results_to_compare_relatively(resource_info):
+        return {
+            "n_nodes": resource_info.extra.n_nodes,
+            "total_time_in_seconds": resource_info.total_time_in_seconds,
+            "n_physical_qubits": resource_info.n_physical_qubits,
+            "n_logical_qubits": resource_info.n_logical_qubits,
+        }
+
+    assert _results_to_compare_relatively(
+        extrapolated_resource_estimates
+    ) == pytest.approx(_results_to_compare_relatively(gsc_resource_estimates), rel=1e-1)
 
     assert (
         abs(
@@ -230,8 +225,8 @@ def test_get_resource_estimations_for_large_program_gives_correct_results(
     )
     assert (
         abs(
-            extrapolated_resource_estimates.n_measurement_steps
-            - gsc_resource_estimates.n_measurement_steps
+            extrapolated_resource_estimates.extra.n_measurement_steps
+            - gsc_resource_estimates.extra.n_measurement_steps
         )
         <= 10
     )
