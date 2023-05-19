@@ -46,7 +46,7 @@ function get_graph_state_data(icm_circuit, n_qubits)
         i += 1
         percent_completed = round(100 * i / total_length)
         if percent_completed >= last_10_percent_completed + 10
-            println("GraphSim Mini is $percent_completed% completed")
+            print("GraphSim Mini is $percent_completed% completed\n\t")
             last_10_percent_completed += 10
         end
 
@@ -218,14 +218,14 @@ function get_icm(
 end
 
 
-"""Converts a given circuit in Clifford + T form to icm form and simulates the icm 
+"""Converts a given circuit in Clifford + T form to icm form and simulates the icm
 circuit using the graph sim mini simulator. Returns the adjacency list of the graph
 state created by the icm circuit along with the single qubit operations on each vertex.
 
 Args:
     circuit (Circuit): circuit to be simulated
 
-Returns:    
+Returns:
     adj (List[Set[int]]): adjacency list describing the graph state
     lco (List[int]): local clifford operations on each node
 """

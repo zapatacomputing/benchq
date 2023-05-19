@@ -1,4 +1,4 @@
-from copy import copy
+from copy import deepcopy
 from dataclasses import replace
 
 from ...data_structures import AlgorithmImplementation, QuantumProgram
@@ -35,7 +35,7 @@ def run_custom_extrapolation_pipeline(
     small_programs_resource_info = []
     for i in estimator.steps_to_extrapolate_from:
         # create copy of program for each number of steps
-        small_algorithm_description = copy(algorithm_description)
+        small_algorithm_description = deepcopy(algorithm_description)
         small_algorithm_description.error_budget = replace(
             algorithm_description.error_budget,
             synthesis_failure_tolerance=synthesis_accuracy_for_each_rotation

@@ -5,6 +5,7 @@ from .customizable_pipelines import (
     run_custom_resource_estimation_pipeline,
 )
 from .extrapolation_estimator import ExtrapolationResourceEstimator
+from .footprint_estimator import FootprintResourceEstimator
 from .graph_estimator import GraphResourceEstimator, substrate_scheduler
 from .transformers import (
     create_big_graph_from_subcircuits,
