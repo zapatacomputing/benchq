@@ -46,7 +46,7 @@ function get_graph_state_data(icm_circuit, n_qubits)
         i += 1
         percent_completed = round(100 * i / total_length)
         if percent_completed >= last_10_percent_completed + 10
-            print("GraphSim Mini is $percent_completed% completed\n\t")
+            println("GraphSim Mini is $percent_completed% completed")
             last_10_percent_completed += 10
         end
 

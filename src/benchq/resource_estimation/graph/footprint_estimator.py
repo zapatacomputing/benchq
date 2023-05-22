@@ -1,5 +1,5 @@
 from ...data_structures import AlgorithmImplementation, QuantumProgram
-from .graph_estimator import GraphData, GraphResourceEstimator, ResourceInfo
+from .graph_estimator import GraphData, GraphResourceEstimator, GraphResourceInfo
 
 
 class SubroutineInfo:
@@ -33,7 +33,7 @@ class FootprintResourceEstimator(GraphResourceEstimator):
     def estimate(
         self,
         algorithm_implementation: AlgorithmImplementation,
-    ) -> ResourceInfo:
+    ) -> GraphResourceInfo:
         """Estimates the resources needed to run an algorithm using a footprint analysis
         which is derived from graph state compilation.
 

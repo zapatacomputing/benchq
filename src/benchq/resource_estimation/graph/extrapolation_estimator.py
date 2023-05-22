@@ -1,4 +1,4 @@
-from dataclasses import dataclass, replace
+from dataclasses import replace
 from math import ceil
 from typing import List, Optional
 
@@ -107,7 +107,11 @@ class ExtrapolationResourceEstimator(GraphResourceEstimator):
 
 def _get_linear_extrapolation(x, y, steps_to_extrapolate_to):
     coeffs, sum_of_residuals, _, _, _ = np.polyfit(x, y, 1, full=True)
-    r_squared = 1 - (sum_of_residuals[0] / (len(y) * np.var(y)))
+    try:
+        r_squared = 1 - (sum_of_residuals[0] / (len(y) * np.var(y)))
+    except IndexError:
+        # if there are only 2 data points, then the sum_of_residuals will be empty
+        r_squared = 1
     m, c = coeffs
 
     # get rid of floating point errors
@@ -118,7 +122,11 @@ def _get_linear_extrapolation(x, y, steps_to_extrapolate_to):
 def _get_logarithmic_extrapolation(x, y, steps_to_extrapolate_to):
     log_x = np.log(x)
     coeffs, sum_of_residuals, _, _, _ = np.polyfit(log_x, y, 1, full=True)
-    r_squared = 1 - (sum_of_residuals[0] / (len(y) * np.var(y)))
+    try:
+        r_squared = 1 - (sum_of_residuals[0] / (len(y) * np.var(y)))
+    except IndexError:
+        # if there are only 2 data points, then the sum_of_residuals will be empty
+        r_squared = 1
     m, c = coeffs
 
     # get rid of floating point errors

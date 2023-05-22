@@ -1,4 +1,3 @@
-from dataclasses import dataclass
 from decimal import Decimal, getcontext
 from math import ceil
 from typing import Optional
@@ -16,7 +15,7 @@ from ...data_structures import (
     GraphPartition,
     GraphResourceInfo,
 )
-from ..magic_state_distillation import get_specs_for_t_state_widget
+from ..magic_state_distillation import Widget, WidgetIterator
 
 INITIAL_SYNTHESIS_ACCURACY = 0.0001
 
@@ -157,20 +156,11 @@ class GraphResourceEstimator:
 
         return max_distance
 
-<<<<<<< HEAD
     def get_n_total_t_gates(
         self, n_t_gates: int, n_rotation_gates: int, synthesis_failure_tolerance: float
     ) -> int:
         getcontext().prec = 100
         if n_rotation_gates != 0:
-=======
-    def _estimate_resources_from_graph_data(
-        self,
-        graph_data: GraphData,
-        algorithm_description: AlgorithmImplementation,
-    ) -> GraphResourceInfo:
-        if graph_data.n_rotation_gates != 0:
->>>>>>> main
             per_gate_synthesis_accuracy = 1 - (
                 1 - Decimal(synthesis_failure_tolerance)
             ) ** Decimal(1 / n_rotation_gates)
@@ -241,7 +231,7 @@ class GraphResourceEstimator:
         self,
         graph_data: GraphData,
         algorithm_implementation: AlgorithmImplementation,
-    ) -> ResourceInfo:
+    ) -> GraphResourceInfo:
         synthesis_failure_tolerance = 10 * (
             algorithm_implementation.error_budget.synthesis_failure_tolerance
         )
@@ -333,17 +323,9 @@ class GraphResourceEstimator:
                 max_decodable_distance=max_decodable_distance,
             )
         else:
-<<<<<<< HEAD
-            decoder_total_energy_consumption = None
-            decoder_power = None
-            decoder_area = None
-            max_decodable_distance = None
-        return ResourceInfo(
-=======
             decoder_info = None
 
         return GraphResourceInfo(
->>>>>>> main
             code_distance=code_distance,
             logical_error_rate=total_logical_error_rate,
             # estimate the number of logical qubits using max node degree
@@ -355,17 +337,10 @@ class GraphResourceEstimator:
         )
 
     def estimate(
-<<<<<<< HEAD
         self, algorithm_implementation: AlgorithmImplementation
-    ) -> ResourceInfo:
+    ) -> GraphResourceInfo:
         assert isinstance(algorithm_implementation.program, GraphPartition)
         if len(algorithm_implementation.program.subgraphs) == 1:
-=======
-        self, algorithm_description: AlgorithmImplementation
-    ) -> GraphResourceInfo:
-        assert isinstance(algorithm_description.program, GraphPartition)
-        if len(algorithm_description.program.subgraphs) == 1:
->>>>>>> main
             graph_data = self._get_graph_data_for_single_graph(
                 algorithm_implementation.program
             )
