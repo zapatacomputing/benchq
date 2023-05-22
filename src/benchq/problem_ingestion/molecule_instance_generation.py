@@ -15,6 +15,7 @@ from openfermion.resource_estimates.molecule import (
 from openfermionpyscf import PyscfMolecularData
 from openfermionpyscf._run_pyscf import compute_integrals
 from pyscf import gto, mp, scf
+from pyscf.tools import fcidump
 
 
 class SCFConvergenceError(Exception):
@@ -64,6 +65,9 @@ class ChemistryApplicationInstance:
         fno_percentage_occupation_number: Percentage of total occupation number.
         fno_threshold: Threshold on NO occupation numbers.
         fno_n_virtual_natural_orbitals: Number of virtual NOs to keep.
+        scf_options: SCF options.
+        mean_field_obejct_from_fcidump: Path to the FCIDUMP file which is
+                                        used to build an SCF object from.
     """
 
     geometry: List[Tuple[str, Tuple[float, float, float]]]
@@ -79,6 +83,7 @@ class ChemistryApplicationInstance:
     fno_threshold: Optional[float] = None
     fno_n_virtual_natural_orbitals: Optional[int] = None
     scf_options: Optional[dict] = None
+    mean_field_obejct_from_fcidump: Optional[str] = None
 
     def get_pyscf_molecule(self) -> gto.Mole:
         "Generate the PySCF molecule object describing the system to be calculated."
@@ -292,7 +297,14 @@ class ChemistryApplicationInstance:
             charge=self.charge,
         )
 
-        molecule, mean_field_object = self._run_pyscf()
+        if self.mean_field_obejct_from_fcidump is not None:
+            molecule = self._get_molecular_data()
+            mean_field_object = fcidump.to_scf(self.fcidump_filepath)
+            molecule = mean_field_object.mol
+
+        else:
+            molecule, mean_field_object = self._run_pyscf()
+
         molecular_data.n_orbitals = int(molecule.nao_nr())
         molecular_data.n_qubits = 2 * molecular_data.n_orbitals
         molecular_data.nuclear_repulsion = float(molecule.energy_nuc())
