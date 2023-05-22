@@ -5,6 +5,10 @@
 Basic example of how to perform resource estimation of a circuit from a QASM file.
 """
 
+from logging import log
+import os
+import pickle
+import mlflow
 from orquestra.integrations.qiskit.conversions import import_from_qiskit
 from qiskit.circuit import QuantumCircuit
 
@@ -37,6 +41,7 @@ def main(file_name):
     # the whole calculation. It also allows to set relative weights for different
     # parts of the calculation, such as gate synthesis or circuit generation.
     error_budget = ErrorBudget.from_even_split(total_failure_tolerance=1e-3)
+    mlflow.log_param("total_failure_tolerance", 1e-3)
 
     # algorithm implementation encapsulates the how the algorithm is implemented
     # including the program, the number of times the program must be repeated,
@@ -48,6 +53,8 @@ def main(file_name):
         physical_gate_error_rate=1e-3,
         physical_gate_time_in_seconds=1e-6,
     )
+    mlflow.log_param("physical_gate_error_rate", 1e-3)
+    mlflow.log_param("physical_gate_time_in_seconds", 1e-6)
 
     # Here we run the resource estimation pipeline.
     # In this case before performing estimation we use the following transformers:
@@ -69,8 +76,20 @@ def main(file_name):
         ],
     )
     print("Resource estimation results:")
+    if not os.path.exists("outputs"):
+        os.makedirs("outputs")
+    with open("outputs/test.txt", "w") as f:
+        f.write(str(gsc_resource_estimates))
     print(gsc_resource_estimates)
+
+    mlflow.log_artifacts("outputs")
+    mlflow.log_metric("code_distance", gsc_resource_estimates.code_distance)
+    mlflow.log_metric("logical_error_rate", gsc_resource_estimates.logical_error_rate)
+    mlflow.log_metric("n_logical_qubits", gsc_resource_estimates.n_logical_qubits)
+    mlflow.log_metric("total_time_in_seconds", gsc_resource_estimates.total_time_in_seconds)
+
 
 
 if __name__ == "__main__":
+    mlflow.set_tracking_uri("http://127.0.0.1:5000")
     main("data/example_circuit.qasm")

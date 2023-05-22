@@ -1,0 +1,1 @@
+ResourceInfo(code_distance=19, logical_error_rate=9.944389761811223e-05, n_logical_qubits=62, n_physical_qubits=90338, total_time_in_seconds=0.2988468, decoder_info=None, extra=GraphData(max_graph_degree=62, n_nodes=1282, n_t_gates=1278, n_rotation_gates=0, n_measurement_steps=126))
