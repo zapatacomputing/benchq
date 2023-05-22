@@ -1,5 +1,4 @@
 import os
-from dataclasses import asdict
 
 import numpy as np
 import pytest

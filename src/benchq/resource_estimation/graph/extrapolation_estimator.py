@@ -23,10 +23,9 @@ class ExtrapolationResourceEstimator(GraphResourceEstimator):
         steps_to_extrapolate_from: List[int],
         decoder_model: Optional[DecoderModel] = None,
         optimization: str = "time",
-        distillation_widget: str = "(15-to-1)_7,3,3",
         n_measurement_steps_fit_type: str = "logarithmic",
     ):
-        super().__init__(hw_model, decoder_model, distillation_widget, optimization)
+        super().__init__(hw_model, decoder_model, optimization)
         self.steps_to_extrapolate_from = steps_to_extrapolate_from
         self.n_measurement_steps_fit_type = n_measurement_steps_fit_type
 
