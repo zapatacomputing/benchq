@@ -13,10 +13,10 @@ from benchq.compilation import jl, pyliqtr_transpile_to_clifford_t
     [  # many single qubit gates
         Circuit([gate(i) for i in range(1000) for gate in [H, X, Z, S, H] * 10]),
         # ghz state
-        Circuit([H(0)] + [CNOT(0, i) for i in range(100)]),
+        Circuit([H(0)] + [CNOT(0, i) for i in range(1000)]),
         # fully connected state
         Circuit(
-            [H(0)] + [CNOT(i, j) for i, j in itertools.combinations(range(100), 2)]
+            [H(0)] + [CNOT(i, j) for i, j in itertools.combinations(range(1000), 2)]
         ),
         # cnot chain
         Circuit([H(0)] + [CNOT(i, i + 1) for i in range(100)]),
@@ -29,5 +29,5 @@ from benchq.compilation import jl, pyliqtr_transpile_to_clifford_t
         ),
     ],
 )
-def test_graph_sim_mini(benchmark, circuit):
+def test_graph_sim_mini(circuit):
     jl.run_graph_sim_mini(circuit)
