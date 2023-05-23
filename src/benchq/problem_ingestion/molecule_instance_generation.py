@@ -15,7 +15,8 @@ from openfermion.resource_estimates.molecule import (
 from openfermionpyscf import PyscfMolecularData
 from openfermionpyscf._run_pyscf import compute_integrals
 from pyscf import gto, mp, scf
-from pyscf.tools import fcidump
+import pyscf
+from openfermion.resource_estimates.molecule import cas_to_pyscf
 
 
 class SCFConvergenceError(Exception):
@@ -241,6 +242,7 @@ class ChemistryApplicationInstance:
             molecular_data = self._get_molecular_data()
 
             if self.freeze_core:
+
                 n_frozen_core = self._set_frozen_core_orbitals(molecular_data).frozen
                 if n_frozen_core > 0:
                     self.occupied_indices = list(range(n_frozen_core))
@@ -298,14 +300,17 @@ class ChemistryApplicationInstance:
         )
 
         if self.mean_field_obejct_from_fcidump is not None:
-            molecule = self._get_molecular_data()
-            mean_field_object = fcidump.to_scf(self.fcidump_filepath)
-            molecule = mean_field_object.mol
+            molecule = self.get_pyscf_molecule()
+            fci = pyscf.tools.fcidump.read(self.mean_field_obejct_from_fcidump)
+            eri = pyscf.ao2mo.restore("s1", fci["H2"], fci["H1"].shape[0])
+            molecule, mean_field_object = cas_to_pyscf(
+                fci["H1"], eri, fci["ECORE"], fci["NELEC"] // 2, fci["NELEC"] // 2
+            )
 
         else:
             molecule, mean_field_object = self._run_pyscf()
 
-        molecular_data.n_orbitals = int(molecule.nao_nr())
+        molecular_data.n_orbitals = mean_field_object.mo_coeff.shape[0]
         molecular_data.n_qubits = 2 * molecular_data.n_orbitals
         molecular_data.nuclear_repulsion = float(molecule.energy_nuc())
 
