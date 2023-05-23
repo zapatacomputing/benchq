@@ -1,0 +1,106 @@
+################################################################################
+# © Copyright 2022-2023 Zapata Computing Inc.
+################################################################################
+"""
+Basic example of how to perform resource estimation of a circuit from a QASM file.
+"""
+
+from logging import log
+import os
+import pickle
+import mlflow
+from icecream import ic
+from orquestra.integrations.qiskit.conversions import import_from_qiskit
+from qiskit.circuit import QuantumCircuit
+
+from benchq.data_structures import (
+    AlgorithmImplementation,
+    BasicArchitectureModel,
+    ErrorBudget,
+    get_program_from_circuit,
+)
+from benchq.resource_estimation.graph import (
+    GraphResourceEstimator,
+    create_big_graph_from_subcircuits,
+    run_custom_resource_estimation_pipeline,
+    simplify_rotations,
+    synthesize_clifford_t,
+)
+
+
+def main(file_name):
+    # Uncomment to see extra debug output
+    # logging.getLogger().setLevel(logging.INFO)
+
+    # We can load a circuit from a QASM file using qiskit
+    qiskit_circuit = QuantumCircuit.from_qasm_file(file_name)
+    # In order to perform resource estimation we need to translate it to a
+    # benchq program.
+    quantum_program = get_program_from_circuit(import_from_qiskit(qiskit_circuit))
+
+    for exp in [3,4,5]:
+        with mlflow.start_run():
+            # Error budget is used to define what should be the failure rate of running
+            # the whole calculation. It also allows to set relative weights for different
+            # parts of the calculation, such as gate synthesis or circuit generation.
+            error_budget = ErrorBudget.from_even_split(total_failure_tolerance=10**(-exp))
+            mlflow.log_params(vars(error_budget))
+
+            # algorithm implementation encapsulates the how the algorithm is implemented
+            # including the program, the number of times the program must be repeated,
+            # and the error budget which will be used in the circuit.
+            algorithm_description = AlgorithmImplementation(quantum_program, error_budget, 1)
+
+            # Architecture model is used to define the hardware model.
+            architecture_model = BasicArchitectureModel(
+                physical_gate_error_rate=1e-3,
+                physical_gate_time_in_seconds=1e-6,
+            )
+            # mlflow.log_param("physical_gate_error_rate", 1e-3)
+            # mlflow.log_param("physical_gate_time_in_seconds", 1e-6)
+            mlflow.log_params(vars(architecture_model))
+
+            # Here we run the resource estimation pipeline.
+            # In this case before performing estimation we use the following transformers:
+            # 1. Simplify rotations – it is a simple transpilation that removes redundant
+            # rotations from the circuit, such as RZ(0) or RZ(2pi) and replaces RX and RY
+            # gates with RZs
+            # 2. Gate synthesis – replaces all RZ gates with Clifford+T gates
+            # 3. Create big graph from subcircuits – this transformer is used to create
+            # a graph from subcircuits. It is needed to perform resource estimation using
+            # the graph resource estimator. In this case we use delayed gate synthesis, as
+            # we have already performed gate synthesis in the previous step.
+            gsc_resource_estimates = run_custom_resource_estimation_pipeline(
+                algorithm_description,
+                estimator=GraphResourceEstimator(architecture_model),
+                transformers=[
+                    simplify_rotations,
+                    synthesize_clifford_t(error_budget),
+                    create_big_graph_from_subcircuits(),
+                ],
+            )
+            print("Resource estimation results:")
+            if not os.path.exists("outputs"):
+                os.makedirs("outputs")
+            with open("outputs/test.txt", "w") as f:
+                f.write(str(gsc_resource_estimates))
+            print(gsc_resource_estimates)
+
+            mlflow.log_artifacts("outputs")
+            resource_info = vars(gsc_resource_estimates)
+            ic(resource_info)
+            for name in resource_info:
+                ic(name, resource_info[name])
+                if resource_info[name] is not None and name != "extra" and name != "__orig_class__":
+                    mlflow.log_metric(name, resource_info[name])
+            # mlflow.log_metric("code_distance", gsc_resource_estimates.code_distance)
+            # mlflow.log_metric("logical_error_rate", gsc_resource_estimates.logical_error_rate)
+            # mlflow.log_metric("n_logical_qubits", gsc_resource_estimates.n_logical_qubits)
+            # mlflow.log_metric("total_time_in_seconds", gsc_resource_estimates.total_time_in_seconds)
+
+
+
+if __name__ == "__main__":
+    mlflow.set_tracking_uri("http://127.0.0.1:5000")
+    mlflow.set_experiment("from qasm")
+    main("data/example_circuit.qasm")
