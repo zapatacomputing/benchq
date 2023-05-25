@@ -27,8 +27,7 @@ def test_physical_qubit_count_is_larger_than_number_of_spin_orbitals(
         h1, eri_full, 20
     )
     assert (
-        qpe_resource_estimates["physical_qubit_count"]
-        > 2 * mean_field_object._eri.shape[0]
+        qpe_resource_estimates.n_physical_qubits > 2 * mean_field_object._eri.shape[0]
     )
 
 
