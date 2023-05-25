@@ -24,11 +24,11 @@ SKIP_AZURE = pytest.mark.skipif(
 )
 def test_better_architecture_does_not_require_more_resources() -> None:
     low_quality_architecture_model = BasicArchitectureModel(
-        physical_t_gate_error_rate=1e-4,
+        physical_qubit_error_rate=1e-4,
         surface_code_cycle_time_in_seconds=1e-6,
     )
     high_quality_architecture_model = BasicArchitectureModel(
-        physical_t_gate_error_rate=1e-3,
+        physical_qubit_error_rate=1e-3,
         surface_code_cycle_time_in_seconds=1e-9,
     )
 

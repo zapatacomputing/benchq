@@ -101,7 +101,7 @@ def estimate_full_graph_size(
             algorithm_description.program.n_rotation_gates
             * GraphResourceEstimator.SYNTHESIS_SCALING
             * np.log2(
-                1 / algorithm_description.error_budget.synthesis_failure_tolerance
+                1 / algorithm_description.error_budget.transpilation_failure_tolerance
             )
         )
     else:

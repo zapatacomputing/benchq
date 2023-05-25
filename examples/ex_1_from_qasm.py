@@ -45,7 +45,7 @@ def main(file_name):
 
     # Architecture model is used to define the hardware model.
     architecture_model = BasicArchitectureModel(
-        physical_t_gate_error_rate=1e-3,
+        physical_qubit_error_rate=1e-3,
         surface_code_cycle_time_in_seconds=1e-6,
     )
 

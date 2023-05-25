@@ -1,4 +1,3 @@
-from dataclasses import dataclass
 from typing import Optional
 
 import networkx as nx
@@ -64,7 +63,7 @@ class GraphResourceEstimator:
         self,
         n_total_t_gates: int,
         graph_data: GraphData,
-        ec_failure_tolerance: float,
+        hardware_failure_tolerance: float,
         min_d: int = 4,
         max_d: int = 100,
     ) -> int:
@@ -73,7 +72,7 @@ class GraphResourceEstimator:
                 1 - self._logical_cell_error_rate(code_distance)
             ) ** self.get_logical_st_volume(n_total_t_gates, graph_data, code_distance)
 
-            if ec_error_rate_at_this_distance < ec_failure_tolerance:
+            if ec_error_rate_at_this_distance < hardware_failure_tolerance:
                 return code_distance
 
         raise RuntimeError(f"Not found good error rates under distance code: {max_d}.")
@@ -84,8 +83,7 @@ class GraphResourceEstimator:
             - (
                 1
                 - 0.3
-                * (70 * self.hw_model.physical_t_gate_error_rate)
-                ** ((distance + 1) / 2)
+                * (70 * self.hw_model.physical_qubit_error_rate) ** ((distance + 1) / 2)
             )
             ** distance
         )
@@ -96,7 +94,7 @@ class GraphResourceEstimator:
         # For example, check that we are properly including/excluding
         # the distillation spacetime volume
         space = 2 * graph_data.max_graph_degree
-        ## Time component assuming all graph nodes are measured sequentially
+        # Time component assuming all graph nodes are measured sequentially
         time = (
             graph_data.n_measurement_steps * code_distance
             + (self.widget_specs["time"] + code_distance) * n_total_t_gates
@@ -122,7 +120,7 @@ class GraphResourceEstimator:
     ) -> GraphResourceInfo:
         if graph_data.n_rotation_gates != 0:
             per_gate_synthesis_accuracy = 1 - (
-                1 - algorithm_description.error_budget.synthesis_failure_tolerance
+                1 - algorithm_description.error_budget.transpilation_failure_tolerance
             ) ** (1 / graph_data.n_rotation_gates)
 
             n_t_gates_used_at_measurement = (
@@ -138,7 +136,7 @@ class GraphResourceEstimator:
         code_distance = self._minimize_code_distance(
             n_total_t_gates,
             graph_data,
-            algorithm_description.error_budget.ec_failure_tolerance,
+            algorithm_description.error_budget.hardware_failure_tolerance,
         )
 
         # get error rate after correction

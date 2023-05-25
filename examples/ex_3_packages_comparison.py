@@ -27,7 +27,7 @@ from benchq.timing import measure_time
 def main():
     evolution_time = 5.0
     architecture_model = BasicArchitectureModel(
-        physical_t_gate_error_rate=1e-3,
+        physical_qubit_error_rate=1e-3,
         surface_code_cycle_time_in_seconds=1e-6,
     )
 

@@ -14,17 +14,21 @@ class BasicArchitectureModel(ABCArchitectureModel):
     performance of a quantum computer.
 
     Attributes:
-        physical_t_gate_error_rate (float): The error rate of a physical T-gate,
-            stemming from the error in magic state preparation.
+        physical_qubit_error_rate (float): The probability that any given physical
+            qubit incurs a pauli error during SPAM, entangling gates, or idling.
+            For entangling gates and idles, each physical qubit involved in the
+            operation is depolarized with probability 2p/3. For SPAM, a pauli that
+            brings the state to an orthogonal state is applied with probability p.
         surface_code_cycle_time_in_seconds (float): The time it takes to run a
             surface code cycle.
     """
+
     def __init__(
         self,
-        physical_t_gate_error_rate,
+        physical_qubit_error_rate,
         surface_code_cycle_time_in_seconds,
     ):
-        self.physical_t_gate_error_rate = physical_t_gate_error_rate
+        self.physical_qubit_error_rate = physical_qubit_error_rate
         self.surface_code_cycle_time_in_seconds = surface_code_cycle_time_in_seconds
 
 
