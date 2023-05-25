@@ -30,7 +30,7 @@ class ResourceInfo(Generic[TExtra]):
     in the extra field. This information should relate to the specific
     compilation method or algorithm used for estimating resources.
 
-    Other fields are commont between estimation methods that we currently have.
+    Other fields are common between estimation methods that we currently have.
 
     There are several variants of this class aliased below.
     """
