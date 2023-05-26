@@ -66,21 +66,19 @@ function get_graph_state_data(icm_circuit::Vector{ICMOp}, n_qubits)
         op_code = icm_op.code
         qubit_1 = icm_op.qubit1
         if op_code == H_code
-            lco[qubit_1] = multiply_h[lco[qubit_1]]
+            lco[qubit_1] = multiply_h(lco[qubit_1])
         elseif op_code == S_code
-            lco[qubit_1] = multiply_s[lco[qubit_1]]
+            lco[qubit_1] = multiply_s(lco[qubit_1])
         elseif op_code == CNOT_code
             # CNOT = (I ⊗ H) CZ (I ⊗ H)
             qubit_2 = icm_op.qubit2
-            lco[qubit_2] = multiply_h[lco[qubit_2]]
+            lco[qubit_2] = multiply_h(lco[qubit_2])
             #@timeit to "cz" cz(lco, adj, qubit_1, qubit_2)
             cz(lco, adj, qubit_1, qubit_2)
-            lco[qubit_2] = multiply_h[lco[qubit_2]]
-        elseif op_code == CZ_code
+            lco[qubit_2] = multiply_h(lco[qubit_2])
+        else # CZ_code
             #@timeit to "cz" cz(lco, adj, qubit_1, icm_op.qubit2)
             cz(lco, adj, qubit_1, icm_op.qubit2)
-        else # S_Dagger_code
-            lco[qubit_1] = multiply_d[lco[qubit_1]]
         end
     end
 
@@ -91,11 +89,12 @@ end
 @inline function update_lco(table, lco, vertex_1, vertex_2)
     # Get the packed value from the table
     val = table[lco[vertex_1], lco[vertex_2]]
-    # The code for the first vertex is stored in the top byte, and the second in the bottom byte
-    lco[vertex_1] = (val >> 8) & 0x7f
-    lco[vertex_2] = val & 0xff
+    # The code for the first vertex is stored in the top nibble
+    # and the second in the bottom nibble
+    lco[vertex_1] = (val >> 4) & 0x7
+    lco[vertex_2] = val & 0x7
     # return if the top bit is set, which indicates if it is isolated or connected
-    (val & 0x8000) != 0x0000
+    (val & 0x80) != 0x00
 end
 
 """
@@ -185,32 +184,26 @@ Args:
     avoid::Int            index of a neighbor of v to avoid using
 """
 function remove_lco(lco, adj, v, avoid)
-    #=
-    other_neighbors = deepcopy(adj[v])
-    delete!(other_neighbors, avoid)
-    vb = isempty(other_neighbors) ? avoid : pop!(other_neighbors)
-
-    for factor in reverse(decomposition_lookup_table[lco[v]])
-        local_complement(lco, adj, factor == 'U' ? v : vb)
-    end
-    =#
-    #@timeit to "remove_lco" begin
-    # This uses a precomputed decomposition table, length is stored in top 3 bits
-    # Other 5 bits when set indicate using sqrt(Z) gate instead of sqrt(X) gate
-    tab = decomp_tab[lco[v]]
-    if (tab & 0x1f) == 0 # check if there are any sqrt(Z) gates
-        # Faster code for 4 of the 24 gates that don't have sqrt(Z)
-        for i = 1:(tab>>5)
-            local_complement!(lco, adj, v)
-        end
+    code = lco[v]
+    if code == Pauli_code
+    elseif code == SQRT_X_code
+        local_complement!(lco, adj, v)
     else
         vb = get_neighbor(adj[v], avoid)
-        for i = 1:(tab>>5)
-            local_complement!(lco, adj, ifelse((tab & 0x1) == 0x0, v, vb))
-            tab >>= 1
+        if code == S_code
+            local_complement!(lco, adj, vb)
+        elseif code == H_code
+            local_complement!(lco, adj, v)
+            local_complement!(lco, adj, vb)
+            local_complement!(lco, adj, v)
+        elseif code == SH_code
+            local_complement!(lco, adj, v)
+            local_complement!(lco, adj, vb)
+        elseif code == HS_code
+            local_complement!(lco, adj, vb)
+            local_complement!(lco, adj, v)
         end
     end
-    #end
 end
 
 """Find the first valid slot starting at index i"""
@@ -260,9 +253,9 @@ function local_complement!(lco, adj, v)
     #end
 
     #@timeit to "lc multiply lco" begin
-    lco[v] = multiply_by_sqrt_x[lco[v]]
+    lco[v] = multiply_by_sqrt_x(lco[v])
     for i in adj[v]
-        lco[i] = multiply_by_s[lco[i]]
+        lco[i] = multiply_by_s(lco[i])
     end
     #end
 end
@@ -321,7 +314,7 @@ get_op_list() = Jabalizer.pylist(op_list)
 """Get index of operation name"""
 get_op_index(op_list, op) = Jabalizer.pyconvert(Int, op_list.index(op.gate.name)) + 1
 
-ignore_op(index) = index < 5 # i.e. I, X, Y, Z
+pauli_op(index) = index < 5 # i.e. I, X, Y, Z
 single_qubit_op(index) = 4 < index < 8   # H, S, S_Dagger
 double_qubit_op(index) = 7 < index < 10  # CZ, CNOT
 decompose_op(index) = index > 9 # T, T_Dagger, RX, RY, RZ
