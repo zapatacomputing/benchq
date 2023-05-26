@@ -13,8 +13,8 @@ from ...data_structures import (
 )
 
 
-def _distribute_synthesis_failure_tolerance(
-    program: QuantumProgram, total_synthesis_failure_tolerance: float
+def _distribute_transpilation_failure_tolerance(
+    program: QuantumProgram, total_transpilation_failure_tolerance: float
 ) -> Sequence[float]:
     n_rots_per_subroutine = [
         program.count_gates_in_subroutine(i, ["RX", "RY", "RZ"])
@@ -31,7 +31,7 @@ def _distribute_synthesis_failure_tolerance(
         [0 for _ in program.subroutines]
         if n_total_rots == 0
         else [
-            total_synthesis_failure_tolerance * count / n_total_rots
+            total_transpilation_failure_tolerance * count / n_total_rots
             for count in n_rots_per_subroutine
         ]
     )
@@ -41,8 +41,8 @@ def synthesize_clifford_t(
     error_budget: ErrorBudget,
 ) -> Callable[[QuantumProgram], QuantumProgram]:
     def _transformer(program: QuantumProgram) -> QuantumProgram:
-        tolerances = _distribute_synthesis_failure_tolerance(
-            program, error_budget.synthesis_failure_tolerance
+        tolerances = _distribute_transpilation_failure_tolerance(
+            program, error_budget.transpilation_failure_tolerance
         )
         circuits = [
             pyliqtr_transpile_to_clifford_t(circuit, circuit_precision=tolerance)

@@ -96,8 +96,8 @@ def example_workflow():
     evolution_time = 5.0
     error_budget = ErrorBudget.from_even_split(total_failure_tolerance=1e-3)
     architecture_model = BasicArchitectureModel(
-        physical_gate_error_rate=1e-3,
-        physical_gate_time_in_seconds=1e-6,
+        physical_qubit_error_rate=1e-3,
+        surface_code_cycle_time_in_seconds=1e-6,
     )
 
     results = []

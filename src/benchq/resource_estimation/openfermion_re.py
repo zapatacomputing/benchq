@@ -1,7 +1,7 @@
 ################################################################################
 # © Copyright 2022 Zapata Computing Inc.
 ################################################################################
-from typing import Any, Dict, Tuple
+from typing import Tuple
 
 import numpy as np
 from openfermion.resource_estimates import sf

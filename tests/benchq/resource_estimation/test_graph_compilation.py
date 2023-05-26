@@ -80,8 +80,8 @@ def test_get_resource_estimations_for_program_gives_correct_results(
     quantum_program, expected_results, use_delayed_gate_synthesis
 ):
     architecture_model = BasicArchitectureModel(
-        physical_gate_error_rate=1e-3,
-        physical_gate_time_in_seconds=1e-6,
+        physical_qubit_error_rate=1e-3,
+        surface_code_cycle_time_in_seconds=1e-6,
     )
     # set circuit generation weight to 0
     error_budget = ErrorBudget.from_weights(1e-3, 0, 1, 1)
@@ -115,15 +115,15 @@ def test_better_architecture_does_not_require_more_resources(
     use_delayed_gate_synthesis,
 ):
     low_noise_architecture_model = BasicArchitectureModel(
-        physical_gate_error_rate=1e-4,
-        physical_gate_time_in_seconds=1e-6,
+        physical_qubit_error_rate=1e-4,
+        surface_code_cycle_time_in_seconds=1e-6,
     )
     high_noise_architecture_model = BasicArchitectureModel(
-        physical_gate_error_rate=1e-3,
-        physical_gate_time_in_seconds=1e-6,
+        physical_qubit_error_rate=1e-3,
+        surface_code_cycle_time_in_seconds=1e-6,
     )
     error_budget = ErrorBudget.from_weights(
-        total_failure_tolerance=1e-2, circuit_generation_weight=0
+        total_failure_tolerance=1e-2, algorithm_failure_weight=0
     )
     transformers = _get_transformers(use_delayed_gate_synthesis, error_budget)
 
@@ -161,8 +161,8 @@ def test_higher_error_budget_does_not_require_more_resources(
     use_delayed_gate_synthesis,
 ):
     architecture_model = BasicArchitectureModel(
-        physical_gate_error_rate=1e-3,
-        physical_gate_time_in_seconds=1e-6,
+        physical_qubit_error_rate=1e-3,
+        surface_code_cycle_time_in_seconds=1e-6,
     )
     low_failure_tolerance = 1e-3
     high_failure_tolerance = 1e-2
@@ -216,8 +216,8 @@ def test_higher_error_budget_does_not_require_more_resources(
 
 def test_get_resource_estimations_for_program_accounts_for_decoder():
     architecture_model = BasicArchitectureModel(
-        physical_gate_error_rate=1e-3,
-        physical_gate_time_in_seconds=1e-6,
+        physical_qubit_error_rate=1e-3,
+        surface_code_cycle_time_in_seconds=1e-6,
     )
     # set circuit generation weight to 0
     error_budget = ErrorBudget.from_weights(1e-3, 0, 1, 1)
