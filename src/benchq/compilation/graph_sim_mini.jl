@@ -184,12 +184,17 @@ Args:
     avoid::Int            index of a neighbor of v to avoid using
 """
 function remove_lco(lco, adj, v, avoid)
+    other_neighbors = deepcopy(adj[v])
+    delete!(other_neighbors, avoid)
+    vb = isempty(other_neighbors) ? avoid : pop!(other_neighbors)
+
+
     code = lco[v]
     if code == Pauli_code
     elseif code == SQRT_X_code
         local_complement!(lco, adj, v)
     else
-        vb = get_neighbor(adj[v], avoid)
+        # vb = get_neighbor(adj[v], avoid)
         if code == S_code
             local_complement!(lco, adj, vb)
         elseif code == H_code
@@ -269,7 +274,7 @@ end
     =#
     push!(adj[vertex_1], vertex_2)
     push!(adj[vertex_2], vertex_1)
-end    
+end
 
 """Remove an edge between the two vertices given"""
 @inline function remove_edge!(adj, vertex_1, vertex_2)
@@ -374,7 +379,7 @@ function python_adjlist!(adj)
 end
 
 """
-Converts a given circuit in Clifford + T form to icm form and simulates the icm 
+Converts a given circuit in Clifford + T form to icm form and simulates the icm
 circuit using the graph sim mini simulator. Returns the adjacency list of the graph
 state created by the icm circuit along with the single qubit operations on each vertex.
 
