@@ -165,7 +165,7 @@ function get_neighbor(neighbors, avoid)
     dict = neighbors.dict
     slots = dict.slots
     for i = dict.idxfloor:length(slots)
-        @inbounds if slots[i] == 0x1 # make sure slot is actually filled
+        @inbounds if Base.isslotfilled(dict, i)
             vb = dict.keys[i]
             vb != avoid && return vb
         end
@@ -206,13 +206,15 @@ function remove_lco(lco, adj, v, avoid)
     end
 end
 
+#=
 """Find the first valid slot starting at index i"""
-@inline function _firstvalid(slots, i, len)
-    while i <= len && slots[i] != 0x1
+@inline function _firstvalid(dict, i, len)
+    while i <= len && !Base.isslotfilled(dict, i)
         i += 1
     end
     i
 end
+=#
 
 """
 Take the local complement of a vertex v.
@@ -239,7 +241,7 @@ function local_complement!(lco, adj, v)
         slots = dict.slots
         len = length(slots)
         i = dict.idxfloor
-        while (i = _firstvalid(slots, i, len)) <= len
+        while (i = _firstvalid(dict, i, len)) <= len
             neighbor = keys[i]
             lst = adj[neighbor]
             i += 1
