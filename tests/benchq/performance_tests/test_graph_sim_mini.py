@@ -30,4 +30,4 @@ from benchq.compilation import jl, pyliqtr_transpile_to_clifford_t
     ],
 )
 def test_graph_sim_mini(circuit):
-    jl.run_graph_sim_mini(circuit)
+    jl.run_graph_sim_mini(circuit, True)
