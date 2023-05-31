@@ -114,7 +114,7 @@ class GraphResourceEstimator:
         self,
         n_total_t_gates: int,
         graph_data: GraphData,
-        ec_failure_tolerance: float,
+        hardware_failure_tolerance: float,
         min_d: int = 4,
         max_d: int = 200,
     ) -> int:
@@ -123,7 +123,7 @@ class GraphResourceEstimator:
                 code_distance, n_total_t_gates, graph_data
             )
 
-            if ec_error_rate_at_this_distance < ec_failure_tolerance:
+            if ec_error_rate_at_this_distance < hardware_failure_tolerance:
                 return code_distance
 
         raise RuntimeError(f"Required distance is greater than {max_d}.")
@@ -141,7 +141,7 @@ class GraphResourceEstimator:
             - (
                 1
                 - 0.3
-                * (70 * self.hw_model.physical_gate_error_rate) ** ((distance + 1) / 2)
+                * (70 * self.hw_model.physical_qubit_error_rate) ** ((distance + 1) / 2)
             )
             ** distance
         )
@@ -185,7 +185,7 @@ class GraphResourceEstimator:
         max_distance = 0
         for distance in range(min_d, max_d):
             time_for_logical_operation = (
-                6 * self.hw_model.physical_gate_time_in_seconds * distance
+                6 * self.hw_model.surface_code_cycle_time_in_seconds * distance
             )
             if self.decoder_model.delay(distance) < time_for_logical_operation:
                 max_distance = distance

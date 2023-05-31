@@ -70,4 +70,4 @@ def main(file_name):
 
 
 if __name__ == "__main__":
-    main("circuits/example_circuit.qasm")
+    main("data/example_circuit.qasm")

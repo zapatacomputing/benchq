@@ -1,14 +1,17 @@
 ################################################################################
 # © Copyright 2022 Zapata Computing Inc.
 ################################################################################
-from typing import Any, Dict, Tuple
+from typing import Tuple
 
 import numpy as np
 from openfermion.resource_estimates import sf
 from openfermion.resource_estimates.surface_code_compilation.physical_costing import (
+    AlgorithmParameters,
+    CostEstimate,
     cost_estimator,
 )
 
+from benchq.data_structures.resource_info import OpenFermionResourceInfo
 from benchq.resource_estimation._compute_lambda_sf import compute_lambda
 
 
@@ -60,7 +63,7 @@ def get_single_factorized_qpe_resource_estimate(
     rank: int,
     allowable_phase_estimation_error: float = 0.001,
     bits_precision_state_prep: int = 10,
-) -> Dict[str, Any]:
+) -> OpenFermionResourceInfo:
     """Get the estimated resources for single factorized QPE as described in PRX Quantum
     2, 030305.
 
@@ -99,15 +102,18 @@ def get_single_factorized_qpe_resource_estimate(
         portion_of_bounding_box=1.0,
     )
 
-    physical_qubit_count = best_cost.physical_qubit_count
-    duration = best_cost.duration
-    print("Number of physical qubits is:", physical_qubit_count)
-    print("Runtime in hours is:", duration.seconds / 3600)
-    return {
-        # "logical_error_rate": final_logical_error_rate,
-        "total_time": duration.seconds,
-        "physical_qubit_count": physical_qubit_count,
-        # "min_viable_distance": min_viable_distance,
-        # "synthesis_error_rate": synthesis_error_rate,
-        # "resources_in_cells": resources_in_cells,
-    }
+    return _openfermion_result_to_resource_info(best_cost, best_params)
+
+
+def _openfermion_result_to_resource_info(
+    cost: CostEstimate, algorithm_parameters: AlgorithmParameters
+) -> OpenFermionResourceInfo:
+    return OpenFermionResourceInfo(
+        n_physical_qubits=cost.physical_qubit_count,
+        n_logical_qubits=algorithm_parameters.max_allocated_logical_qubits,
+        total_time_in_seconds=cost.duration.seconds,
+        code_distance=algorithm_parameters.logical_data_qubit_distance,
+        logical_error_rate=cost.algorithm_failure_probability,
+        decoder_info=None,
+        extra=algorithm_parameters,
+    )

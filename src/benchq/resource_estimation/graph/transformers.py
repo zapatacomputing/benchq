@@ -20,7 +20,7 @@ def synthesize_clifford_t(
         circuits = [
             pyliqtr_transpile_to_clifford_t(
                 circuit,
-                circuit_precision=error_budget.synthesis_failure_tolerance,
+                circuit_precision=error_budget.transpilation_failure_tolerance,
                 n_rotation_gates=program.n_rotation_gates,
             )
             for circuit in program.subroutines

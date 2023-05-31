@@ -32,7 +32,7 @@ def run_custom_extrapolation_pipeline(
     transformers,
 ) -> ExtrapolatedGraphResourceInfo:
     synthesis_accuracy_for_each_rotation = 1 - (
-        1 - algorithm_description.error_budget.synthesis_failure_tolerance
+        1 - algorithm_description.error_budget.transpilation_failure_tolerance
     ) ** (1 / algorithm_description.program.n_rotation_gates)
 
     small_programs_graph_data: List[GraphData] = []
@@ -41,7 +41,7 @@ def run_custom_extrapolation_pipeline(
         small_algorithm_description = deepcopy(algorithm_description)
         small_algorithm_description.error_budget = replace(
             algorithm_description.error_budget,
-            synthesis_failure_tolerance=synthesis_accuracy_for_each_rotation
+            transpilation_failure_tolerance=synthesis_accuracy_for_each_rotation
             * small_algorithm_description.program.n_rotation_gates,
         )
 
