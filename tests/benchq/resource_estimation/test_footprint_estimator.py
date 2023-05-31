@@ -124,9 +124,9 @@ def test_better_architecture_does_not_require_more_resources(
     low_noise_architecture_model.physical_gate_error_rate = 1e-4
     high_noise_architecture_model = BASIC_SC_ARCHITECTURE_MODEL
 
-    error_budget = ErrorBudget.from_weights(
-        total_failure_tolerance=1e-2, circuit_generation_weight=0
-    )
+    # set algorithm failure tolerance to 0
+    error_budget = ErrorBudget.from_weights(1e-2, 0, 1, 1)
+
     transformers = _get_transformers(use_delayed_gate_synthesis, error_budget)
 
     quantum_program = get_program_from_circuit(

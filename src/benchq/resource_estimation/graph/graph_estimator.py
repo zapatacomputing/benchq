@@ -193,12 +193,15 @@ class GraphResourceEstimator:
         return max_distance
 
     def get_n_total_t_gates(
-        self, n_t_gates: int, n_rotation_gates: int, synthesis_failure_tolerance: float
+        self,
+        n_t_gates: int,
+        n_rotation_gates: int,
+        transpilation_failure_tolerance: float,
     ) -> int:
         getcontext().prec = 100  # need some extra precision for this calculation
         if n_rotation_gates != 0:
             per_gate_synthesis_accuracy = 1 - (
-                1 - Decimal(synthesis_failure_tolerance)
+                1 - Decimal(transpilation_failure_tolerance)
             ) ** Decimal(1 / n_rotation_gates)
 
             n_t_gates_used_at_measurement = (
@@ -220,7 +223,7 @@ class GraphResourceEstimator:
         if self.optimization == "time":
             return (
                 6
-                * self.hw_model.physical_gate_time_in_seconds
+                * self.hw_model.physical_qubit_error_rate
                 * (
                     graph_data.n_measurement_steps * code_distance
                     + self.widget_iterator.curr_widget.time_in_tocks
@@ -230,7 +233,7 @@ class GraphResourceEstimator:
         elif self.optimization == "space":
             return (
                 6
-                * self.hw_model.physical_gate_time_in_seconds
+                * self.hw_model.physical_qubit_error_rate
                 * (
                     graph_data.n_measurement_steps * code_distance
                     + (self.widget_iterator.curr_widget.time_in_tocks + code_distance)
@@ -272,12 +275,12 @@ class GraphResourceEstimator:
         graph_data: GraphData,
         algorithm_implementation: AlgorithmImplementation,
     ) -> GraphResourceInfo:
-        synthesis_failure_tolerance = 10 * (
-            algorithm_implementation.error_budget.synthesis_failure_tolerance
+        transpilation_failure_tolerance = 10 * (
+            algorithm_implementation.error_budget.transpilation_failure_tolerance
         )
 
-        for this_synthesis_failure_tolerance in [
-            synthesis_failure_tolerance * (0.1**i) for i in range(10)
+        for this_transpilation_failure_tolerance in [
+            transpilation_failure_tolerance * (0.1**i) for i in range(10)
         ]:
             for widget in self.widget_iterator:
                 if "20-to-4" in widget.name:
@@ -286,12 +289,12 @@ class GraphResourceEstimator:
                 n_total_t_gates = self.get_n_total_t_gates(
                     graph_data.n_t_gates,
                     graph_data.n_rotation_gates,
-                    this_synthesis_failure_tolerance,
+                    this_transpilation_failure_tolerance,
                 )
                 code_distance = self._minimize_code_distance(
                     n_total_t_gates,
                     graph_data,
-                    algorithm_implementation.error_budget.ec_failure_tolerance,
+                    algorithm_implementation.error_budget.hardware_failure_tolerance,
                 )
                 _logical_cell_error_rate = self._logical_cell_error_rate(code_distance)
 
@@ -299,7 +302,7 @@ class GraphResourceEstimator:
                     break
                 elif "20-to-4" in widget.name:
                     graph_data.n_nodes = old_n_nodes
-            if this_synthesis_failure_tolerance < _logical_cell_error_rate:
+            if this_transpilation_failure_tolerance < _logical_cell_error_rate:
                 if graph_data.n_t_gates != 0:
                     # re-run estimates with new synthesis failure tolerance
                     raise RuntimeError(
