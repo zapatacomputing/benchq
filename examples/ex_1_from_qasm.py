@@ -9,8 +9,8 @@ from orquestra.integrations.qiskit.conversions import import_from_qiskit
 from qiskit.circuit import QuantumCircuit
 
 from benchq.data_structures import (
+    BASIC_SC_ARCHITECTURE_MODEL,
     AlgorithmImplementation,
-    BasicArchitectureModel,
     ErrorBudget,
     get_program_from_circuit,
 )
@@ -44,10 +44,7 @@ def main(file_name):
     algorithm_description = AlgorithmImplementation(quantum_program, error_budget, 1)
 
     # Architecture model is used to define the hardware model.
-    architecture_model = BasicArchitectureModel(
-        physical_gate_error_rate=1e-3,
-        physical_gate_time_in_seconds=1e-6,
-    )
+    architecture_model = BASIC_SC_ARCHITECTURE_MODEL
 
     # Here we run the resource estimation pipeline.
     # In this case before performing estimation we use the following transformers:

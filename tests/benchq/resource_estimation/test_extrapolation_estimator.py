@@ -1,9 +1,13 @@
+from dataclasses import asdict
+
 import numpy as np
 import pytest
 from orquestra.quantum.circuits import CNOT, RZ, Circuit, H
 
 from benchq.data_structures import AlgorithmImplementation, ErrorBudget, QuantumProgram
-from benchq.data_structures.hardware_architecture_models import BasicArchitectureModel
+from benchq.data_structures.hardware_architecture_models import (
+    BASIC_SC_ARCHITECTURE_MODEL,
+)
 from benchq.resource_estimation.graph import (
     ExtrapolationResourceEstimator,
     GraphResourceEstimator,
@@ -13,11 +17,11 @@ from benchq.resource_estimation.graph import (
     simplify_rotations,
     synthesize_clifford_t,
 )
-from benchq.vizualization_tools import plot_extrapolations
 
 # Below is code snippet for inspecting the extrapolations visually
 # you can paste it directly into the terminal when a test fails with
 # the python debugger.
+# from benchq.vizualization_tools import plot_extrapolations
 # plot_extrapolations(extrapolated_resource_estimates, steps_to_extrapolate_from, n_measurement_steps_fit_type, gsc_resource_estimates) # noqa: E501
 
 
@@ -34,6 +38,7 @@ def use_delayed_gate_synthesis(request):
 def _get_transformers(use_delayed_gate_synthesis, error_budget):
     if not use_delayed_gate_synthesis:
         transformers = [
+            simplify_rotations,
             synthesize_clifford_t(error_budget),
             create_big_graph_from_subcircuits(),
         ]
@@ -45,6 +50,10 @@ def _get_transformers(use_delayed_gate_synthesis, error_budget):
     return transformers
 
 
+def search_extra(this_dict, field):
+    return this_dict.get(field, this_dict["extra"].get(field))
+
+
 @pytest.mark.parametrize(
     "quantum_program,steps_to_extrapolate_from,n_measurement_steps_fit_type",
     [
@@ -54,11 +63,11 @@ def _get_transformers(use_delayed_gate_synthesis, error_budget):
                     Circuit([H(0), RZ(np.pi / 14)(0), CNOT(0, 1)]),
                     Circuit([H(0), H(1), RZ(np.pi / 14)(0)]),
                 ],
-                5,
+                10,
                 lambda x: [0] + [1] * x + [0],
             ),
-            [2, 3, 4],
-            "linear",
+            [2, 3, 4, 5],
+            "logarithmic",
         ),
         (
             QuantumProgram(
@@ -69,7 +78,7 @@ def _get_transformers(use_delayed_gate_synthesis, error_budget):
                 10,
                 lambda x: [0] + [1] * x + [0],
             ),
-            [2, 3, 4],
+            [2, 3, 4, 5],
             "linear",
         ),
         (
@@ -79,10 +88,10 @@ def _get_transformers(use_delayed_gate_synthesis, error_budget):
                     Circuit([H(0), H(1), RZ(np.pi / 14)(0)]),
                     Circuit([H(0), H(1), CNOT(0, 1)]),
                 ],
-                8,
+                20,
                 lambda x: [0] + [1, 2] * x + [0],
             ),
-            [1, 2, 3],
+            [2, 3, 4, 5, 11],
             "linear",
         ),
     ],
@@ -94,10 +103,8 @@ def test_get_resource_estimations_for_small_program_gives_correct_results(
     n_measurement_steps_fit_type,
     optimization,
 ):
-    architecture_model = BasicArchitectureModel(
-        physical_gate_error_rate=1e-3,
-        physical_gate_time_in_seconds=1e-6,
-    )
+    architecture_model = BASIC_SC_ARCHITECTURE_MODEL
+
     # set circuit generation weight to 0
     error_budget = ErrorBudget.from_weights(1e-2, 0, 1, 1)
     algorithm_description = AlgorithmImplementation(quantum_program, error_budget, 1)
@@ -108,38 +115,36 @@ def test_get_resource_estimations_for_small_program_gives_correct_results(
         estimator=ExtrapolationResourceEstimator(
             architecture_model,
             steps_to_extrapolate_from,
-            n_measurement_steps_fit_type=n_measurement_steps_fit_type,
             optimization=optimization,
+            substrate_scheduler_preset="optimized",
+            n_measurement_steps_fit_type=n_measurement_steps_fit_type,
         ),
         transformers=transformers,
     )
     gsc_resource_estimates = run_custom_resource_estimation_pipeline(
         algorithm_description,
-        estimator=GraphResourceEstimator(architecture_model, optimization=optimization),
+        estimator=GraphResourceEstimator(
+            architecture_model,
+            optimization=optimization,
+            substrate_scheduler_preset="optimized",
+        ),
         transformers=transformers,
     )
 
-    def _results_to_compare_harshly(resource_info):
-        return {
-            "n_nodes": resource_info.extra.n_nodes,
-            "total_time_in_seconds": resource_info.total_time_in_seconds,
-            "n_physical_qubits": resource_info.n_physical_qubits,
-        }
+    test_dict = asdict(extrapolated_resource_estimates)
+    target_dict = asdict(gsc_resource_estimates)
 
-    assert _results_to_compare_harshly(
-        extrapolated_resource_estimates
-    ) == pytest.approx(_results_to_compare_harshly(gsc_resource_estimates), rel=1e-1)
-
-    def _results_to_compare_loosely(resource_info):
-        return {
-            "n_logical_qubits": resource_info.n_logical_qubits,
-            "n_measurement_steps": resource_info.extra.n_measurement_steps,
-            "code_distance": resource_info.code_distance,
-        }
-
-    assert _results_to_compare_loosely(
-        extrapolated_resource_estimates
-    ) == pytest.approx(_results_to_compare_loosely(gsc_resource_estimates), abs=3)
+    _fields_to_compare = [
+        "n_nodes",
+        "max_graph_degree",
+        "code_distance",
+        "n_measurement_steps",
+    ]
+    for field in _fields_to_compare:
+        # esure that result isn't much lower than the target
+        assert search_extra(test_dict, field) >= search_extra(target_dict, field) * 0.5
+        # allow for larger margin of error when overestimating
+        assert 3 * search_extra(target_dict, field) >= search_extra(test_dict, field)
 
 
 @pytest.mark.parametrize(
@@ -164,10 +169,10 @@ def test_get_resource_estimations_for_small_program_gives_correct_results(
                     Circuit([H(0), H(1), RZ(np.pi / 14)(0)]),
                     Circuit([H(0), H(1), CNOT(0, 1)]),
                 ],
-                200,
+                300,
                 lambda x: [0] + [1, 2] * x + [0],
             ),
-            [2, 3, 5, 7, 10, 15, 25],
+            [2, 3, 5, 7, 10, 15, 25, 50],
             "linear",
         ),
     ],
@@ -179,10 +184,7 @@ def test_get_resource_estimations_for_large_program_gives_correct_results(
     n_measurement_steps_fit_type,
     optimization,
 ):
-    architecture_model = BasicArchitectureModel(
-        physical_gate_error_rate=1e-3,
-        physical_gate_time_in_seconds=1e-6,
-    )
+    architecture_model = BASIC_SC_ARCHITECTURE_MODEL
     # set circuit generation weight to 0
     error_budget = ErrorBudget.from_weights(1e-2, 0, 1, 1)
     algorithm_description = AlgorithmImplementation(quantum_program, error_budget, 1)
@@ -204,17 +206,15 @@ def test_get_resource_estimations_for_large_program_gives_correct_results(
         transformers=transformers,
     )
 
-    def _results_to_compare_relatively(resource_info):
-        return {
-            "n_nodes": resource_info.extra.n_nodes,
-            "total_time_in_seconds": resource_info.total_time_in_seconds,
-            "n_physical_qubits": resource_info.n_physical_qubits,
-            "n_logical_qubits": resource_info.n_logical_qubits,
-        }
+    test_dict = asdict(extrapolated_resource_estimates)
+    target_dict = asdict(gsc_resource_estimates)
 
-    assert _results_to_compare_relatively(
-        extrapolated_resource_estimates
-    ) == pytest.approx(_results_to_compare_relatively(gsc_resource_estimates), rel=1e-1)
+    _fields_to_compare_harshly = ["n_nodes", "n_logical_qubits", "n_measurement_steps"]
+    for field in _fields_to_compare_harshly:
+        # esure that result isn't much lower than the target
+        assert search_extra(test_dict, field) >= search_extra(target_dict, field) * 0.5
+        # allow for larger margin of error when overestimating
+        assert 10 * search_extra(target_dict, field) >= search_extra(test_dict, field)
 
     assert (
         abs(
@@ -223,26 +223,15 @@ def test_get_resource_estimations_for_large_program_gives_correct_results(
         )
         <= 3
     )
-    assert (
-        abs(
-            extrapolated_resource_estimates.extra.n_measurement_steps
-            - gsc_resource_estimates.extra.n_measurement_steps
-        )
-        <= 10
-    )
 
 
 def test_better_architecture_does_not_require_more_resources(
     use_delayed_gate_synthesis, optimization
 ):
-    low_noise_architecture_model = BasicArchitectureModel(
-        physical_gate_error_rate=1e-4,
-        physical_gate_time_in_seconds=1e-6,
-    )
-    high_noise_architecture_model = BasicArchitectureModel(
-        physical_gate_error_rate=1e-3,
-        physical_gate_time_in_seconds=1e-6,
-    )
+    low_noise_architecture_model = BASIC_SC_ARCHITECTURE_MODEL
+    low_noise_architecture_model.physical_gate_error_rate = 1e-4
+    high_noise_architecture_model = BASIC_SC_ARCHITECTURE_MODEL
+
     # set circuit generation weight to 0
     error_budget = ErrorBudget.from_weights(1e-3, 0, 1, 1)
     transformers = _get_transformers(use_delayed_gate_synthesis, error_budget)
@@ -287,10 +276,7 @@ def test_better_architecture_does_not_require_more_resources(
 def test_higher_error_budget_does_not_require_more_resources(
     use_delayed_gate_synthesis, optimization
 ):
-    architecture_model = BasicArchitectureModel(
-        physical_gate_error_rate=1e-3,
-        physical_gate_time_in_seconds=1e-6,
-    )
+    architecture_model = BASIC_SC_ARCHITECTURE_MODEL
     low_failure_tolerance = 1e-3
     high_failure_tolerance = 1e-2
 

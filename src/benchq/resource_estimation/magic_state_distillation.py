@@ -11,11 +11,13 @@ from benchq.data_structures.hardware_architecture_models import (
 @dataclass
 class Widget:
     name: str
-    p_out: float
+    distilled_magic_state_error_rate: float
     space: Tuple[int, int]
     qubits: int
-    time: float
+    time_in_tocks: float
 
+
+DUMMY_WIDGET = Widget("Dummy Widget", 0, (0, 0), 0, 0)
 
 widget_lookup_table = {
     "ions": [
@@ -63,9 +65,13 @@ def get_hardware_type(hardware_model: BasicArchitectureModel):
 
 
 class WidgetIterator:
-    def __init__(self, hardware_model: BasicArchitectureModel):
+    def __init__(
+        self, hardware_model: BasicArchitectureModel, use_20_to_4_widget: bool = True
+    ):
         self.hardware_type = get_hardware_type(hardware_model)
         self.data = widget_lookup_table[self.hardware_type]
+        self.curr_widget = DUMMY_WIDGET
+        self.use_20_to_4_widget = use_20_to_4_widget
         self.index = 0
 
     def __iter__(self):
@@ -73,11 +79,14 @@ class WidgetIterator:
 
     def __next__(self):
         try:
-            value = self.data[self.index]
+            if "20-to-4" in self.data[self.index].name and not self.use_20_to_4_widget:
+                self.index += 1
+                return next(self)
+            self.curr_widget = self.data[self.index]
             self.index += 1
-            return value
+            return self.curr_widget
         except IndexError:
-            raise StopIteration("No Viable Widget Found!")
+            raise RuntimeError("No Viable Widget Found!")
 
 
 def get_specs_for_t_state_widget(

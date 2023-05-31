@@ -19,8 +19,8 @@ class ErrorBudget:
     def from_weights(
         total_failure_tolerance: float,
         circuit_generation_weight: int = 1,
-        ec_weight: int = 1,
         synthesis_weight: int = 1,
+        ec_weight: int = 1,
     ) -> "ErrorBudget":
         """Split the error budget between the three types of errors according to the
         weights.

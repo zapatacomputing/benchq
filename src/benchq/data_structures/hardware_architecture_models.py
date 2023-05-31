@@ -10,6 +10,12 @@ class ABCArchitectureModel:
 
 
 class BasicArchitectureModel(ABCArchitectureModel):
+    """Basic Architecture model meant to serve as a base class for the
+    other basic architecture models. WARNING! Running a resource estimate
+    with this architecture model will fail as, you need to choose an ION
+    based or SC based model in order to select a proper widget.
+    """
+
     def __init__(
         self,
         physical_gate_error_rate,

@@ -37,6 +37,7 @@ class ResourceInfo(Generic[TExtra]):
     n_physical_qubits: int
     total_time_in_seconds: float
     decoder_info: Optional[DecoderInfo]
+    widget_name: str
     extra: TExtra
 
 
@@ -61,7 +62,7 @@ class ExtrapolatedGraphData(GraphData):
 
     n_logical_qubits_r_squared: float
     n_measurement_steps_r_squared: float
-    data_used_to_extrapolate: List[GraphResourceInfo] = field(repr=False)
+    data_used_to_extrapolate: List[GraphData] = field(repr=False)
     steps_to_extrapolate_to: int = field(repr=False)
 
     @property

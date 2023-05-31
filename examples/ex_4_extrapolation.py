@@ -2,11 +2,11 @@
 # © Copyright 2022-2023 Zapata Computing Inc.
 ################################################################################
 """
-In this example we show how to deal with the case where the problem is too large to be 
+In this example we show how to deal with the case where the problem is too large to be
 compiled to a graph. We use the extrapolation technique to estimate resources
-for running time evolution for H2 molecule. 
-Number of block encodings needed to run the algorithm is too high, so we 
-estimate resources need for running similar circuit with 1, 2 and 3 block encodings 
+for running time evolution for H2 molecule.
+Number of block encodings needed to run the algorithm is too high, so we
+estimate resources need for running similar circuit with 1, 2 and 3 block encodings
 and then we extrapolate the results to estimate resources for full problem.
 """
 
@@ -14,7 +14,11 @@ from pathlib import Path
 from pprint import pprint
 
 from benchq.algorithms.time_evolution import qsp_time_evolution_algorithm
-from benchq.data_structures import BasicArchitectureModel, DecoderModel, ErrorBudget
+from benchq.data_structures import (
+    BASIC_SC_ARCHITECTURE_MODEL,
+    DecoderModel,
+    ErrorBudget,
+)
 from benchq.problem_ingestion import (
     generate_jw_qubit_hamiltonian_from_mol_data,
     get_vlasov_hamiltonian,
@@ -33,10 +37,7 @@ from benchq.timing import measure_time
 
 def main(use_hydrogen=True):
     evolution_time = 5.0
-    architecture_model = BasicArchitectureModel(
-        physical_gate_error_rate=1e-3,
-        physical_gate_time_in_seconds=1e-6,
-    )
+    architecture_model = BASIC_SC_ARCHITECTURE_MODEL
 
     steps_to_extrapolate_from = [1, 2, 3]
 

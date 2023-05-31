@@ -1,5 +1,6 @@
 from copy import deepcopy
 from dataclasses import replace
+from typing import List
 
 from ...data_structures import (
     AlgorithmImplementation,
@@ -7,6 +8,7 @@ from ...data_structures import (
     QuantumProgram,
 )
 from .extrapolation_estimator import ExtrapolationResourceEstimator
+from .graph_estimator import GraphData, GraphPartition
 
 
 def run_custom_resource_estimation_pipeline(
@@ -33,7 +35,7 @@ def run_custom_extrapolation_pipeline(
         1 - algorithm_description.error_budget.synthesis_failure_tolerance
     ) ** (1 / algorithm_description.program.n_rotation_gates)
 
-    small_programs_resource_info = []
+    small_programs_graph_data: List[GraphData] = []
     for i in estimator.steps_to_extrapolate_from:
         # create copy of program for each number of steps
         small_algorithm_description = deepcopy(algorithm_description)
@@ -51,8 +53,11 @@ def run_custom_extrapolation_pipeline(
                 small_algorithm_description.program
             )
 
-        resource_info = estimator.estimate(small_algorithm_description)
-        small_programs_resource_info.append(resource_info)
+        assert isinstance(small_algorithm_description.program, GraphPartition)
+        graph_data = estimator._get_graph_data_for_single_graph(
+            small_algorithm_description.program
+        )
+        small_programs_graph_data.append(graph_data)
 
     # get rid of graph compilation step
     for transformer in transformers[:-1]:
@@ -62,5 +67,5 @@ def run_custom_extrapolation_pipeline(
 
     return estimator.estimate_via_extrapolation(
         algorithm_description,
-        small_programs_resource_info,
+        small_programs_graph_data,
     )

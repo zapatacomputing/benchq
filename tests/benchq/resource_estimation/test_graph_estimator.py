@@ -5,8 +5,8 @@ import pytest
 from orquestra.quantum.circuits import CNOT, RX, RY, RZ, Circuit, H, T
 
 from benchq.data_structures import (
+    BASIC_SC_ARCHITECTURE_MODEL,
     AlgorithmImplementation,
-    BasicArchitectureModel,
     DecoderModel,
     ErrorBudget,
     QuantumProgram,
@@ -83,10 +83,8 @@ def _get_transformers(use_delayed_gate_synthesis, error_budget):
 def test_get_resource_estimations_for_program_gives_correct_results(
     quantum_program, expected_results, optimization, use_delayed_gate_synthesis
 ):
-    architecture_model = BasicArchitectureModel(
-        physical_gate_error_rate=1e-3,
-        physical_gate_time_in_seconds=1e-6,
-    )
+    architecture_model = BASIC_SC_ARCHITECTURE_MODEL
+
     # set circuit generation weight to 0
     error_budget = ErrorBudget.from_weights(1e-3, 0, 1, 1)
     algorithm_description = AlgorithmImplementation(quantum_program, error_budget, 1)
@@ -99,13 +97,13 @@ def test_get_resource_estimations_for_program_gives_correct_results(
     )
 
     # Extract only keys that we want to compare
-    actual_results = {
+    test_results = {
         "n_measurement_steps": gsc_resource_estimates.extra.n_measurement_steps,
         "n_nodes": gsc_resource_estimates.extra.n_nodes,
         "n_logical_qubits": gsc_resource_estimates.n_logical_qubits,
     }
-
-    assert actual_results == expected_results
+    for field in test_results.keys():
+        assert test_results[field] == expected_results[field]
 
     # Note that error_budget is a bound for the sum of the gate synthesis error and
     # logical error. Therefore the expression below is a loose upper bound for the
@@ -119,14 +117,11 @@ def test_better_architecture_does_not_require_more_resources(
     optimization,
     use_delayed_gate_synthesis,
 ):
-    low_noise_architecture_model = BasicArchitectureModel(
-        physical_gate_error_rate=1e-4,
-        physical_gate_time_in_seconds=1e-6,
-    )
-    high_noise_architecture_model = BasicArchitectureModel(
-        physical_gate_error_rate=1e-3,
-        physical_gate_time_in_seconds=1e-6,
-    )
+    low_noise_architecture_model = BASIC_SC_ARCHITECTURE_MODEL
+
+    high_noise_architecture_model = BASIC_SC_ARCHITECTURE_MODEL
+    high_noise_architecture_model.physical_gate_error_rate = 1e-2
+
     error_budget = ErrorBudget.from_weights(
         total_failure_tolerance=1e-2, circuit_generation_weight=0
     )
@@ -170,10 +165,7 @@ def test_higher_error_budget_does_not_require_more_resources(
     optimization,
     use_delayed_gate_synthesis,
 ):
-    architecture_model = BasicArchitectureModel(
-        physical_gate_error_rate=1e-3,
-        physical_gate_time_in_seconds=1e-6,
-    )
+    architecture_model = BASIC_SC_ARCHITECTURE_MODEL
     low_failure_tolerance = 1e-3
     high_failure_tolerance = 1e-2
 
@@ -225,10 +217,7 @@ def test_higher_error_budget_does_not_require_more_resources(
 
 
 def test_get_resource_estimations_for_program_accounts_for_decoder(optimization):
-    architecture_model = BasicArchitectureModel(
-        physical_gate_error_rate=1e-3,
-        physical_gate_time_in_seconds=1e-6,
-    )
+    architecture_model = BASIC_SC_ARCHITECTURE_MODEL
     # set circuit generation weight to 0
     error_budget = ErrorBudget.from_weights(1e-3, 0, 1, 1)
     quantum_program = get_program_from_circuit(

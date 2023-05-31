@@ -3,11 +3,12 @@ from dataclasses import asdict
 
 import numpy as np
 import pytest
+import test_extrapolation_estimator as tee  # type: ignore
 from orquestra.quantum.circuits import CNOT, RX, RY, RZ, Circuit, H, T
 
 from benchq.data_structures import (
+    BASIC_SC_ARCHITECTURE_MODEL,
     AlgorithmImplementation,
-    BasicArchitectureModel,
     DecoderModel,
     ErrorBudget,
     QuantumProgram,
@@ -84,16 +85,13 @@ def _get_transformers(use_delayed_gate_synthesis, error_budget):
 def test_get_resource_estimations_for_program_gives_correct_results(
     quantum_program, expected_results, optimization, use_delayed_gate_synthesis
 ):
-    architecture_model = BasicArchitectureModel(
-        physical_gate_error_rate=1e-3,
-        physical_gate_time_in_seconds=1e-6,
-    )
+    architecture_model = BASIC_SC_ARCHITECTURE_MODEL
     # set circuit generation weight to 0
     error_budget = ErrorBudget.from_weights(1e-3, 0, 1, 1)
     algorithm_description = AlgorithmImplementation(quantum_program, error_budget, 1)
 
     transformers = _get_transformers(use_delayed_gate_synthesis, error_budget)
-    gsc_resource_estimates = asdict(
+    footprint_resource_estimates = asdict(
         run_custom_resource_estimation_pipeline(
             algorithm_description,
             estimator=FootprintResourceEstimator(
@@ -104,15 +102,16 @@ def test_get_resource_estimations_for_program_gives_correct_results(
     )
 
     # Extract only keys that we want to compare
-    assert {
-        key: gsc_resource_estimates[key] for key in expected_results
-    } == expected_results
+    for key in expected_results.keys():
+        assert (
+            tee.search_extra(footprint_resource_estimates, key) == expected_results[key]
+        )
 
     # Note that error_budget is a bound for the sum of the gate synthesis error and
     # logical error. Therefore the expression below is a loose upper bound for the
     # logical error rate.
     assert (
-        gsc_resource_estimates["logical_error_rate"]
+        footprint_resource_estimates["logical_error_rate"]
         < error_budget.total_failure_tolerance
     )
 
@@ -121,14 +120,10 @@ def test_better_architecture_does_not_require_more_resources(
     optimization,
     use_delayed_gate_synthesis,
 ):
-    low_noise_architecture_model = BasicArchitectureModel(
-        physical_gate_error_rate=1e-4,
-        physical_gate_time_in_seconds=1e-6,
-    )
-    high_noise_architecture_model = BasicArchitectureModel(
-        physical_gate_error_rate=1e-3,
-        physical_gate_time_in_seconds=1e-6,
-    )
+    low_noise_architecture_model = BASIC_SC_ARCHITECTURE_MODEL
+    low_noise_architecture_model.physical_gate_error_rate = 1e-4
+    high_noise_architecture_model = BASIC_SC_ARCHITECTURE_MODEL
+
     error_budget = ErrorBudget.from_weights(
         total_failure_tolerance=1e-2, circuit_generation_weight=0
     )
@@ -172,10 +167,7 @@ def test_higher_error_budget_does_not_require_more_resources(
     optimization,
     use_delayed_gate_synthesis,
 ):
-    architecture_model = BasicArchitectureModel(
-        physical_gate_error_rate=1e-3,
-        physical_gate_time_in_seconds=1e-6,
-    )
+    architecture_model = BASIC_SC_ARCHITECTURE_MODEL
     low_failure_tolerance = 1e-3
     high_failure_tolerance = 1e-2
 
@@ -231,10 +223,7 @@ def test_higher_error_budget_does_not_require_more_resources(
 
 
 def test_get_resource_estimations_for_program_accounts_for_decoder(optimization):
-    architecture_model = BasicArchitectureModel(
-        physical_gate_error_rate=1e-3,
-        physical_gate_time_in_seconds=1e-6,
-    )
+    architecture_model = BASIC_SC_ARCHITECTURE_MODEL
     # set circuit generation weight to 0
     error_budget = ErrorBudget.from_weights(1e-3, 0, 1, 1)
     quantum_program = get_program_from_circuit(
@@ -265,14 +254,15 @@ def test_get_resource_estimations_for_program_accounts_for_decoder(optimization)
         transformers=transformers,
     )
 
-    assert gsc_resource_estimates_no_decoder.max_decodable_distance is None
-    assert gsc_resource_estimates_no_decoder.decoder_area is None
-    assert gsc_resource_estimates_no_decoder.decoder_total_energy_consumption is None
-    assert gsc_resource_estimates_no_decoder.decoder_power is None
+    assert gsc_resource_estimates_no_decoder.decoder_info is None
 
-    assert gsc_resource_estimates_with_decoder.max_decodable_distance is not None
-    assert gsc_resource_estimates_with_decoder.decoder_area is not None
     assert (
-        gsc_resource_estimates_with_decoder.decoder_total_energy_consumption is not None
+        gsc_resource_estimates_with_decoder.decoder_info.max_decodable_distance
+        is not None
     )
-    assert gsc_resource_estimates_with_decoder.decoder_power is not None
+    assert gsc_resource_estimates_with_decoder.decoder_info.area is not None
+    assert (
+        gsc_resource_estimates_with_decoder.decoder_info.total_energy_consumption
+        is not None
+    )
+    assert gsc_resource_estimates_with_decoder.decoder_info.power is not None
