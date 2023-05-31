@@ -14,7 +14,11 @@ from pathlib import Path
 from pprint import pprint
 
 from benchq.algorithms.time_evolution import qsp_time_evolution_algorithm
-from benchq.data_structures import BasicArchitectureModel, DecoderModel, ErrorBudget
+from benchq.data_structures import (
+    BASIC_SC_ARCHITECTURE_MODEL,
+    DecoderModel,
+    ErrorBudget,
+)
 from benchq.problem_ingestion import (
     generate_jw_qubit_hamiltonian_from_mol_data,
     get_vlasov_hamiltonian,
@@ -33,10 +37,7 @@ from benchq.timing import measure_time
 
 def main(use_hydrogen=True):
     evolution_time = 5.0
-    architecture_model = BasicArchitectureModel(
-        physical_qubit_error_rate=1e-3,
-        surface_code_cycle_time_in_seconds=1e-6,
-    )
+    architecture_model = BASIC_SC_ARCHITECTURE_MODEL
 
     steps_to_extrapolate_from = [1, 2, 3]
 

@@ -97,6 +97,12 @@ class QuantumProgram:
             calculate_subroutine_sequence=self.calculate_subroutine_sequence,
         )
 
+    @staticmethod
+    def from_circuit(circuit: Circuit) -> "QuantumProgram":
+        return QuantumProgram(
+            [circuit], steps=1, calculate_subroutine_sequence=lambda x: [0]
+        )
+
 
 def get_program_from_circuit(circuit):
     return QuantumProgram(

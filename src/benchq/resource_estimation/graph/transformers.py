@@ -19,7 +19,9 @@ def synthesize_clifford_t(
     def _transformer(program: QuantumProgram) -> QuantumProgram:
         circuits = [
             pyliqtr_transpile_to_clifford_t(
-                circuit, circuit_precision=error_budget.transpilation_failure_tolerance
+                circuit,
+                circuit_precision=error_budget.transpilation_failure_tolerance,
+                n_rotation_gates=program.n_rotation_gates,
             )
             for circuit in program.subroutines
         ]
