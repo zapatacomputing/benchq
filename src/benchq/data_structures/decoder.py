@@ -1,6 +1,8 @@
 ################################################################################
 # © Copyright 2023 Zapata Computing Inc.
 ################################################################################
+from typing import Dict
+
 import numpy as np
 
 
@@ -16,60 +18,42 @@ class DecoderModel:
 
     def __init__(
         self,
-        power_d_26: float,
-        power_ranks: np.ndarray,
-        power_sqmat_inv: np.ndarray,
-        area_d_26: float,
-        area_ranks: np.ndarray,
-        area_sqmat_inv: np.ndarray,
-        delay_d_26: float,
-        delay_ranks: np.ndarray,
-        delay_sqmat_inv: np.ndarray,
-        L2: int = 10,
+        power_table: Dict[int, float],
+        area_table: Dict[int, float],
+        delay_table: Dict[int, float],
     ):
-        self.power_d_26 = power_d_26
-        self.power_ranks = power_ranks
-        self.power_sqmat_inv = power_sqmat_inv
-        self.area_d_26 = area_d_26
-        self.area_ranks = area_ranks
-        self.area_sqmat_inv = area_sqmat_inv
-        self.delay_d_26 = delay_d_26
-        self.delay_ranks = delay_ranks
-        self.delay_sqmat_inv = delay_sqmat_inv
-        self.L2 = L2
+        self.power_table = power_table
+        self.area_table = area_table
+        self.delay_table = delay_table
 
     def power(self, distance: int) -> float:
         """Calculates the power (in W) that it will take to decode the code
-        of given distance.
+        of given distance. Returns infinity if the decoder is not available for
+        given distance.
 
         Args:
             distance: surface code distance.
         """
-        return _get_estimate(
-            distance, self.L2, self.power_d_26, self.power_ranks, self.power_sqmat_inv
-        )
+        return self.power_table.get(distance, np.infty)
 
     def area(self, distance: int) -> float:
         """Calculates the area (arbitrary units) that it will take to have a decoder
-        which allows to decode code of given distance.
+        which allows to decode code of given distance. Returns infinity if the decoder
+        is not available for given distance.
 
         Args:
             distance: surface code distance.
         """
-        return _get_estimate(
-            distance, self.L2, self.area_d_26, self.area_ranks, self.area_sqmat_inv
-        )
+        return self.area_table.get(distance, np.infty)
 
     def delay(self, distance: int) -> float:
-        """Calculates the delay (in ns) it will take to decode the code
-        of given distance.
+        """Calculates the delay (in ns) it will take to decode the code of given
+        distance. Returns infinity if the decoder is not available for given distance.
 
         Args:
             distance: surface code distance.
         """
-        return _get_estimate(
-            distance, self.L2, self.delay_d_26, self.delay_ranks, self.delay_sqmat_inv
-        )
+        return self.delay_table.get(distance, np.infty)
 
     @classmethod
     def from_csv(cls, file_path):
@@ -85,54 +69,49 @@ class DecoderModel:
         """
 
         data = np.genfromtxt(file_path, delimiter=",")
-        if data.shape != (3, 8):
+        if data.shape[1] != 4:
             raise ValueError(
                 "Data for creating DecoderModel doesn't comply to the required format."
             )
-        power_d_26 = data[0][0]
-        power_ranks = data[0][1:4]
-        power_sqmat_inv = data[0][4:8]
-        area_d_26 = data[1][0]
-        area_ranks = data[1][1:4]
-        area_sqmat_inv = data[1][4:8]
-        delay_d_26 = data[2][0]
-        delay_ranks = data[2][1:4]
-        delay_sqmat_inv = data[2][4:8]
+        distances = data[1:, 0]
+        power_table = data[1:, 1]
+        area_table = data[1:, 2]
+        delay_table = data[1:, 3]
+
+        distances = list(distances)
+        highest_distance = int(max(distances))
+
+        completed_power_table = {}
+        completed_area_table = {}
+        completed_delay_table = {}
+
+        for d in range(highest_distance):
+            if d not in distances:
+                new_d_index = find_next_higest_distance(distances, d)
+                completed_power_table[d] = power_table[new_d_index]
+                completed_area_table[d] = area_table[new_d_index]
+                completed_delay_table[d] = delay_table[new_d_index]
+            else:
+                d_index = distances.index(d)
+                completed_power_table[d] = power_table[d_index]
+                completed_area_table[d] = area_table[d_index]
+                completed_delay_table[d] = delay_table[d_index]
 
         return cls(
-            power_d_26,
-            power_ranks,
-            power_sqmat_inv,
-            area_d_26,
-            area_ranks,
-            area_sqmat_inv,
-            delay_d_26,
-            delay_ranks,
-            delay_sqmat_inv,
+            completed_power_table,
+            completed_area_table,
+            completed_delay_table,
         )
 
 
-def _get_estimate(
-    x: float, L2: float, d_26: float, ranks: np.ndarray, sqmat_inv: np.ndarray
-) -> float:
-    return (
-        _d_26_term(x, d_26, L2) + _ranks_term(x, ranks) + _sqmat_inv_term(x, sqmat_inv)
-    )
+def find_next_higest_distance(distances, d):
+    """Finds the next highest distance in the list of distances.
 
-
-def _polynomial(x: float, coeffs: np.ndarray) -> float:
-    return sum(x**i * coeff for i, coeff in enumerate(coeffs))
-
-
-def _d_26_term(x: float, d_26: float, L2: float) -> float:
-    return d_26 / (4 * (x**2 - 1)) * 4 * (x**2 - 1) * L2
-
-
-def _ranks_term(x: float, ranks: np.ndarray):
-    ranks_value = _polynomial(x**2, ranks)
-    return (2 * (2 * x * (x - 1) + 1)) * ranks_value
-
-
-def _sqmat_inv_term(x: float, sqmat_inv: np.ndarray):
-    sqmat_inv_value = _polynomial(x**2, sqmat_inv)
-    return sqmat_inv_value / 1000
+    Args:
+        distances: list of distances.
+        d: distance to compare to.
+    """
+    for new_d in range(d, int(max(distances)) + 1):
+        if new_d in distances:
+            return distances.index(new_d)
+    raise ValueError("No higher distance found.")
