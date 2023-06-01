@@ -165,7 +165,6 @@ def get_stabilizer_tableau_from_vertices(vertices):
     cliffords = []
     for vertex in vertices:
         # perform the vertex operation on the tableau
-        # pauli_perm_class = divmod(vertex[0] - 1, 4)[0]
         pauli_perm_class = vertex[0] - 1
         if pauli_perm_class == 0:
             cliffords += [[]]

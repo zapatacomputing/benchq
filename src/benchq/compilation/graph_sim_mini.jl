@@ -71,8 +71,10 @@ function get_graph_state_data(icm_circuit::Vector{ICMOp}, n_qubits, display=fals
             lco[qubit_2] = multiply_h(lco[qubit_2])
             cz(lco, adj, qubit_1, qubit_2)
             lco[qubit_2] = multiply_h(lco[qubit_2])
-        else # CZ_code
+        elseif op_code == CZ_code
             cz(lco, adj, qubit_1, icm_op.qubit2)
+        elseif op_code != Pauli_code
+            error("Unrecogniced gate code $op_code encountered")
         end
     end
 
@@ -142,19 +144,6 @@ function cz(lco, adj, vertex_1, vertex_2)
     end
 end
 
-#=
-function get_neighbor(neighbors, avoid)
-    # Avoid copying and modifying adjacency vector
-    # vb will be set to avoid if there are no neighbors, or avoid is the only neighbor,
-    # otherwise it will pick the first neighbor it sees that is not avoid
-    isempty(neighbors) && return avoid
-    vb = neighbors[1]
-    # if there is only one element, or the first element is not avoid, just return it,
-    # otherwise, pick the second element
-    (length(neighbors) == 1 || vb != avoid) ? vb : neighbors[2]
-end
-=#
-
 function get_neighbor(neighbors, avoid)
     # Avoid copying and modifying adjacency vector
     # vb will be set to avoid if there are no neighbors, or avoid is the only neighbor,
@@ -205,16 +194,6 @@ function remove_lco(lco, adj, v, avoid)
     end
 end
 
-#=
-"""Find the first valid slot starting at index i"""
-@inline function _firstvalid(dict, i, len)
-    while i <= len && !Base.isslotfilled(dict, i)
-        i += 1
-    end
-    i
-end
-=#
-
 """
 Take the local complement of a vertex v.
 
@@ -224,61 +203,29 @@ Args:
     v::Int                index node to take the local complement of
 """
 function local_complement!(lco, adj, v)
-    #@timeit to "lc toggle" begin
-
-        neighbors = collect(adj[v])
-        len = length(neighbors)
-        for i in 1:len
-            neighbor = neighbors[i]
-            for j in i+1:len
-                toggle_edge!(adj, neighbor, neighbors[j])
-            end
+    neighbors = collect(adj[v])
+    len = length(neighbors)
+    for i in 1:len
+        neighbor = neighbors[i]
+        for j in i+1:len
+            toggle_edge!(adj, neighbor, neighbors[j])
         end
-#=
-        dict = adj[v].dict
-        keys = dict.keys
-        slots = dict.slots
-        len = length(slots)
-        i = dict.idxfloor
-        while (i = _firstvalid(dict, i, len)) <= len
-            neighbor = keys[i]
-            lst = adj[neighbor]
-            i += 1
-            j = i
-            while (j = _firstvalid(slots, j, len)) <= len
-                toggle_edge!(adj, neighbor, keys[j])
-                j += 1
-            end
-        end
-=#
-    #end
+    end
 
-    #@timeit to "lc multiply lco" begin
     lco[v] = multiply_by_sqrt_x(lco[v])
     for i in adj[v]
         lco[i] = multiply_by_s(lco[i])
     end
-    #end
 end
 
 """Add an edge between the two vertices given"""
 @inline function add_edge!(adj, vertex_1, vertex_2)
-    #=
-    lst1, lst2 = adj[vertex_1], adj[vertex_2]
-    insert!(lst1, searchsortedfirst(lst1, vertex_2), vertex_2)
-    insert!(lst2, searchsortedfirst(lst2, vertex_1), vertex_1)
-    =#
     push!(adj[vertex_1], vertex_2)
     push!(adj[vertex_2], vertex_1)
 end    
 
 """Remove an edge between the two vertices given"""
 @inline function remove_edge!(adj, vertex_1, vertex_2)
-    #=
-    lst1, lst2 = adj[vertex_1], adj[vertex_2]
-    deleteat!(lst1, searchsortedfirst(lst1, vertex_2))
-    deleteat!(lst2, searchsortedfirst(lst2, vertex_1))
-    =#
     delete!(adj[vertex_1], vertex_2)
     delete!(adj[vertex_2], vertex_1)
 end
@@ -359,18 +306,6 @@ end
 Destructively convert this to a Python adjacency list
 """
 function python_adjlist!(adj)
-    #=
-    # Use this to free up memory if possible when converting to a Python list
-    empty_adj = AdjList()
-    py_adj = pylist()
-    for i = 1:length(adj)
-        lst = adj[i]
-        adj[i] = empty_adj # let it be garbage collected as soon as possible
-        # build up Python list of adjacency lists
-        py_adj.append(pylist(lst .- 1))
-    end
-    py_adj
-    =#
     pylist([pylist(adj[i] .- 1) for i in 1:length(adj)])
 end
 
