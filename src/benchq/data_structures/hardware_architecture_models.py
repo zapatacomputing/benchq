@@ -10,8 +10,10 @@ class ABCArchitectureModel:
 
 
 class BasicArchitectureModel(ABCArchitectureModel):
-    """A basic architecture model used for getting a rough estimate of the
-    performance of a quantum computer.
+    """Basic Architecture model meant to serve as a base class for the
+    other basic architecture models. WARNING! Running a resource estimate
+    with this architecture model will fail as, you need to choose an ION
+    based or SC based model in order to select a proper widget.
 
     Attributes:
         physical_qubit_error_rate (float): The probability that any given physical

@@ -115,5 +115,6 @@ def _openfermion_result_to_resource_info(
         code_distance=algorithm_parameters.logical_data_qubit_distance,
         logical_error_rate=cost.algorithm_failure_probability,
         decoder_info=None,
+        widget_name=algorithm_parameters.magic_state_factory.details,
         extra=algorithm_parameters,
     )

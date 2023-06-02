@@ -15,6 +15,7 @@ def pyliqtr_transpile_to_clifford_t(
     circuit: Union[OrquestraCircuit, CirqCircuit, QiskitCircuit],
     gate_precision: Optional[float] = None,
     circuit_precision: Optional[float] = None,
+    n_rotation_gates: Optional[int] = None,
 ) -> OrquestraCircuit:
     """Compile a circuit into clifford + T using pyLIQTR. The only non-clifford + T
     gates that can be compiled are X, Y, and Z rotations.
@@ -30,7 +31,9 @@ def pyliqtr_transpile_to_clifford_t(
             Each gate will be bounded by either `circuit_precision` divided by
             the number of rotation gates (if given a float),
             or 10^{-circuit_precision} (if given an int)
-
+        n_rotation_gates (int): Number of rotation gates to use in the decomposition.
+            If not given, pyliqtr will send erroneous warnings saying that the
+            provided gates cannot be decomposed.
 
     Returns:
         OrquestraCircuit: circuit decomposed to Clifford + T using pyLIQTR.
@@ -53,7 +56,11 @@ def pyliqtr_transpile_to_clifford_t(
 
     cirq_circuit = export_circuit(CirqCircuit, orquestra_circuit)
     compiled_cirq_circuit = clifford_plus_t_direct_transform(
-        cirq_circuit, precision=gate_precision, circuit_precision=circuit_precision
+        cirq_circuit,
+        precision=gate_precision,
+        circuit_precision=circuit_precision,
+        use_random_decomp=False,
+        num_rotation_gates=n_rotation_gates,
     )
 
     return import_circuit(compiled_cirq_circuit)
