@@ -239,6 +239,11 @@ class ChemistryApplicationInstance:
                 n_frozen_core = self._set_frozen_core_orbitals(molecular_data).frozen
                 if n_frozen_core > 0:
                     self.occupied_indices = list(range(n_frozen_core))
+                    if self.active_indices is None:
+                        all_orbital_indicies = list(range(molecular_data.n_orbitals))
+                        self.active_indices = all_orbital_indicies[
+                            len(self.occupied_indices) :
+                        ]
 
             return molecular_data.get_molecular_hamiltonian(
                 occupied_indices=self.occupied_indices,
