@@ -80,6 +80,22 @@ def fno_water_instance():
     yield water_instance
 
 
+@pytest.fixture
+def water_instance():
+    water_instance = ChemistryApplicationInstance(
+        geometry=[
+            ("O", (0.000000, -0.075791844, 0.000000)),
+            ("H", (0.866811829, 0.601435779, 0.000000)),
+            ("H", (-0.866811829, 0.601435779, 0.000000)),
+        ],
+        basis="6-31g",
+        charge=0,
+        multiplicity=1,
+    )
+
+    yield water_instance
+
+
 def test_get_occupied_and_active_indicies_with_FNO_frozen_core(fno_water_instance):
     fno_water_instance.freeze_core = True
 
@@ -129,3 +145,14 @@ def test_get_active_space_meanfield_object_raises_scf_convergence_error(method):
     instance.scf_options = {"max_cycle": 1}
     with pytest.raises(SCFConvergenceError):
         getattr(instance, method)()
+
+
+def test_get_active_space_hamiltonian_no_truncated_space(water_instance):
+    active_space_hamiltonian = water_instance.get_active_space_hamiltonian()
+    assert active_space_hamiltonian.one_body_tensor.shape[0] == 26
+
+
+def test_get_active_space_hamiltonian_frozen_core(water_instance):
+    water_instance.freeze_core = True
+    active_space_hamiltonian = water_instance.get_active_space_hamiltonian()
+    assert active_space_hamiltonian.one_body_tensor.shape[0] == 24
