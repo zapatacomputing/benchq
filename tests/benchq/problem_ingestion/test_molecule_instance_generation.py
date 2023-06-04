@@ -64,23 +64,6 @@ def test_mean_field_object_has_valid_default_scf_options():
 
 
 @pytest.fixture
-def fno_water_instance():
-    water_instance = ChemistryApplicationInstance(
-        geometry=[
-            ("O", (0.000000, -0.075791844, 0.000000)),
-            ("H", (0.866811829, 0.601435779, 0.000000)),
-            ("H", (-0.866811829, 0.601435779, 0.000000)),
-        ],
-        basis="6-31g",
-        charge=0,
-        multiplicity=1,
-        fno_percentage_occupation_number=0.9,
-    )
-
-    yield water_instance
-
-
-@pytest.fixture
 def water_instance():
     water_instance = ChemistryApplicationInstance(
         geometry=[
@@ -96,42 +79,44 @@ def water_instance():
     yield water_instance
 
 
-def test_get_occupied_and_active_indicies_with_FNO_frozen_core(fno_water_instance):
-    fno_water_instance.freeze_core = True
+def test_get_occupied_and_active_indicies_with_FNO_frozen_core(water_instance):
+    water_instance.freeze_core = True
+    water_instance.fno_percentage_occupation_number = 0.9
 
     (
         molecular_data,
         occupied_indices,
         active_indicies,
-    ) = fno_water_instance.get_occupied_and_active_indicies_with_FNO()
+    ) = water_instance.get_occupied_and_active_indicies_with_FNO()
 
     assert len(occupied_indices) == 1
     assert len(active_indicies) < molecular_data.n_orbitals
 
 
-def test_get_occupied_and_active_indicies_with_FNO_no_freeze_core(fno_water_instance):
-    fno_water_instance.freeze_core = False
+def test_get_occupied_and_active_indicies_with_FNO_no_freeze_core(water_instance):
+    water_instance.freeze_core = False
+    water_instance.fno_percentage_occupation_number = 0.9
 
     (
         molecular_data,
         occupied_indices,
         active_indicies,
-    ) = fno_water_instance.get_occupied_and_active_indicies_with_FNO()
+    ) = water_instance.get_occupied_and_active_indicies_with_FNO()
 
     assert len(occupied_indices) == 0
     assert len(active_indicies) < molecular_data.n_orbitals
 
 
 def test_get_occupied_and_active_indicies_with_FNO_no_virtual_frozen_orbitals(
-    fno_water_instance,
+    water_instance,
 ):
-    fno_water_instance.fno_percentage_occupation_number = 0.0
+    water_instance.fno_percentage_occupation_number = 0.0
 
     (
         molecular_data,
         occupied_indices,
         active_indicies,
-    ) = fno_water_instance.get_occupied_and_active_indicies_with_FNO()
+    ) = water_instance.get_occupied_and_active_indicies_with_FNO()
 
     assert len(occupied_indices) == 0
     assert len(active_indicies) < molecular_data.n_orbitals
