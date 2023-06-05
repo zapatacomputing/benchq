@@ -1,4 +1,4 @@
-from typing import Callable
+from typing import Callable, Sequence
 
 from ...compilation import (
     get_algorithmic_graph_from_graph_sim_mini,
@@ -13,17 +13,40 @@ from ...data_structures import (
 )
 
 
+def _distribute_transpilation_failure_tolerance(
+    program: QuantumProgram, total_transpilation_failure_tolerance: float
+) -> Sequence[float]:
+    n_rots_per_subroutine = [
+        program.count_gates_in_subroutine(i, ["RX", "RY", "RZ"])
+        for i in range(len(program.subroutines))
+    ]
+    # Not using program n_rotation_gates because we already computed partial
+    # counts for subroutines.
+    n_total_rots = sum(
+        n_rotations * multi
+        for n_rotations, multi in zip(n_rots_per_subroutine, program.multiplicities)
+    )
+
+    return (
+        [0 for _ in program.subroutines]
+        if n_total_rots == 0
+        else [
+            total_transpilation_failure_tolerance * count / n_total_rots
+            for count in n_rots_per_subroutine
+        ]
+    )
+
+
 def synthesize_clifford_t(
     error_budget: ErrorBudget,
 ) -> Callable[[QuantumProgram], QuantumProgram]:
     def _transformer(program: QuantumProgram) -> QuantumProgram:
+        tolerances = _distribute_transpilation_failure_tolerance(
+            program, error_budget.transpilation_failure_tolerance
+        )
         circuits = [
-            pyliqtr_transpile_to_clifford_t(
-                circuit,
-                circuit_precision=error_budget.transpilation_failure_tolerance,
-                n_rotation_gates=program.n_rotation_gates,
-            )
-            for circuit in program.subroutines
+            pyliqtr_transpile_to_clifford_t(circuit, circuit_precision=tolerance)
+            for circuit, tolerance in zip(program.subroutines, tolerances)
         ]
         return program.replace_circuits(circuits)
 

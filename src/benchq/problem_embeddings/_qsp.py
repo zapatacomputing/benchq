@@ -53,7 +53,10 @@ def get_qsp_circuit(
 
     return Circuit(
         [
-            import_from_cirq(op) for op in _sanitize_cirq_circuit(qsp_circ)
+            import_from_cirq(op)
+            for op in _sanitize_cirq_circuit(
+                qsp_circ, _map_named_qubits_to_line_qubits([qsp_circ])
+            )
         ]  # type: ignore
     )
 
@@ -79,12 +82,18 @@ def get_qsp_program(
     reflection_circuit = qsp_generator.initialize_circuit()
     reflection_circuit = qsp_generator.add_reflection(reflection_circuit, angles[2])
     circuits = [rotation_circuit, select_v_circuit, reflection_circuit]
+
+    named_qubit_to_line_qubit_map = _map_named_qubits_to_line_qubits(circuits)
+
     sanitized_circuits = cast(
         List[Circuit],
         [
             Circuit(
                 [
-                    import_from_cirq(op) for op in _sanitize_cirq_circuit(circuit)
+                    import_from_cirq(op)
+                    for op in _sanitize_cirq_circuit(
+                        circuit, named_qubit_to_line_qubit_map
+                    )
                 ]  # type: ignore
             )
             for circuit in circuits
@@ -125,28 +134,47 @@ def get_qsp_program(
     )
 
 
-def _sanitize_cirq_circuit(circuit: cirq.Circuit) -> Iterable[cirq.Operation]:
+def _sanitize_cirq_circuit(
+    circuit: cirq.Circuit,
+    named_qubits_to_line_qubits_map: Dict[cirq.Qid, cirq.LineQubit],
+) -> Iterable[cirq.Operation]:
     decomposed_ops = cirq.decompose(circuit)
     simplified_ops = _simplify_gates(decomposed_ops)
-    return _replace_named_qubits(simplified_ops)
+    return _replace_named_qubits(simplified_ops, named_qubits_to_line_qubits_map)
 
 
-def _replace_named_qubits(ops: Iterable[cirq.Operation]) -> List[cirq.Operation]:
-    all_qubits = set([qubit for op in ops for qubit in op.qubits])
-    qubit_map: Dict[Any, cirq.LineQubit] = {}
-    max_line_id = 0
-    for qubit in all_qubits:
-        if isinstance(qubit, cirq.LineQubit) and qubit.x > max_line_id:
-            max_line_id = qubit.x
+def _map_named_qubits_to_line_qubits(
+    circuits: Iterable[cirq.Circuit],
+) -> Dict[cirq.Qid, cirq.LineQubit]:
+    all_qubits = set(
+        [
+            qubit
+            for circuit in circuits
+            for op in circuit.all_operations()
+            for qubit in op.qubits
+        ]
+    )
 
-    current_qubit_id = max_line_id + 1
-    for qubit in all_qubits:
-        if isinstance(qubit, cirq.NamedQubit):
-            qubit_map[qubit] = cirq.LineQubit(current_qubit_id)
-            current_qubit_id += 1
+    line_qubits = [qubit for qubit in all_qubits if isinstance(qubit, cirq.LineQubit)]
 
+    named_qubits = [qubit for qubit in all_qubits if isinstance(qubit, cirq.NamedQubit)]
+
+    max_line_id = max(qubit.x for qubit in line_qubits)
+
+    return {
+        qubit: cirq.LineQubit(i)
+        for i, qubit in enumerate(named_qubits, max_line_id + 1)
+    }
+
+
+def _replace_named_qubits(
+    ops: Iterable[cirq.Operation],
+    named_qubits_to_line_qubits_map: Dict[cirq.Qid, cirq.LineQubit],
+) -> List[cirq.Operation]:
     return [
-        cast(cirq.Gate, op.gate).on(*[qubit_map.get(q, q) for q in op.qubits])
+        cast(cirq.Gate, op.gate).on(
+            *[named_qubits_to_line_qubits_map.get(q, q) for q in op.qubits]
+        )
         for op in ops
     ]
 
