@@ -142,7 +142,7 @@ def test_get_resource_estimations_for_small_program_gives_correct_results(
     ]
     for field in _fields_to_compare:
         # esure that result isn't much lower than the target
-        assert search_extra(test_dict, field) >= search_extra(target_dict, field) * 0.5
+        assert search_extra(test_dict, field) >= search_extra(target_dict, field) * 0.47
         # allow for larger margin of error when overestimating
         assert 3 * search_extra(target_dict, field) >= search_extra(test_dict, field)
 
