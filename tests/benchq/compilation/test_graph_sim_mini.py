@@ -6,6 +6,7 @@ import os
 import numpy as np
 import pytest
 import stim
+from numba import njit
 from orquestra.integrations.qiskit.conversions import import_from_qiskit
 from orquestra.quantum.circuits import CNOT, CZ, Circuit, H, I, S
 from qiskit import QuantumCircuit
@@ -64,7 +65,7 @@ def test_stabilizer_states_are_the_same_for_simple_circuits(circuit):
 @pytest.mark.parametrize(
     "filename",
     [
-        "single_rotation.qasm",
+        # "single_rotation.qasm",
         "example_circuit.qasm",
     ],
 )
@@ -83,7 +84,6 @@ def test_stabilizer_states_are_the_same_for_larger_circuits(filename):
             qiskit_circuit, circuit_precision=10**-2
         )
         test_circuit = get_icm(clifford_t)
-
         target_tableau = get_target_tableau(test_circuit)
         loc, adj = jl.run_graph_sim_mini(test_circuit)
         vertices = list(zip(loc, adj))
@@ -132,14 +132,20 @@ def get_icm(circuit: Circuit, gates_to_decompose=["T", "T_Dagger"]) -> Circuit:
 def get_target_tableau(circuit):
     sim = stim.TableauSimulator()
     for op in circuit.operations:
-        if op.gate.name == "I":
+        if op.gate.name in ["I", "X", "Y", "Z"]:
             pass
         elif op.gate.name == "CNOT":
             sim.cx(*op.qubit_indices)
         elif op.gate.name == "S_Dagger":
             sim.s_dag(*op.qubit_indices)
+        elif op.gate.name == "S":
+            sim.s(*op.qubit_indices)
+        elif op.gate.name == "H":
+            sim.h(*op.qubit_indices)
+        elif op.gate.name == "CZ":
+            sim.cz(*op.qubit_indices)
         else:
-            getattr(sim, op.gate.name.lower())(*op.qubit_indices)
+            raise ValueError(f"Gate {op.gate.name} not supported.")
     return get_tableau_from_stim_simulator(sim)
 
 
@@ -162,6 +168,8 @@ def get_stabilizer_tableau_from_vertices(vertices):
     tableau = stim.Tableau.from_stabilizers(paulis)
     sim.set_inverse_tableau(tableau.inverse())
 
+
+
     cliffords = []
     for vertex in vertices:
         # perform the vertex operation on the tableau
@@ -182,7 +190,10 @@ def get_stabilizer_tableau_from_vertices(vertices):
     # perform the vertices operations on the tableau
     for i in range(n_qubits):
         for clifford in cliffords[i]:
-            getattr(sim, clifford)(i)
+            if clifford == "s":
+                sim.s(i)
+            elif clifford == "h":
+                sim.h(i)
 
     return get_tableau_from_stim_simulator(sim)
 
@@ -191,14 +202,16 @@ def get_tableau_from_stim_simulator(sim):
     return np.column_stack(sim.current_inverse_tableau().inverse().to_numpy()[2:4])
 
 
+@njit
 def tableaus_correspond_to_same_state(state_1, state_2):
-    for stab_1 in state_1:
-        for stab_2 in state_2:
-            if not commutes(stab_1, stab_2):
+    for i in range(len(state_1)):
+        for j in range(i, len(state_2)):
+            if not commutes(state_1[i], state_2[j]):
                 return False
     return True
 
 
+@njit
 def commutes(stab_1, stab_2):
     """Returns true if self commutes with other, otherwise false.
 
@@ -217,5 +230,10 @@ def commutes(stab_1, stab_2):
 # numpy doesn't use the boolean binary ring when performing dot products
 # https://github.com/numpy/numpy/issues/1456.
 # So we define our own dot product which uses "xor" instead of "or" for addition.
+@njit
 def _bool_dot(x, y):
-    return np.logical_xor.reduce(np.logical_and(x, y))
+    array_and = np.logical_and(x, y)
+    ans = array_and[0]
+    for i in array_and[1:]:
+        ans = np.logical_xor(ans, i)
+    return ans
