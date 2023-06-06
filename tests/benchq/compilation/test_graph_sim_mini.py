@@ -168,8 +168,6 @@ def get_stabilizer_tableau_from_vertices(vertices):
     tableau = stim.Tableau.from_stabilizers(paulis)
     sim.set_inverse_tableau(tableau.inverse())
 
-
-
     cliffords = []
     for vertex in vertices:
         # perform the vertex operation on the tableau
