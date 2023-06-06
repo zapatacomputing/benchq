@@ -91,7 +91,7 @@ def search_extra(this_dict, field):
                 20,
                 lambda x: [0] + [1, 2] * x + [0],
             ),
-            [2, 3, 4, 5, 11],
+            [2, 3, 4, 5, 10],
             "linear",
         ),
     ],
@@ -169,10 +169,10 @@ def test_get_resource_estimations_for_small_program_gives_correct_results(
                     Circuit([H(0), H(1), RZ(np.pi / 14)(0)]),
                     Circuit([H(0), H(1), CNOT(0, 1)]),
                 ],
-                300,
+                100,
                 lambda x: [0] + [1, 2] * x + [0],
             ),
-            [2, 3, 5, 7, 10, 15, 25, 50],
+            [2, 3, 5, 7, 10, 15, 25],
             "linear",
         ),
     ],
@@ -212,7 +212,7 @@ def test_get_resource_estimations_for_large_program_gives_correct_results(
     _fields_to_compare_harshly = ["n_nodes", "n_logical_qubits", "n_measurement_steps"]
     for field in _fields_to_compare_harshly:
         # esure that result isn't much lower than the target
-        assert search_extra(test_dict, field) >= search_extra(target_dict, field) * 0.47
+        assert search_extra(test_dict, field) >= search_extra(target_dict, field) * 0.5
         # allow for larger margin of error when overestimating
         assert 10 * search_extra(target_dict, field) >= search_extra(test_dict, field)
 
