@@ -50,7 +50,7 @@ function get_graph_state_data(icm_circuit::Vector{ICMOp}, n_qubits, display=fals
     erase = "        \b\b\b\b\b\b\b\b"
 
     for icm_op in icm_circuit
-        if true
+        if display
             counter += 1
             if counter > 1000
                 percent = round(Int, 100 * counter / total_length)
