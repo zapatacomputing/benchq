@@ -1,6 +1,7 @@
 ################################################################################
 # © Copyright 2023 Zapata Computing Inc.
 ################################################################################
+import warnings
 from typing import Dict
 
 import numpy as np
@@ -34,7 +35,7 @@ class DecoderModel:
         Args:
             distance: surface code distance.
         """
-        return self.power_table.get(distance, np.infty)
+        return self.power_table.get(distance, invalid_code_distance())
 
     def area(self, distance: int) -> float:
         """Calculates the area (arbitrary units) that it will take to have a decoder
@@ -44,7 +45,7 @@ class DecoderModel:
         Args:
             distance: surface code distance.
         """
-        return self.area_table.get(distance, np.infty)
+        return self.area_table.get(distance, invalid_code_distance())
 
     def delay(self, distance: int) -> float:
         """Calculates the delay (in ns) it will take to decode the code of given
@@ -53,7 +54,7 @@ class DecoderModel:
         Args:
             distance: surface code distance.
         """
-        return self.delay_table.get(distance, np.infty)
+        return self.delay_table.get(distance, invalid_code_distance())
 
     @classmethod
     def from_csv(cls, file_path):
@@ -115,3 +116,9 @@ def find_next_higest_distance(distances, d):
         if new_d in distances:
             return distances.index(new_d)
     raise ValueError("No higher distance found.")
+
+
+def invalid_code_distance():
+    """Returns the delay for invalid code distance."""
+    warnings.warn("Code distance is too high to be decoded.")
+    return np.infty
