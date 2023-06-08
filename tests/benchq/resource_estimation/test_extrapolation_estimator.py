@@ -156,10 +156,10 @@ def test_get_resource_estimations_for_small_program_gives_correct_results(
                     Circuit([H(0), RZ(np.pi / 14)(0), CNOT(0, 1)]),
                     Circuit([H(0), H(1), RZ(np.pi / 14)(0)]),
                 ],
-                1001,
+                1000,
                 lambda x: [0] + [1] * x + [0],
             ),
-            [2, 3, 5, 10, 20],
+            [10, 20, 50],
             "logarithmic",
         ),
         (
