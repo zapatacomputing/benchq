@@ -25,8 +25,12 @@ def simplify_rotations(circuit) -> Circuit:
     (-pi, -pi/2, -pi/4, 0, pi/4, pi/2, pi) to simpler gates.
     """
     circuit = import_circuit(circuit)
-    return decompose_orquestra_circuit(
-        circuit, [RXtoRZ(), RYtoRZ(), DecomposeStandardRZ()]
+    # Hack: decompose drops n_qubits from the original circuits, so we add it back
+    return Circuit(
+        decompose_orquestra_circuit(
+            circuit, [RXtoRZ(), RYtoRZ(), DecomposeStandardRZ()]
+        ).operations,
+        n_qubits=circuit.n_qubits,
     )
 
 
