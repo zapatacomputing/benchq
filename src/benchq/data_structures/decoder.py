@@ -22,10 +22,12 @@ class DecoderModel:
         power_table: Dict[int, float],
         area_table: Dict[int, float],
         delay_table: Dict[int, float],
+        distance_cap: int = 31,
     ):
         self.power_table = power_table
         self.area_table = area_table
         self.delay_table = delay_table
+        self.distance_cap = distance_cap
 
     def power(self, distance: int) -> float:
         """Calculates the power (in W) that it will take to decode the code
@@ -102,6 +104,7 @@ class DecoderModel:
             completed_power_table,
             completed_area_table,
             completed_delay_table,
+            distance_cap=highest_distance,
         )
 
 
