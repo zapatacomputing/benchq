@@ -58,7 +58,7 @@ def _get_transformers(use_delayed_gate_synthesis, error_budget):
             get_program_from_circuit(
                 Circuit([RX(np.pi / 4)(0), RY(np.pi / 4)(0), CNOT(0, 1)])
             ),
-            {"n_measurement_steps": 4, "n_nodes": 4, "n_logical_qubits": 3},
+            {"n_measurement_steps": 4, "n_nodes": 4, "n_logical_qubits": 2},
         ),
         (
             get_program_from_circuit(
