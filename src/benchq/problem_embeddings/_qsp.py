@@ -166,7 +166,7 @@ def _create_qsp_components(
 
 def _dagger(operation: GateOperation) -> GateOperation:
     return (
-        operation.replace_params((-operation.params[0],))
+        operation.replace_params((-operation.params[0],))  # type: ignore
         if operation.gate.name == "RY"
         else operation.gate(*operation.qubit_indices)
     )

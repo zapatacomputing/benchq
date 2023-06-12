@@ -63,4 +63,4 @@ def pyliqtr_transpile_to_clifford_t(
         num_rotation_gates=n_rotation_gates,
     )
 
-    return import_circuit(compiled_cirq_circuit)
+    return import_circuit(compiled_cirq_circuit, orquestra_circuit.n_qubits)
