@@ -12,7 +12,7 @@ from pathlib import Path
 from pprint import pprint
 
 from benchq.algorithms.time_evolution import qsp_time_evolution_algorithm
-from benchq.data_structures import BasicArchitectureModel, DecoderModel, ErrorBudget
+from benchq.data_structures import BasicArchitectureModel, DecoderModel
 from benchq.problem_ingestion import get_vlasov_hamiltonian
 from benchq.resource_estimation.azure import AzureResourceEstimator
 from benchq.resource_estimation.graph import (
@@ -31,6 +31,7 @@ def main():
         surface_code_cycle_time_in_seconds=1e-6,
     )
 
+    # Load some dummy decoder data for now. Replace with your own decoder data.
     decoder_file_path = str(Path(__file__).parent / "data" / "sample_decoder_data.csv")
     decoder_model = DecoderModel.from_csv(decoder_file_path)
 
