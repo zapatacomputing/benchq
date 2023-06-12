@@ -329,8 +329,9 @@ function run_graph_sim_mini(circuit, display=false)
             print("\nGraph Sim Mini: qubits=$n_qubits, gates=$(length(ops))")
             (icm_circuit, icm_n_qubits) = get_icm(ops, n_qubits)
             print(" => $icm_n_qubits, $(length(icm_circuit))\n\t")
-            (lco, adj) = get_graph_state_data(icm_circuit, icm_n_qubits, true)
         end
+        print("get_graph_state_data:\t")
+        (lco, adj) = @time get_graph_state_data(icm_circuit, icm_n_qubits, true)
     else
         (icm_circuit, icm_n_qubits) = get_icm(ops, n_qubits)
         (lco, adj) = get_graph_state_data(icm_circuit, icm_n_qubits, false)
