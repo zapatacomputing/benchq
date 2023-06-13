@@ -1,3 +1,4 @@
+import warnings
 from decimal import Decimal, getcontext
 from math import ceil
 from typing import Optional
@@ -349,7 +350,7 @@ class GraphResourceEstimator:
         )
 
         # get decoder requirements
-        if self.decoder_model:
+        if self.decoder_model and self.decoder_model.distance_cap >= code_distance:
             decoder_total_energy_consumption = (
                 space_time_volume
                 * self.decoder_model.power(code_distance)
@@ -371,6 +372,8 @@ class GraphResourceEstimator:
                 max_decodable_distance=max_decodable_distance,
             )
         else:
+            if self.decoder_model and self.decoder_model.distance_cap < code_distance:
+                warnings.warn("Code distance is too high to be decoded.")
             decoder_info = None
 
         return GraphResourceInfo(
