@@ -22,7 +22,7 @@ def get_trotter_program(
     # NOTE:
     # `trotter_order` is named badly in `time_evolution`.
     # It actually is number of trotter steps
-    circuit = time_evolution(hamiltonian, time=time_per_step, trotter_order=1)
+    circuit = time_evolution(hamiltonian, time=time_per_step, n_steps=1)
 
     def subrountines_for_trotter(steps):
         return [0] * steps
