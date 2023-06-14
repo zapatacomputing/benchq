@@ -11,7 +11,7 @@ from ..data_structures import QuantumProgram
 
 def get_trotter_circuit(hamiltonian, evolution_time, number_of_steps):
     return time_evolution(
-        hamiltonian, time=evolution_time, trotter_order=number_of_steps
+        hamiltonian, time=evolution_time, n_steps=number_of_steps
     )
 
 
