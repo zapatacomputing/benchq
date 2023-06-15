@@ -11,13 +11,17 @@ but is also more expensive in terms of runtime and memory usage.
 Most of the objects has been described in the `1_from_qasm.py` examples, here
 we only explain new concepts.
 """
-from copy import copy
 from pprint import pprint
 
 from benchq import BASIC_SC_ARCHITECTURE_MODEL
 from benchq.algorithms.time_evolution import qsp_time_evolution_algorithm
-from benchq.data_structures import ErrorBudget
+from benchq.compilation import get_algorithmic_graph_from_Jabalizer
+from benchq.compilation.chp_simulator import get_algorithmic_graph_from_chp
+from benchq.compilation.stim_simulator import get_algorithmic_graph_from_stim
 from benchq.problem_ingestion import get_vlasov_hamiltonian
+from benchq.problem_ingestion.hamiltonian_generation import (
+    generate_1d_heisenberg_hamiltonian,
+)
 from benchq.resource_estimation.graph import (
     GraphResourceEstimator,
     create_big_graph_from_subcircuits,
@@ -38,12 +42,12 @@ def main():
     # measure_time is a utility tool which measures the execution time of
     # the code inside the with statement.
     with measure_time() as t_info:
-        N = 2  # Problem size
-        operator = get_vlasov_hamiltonian(N=N, k=2.0, alpha=0.6, nu=0)
+        # N = 2  # Problem size
+        # operator = get_vlasov_hamiltonian(N=N, k=2.0, alpha=0.6, nu=0)
 
-        ## Alternative operator: 1D Heisenberg model
-        # N = 100
-        # operator = generate_1d_heisenberg_hamiltonian(N)
+        # Alternative operator: 1D Heisenberg model
+        N = 10
+        operator = generate_1d_heisenberg_hamiltonian(N)
 
     print("Operator generation time:", t_info.total)
 
@@ -65,25 +69,29 @@ def main():
             estimator=GraphResourceEstimator(architecture_model),
             transformers=[
                 synthesize_clifford_t(algorithm.error_budget),
-                create_big_graph_from_subcircuits(),
+                create_big_graph_from_subcircuits(
+                    graph_production_method=get_algorithmic_graph_from_chp
+                ),
             ],
         )
 
     print("Resource estimation time with synthesis:", t_info.total)
     pprint(gsc_resource_estimates)
 
-    with measure_time() as t_info:
-        gsc_resource_estimates = run_custom_resource_estimation_pipeline(
-            algorithm,
-            estimator=GraphResourceEstimator(architecture_model),
-            transformers=[
-                simplify_rotations,
-                create_big_graph_from_subcircuits(),
-            ],
-        )
+    # with measure_time() as t_info:
+    #     gsc_resource_estimates = run_custom_resource_estimation_pipeline(
+    #         algorithm,
+    #         estimator=GraphResourceEstimator(architecture_model),
+    #         transformers=[
+    #             simplify_rotations,
+    #             create_big_graph_from_subcircuits(
+    #                 graph_production_method=get_algorithmic_graph_from_Jabalizer
+    #             ),
+    #         ],
+    #     )
 
-    print("Resource estimation time without synthesis:", t_info.total)
-    pprint(gsc_resource_estimates)
+    # print("Resource estimation time without synthesis:", t_info.total)
+    # pprint(gsc_resource_estimates)
 
 
 if __name__ == "__main__":
