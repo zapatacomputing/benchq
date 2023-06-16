@@ -1,14 +1,11 @@
 ################################################################################
 # © Copyright 2023 Zapata Computing Inc.
 ################################################################################
-"""
-Unit tests for benchq.algorithms._qsp.
-"""
-import typing as t
+"""Unit tests for benchq.problem_embeddings._qsp."""
 from collections import Counter
+from typing import Mapping
 
 import numpy as np
-import numpy.random
 import pytest
 from orquestra.quantum import circuits
 from orquestra.quantum.operators import PauliSum
@@ -25,10 +22,8 @@ def _make_real_pauli_sum(terms_str: str) -> PauliSum:
     return operator
 
 
-def _gate_op_counts(circuit: circuits.Circuit) -> t.Mapping[str, int]:
-    """
-    Counts gate operations per gate type in the circuit.
-    """
+def _gate_op_counts(circuit: circuits.Circuit) -> Mapping[str, int]:
+    """Counts gate operations per gate type in the circuit."""
     names = [op.gate.name for op in circuit.operations]
     return Counter(names)
 
@@ -37,9 +32,7 @@ class TestGetQSPCircuit:
     @staticmethod
     @pytest.mark.parametrize("use_random_angles", [False, True])
     def test_example_circuit(use_random_angles: bool):
-        """
-        Uses values inspired by running the "qsp_vlasov.py" example.py
-        """
+        """Uses values inspired by running the "qsp_vlasov.py" example.py"""
         if not use_random_angles:
             pytest.skip(
                 "Skipping case for use_random_angles=True, "
