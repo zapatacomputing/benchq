@@ -107,10 +107,9 @@ def get_qsp_program(
             components.select_v[1],
             components.select_v[2],
             _invert_without_ry_dagger(components.select_v[1]),
-            _invert_without_ry_dagger(components.select_v[1]),
+            _invert_without_ry_dagger(components.select_v[0]),
             components.reflection,
         ]
-
         rotation_ind = 0
         reflection_ind = 6
         select_v_inds = list(range(1, 6))
@@ -168,7 +167,7 @@ def _dagger(operation: GateOperation) -> GateOperation:
     return (
         operation.replace_params((-operation.params[0],))  # type: ignore
         if operation.gate.name == "RY"
-        else operation.gate(*operation.qubit_indices)
+        else operation.gate.dagger(*operation.qubit_indices)
     )
 
 
