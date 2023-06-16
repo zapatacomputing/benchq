@@ -33,6 +33,14 @@ class BasicArchitectureModel(ABCArchitectureModel):
         self.physical_qubit_error_rate = physical_qubit_error_rate
         self.surface_code_cycle_time_in_seconds = surface_code_cycle_time_in_seconds
 
+    def __eq__(self, __value: object) -> bool:
+        assert isinstance(__value, BasicArchitectureModel)
+        return (
+            self.physical_qubit_error_rate == __value.physical_qubit_error_rate
+            and self.surface_code_cycle_time_in_seconds
+            == __value.surface_code_cycle_time_in_seconds
+        )
+
 
 BASIC_ION_TRAP_ARCHITECTURE_MODEL = BasicArchitectureModel(1e-4, 1e-5)
 BASIC_SC_ARCHITECTURE_MODEL = BasicArchitectureModel(1e-3, 1e-7)

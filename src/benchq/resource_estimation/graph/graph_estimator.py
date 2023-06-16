@@ -1,3 +1,4 @@
+import warnings
 from decimal import Decimal, getcontext
 from math import ceil
 from typing import Optional
@@ -89,6 +90,7 @@ class GraphResourceEstimator:
         self.optimization = optimization
         self.widget_iterator = WidgetIterator(self.hw_model)
         self.substrate_scheduler_preset = substrate_scheduler_preset
+        getcontext().prec = 100  # need some extra precision for this calculation
 
     # Assumes gridsynth scaling
     SYNTHESIS_SCALING = 4
@@ -136,14 +138,20 @@ class GraphResourceEstimator:
         ) ** self.get_logical_st_volume(n_total_t_gates, graph_data, code_distance)
 
     def _logical_cell_error_rate(self, distance: int) -> float:
-        return (
+        precise_physical_qubit_error_rate = Decimal(
+            self.hw_model.physical_qubit_error_rate
+        )
+        precise_distance = Decimal(distance)
+        precise_coefficent = Decimal(0.3)
+        return float(
             1
             - (
                 1
-                - 0.3
-                * (70 * self.hw_model.physical_qubit_error_rate) ** ((distance + 1) / 2)
+                - precise_coefficent
+                * (70 * precise_physical_qubit_error_rate)
+                ** ((precise_distance + 1) / 2)
             )
-            ** distance
+            ** precise_distance
         )
 
     def get_logical_st_volume(
@@ -198,7 +206,6 @@ class GraphResourceEstimator:
         n_rotation_gates: int,
         transpilation_failure_tolerance: float,
     ) -> int:
-        getcontext().prec = 100  # need some extra precision for this calculation
         if n_rotation_gates != 0:
             per_gate_synthesis_accuracy = 1 - (
                 1 - Decimal(transpilation_failure_tolerance)
@@ -343,7 +350,7 @@ class GraphResourceEstimator:
         )
 
         # get decoder requirements
-        if self.decoder_model:
+        if self.decoder_model and self.decoder_model.distance_cap >= code_distance:
             decoder_total_energy_consumption = (
                 space_time_volume
                 * self.decoder_model.power(code_distance)
@@ -365,6 +372,8 @@ class GraphResourceEstimator:
                 max_decodable_distance=max_decodable_distance,
             )
         else:
+            if self.decoder_model and self.decoder_model.distance_cap < code_distance:
+                warnings.warn("Code distance is too high to be decoded.")
             decoder_info = None
 
         return GraphResourceInfo(

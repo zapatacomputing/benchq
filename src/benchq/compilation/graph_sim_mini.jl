@@ -163,8 +163,9 @@ function get_neighbor(neighbors, avoid)
 end
 
 """
-Remove all local clifford operations on a vertex v. Needs use of a neighbor
-of v, but if we wish to avoid using a particular neighbor, we can specify it.
+Remove all local clifford operations on a vertex v that do not commute
+with CZ. Needs use of a neighbor of v, but if we wish to avoid using
+a particular neighbor, we can specify it.
 
 Args:
     lco::Vector{LCO}      local clifford operations on each node
@@ -179,10 +180,8 @@ function remove_lco(lco, adj, v, avoid)
         local_complement!(lco, adj, v)
     else
         vb = get_neighbor(adj[v], avoid)
-        if code == S_code
-            local_complement!(lco, adj, vb)
-        elseif code == H_code
-            local_complement!(lco, adj, v)
+        if code == H_code
+            # use decomposition of HS to eliminate H
             local_complement!(lco, adj, vb)
             local_complement!(lco, adj, v)
         elseif code == SH_code

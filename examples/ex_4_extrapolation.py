@@ -14,11 +14,7 @@ from pathlib import Path
 from pprint import pprint
 
 from benchq.algorithms.time_evolution import qsp_time_evolution_algorithm
-from benchq.data_structures import (
-    BASIC_SC_ARCHITECTURE_MODEL,
-    DecoderModel,
-    ErrorBudget,
-)
+from benchq.data_structures import BASIC_SC_ARCHITECTURE_MODEL, DecoderModel
 from benchq.problem_ingestion import (
     generate_jw_qubit_hamiltonian_from_mol_data,
     get_vlasov_hamiltonian,
@@ -41,6 +37,7 @@ def main(use_hydrogen=True):
 
     steps_to_extrapolate_from = [1, 2, 3]
 
+    # Load some dummy decoder data for now. Replace with your own decoder data.
     decoder_file_path = str(Path(__file__).parent / "data" / "sample_decoder_data.csv")
     decoder_model = DecoderModel.from_csv(decoder_file_path)
 
