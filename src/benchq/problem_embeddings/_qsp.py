@@ -32,6 +32,22 @@ class QSPComponents(Generic[TCircuit]):
     select_v: Sequence[TCircuit]
 
 
+@dataclass
+class _Indices:
+    """Structure for storing indices of QSP components.
+
+    Indices are needed because our QSP QuantumProgram requires
+    them (or at least function that computes them).
+
+    Rotation and reflection comprise a single subrouine, but the
+    select_v comprises several subroutines, that's why it's a list.
+    """
+
+    rotation: int
+    reflection: int
+    select_v: List[int]
+
+
 def get_qsp_circuit(
     operator: PauliRepresentation,
     required_precision: float,
@@ -110,28 +126,23 @@ def get_qsp_program(
             _invert_without_ry_dagger(components.select_v[0]),
             components.reflection,
         ]
-        rotation_ind = 0
-        reflection_ind = 6
-        select_v_inds = list(range(1, 6))
+        indices = _Indices(rotation=0, reflection=6, select_v=list(range(1, 6)))
     else:
         all_circuits = [
             components.rotation,
             components.select_v[0],
             components.reflection,
         ]
-
-        rotation_ind = 0
-        reflection_ind = 2
-        select_v_inds = [1]
+        indices = _Indices(rotation=0, reflection=2, select_v=[1])
 
     def subroutine_sequence_for_qsp(n_block_encodings):
         my_subroutines = []
-        my_subroutines.append(rotation_ind)
+        my_subroutines.append(indices.rotation)
         for _ in range(n_block_encodings):
-            my_subroutines += select_v_inds
-            my_subroutines.append(reflection_ind)
-        my_subroutines += select_v_inds
-        my_subroutines.append(rotation_ind)
+            my_subroutines += indices.select_v
+            my_subroutines.append(indices.reflection)
+        my_subroutines += indices.select_v
+        my_subroutines.append(indices.rotation)
         return my_subroutines
 
     return QuantumProgram(
