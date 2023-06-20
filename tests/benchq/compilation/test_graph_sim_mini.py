@@ -8,7 +8,7 @@ import pytest
 import stim
 from numba import njit
 from orquestra.integrations.qiskit.conversions import import_from_qiskit
-from orquestra.quantum.circuits import CNOT, CZ, Circuit, H, I, S
+from orquestra.quantum.circuits import CNOT, CZ, Circuit, H, S, X
 from qiskit import QuantumCircuit
 
 from benchq.compilation import jl, pyliqtr_transpile_to_clifford_t
@@ -17,7 +17,7 @@ from benchq.compilation import jl, pyliqtr_transpile_to_clifford_t
 @pytest.mark.parametrize(
     "circuit",
     [
-        Circuit([I(0)]),
+        Circuit([X(0)]),
         Circuit([H(0)]),
         Circuit([S(0)]),
         Circuit([H(0), S(0), H(0)]),
@@ -59,13 +59,15 @@ def test_stabilizer_states_are_the_same_for_simple_circuits(circuit):
     vertices = list(zip(loc, adj))
     graph_tableau = get_stabilizer_tableau_from_vertices(vertices)
 
-    assert tableaus_correspond_to_same_state(graph_tableau, target_tableau)
+    assert_tableaus_correspond_to_the_same_stabilizer_state(
+        graph_tableau, target_tableau
+    )
 
 
 @pytest.mark.parametrize(
     "filename",
     [
-        # "single_rotation.qasm",
+        "single_rotation.qasm",
         "example_circuit.qasm",
     ],
 )
@@ -89,7 +91,9 @@ def test_stabilizer_states_are_the_same_for_larger_circuits(filename):
         vertices = list(zip(loc, adj))
         graph_tableau = get_stabilizer_tableau_from_vertices(vertices)
 
-        assert tableaus_correspond_to_same_state(graph_tableau, target_tableau)
+        assert_tableaus_correspond_to_the_same_stabilizer_state(
+            graph_tableau, target_tableau
+        )
 
 
 # Everything below here is testing utils
@@ -132,8 +136,12 @@ def get_icm(circuit: Circuit, gates_to_decompose=["T", "T_Dagger"]) -> Circuit:
 def get_target_tableau(circuit):
     sim = stim.TableauSimulator()
     for op in circuit.operations:
-        if op.gate.name in ["I", "X", "Y", "Z"]:
-            pass
+        if op.gate.name == "X":
+            sim.x(*op.qubit_indices)
+        elif op.gate.name == "Y":
+            sim.y(*op.qubit_indices)
+        elif op.gate.name == "Z":
+            sim.z(*op.qubit_indices)
         elif op.gate.name == "CNOT":
             sim.cx(*op.qubit_indices)
         elif op.gate.name == "S_Dagger":
@@ -170,7 +178,7 @@ def get_stabilizer_tableau_from_vertices(vertices):
 
     cliffords = []
     for vertex in vertices:
-        # perform the vertex operation on the tableau
+        # get vertex operations for each node in the tableau
         pauli_perm_class = vertex[0] - 1
         if pauli_perm_class == 0:
             cliffords += [[]]
@@ -200,13 +208,20 @@ def get_tableau_from_stim_simulator(sim):
     return np.column_stack(sim.current_inverse_tableau().inverse().to_numpy()[2:4])
 
 
-@njit
-def tableaus_correspond_to_same_state(state_1, state_2):
-    for i in range(len(state_1)):
-        for j in range(i, len(state_2)):
-            if not commutes(state_1[i], state_2[j]):
-                return False
-    return True
+def assert_tableaus_correspond_to_the_same_stabilizer_state(tableau_1, tableau_2):
+    assert tableau_1.shape == tableau_2.shape
+
+    n_qubits = len(tableau_2)
+
+    # ensure that the graph tableau and the target tableau are composed
+    # of paulis belonging to the same stabilizer group
+    for i in range(n_qubits):
+        for j in range(i, n_qubits):
+            assert commutes(tableau_1[i], tableau_2[j])
+
+    # ensure that the stabilizers in the tableaus are linearly independent
+    assert np.linalg.matrix_rank(tableau_1) == n_qubits
+    assert np.linalg.matrix_rank(tableau_2) == n_qubits
 
 
 @njit
