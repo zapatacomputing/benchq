@@ -115,7 +115,7 @@ def get_qsp_program(
     if decompose_select_v:
         # We are done preprocessing the circuits, so we might now explode the list
         # of circuits to actually include daggers of select_v components.
-        # We are not using builting circuit.inverse() because it creates Dagger
+        # We are not using builtin circuit.inverse() because it creates Dagger
         # objects for RY gates.
         all_circuits = [
             components.rotation,
