@@ -2,6 +2,7 @@
 # © Copyright 2022 Zapata Computing Inc.
 ################################################################################
 from functools import singledispatch
+from typing import Optional
 
 from cirq.circuits import Circuit as CirqCircuit
 from orquestra.integrations.cirq.conversions import export_to_cirq, import_from_cirq
@@ -15,25 +16,35 @@ from orquestra.quantum.operators import PauliRepresentation
 from qiskit.circuit import QuantumCircuit as QiskitCircuit
 
 
+def _reset_n_qubits_if_needed(
+    circuit: OrquestraCircuit, original_n_qubits: Optional[int] = None
+):
+    return (
+        circuit
+        if original_n_qubits is None
+        else OrquestraCircuit(circuit.operations, n_qubits=original_n_qubits)
+    )
+
+
 @singledispatch
-def import_circuit(circuit):
+def import_circuit(circuit, original_n_qubits: Optional[int] = None):
     """imports a circuit from a supported quantum framework."""
     raise NotImplementedError(f"Circuit type {type(circuit)} not supported")
 
 
 @import_circuit.register
-def _(circuit: QiskitCircuit):
-    return import_from_qiskit(circuit)
+def _(circuit: QiskitCircuit, original_n_qubits: Optional[int] = None):
+    return _reset_n_qubits_if_needed(import_from_qiskit(circuit), original_n_qubits)
 
 
 @import_circuit.register
-def _(circuit: CirqCircuit):
-    return import_from_cirq(circuit)
+def _(circuit: CirqCircuit, original_n_qubits: Optional[int] = None):
+    return _reset_n_qubits_if_needed(import_from_cirq(circuit), original_n_qubits)
 
 
 @import_circuit.register
-def _(circuit: OrquestraCircuit):
-    return circuit
+def _(circuit: OrquestraCircuit, original_n_qubits: Optional[int] = None):
+    return _reset_n_qubits_if_needed(circuit, original_n_qubits)
 
 
 def export_circuit(circuit_type, circuit: OrquestraCircuit):
