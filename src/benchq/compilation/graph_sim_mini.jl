@@ -44,19 +44,21 @@ function get_graph_state_data(icm_circuit::Vector{ICMOp}, n_qubits, display=fals
     lco = fill(H_code, n_qubits)   # local clifford operation on each node
     adj = [AdjList() for _ in 1:n_qubits]  # adjacency list
 
-    total_length = length(icm_circuit)
-    counter = 0
-    start_time = time()
-    erase = "        \b\b\b\b\b\b\b\b"
+    if display 
+        total_length = length(icm_circuit)
+        counter = dispcnt = 0
+        start_time = time()
+        erase = "        \b\b\b\b\b\b\b\b"
+    end
 
     for icm_op in icm_circuit
         if display
             counter += 1
-            if counter > 1000
+            if (dispcnt += 1) >= 1000
                 percent = round(Int, 100 * counter / total_length)
                 elapsed = round(time() - start_time, digits=2)
-                print("\r$(percent)% completed in $erase$(elapsed)s")
-                counter = 0
+                print("\r$(percent)% ($counter) completed in $erase$(elapsed)s")
+                dispcnt = 0
             end
         end
 
@@ -75,13 +77,13 @@ function get_graph_state_data(icm_circuit::Vector{ICMOp}, n_qubits, display=fals
         elseif op_code == CZ_code
             cz(lco, adj, qubit_1, icm_op.qubit2)
         elseif op_code != Pauli_code
-            error("Unrecogniced gate code $op_code encountered")
+            error("Unrecognized gate code $op_code encountered")
         end
     end
 
     if display
         elapsed = round(time() - start_time, digits=2)
-        println("\r100% completed in $erase$(elapsed)s")
+        println("\r100% ($counter) completed in $erase$(elapsed)s")
     end
 
     return lco, adj
@@ -128,14 +130,14 @@ function cz(lco, adj, vertex_1, vertex_2)
     lst1, lst2 = adj[vertex_1], adj[vertex_2]
 
     if check_almost_isolated(lst1, vertex_2)
-        check_almost_isolated(lst2, vertex_1) || remove_lco(lco, adj, vertex_2, vertex_1)
+        check_almost_isolated(lst2, vertex_1) || remove_lco!(lco, adj, vertex_2, vertex_1)
         # if you don't remove vertex_2 from lst1, then you don't need to check again
     else
-        remove_lco(lco, adj, vertex_1, vertex_2)
+        remove_lco!(lco, adj, vertex_1, vertex_2)
         if !check_almost_isolated(lst2, vertex_1)
-            remove_lco(lco, adj, vertex_2, vertex_1)
+            remove_lco!(lco, adj, vertex_2, vertex_1)
             # recheck the adjacency list of vertex_1, because it might have been removed
-            check_almost_isolated(lst1, vertex_2) || remove_lco(lco, adj, vertex_1, vertex_2)
+            check_almost_isolated(lst1, vertex_2) || remove_lco!(lco, adj, vertex_1, vertex_2)
         end
     end
     if vertex_2 in lst1
@@ -145,21 +147,34 @@ function cz(lco, adj, vertex_1, vertex_2)
     end
 end
 
-function get_neighbor(neighbors, avoid)
+"""
+Select a neighbor to use when removing an LCO
+
+vb will be set to avoid if there are no neighbors, or avoid is the only neighbor,
+otherwise it returns the neighbor with the fewest neighbors (or the first one that
+it finds with less than min_neighbors)
+"""
+function get_neighbor(adj, v, avoid, min_neighbors = 6)
+    neighbors = adj[v]
+
     # Avoid copying and modifying adjacency vector
-    # vb will be set to avoid if there are no neighbors, or avoid is the only neighbor,
-    # otherwise it will pick the first neighbor it sees that is not avoid
-    isempty(neighbors) && return avoid
-    # This is looking into the internal Set implementation for optimal speed!
-    dict = neighbors.dict
-    slots = dict.slots
-    for i = dict.idxfloor:length(slots)
-        @inbounds if Base.isslotfilled(dict, i)
-            vb = dict.keys[i]
-            vb != avoid && return vb
+    check_almost_isolated(neighbors, v) && return avoid
+
+    smallest_neighborhood_size = typemax(eltype(neighbors)) # initialize to max possible value
+    neighbor_with_smallest_neighborhood = 0
+    for vb in neighbors
+        if vb != avoid
+            # stop search if  super small neighborhood is found
+            num_neighbors = length(adj[vb])
+            num_neighbors < min_neighbors && return vb
+            # search for smallest neighborhood
+            if num_neighbors < smallest_neighborhood_size
+                smallest_neighborhood_size = num_neighbors
+                neighbor_with_smallest_neighborhood = vb
+            end
         end
     end
-    avoid
+    return neighbor_with_smallest_neighborhood
 end
 
 """
@@ -173,21 +188,17 @@ Args:
     v::Int                index of the vertex to remove local clifford operations from
     avoid::Int            index of a neighbor of v to avoid using
 """
-function remove_lco(lco, adj, v, avoid)
+function remove_lco!(lco, adj, v, avoid)
     code = lco[v]
-    if code == Pauli_code
+    if code == Pauli_code || code == S_code
     elseif code == SQRT_X_code
         local_complement!(lco, adj, v)
     else
-        vb = get_neighbor(adj[v], avoid)
-        if code == H_code
-            # use decomposition of HS to eliminate H
-            local_complement!(lco, adj, vb)
-            local_complement!(lco, adj, v)
-        elseif code == SH_code
+        vb = get_neighbor(adj, v, avoid)
+        if code == SH_code
             local_complement!(lco, adj, v)
             local_complement!(lco, adj, vb)
-        elseif code == HS_code
+        else # code == H_code || code == HS_code
             local_complement!(lco, adj, vb)
             local_complement!(lco, adj, v)
         end
@@ -211,7 +222,6 @@ function local_complement!(lco, adj, v)
             toggle_edge!(adj, neighbor, neighbors[j])
         end
     end
-
     lco[v] = multiply_by_sqrt_x(lco[v])
     for i in adj[v]
         lco[i] = multiply_by_s(lco[i])
@@ -329,8 +339,9 @@ function run_graph_sim_mini(circuit, display=false)
             print("\nGraph Sim Mini: qubits=$n_qubits, gates=$(length(ops))")
             (icm_circuit, icm_n_qubits) = get_icm(ops, n_qubits)
             print(" => $icm_n_qubits, $(length(icm_circuit))\n\t")
-            (lco, adj) = get_graph_state_data(icm_circuit, icm_n_qubits, true)
         end
+        print("get_graph_state_data:\t")
+        (lco, adj) = @time get_graph_state_data(icm_circuit, icm_n_qubits, true)
     else
         (icm_circuit, icm_n_qubits) = get_icm(ops, n_qubits)
         (lco, adj) = get_graph_state_data(icm_circuit, icm_n_qubits, false)
