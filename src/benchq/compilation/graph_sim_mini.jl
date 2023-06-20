@@ -44,7 +44,7 @@ function get_graph_state_data(icm_circuit::Vector{ICMOp}, n_qubits, display=fals
     lco = fill(H_code, n_qubits)   # local clifford operation on each node
     adj = [AdjList() for _ in 1:n_qubits]  # adjacency list
 
-    if display 
+    if display
         total_length = length(icm_circuit)
         counter = dispcnt = 0
         start_time = time()
@@ -194,11 +194,12 @@ function remove_lco!(lco, adj, v, avoid)
     elseif code == SQRT_X_code
         local_complement!(lco, adj, v)
     else
-        vb = get_neighbor(adj, v, avoid)
         if code == SH_code
             local_complement!(lco, adj, v)
+            vb = get_neighbor(adj, v, avoid)
             local_complement!(lco, adj, vb)
         else # code == H_code || code == HS_code
+            vb = get_neighbor(adj, v, avoid)
             local_complement!(lco, adj, vb)
             local_complement!(lco, adj, v)
         end
@@ -262,9 +263,9 @@ get_qubit_1(op) = pyconvert(Int, op.qubit_indices[0])
 get_qubit_2(op) = pyconvert(Int, op.qubit_indices[1])
 
 const op_list = ["I", "X", "Y", "Z", "H", "S", "S_Dagger", "CZ", "CNOT",
-                 "T", "T_Dagger", "RX", "RY", "RZ"]
+                 "T", "T_Dagger", "RX", "RY", "RZ", "SX", "SX_Dagger", "RESET"]
 const code_list = LCO[0, 0, 0, 0, H_code, S_code, S_Dagger_code, CZ_code, CNOT_code,
-                      T_code, T_Dagger_code, RX_code, RY_code, RZ_code]
+                      T_code, T_Dagger_code, RX_code, RY_code, RZ_code, SQRT_X_code, SQRT_X_code, 0]
 
 """Get Python version of op_list of to speed up getting index"""
 get_op_list() = pylist(op_list)
@@ -288,24 +289,35 @@ function get_icm(circuit, n_qubits::Int, with_measurements::Bool=false)
     ops = get_op_list()
     curr_qubits = n_qubits
     for op in circuit
-        op_index = get_op_index(ops, op)
-        if single_qubit_op(op_index)
-            push!(compiled_circuit, ICMOp(code_list[op_index], qubit_map[get_qubit_1(op)+1]))
-        elseif double_qubit_op(op_index)
-            push!(compiled_circuit,
-                  ICMOp(code_list[op_index],
-                        qubit_map[get_qubit_1(op)+1], qubit_map[get_qubit_2(op)+1]))
-        elseif decompose_op(op_index)
-            # Note: these are currently all single qubit gates
+        if op.gate.name == "RESET"
             original_qubit = get_qubit_1(op)
             compiled_qubit = qubit_map[original_qubit+1]
             qubit_map[original_qubit+1] = new_qubit = curr_qubits
             curr_qubits += 1
 
-            push!(compiled_circuit, ICMOp(CNOT_code, compiled_qubit, new_qubit))
             with_measurements &&
                 push!(compiled_circuit,
                       ICMOp(code_list[op_index]+MEASURE_OFFSET, compiled_qubit, new_qubit))
+        else
+            op_index = get_op_index(ops, op)
+            if single_qubit_op(op_index)
+                push!(compiled_circuit, ICMOp(code_list[op_index], qubit_map[get_qubit_1(op)+1]))
+            elseif double_qubit_op(op_index)
+                push!(compiled_circuit,
+                    ICMOp(code_list[op_index],
+                            qubit_map[get_qubit_1(op)+1], qubit_map[get_qubit_2(op)+1]))
+            elseif decompose_op(op_index)
+                # Note: these are currently all single qubit gates
+                original_qubit = get_qubit_1(op)
+                compiled_qubit = qubit_map[original_qubit+1]
+                qubit_map[original_qubit+1] = new_qubit = curr_qubits
+                curr_qubits += 1
+
+                push!(compiled_circuit, ICMOp(CNOT_code, compiled_qubit, new_qubit))
+                with_measurements &&
+                    push!(compiled_circuit,
+                        ICMOp(code_list[op_index]+MEASURE_OFFSET, compiled_qubit, new_qubit))
+            end
         end
     end
 
