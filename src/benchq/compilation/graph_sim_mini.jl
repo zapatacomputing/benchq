@@ -158,7 +158,7 @@ function get_neighbor(adj, v, avoid, min_neighbors = 6)
     neighbors = adj[v]
 
     # Avoid copying and modifying adjacency vector
-    check_almost_isolated(neighbors, v) && return avoid
+    check_almost_isolated(neighbors, avoid) && return avoid
 
     smallest_neighborhood_size = typemax(eltype(neighbors)) # initialize to max possible value
     neighbor_with_smallest_neighborhood = 0
