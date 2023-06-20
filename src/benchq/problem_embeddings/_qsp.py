@@ -181,7 +181,6 @@ def _replace_named_qubits(
 
 XPOW_X_1 = cirq.XPowGate(exponent=-1)
 XPOW_X_2 = cirq.XPowGate(global_shift=-0.25)
-RESET_CHANNEL = cirq.ResetChannel()
 
 
 ZPOW_GATE_Z_EQUIVALENT = cirq.ZPowGate(exponent=-1)
@@ -197,7 +196,7 @@ def _replace_gate(op: cirq.Operation) -> Optional[cirq.Operation]:
         return cirq.X(op.qubits[0])
     elif isinstance(op.gate, cirq.XPowGate) and op.gate == XPOW_X_2:
         return cirq.X(op.qubits[0])
-    elif op.gate == cirq.I or op.gate == RESET_CHANNEL:
+    elif op.gate == cirq.I:
         return None
     elif op.gate == ZPOW_GATE_Z_EQUIVALENT:
         # TODO: requires verification!

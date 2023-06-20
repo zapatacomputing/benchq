@@ -2,6 +2,7 @@ from typing import Iterable
 
 import numpy as np
 from orquestra.quantum.circuits import (
+    CNOT,
     RZ,
     Circuit,
     ControlledGate,
@@ -26,7 +27,8 @@ def simplify_rotations(circuit) -> Circuit:
     """
     circuit = import_circuit(circuit)
     return decompose_orquestra_circuit(
-        circuit, [RXtoRZ(), RYtoRZ(), DecomposeStandardRZ()]
+        circuit,
+        [CCZtoT(), U3toRZ(), RXtoRZ(), RYtoRZ(), DecomposeStandardRZ()],
     )
 
 
@@ -137,6 +139,91 @@ class RYtoRZ(DecompositionRule[GateOperation]):
         gate_operation_decomposition = [
             preprocess_gate(gate)(*operation.qubit_indices)
             for gate in gate_decomposition
+        ]
+
+        return reversed(gate_operation_decomposition)
+
+
+class U3toRZ(DecompositionRule[GateOperation]):
+    """Decomposition of U3 into RX and RZ gates."""
+
+    def predicate(self, operation: GateOperation) -> bool:
+        # Only decompose U3 and its controlled version
+        return (
+            operation.gate.name == "U3"
+            or isinstance(operation.gate, ControlledGate)
+            and operation.gate.wrapped_gate.name == "U3"
+        )
+
+    def production(self, operation: GateOperation) -> Iterable[GateOperation]:
+        theta = operation.params[0]
+        phi = operation.params[1]
+        lam = operation.params[2]
+
+        gate_decomposition = [
+            RZ(phi),
+            H,
+            RZ(np.pi / 2),
+            H,
+            RZ(theta),
+            H,
+            RZ(-np.pi / 2),
+            H,
+            RZ(lam),
+        ]
+
+        def preprocess_gate(gate):
+            return (
+                gate.controlled(operation.gate.num_control_qubits)
+                if operation.gate.name == "Control"
+                else gate
+            )
+
+        gate_operation_decomposition = [
+            preprocess_gate(gate)(*operation.qubit_indices)
+            for gate in gate_decomposition
+        ]
+
+        return reversed(gate_operation_decomposition)
+
+
+class CCZtoT(DecompositionRule[GateOperation]):
+    """Decomposition of U3 into RX and RZ gates."""
+
+    def predicate(self, operation: GateOperation) -> bool:
+        # Only decompose CCZ
+        if operation.gate.name == "Control":
+            assert isinstance(operation.gate, ControlledGate)
+            if (
+                operation.gate.wrapped_gate.name == "X"
+                and operation.gate.num_control_qubits == 2
+            ) or (
+                operation.gate.wrapped_gate.name == "CNOT"
+                and operation.gate.num_control_qubits == 1
+            ):
+                return True
+
+        return False
+
+    def production(self, operation: GateOperation) -> Iterable[GateOperation]:
+        qubit_1, qubit_2, qubit_3 = operation.qubit_indices
+
+        gate_operation_decomposition = [
+            H(qubit_3),
+            CNOT(qubit_2, qubit_3),
+            T.dagger(qubit_3),
+            CNOT(qubit_1, qubit_3),
+            T(qubit_3),
+            CNOT(qubit_2, qubit_3),
+            T.dagger(qubit_3),
+            CNOT(qubit_1, qubit_3),
+            T(qubit_2),
+            T(qubit_3),
+            H(qubit_3),
+            CNOT(qubit_1, qubit_2),
+            T.dagger(qubit_2),
+            T(qubit_1),
+            CNOT(qubit_1, qubit_2),
         ]
 
         return reversed(gate_operation_decomposition)

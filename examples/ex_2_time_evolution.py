@@ -16,6 +16,9 @@ from pprint import pprint
 from benchq.algorithms.time_evolution import qsp_time_evolution_algorithm
 from benchq.data_structures import BASIC_SC_ARCHITECTURE_MODEL
 from benchq.problem_ingestion import get_vlasov_hamiltonian
+from benchq.problem_ingestion.hamiltonian_generation import (
+    generate_1d_heisenberg_hamiltonian,
+)
 from benchq.resource_estimation.graph import (
     GraphResourceEstimator,
     create_big_graph_from_subcircuits,
