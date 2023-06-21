@@ -22,9 +22,17 @@ from benchq.resource_estimation.graph import (
     create_big_graph_from_subcircuits,
     simplify_rotations,
 )
+task_deps = [
+    sdk.PythonImports(
+        "pyscf==2.2.0", "openfermionpyscf==0.5", "stim==1.10", "juliapkg"
+    ),
+    sdk.GithubImport(
+        "zapatacomputing/benchq",
+    ),
+]
 
 task = sdk.task(
-    source_import=sdk.GitImport.infer(), resources=sdk.Resources(memory="4Gi")
+    source_import=sdk.InlineImport(), dependency_imports=task_deps, resources=sdk.Resources(memory="4Gi"), custom_image="hub.nexus.orquestra.io/users/james.clark/benchq-ce:0.50.0"
 )
 
 
@@ -74,7 +82,7 @@ def estimate_resources(
     )
 
 
-@sdk.workflow
+@sdk.workflow(resources=sdk.Resources(memory="8Gi", nodes=2))
 def estimation_workflow() -> List[GraphResourceInfo]:
     """The workflow for estimating resources.
 

@@ -40,9 +40,7 @@ def main():
     wf_run = wf.run(args.target)
     print(f"Workflow {wf_run.run_id} submitted!")
 
-    while (state := wf_run.get_status()) in (State.WAITING, State.RUNNING):
-        print(f"State: {state}")
-        sleep(1)
+    wf_run.wait_until_finished()
 
     print(wf_run.get_results())
 
