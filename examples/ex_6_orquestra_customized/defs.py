@@ -14,7 +14,9 @@ from benchq.data_structures import (
     AlgorithmImplementation,
     BasicArchitectureModel,
     ErrorBudget,
+    GraphPartition,
     GraphResourceInfo,
+    QuantumProgram,
 )
 from benchq.problem_ingestion import get_vlasov_hamiltonian
 from benchq.resource_estimation.graph import (
@@ -22,6 +24,7 @@ from benchq.resource_estimation.graph import (
     create_big_graph_from_subcircuits,
     simplify_rotations,
 )
+
 task_deps = [
     sdk.PythonImports(
         "pyscf==2.2.0", "openfermionpyscf==0.5", "stim==1.10", "juliapkg"
@@ -32,7 +35,10 @@ task_deps = [
 ]
 
 task = sdk.task(
-    source_import=sdk.InlineImport(), dependency_imports=task_deps, resources=sdk.Resources(memory="4Gi"), custom_image="hub.nexus.orquestra.io/users/james.clark/benchq-ce:0.50.0"
+    source_import=sdk.InlineImport(),
+    dependency_imports=task_deps,
+    resources=sdk.Resources(memory="4Gi"),
+    custom_image="hub.nexus.orquestra.io/users/james.clark/benchq-ce:0.50.0",
 )
 
 
@@ -54,8 +60,8 @@ def get_algorithm_implementation(
 
 @task
 def transpile(
-    algorithm_implementation: AlgorithmImplementation,
-) -> AlgorithmImplementation:
+    algorithm_implementation: AlgorithmImplementation[QuantumProgram],
+) -> AlgorithmImplementation[GraphPartition]:
     """Transpile algorithm implementation into a graph representationp.
 
     The transpilation has two steps:

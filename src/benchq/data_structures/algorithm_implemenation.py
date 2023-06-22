@@ -1,14 +1,16 @@
 from dataclasses import dataclass
-from typing import Union
+from typing import Generic, TypeVar, Union
 
 from .error_budget import ErrorBudget
 from .graph_partition import GraphPartition
 from .quantum_program import QuantumProgram, get_program_from_circuit
 
+T = TypeVar("T", QuantumProgram, GraphPartition)
+
 
 @dataclass
-class AlgorithmImplementation:
-    program: Union[QuantumProgram, GraphPartition]
+class AlgorithmImplementation(Generic[T]):
+    program: T
     error_budget: ErrorBudget
     n_calls: int
 
