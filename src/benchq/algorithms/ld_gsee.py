@@ -7,7 +7,7 @@ import numpy as np
 
 
 def get_sigma(
-    alpha: float, energy_gap: float, lam: float, eta: float, DE: float
+    alpha: float, delta_true: float, eta: float, epsilon: float
 ) -> float:
     """Get the standard deviation of the Gaussian convolution function (Eq. 15 of
     arXiv:2209.06811v2).
@@ -16,14 +16,13 @@ def get_sigma(
         alpha: The parameter alpha controlling the tradeoff between circuit repetitions
             and circuit depth. Zero corresponds to the minimum circuit depth, while one
             corresponds to the minimum number of circuit repetitions.
-        energy_gap: The energy gap of the Hamiltonian.
+        delta_true: The energy gap of the Hamiltonian.
         lam: The one-norm of the Hamiltonian.
         eta: The square overlap of the initial state with the ground state.
-        DE: The desired ground state energy accuracy.
+        epsilon: The desired ground state energy accuracy.
 
     Returns: The standard deviation of the Gaussian convolution function."""
-    epsilon = DE / lam
-    delta = epsilon**alpha * energy_gap ** (1 - alpha)
+    delta = epsilon**alpha * delta_true ** (1 - alpha)
     return min(
         0.9 * delta / (np.sqrt(2 * np.log(9 * delta * epsilon ** (-1) * eta ** (-1)))),
         0.2 * delta,
