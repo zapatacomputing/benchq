@@ -27,3 +27,37 @@ def test_get_sigma_scales_with_energy():
 )
 def test_get_ldgsee_num_circuit_qubits(num_block_encoding_qubits, expected_result):
     assert get_ldgsee_num_qubits(num_block_encoding_qubits) == expected_result
+
+
+@pytest.mark.parametrize(
+    "alpha,delta_true,eta,epsilon,expected_result",
+    [
+        (
+            1,
+            1,
+            1,
+            1,
+            1,
+        ),
+    ],
+)
+def test_get_ldgsee_num_iterations(alpha, delta_true, eta, epsilon, expected_result):
+    pass
+
+
+@pytest.mark.parametrize(
+    "alpha,delta_true,eta,epsilon,failure_probability,expected_result",
+    [(1, 1, 1, 1, 1, 128 / np.pi * np.log(4 * 2)),
+    (1, 10, 1, 10, 1, 128 / np.pi * np.log(4 * 2))],
+)
+def test_get_ldgsee_num_circuit_repetitions(
+    alpha, delta_true, eta, epsilon, failure_probability, expected_result
+):
+    print(get_sigma(alpha, delta_true, eta, epsilon))
+    print(get_epsilon_1(epsilon, eta, get_sigma(alpha, delta_true, eta, epsilon)))
+    assert np.isclose(
+        get_ldgsee_num_circuit_repetitions(
+            alpha, delta_true, eta, epsilon, failure_probability
+        ),
+        expected_result,
+    )
