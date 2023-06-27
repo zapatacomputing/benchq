@@ -1,12 +1,14 @@
 ################################################################################
 # © Copyright 2023 Zapata Computing Inc.
 ################################################################################
+from dataclasses import dataclass
 import warnings
 from typing import Dict
 
 import numpy as np
 
 
+@dataclass
 class DecoderModel:
     """Class representing decoder model for belief-propagation decoder.
 

@@ -4,11 +4,15 @@
 # WARNING! SIMPLE MODELING AHEAD! ABANDON NUANCE ALL YE WHO ENTER HERE!
 
 
+from dataclasses import dataclass
+
+
 class ABCArchitectureModel:
     def __init__(self):
         pass
 
 
+@dataclass
 class BasicArchitectureModel(ABCArchitectureModel):
     """Basic Architecture model meant to serve as a base class for the
     other basic architecture models. WARNING! Running a resource estimate
