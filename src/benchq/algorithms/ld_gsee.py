@@ -6,59 +6,55 @@
 import numpy as np
 
 
-def _get_sigma(alpha: float, delta_true: float, eta: float, epsilon: float) -> float:
+def _get_sigma(
+    alpha: float, energy_gap: float, square_overlap: float, precision: float
+) -> float:
     """Get the standard deviation of the Gaussian convolution function (Eq. 15 of
     arXiv:2209.06811v2).
 
-    Arguments:
-        alpha: The parameter alpha controlling the tradeoff between circuit repetitions
-            and circuit depth. Zero corresponds to the minimum circuit depth, while one
-            corresponds to the minimum number of circuit repetitions.
-        delta_true: The energy gap of the Hamiltonian.
-        lam: The one-norm of the Hamiltonian.
-        eta: The square overlap of the initial state with the ground state.
-        epsilon: The desired ground state energy accuracy.
+    See get_ldgsee_num_iterations for argument descriptions.
 
     Returns: The standard deviation of the Gaussian convolution function."""
-    delta = epsilon**alpha * delta_true ** (1 - alpha)
+    delta = precision**alpha * energy_gap ** (1 - alpha)
     return min(
-        0.9 * delta / (np.sqrt(2 * np.log(9 * delta * epsilon ** (-1) * eta ** (-1)))),
+        0.9
+        * delta
+        / (np.sqrt(2 * np.log(9 * delta * precision ** (-1) * square_overlap ** (-1)))),
         0.2 * delta,
     )
 
 
-def _get_epsilon_1(epsilon: float, eta: float, sigma: float) -> float:
+def _get_epsilon_1(precision: float, square_overlap: float, sigma: float) -> float:
     """Get the error with respect to the convolution function (Eq. 28 of
         arXiv:2209.06811v2).
 
-    Arguments:
-        epsilon: The error tolerance.
-        eta: The error tolerance for the convolution function.
-        sigma: The standard deviation of the Gaussian convolution function.
+    See get_ldgsee_num_iterations for argument descriptions.
 
     Returns: The error with respect to the convolution function."""
 
-    return 0.1 * epsilon * eta / (np.sqrt(2 * np.pi) * sigma**3)
+    return 0.1 * precision * square_overlap / (np.sqrt(2 * np.pi) * sigma**3)
 
 
-def get_ldgsee_num_iterations(
-    alpha: float, delta_true: float, eta: float, epsilon: float
+def get_ldgsee_max_evolution_time(
+    alpha: float, energy_gap: float, square_overlap: float, precision: float
 ) -> float:
-    """Get the number of iterations for the FF-LD-GSEE algorithm (Eq. 34 of
+    """Get the maximum evolution time for the FF-LD-GSEE algorithm (Eq. 34 of
     arXiv:2209.06811v2).
 
     Arguments:
         alpha: The parameter alpha controlling the tradeoff between circuit repetitions
             and circuit depth. Zero corresponds to the minimum circuit depth, while one
             corresponds to the minimum number of circuit repetitions.
-        delta_true: The energy gap of the Hamiltonian.
-        lam: The one-norm of the Hamiltonian.
-        eta: The square overlap of the initial state with the ground state.
-        epsilon: The desired ground state energy accuracy.
+        energy_gap: The energy gap of the Hamiltonian, corresponds to Delta_true in the
+            paper.
+        square_overlap: The square overlap of the initial state with the ground state.
+            Corresponds to eta in the paper.
+        precision: The desired ground state energy precision. Corresponds to epsilon in
+            the paper.
 
     Returns: The estimated number of iterations required by the FF-LD-GSEE algorithm."""
-    sigma = _get_sigma(alpha, delta_true, eta, epsilon)
-    epsilon_1 = _get_epsilon_1(epsilon, eta, sigma)
+    sigma = _get_sigma(alpha, energy_gap, square_overlap, precision)
+    epsilon_1 = _get_epsilon_1(precision, square_overlap, sigma)
     return (
         np.pi ** (-1)
         * sigma ** (-1)
@@ -68,9 +64,9 @@ def get_ldgsee_num_iterations(
 
 def get_ldgsee_num_circuit_repetitions(
     alpha: float,
-    delta_true: float,
-    eta: float,
-    epsilon: float,
+    energy_gap: float,
+    square_overlap: float,
+    precision: float,
     failure_probability: float,
 ) -> float:
     """Get the number of circuit repetitions for the FF-LD-GSEE algorithm (Eqs. 52 and
@@ -80,20 +76,21 @@ def get_ldgsee_num_circuit_repetitions(
         alpha: The parameter alpha controlling the tradeoff between circuit repetitions
             and circuit depth. Zero corresponds to the minimum circuit depth, while one
             corresponds to the minimum number of circuit repetitions.
-        delta_true: The energy gap of the Hamiltonian.
-        lam: The one-norm of the Hamiltonian.
-        eta: The square overlap of the initial state with the ground state.
-        epsilon: The desired ground state energy accuracy.
-        failure_probability: The failure probability.
+        energy_gap: The energy gap of the Hamiltonian, corresponds to Delta_true in the
+            paper.
+        square_overlap: The square overlap of the initial state with the ground state.
+            Corresponds to eta in the paper.
+        precision: The desired ground state energy precision. Corresponds to epsilon in
+            the paper.
 
     Returns: The estimated number of circuit repetitions required by the FF-LD-GSEE
         algorithm.."""
 
-    sigma = _get_sigma(alpha, delta_true, eta, epsilon)
-    epsilon_1 = _get_epsilon_1(epsilon, eta, sigma)
+    sigma = _get_sigma(alpha, energy_gap, square_overlap, precision)
+    epsilon_1 = _get_epsilon_1(precision, square_overlap, sigma)
 
     # number of grid points along the x-axis
-    M = np.ceil(sigma / epsilon) + 1
+    M = np.ceil(sigma / precision) + 1
 
     return (
         (16 / np.pi**2)
