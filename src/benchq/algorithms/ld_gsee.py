@@ -59,6 +59,8 @@ def get_ldgsee_num_iterations(
     Returns: The estimated number of iterations required by the FF-LD-GSEE algorithm."""
     sigma = get_sigma(alpha, delta_true, eta, epsilon)
     epsilon_1 = get_epsilon_1(epsilon, eta, sigma)
+    print(sigma)
+    print(epsilon_1)
     return (
         np.pi ** (-1)
         * sigma ** (-1)
