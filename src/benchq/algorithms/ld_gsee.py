@@ -1,7 +1,8 @@
 ################################################################################
 # © Copyright 2023 Zapata Computing Inc.
 ################################################################################
-"""Tools for the Fourier-Filtered Low-Depth Ground State Energy Estimation (FF-LD-GSEE) algorithm (arXiv:2209.06811v2)."""
+"""Tools for the Fourier-Filtered Low-Depth Ground State Energy Estimation (FF-LD-GSEE)
+algorithm (arXiv:2209.06811v2)."""
 
 import numpy as np
 
