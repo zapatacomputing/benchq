@@ -6,7 +6,7 @@
 import numpy as np
 
 
-def get_sigma(alpha: float, delta_true: float, eta: float, epsilon: float) -> float:
+def _get_sigma(alpha: float, delta_true: float, eta: float, epsilon: float) -> float:
     """Get the standard deviation of the Gaussian convolution function (Eq. 15 of
     arXiv:2209.06811v2).
 
@@ -27,7 +27,7 @@ def get_sigma(alpha: float, delta_true: float, eta: float, epsilon: float) -> fl
     )
 
 
-def get_epsilon_1(epsilon: float, eta: float, sigma: float) -> float:
+def _get_epsilon_1(epsilon: float, eta: float, sigma: float) -> float:
     """Get the error with respect to the convolution function (Eq. 28 of
         arXiv:2209.06811v2).
 
@@ -57,10 +57,8 @@ def get_ldgsee_num_iterations(
         epsilon: The desired ground state energy accuracy.
 
     Returns: The estimated number of iterations required by the FF-LD-GSEE algorithm."""
-    sigma = get_sigma(alpha, delta_true, eta, epsilon)
-    epsilon_1 = get_epsilon_1(epsilon, eta, sigma)
-    print(sigma)
-    print(epsilon_1)
+    sigma = _get_sigma(alpha, delta_true, eta, epsilon)
+    epsilon_1 = _get_epsilon_1(epsilon, eta, sigma)
     return (
         np.pi ** (-1)
         * sigma ** (-1)
@@ -75,7 +73,8 @@ def get_ldgsee_num_circuit_repetitions(
     epsilon: float,
     failure_probability: float,
 ) -> float:
-    """Get the number of circuit repetitions for the FF-LD-GSEE algorithm.
+    """Get the number of circuit repetitions for the FF-LD-GSEE algorithm (Eqs. 52 and
+    62 of arXiv:2209.06811v2).
 
     Arguments:
         alpha: The parameter alpha controlling the tradeoff between circuit repetitions
@@ -90,8 +89,8 @@ def get_ldgsee_num_circuit_repetitions(
     Returns: The estimated number of circuit repetitions required by the FF-LD-GSEE
         algorithm.."""
 
-    sigma = get_sigma(alpha, delta_true, eta, epsilon)
-    epsilon_1 = get_epsilon_1(epsilon, eta, sigma)
+    sigma = _get_sigma(alpha, delta_true, eta, epsilon)
+    epsilon_1 = _get_epsilon_1(epsilon, eta, sigma)
 
     # number of grid points along the x-axis
     M = np.ceil(sigma / epsilon) + 1
@@ -101,13 +100,3 @@ def get_ldgsee_num_circuit_repetitions(
         * np.log(4 * M / failure_probability)
         / (sigma**4 * epsilon_1**2)
     )
-
-
-def get_ldgsee_num_qubits(num_block_encoding_qubits: int) -> int:
-    """Get the number of qubits for the FF-LD-GSEE algorithm.
-
-    Arguments:
-        num_block_encoding_qubits: The number of logical qubits used for the block encoding.
-
-    Returns: The number of logical qubits for the FF-LD-GSEE algorithm."""
-    return num_block_encoding_qubits + 1
