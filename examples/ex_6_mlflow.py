@@ -2,7 +2,7 @@
 # © Copyright 2023 Zapata Computing Inc.
 ################################################################################
 """
-Basic example of how to perform resource estimation of a circuit from a QASM file.
+Copy of example 1 with added code to demonstrate logging params and metrics to mlflow
 """
 
 from orquestra.integrations.qiskit.conversions import import_from_qiskit
@@ -22,10 +22,10 @@ from benchq.resource_estimation.graph import (
     synthesize_clifford_t,
 )
 from benchq.mlflow import log_input_objects_to_mlflow, log_resource_info_to_mlflow
-from icecream import ic
+import mlflow
 
 
-def main(file_name):
+def main(file_name, total_failure_tolerance=1e-3):
     # Uncomment to see extra debug output
     # logging.getLogger().setLevel(logging.INFO)
 
@@ -38,7 +38,7 @@ def main(file_name):
     # Error budget is used to define what should be the failure rate of running
     # the whole calculation. It also allows to set relative weights for different
     # parts of the calculation, such as gate synthesis or circuit generation.
-    error_budget = ErrorBudget.from_even_split(total_failure_tolerance=1e-3)
+    error_budget = ErrorBudget.from_even_split(total_failure_tolerance=total_failure_tolerance)
 
     # algorithm implementation encapsulates the how the algorithm is implemented
     # including the program, the number of times the program must be repeated,
@@ -47,8 +47,6 @@ def main(file_name):
 
     # Architecture model is used to define the hardware model.
     architecture_model = BASIC_SC_ARCHITECTURE_MODEL
-
-    log_input_objects_to_mlflow(algorithm_description, BASIC_SC_ARCHITECTURE_MODEL)
 
     # Here we run the resource estimation pipeline.
     # In this case before performing estimation we use the following transformers:
@@ -69,10 +67,13 @@ def main(file_name):
             create_big_graph_from_subcircuits(),
         ],
     )
-    # print("Resource estimation results:")
-    # print(gsc_resource_estimates)
-    log_resource_info_to_mlflow(gsc_resource_estimates)
+
+    # mlflow.set_tracking_uri("http://127.0.0.1:5000")
+    with mlflow.start_run():
+        log_input_objects_to_mlflow(algorithm_description, "simple qiskit circuit", BASIC_SC_ARCHITECTURE_MODEL)
+        log_resource_info_to_mlflow(gsc_resource_estimates)
 
 
 if __name__ == "__main__":
-    main("data/example_circuit.qasm")
+    for i in range(5):
+        main("data/example_circuit.qasm", 10**(-i))
