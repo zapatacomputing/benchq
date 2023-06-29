@@ -20,7 +20,7 @@ from benchq.algorithms.ld_gsee import (
 def test_get_ld_gsee_num_iterations(
     alpha, energy_gap, square_overlap, precision, expected_result
 ):
-    assert np.isclose(
+    np.testing.assert_allclose(
         get_ld_gsee_max_evolution_time(alpha, energy_gap, square_overlap, precision),
         expected_result,
     )
@@ -36,7 +36,7 @@ def test_get_ld_gsee_num_iterations(
 def test_get_ld_gsee_num_circuit_repetitions(
     alpha, energy_gap, square_overlap, precision, failure_probability, expected_result
 ):
-    assert np.isclose(
+    np.testing.assert_allclose(
         get_ld_gsee_num_circuit_repetitions(
             alpha, energy_gap, square_overlap, precision, failure_probability
         ),
