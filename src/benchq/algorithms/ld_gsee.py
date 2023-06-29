@@ -86,8 +86,10 @@ def get_ff_ld_gsee_num_circuit_repetitions(
             Corresponds to eta in the paper.
         precision: The desired ground state energy precision. Corresponds to epsilon in
             the paper. Should use the same units as energy_gap.
-        failure_probability: The tolerable failure probability. Corresponds to delta in
-            the paper.
+        failure_probability: The tolerable probability of the algorithm failing due to
+            sampling. Corresponds to delta in the paper. Note that this failure
+            probability does not include failure due to other sources such as gate
+            synthesis, quantum error correction, or distillation.
 
     Returns: The estimated number of circuit repetitions required by the FF-LD-GSEE
         algorithm.
