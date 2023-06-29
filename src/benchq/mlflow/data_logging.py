@@ -2,7 +2,7 @@
 # © Copyright 2023 Zapata Computing Inc.
 ################################################################################
 """ Tools for using mlflow to log benchq data """
-from mlflow import log_params, log_param, log_metric
+import mlflow
 from benchq.data_structures.resource_info import ResourceInfo
 from ..data_structures import (
     AlgorithmImplementation,
@@ -25,19 +25,19 @@ def log_input_objects_to_mlflow(
     # Sometimes the algorithm description has a None as a value, which causes problem if we try to log it
     for algo_key, algo_value in _flatten_dict(asdict(algorithm_description)).items():
         if algo_value is not None:
-            log_param(algo_key, algo_value)
+            mlflow.log_param(algo_key, algo_value)
         else:
-            log_param(algo_key, "None")
-    
-    log_param("algorithm_name", algorithm_name)
+            mlflow.log_param(algo_key, "None")
 
-    log_params(_flatten_dict(asdict(hardware_model)))
+    mlflow.log_param("algorithm_name", algorithm_name)
+
+    mlflow.log_params(_flatten_dict(asdict(hardware_model)))
 
     # because decoder model is optional, check to make sure it exists
     if decoder_model is not None:
-        log_params(_flatten_dict(decoder_model))
+        mlflow.log_params(_flatten_dict(asdict(decoder_model)))
     else:
-        log_param("decoder_model", "None")
+        mlflow.log_param("decoder_model", "None")
 
 
 def log_resource_info_to_mlflow(resource_info: ResourceInfo):
@@ -45,11 +45,11 @@ def log_resource_info_to_mlflow(resource_info: ResourceInfo):
     flat_resource_dict = _flatten_dict(asdict(resource_info))
     for key, value in flat_resource_dict.items():
         if isinstance(value, Number):
-            log_metric(key, value)
+            mlflow.log_metric(key, value)
         elif value is not None:
-            log_param(key, value)
+            mlflow.log_param(key, value)
         else:
-            log_param(key, "None")
+            mlflow.log_param(key, "None")
 
 
 def _flatten_dict(input_dict: Dict[str, Any]) -> Dict[str, Any]:
