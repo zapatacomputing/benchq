@@ -5,8 +5,8 @@ import numpy as np
 import pytest
 
 from benchq.algorithms.ld_gsee import (
-    get_ld_gsee_max_evolution_time,
-    get_ld_gsee_num_circuit_repetitions,
+    get_ff_ld_gsee_max_evolution_time,
+    get_ff_ld_gsee_num_circuit_repetitions,
 )
 
 
@@ -17,11 +17,11 @@ from benchq.algorithms.ld_gsee import (
         (1, 10, 1, 10, 1 / 2 / np.pi * np.sqrt(2 * np.log(16 * np.sqrt(2 / np.pi)))),
     ],
 )
-def test_get_ld_gsee_num_iterations(
+def test_get_ff_ld_gsee_num_iterations(
     alpha, energy_gap, square_overlap, precision, expected_result
 ):
     np.testing.assert_allclose(
-        get_ld_gsee_max_evolution_time(alpha, energy_gap, square_overlap, precision),
+        get_ff_ld_gsee_max_evolution_time(alpha, energy_gap, square_overlap, precision),
         expected_result,
     )
 
@@ -33,11 +33,11 @@ def test_get_ld_gsee_num_iterations(
         (1, 10, 1, 10, 1, 128 / np.pi * np.log(4 * 2)),
     ],
 )
-def test_get_ld_gsee_num_circuit_repetitions(
+def test_get_ff_ld_gsee_num_circuit_repetitions(
     alpha, energy_gap, square_overlap, precision, failure_probability, expected_result
 ):
     np.testing.assert_allclose(
-        get_ld_gsee_num_circuit_repetitions(
+        get_ff_ld_gsee_num_circuit_repetitions(
             alpha, energy_gap, square_overlap, precision, failure_probability
         ),
         expected_result,

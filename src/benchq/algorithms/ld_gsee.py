@@ -38,7 +38,7 @@ def _get_epsilon_1(precision: float, square_overlap: float, sigma: float) -> flo
     return 0.1 * precision * square_overlap / (np.sqrt(2 * np.pi) * sigma**3)
 
 
-def get_ld_gsee_max_evolution_time(
+def get_ff_ld_gsee_max_evolution_time(
     alpha: float, energy_gap: float, square_overlap: float, precision: float
 ) -> float:
     """Get the maximum evolution time for the FF-LD-GSEE algorithm (Eq. 34 of
@@ -66,7 +66,7 @@ def get_ld_gsee_max_evolution_time(
     )
 
 
-def get_ld_gsee_num_circuit_repetitions(
+def get_ff_ld_gsee_num_circuit_repetitions(
     alpha: float,
     energy_gap: float,
     square_overlap: float,
