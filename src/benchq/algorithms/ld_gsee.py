@@ -49,11 +49,11 @@ def get_ff_ld_gsee_max_evolution_time(
             and circuit depth. Zero corresponds to the minimum circuit depth, while one
             corresponds to the minimum number of circuit repetitions.
         energy_gap: The energy gap of the Hamiltonian, corresponds to Delta_true in the
-            paper.
+            paper. Should use the same units as precision.
         square_overlap: The square overlap of the initial state with the ground state.
             Corresponds to eta in the paper.
         precision: The desired ground state energy precision. Corresponds to epsilon in
-            the paper.
+            the paper. Should use the same units as energy_gap.
 
     Returns: The estimated number of iterations required by the FF-LD-GSEE algorithm.
     """
@@ -81,10 +81,12 @@ def get_ff_ld_gsee_num_circuit_repetitions(
             and circuit depth. Zero corresponds to the minimum circuit depth, while one
             corresponds to the minimum number of circuit repetitions.
         energy_gap: The energy gap of the Hamiltonian, corresponds to Delta_true in the
-            paper.
+            paper. Should use the same units as precision.
         square_overlap: The square overlap of the initial state with the ground state.
             Corresponds to eta in the paper.
         precision: The desired ground state energy precision. Corresponds to epsilon in
+            the paper. Should use the same units as energy_gap.
+        failure_probability: The tolerable failure probability. Corresponds to delta in
             the paper.
 
     Returns: The estimated number of circuit repetitions required by the FF-LD-GSEE
