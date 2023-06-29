@@ -15,7 +15,8 @@ def _get_sigma(
 
     See get_ldgsee_num_iterations for argument descriptions.
 
-    Returns: The standard deviation of the Gaussian convolution function."""
+    Returns: The standard deviation of the Gaussian convolution function.
+    """
     delta = precision**alpha * energy_gap ** (1 - alpha)
     return min(
         0.9
@@ -31,7 +32,8 @@ def _get_epsilon_1(precision: float, square_overlap: float, sigma: float) -> flo
 
     See get_ldgsee_num_iterations for argument descriptions.
 
-    Returns: The error with respect to the convolution function."""
+    Returns: The error with respect to the convolution function.
+    """
 
     return 0.1 * precision * square_overlap / (np.sqrt(2 * np.pi) * sigma**3)
 
@@ -42,7 +44,7 @@ def get_ld_gsee_max_evolution_time(
     """Get the maximum evolution time for the FF-LD-GSEE algorithm (Eq. 34 of
     arXiv:2209.06811v2).
 
-    Arguments:
+    Args:
         alpha: The parameter alpha controlling the tradeoff between circuit repetitions
             and circuit depth. Zero corresponds to the minimum circuit depth, while one
             corresponds to the minimum number of circuit repetitions.
@@ -53,7 +55,8 @@ def get_ld_gsee_max_evolution_time(
         precision: The desired ground state energy precision. Corresponds to epsilon in
             the paper.
 
-    Returns: The estimated number of iterations required by the FF-LD-GSEE algorithm."""
+    Returns: The estimated number of iterations required by the FF-LD-GSEE algorithm.
+    """
     sigma = _get_sigma(alpha, energy_gap, square_overlap, precision)
     epsilon_1 = _get_epsilon_1(precision, square_overlap, sigma)
     return (
@@ -73,7 +76,7 @@ def get_ld_gsee_num_circuit_repetitions(
     """Get the number of circuit repetitions for the FF-LD-GSEE algorithm (Eqs. 52 and
     62 of arXiv:2209.06811v2).
 
-    Arguments:
+    Args:
         alpha: The parameter alpha controlling the tradeoff between circuit repetitions
             and circuit depth. Zero corresponds to the minimum circuit depth, while one
             corresponds to the minimum number of circuit repetitions.
@@ -85,7 +88,8 @@ def get_ld_gsee_num_circuit_repetitions(
             the paper.
 
     Returns: The estimated number of circuit repetitions required by the FF-LD-GSEE
-        algorithm.."""
+        algorithm.
+    """
 
     sigma = _get_sigma(alpha, energy_gap, square_overlap, precision)
     epsilon_1 = _get_epsilon_1(precision, square_overlap, sigma)
