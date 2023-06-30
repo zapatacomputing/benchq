@@ -19,9 +19,6 @@ class Widget:
     n_t_gates_produced: int = 1
 
 
-DUMMY_WIDGET = Widget("Dummy Widget", 0, (0, 0), 0, 0)
-
-
 @singledispatch
 def default_widget_list(architecture_model: BasicArchitectureModel) -> Sequence[Widget]:
     raise NotImplementedError(f"No widgets known for type model {architecture_model}")
@@ -88,38 +85,3 @@ def default_widget_list_for_sc(_architecture_model: SCModel) -> Sequence[Widget]
             128,
         ),
     ]
-
-
-class WidgetIterator:
-    def __init__(
-        self, hardware_model: BasicArchitectureModel, use_20_to_4_widget: bool = True
-    ):
-        self.data = default_widget_list(hardware_model)
-        self.curr_widget = DUMMY_WIDGET
-        self.use_20_to_4_widget = use_20_to_4_widget
-        self.index = 0
-
-    def __iter__(self):
-        return self
-
-    def __next__(self):
-        try:
-            if "20-to-4" in self.data[self.index].name and not self.use_20_to_4_widget:
-                self.index += 1
-                return next(self)
-            self.curr_widget = self.data[self.index]
-            self.index += 1
-            return self.curr_widget
-        except IndexError:
-            raise RuntimeError("No Viable Widget Found!")
-
-
-def get_specs_for_t_state_widget(
-    widget_name: str, hardware_model: BasicArchitectureModel
-):
-    for widget in default_widget_list(hardware_model):
-        if widget.name == widget_name:
-            widget_specs = widget
-            break
-
-    return widget_specs

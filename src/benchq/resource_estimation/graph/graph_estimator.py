@@ -20,7 +20,7 @@ from ...data_structures import (
     GraphPartition,
     GraphResourceInfo,
 )
-from ..magic_state_distillation import Widget, WidgetIterator, default_widget_list
+from ..magic_state_distillation import Widget, default_widget_list
 
 INITIAL_SYNTHESIS_ACCURACY = 0.0001
 
