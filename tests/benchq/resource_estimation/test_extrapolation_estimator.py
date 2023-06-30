@@ -1,4 +1,4 @@
-from dataclasses import asdict
+from dataclasses import asdict, replace
 
 import numpy as np
 import pytest
@@ -228,8 +228,10 @@ def test_get_resource_estimations_for_large_program_gives_correct_results(
 def test_better_architecture_does_not_require_more_resources(
     use_delayed_gate_synthesis, optimization
 ):
-    low_noise_architecture_model = BASIC_SC_ARCHITECTURE_MODEL
-    low_noise_architecture_model.physical_gate_error_rate = 1e-4
+    low_noise_architecture_model = replace(
+        BASIC_SC_ARCHITECTURE_MODEL, physical_qubit_error_rate=1e-4
+    )
+
     high_noise_architecture_model = BASIC_SC_ARCHITECTURE_MODEL
 
     # set circuit generation weight to 0

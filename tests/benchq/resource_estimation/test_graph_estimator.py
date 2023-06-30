@@ -1,4 +1,5 @@
 import os
+from dataclasses import replace
 
 import numpy as np
 import pytest
@@ -119,8 +120,9 @@ def test_better_architecture_does_not_require_more_resources(
 ):
     low_noise_architecture_model = BASIC_SC_ARCHITECTURE_MODEL
 
-    high_noise_architecture_model = BASIC_SC_ARCHITECTURE_MODEL
-    high_noise_architecture_model.physical_gate_error_rate = 1e-2
+    high_noise_architecture_model = replace(
+        BASIC_SC_ARCHITECTURE_MODEL, physical_qubit_error_rate=1e-2
+    )
 
     # set algorithm failure tolerance to 0
     error_budget = ErrorBudget.from_weights(1e-2, 0, 1, 1)

@@ -9,7 +9,7 @@ from benchq.data_structures.hardware_architecture_models import (
 )
 
 
-@dataclass
+@dataclass(frozen=True)
 class Widget:
     name: str
     distilled_magic_state_error_rate: float

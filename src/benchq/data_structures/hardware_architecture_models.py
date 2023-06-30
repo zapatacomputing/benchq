@@ -23,22 +23,26 @@ class BasicArchitectureModel(Protocol):
         surface_code_cycle_time_in_seconds (float): The time it takes to run a
             surface code cycle.
     """
-    physical_qubit_error_rate: float
-    surface_code_cycle_time_in_seconds: float
+
+    @property
+    def physical_qubit_error_rate(self) -> float:
+        pass
+
+    @property
+    def surface_code_cycle_time_in_seconds(self) -> float:
+        pass
 
 
-
-@dataclass
+@dataclass(frozen=True)
 class IONTrapModel:
     physical_qubit_error_rate: float
     surface_code_cycle_time_in_seconds: float
 
 
-@dataclass
-class SCModel(BasicArchitectureModel):
+@dataclass(frozen=True)
+class SCModel:
     physical_qubit_error_rate: float
     surface_code_cycle_time_in_seconds: float
-
 
 
 BASIC_ION_TRAP_ARCHITECTURE_MODEL = IONTrapModel(1e-4, 1e-5)
