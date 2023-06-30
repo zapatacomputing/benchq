@@ -19,7 +19,7 @@ from ...data_structures import (
     GraphPartition,
     GraphResourceInfo,
 )
-from ..magic_state_distillation import WidgetIterator
+from ..magic_state_distillation import Widget, WidgetIterator
 
 INITIAL_SYNTHESIS_ACCURACY = 0.0001
 
@@ -88,7 +88,6 @@ class GraphResourceEstimator:
         self.hw_model = hw_model
         self.decoder_model = decoder_model
         self.optimization = optimization
-        self.widget_iterator = WidgetIterator(self.hw_model)
         self.substrate_scheduler_preset = substrate_scheduler_preset
         getcontext().prec = 100  # need some extra precision for this calculation
 
@@ -117,12 +116,13 @@ class GraphResourceEstimator:
         n_total_t_gates: int,
         graph_data: GraphData,
         hardware_failure_tolerance: float,
+        widget: Widget,
         min_d: int = 4,
         max_d: int = 200,
     ) -> int:
         for code_distance in range(min_d, max_d):
             ec_error_rate_at_this_distance = self._get_total_logical_failure_rate(
-                code_distance, n_total_t_gates, graph_data
+                code_distance, n_total_t_gates, graph_data, widget
             )
 
             if ec_error_rate_at_this_distance < hardware_failure_tolerance:
@@ -131,11 +131,11 @@ class GraphResourceEstimator:
         raise RuntimeError(f"Required distance is greater than {max_d}.")
 
     def _get_total_logical_failure_rate(
-        self, code_distance: int, n_total_t_gates: int, graph_data: GraphData
+            self, code_distance: int, n_total_t_gates: int, graph_data: GraphData, widget
     ) -> float:
         return 1 - (
             1 - self._logical_cell_error_rate(code_distance)
-        ) ** self.get_logical_st_volume(n_total_t_gates, graph_data, code_distance)
+        ) ** self.get_logical_st_volume(n_total_t_gates, graph_data, code_distance, widget)
 
     def _logical_cell_error_rate(self, distance: int) -> float:
         precise_physical_qubit_error_rate = Decimal(
@@ -155,7 +155,11 @@ class GraphResourceEstimator:
         )
 
     def get_logical_st_volume(
-        self, n_total_t_gates: int, graph_data: GraphData, code_distance: int
+        self,
+        n_total_t_gates: int,
+        graph_data: GraphData,
+        code_distance: int,
+        widget: Widget,
     ):
         # For example, check that we are properly including/excluding
         # the distillation spacetime volume
@@ -170,7 +174,7 @@ class GraphResourceEstimator:
                 2
                 * graph_data.max_graph_degree
                 * n_total_t_gates
-                * (self.widget_iterator.curr_widget.time_in_tocks + code_distance)
+                * (widget.time_in_tocks + code_distance)
             )
         elif self.optimization == "time":
             V_graph = (
@@ -178,8 +182,8 @@ class GraphResourceEstimator:
             )
             V_measure = (
                 n_total_t_gates
-                * self.widget_iterator.curr_widget.space[1]
-                * (self.widget_iterator.curr_widget.time_in_tocks + code_distance)
+                * widget.space[1]
+                * (widget.time_in_tocks + code_distance)
                 / (2 ** (1 / 2) * code_distance + 1)
             )
         else:
@@ -226,6 +230,7 @@ class GraphResourceEstimator:
         graph_data: GraphData,
         code_distance: int,
         n_total_t_gates: float,
+        widget: Widget,
     ) -> float:
         if self.optimization == "time":
             return (
@@ -233,7 +238,7 @@ class GraphResourceEstimator:
                 * self.hw_model.physical_qubit_error_rate
                 * (
                     graph_data.n_measurement_steps * code_distance
-                    + self.widget_iterator.curr_widget.time_in_tocks
+                    + widget.time_in_tocks
                     + code_distance
                 )
             )
@@ -243,8 +248,7 @@ class GraphResourceEstimator:
                 * self.hw_model.physical_qubit_error_rate
                 * (
                     graph_data.n_measurement_steps * code_distance
-                    + (self.widget_iterator.curr_widget.time_in_tocks + code_distance)
-                    * n_total_t_gates
+                    + (widget.time_in_tocks + code_distance) * n_total_t_gates
                 )
             )
         else:
@@ -253,25 +257,17 @@ class GraphResourceEstimator:
             )
 
     def _get_n_physical_qubits(
-        self,
-        graph_data: GraphData,
-        code_distance: int,
+        self, graph_data: GraphData, code_distance: int, widget: Widget
     ) -> int:
         patch_size = 2 * code_distance**2
         if self.optimization == "time":
             return ceil(
                 graph_data.max_graph_degree * patch_size
-                + 2 ** (0.5)
-                * graph_data.n_measurement_steps
-                * self.widget_iterator.curr_widget.space[0]
-                + self.widget_iterator.curr_widget.qubits
-                * graph_data.n_measurement_steps
+                + 2 ** (0.5) * graph_data.n_measurement_steps * widget.space[0]
+                + widget.qubits * graph_data.n_measurement_steps
             )
         elif self.optimization == "space":
-            return (
-                2 * graph_data.max_graph_degree * patch_size
-                + self.widget_iterator.curr_widget.qubits
-            )
+            return 2 * graph_data.max_graph_degree * patch_size + widget.qubits
         else:
             raise NotImplementedError(
                 "Must use either time or space optimal estimator."
@@ -286,10 +282,12 @@ class GraphResourceEstimator:
             algorithm_implementation.error_budget.transpilation_failure_tolerance
         )
 
+        widget_iterator = WidgetIterator(self.hw_model)
+
         for this_transpilation_failure_tolerance in [
             transpilation_failure_tolerance * (0.1**i) for i in range(10)
         ]:
-            for widget in self.widget_iterator:
+            for widget in widget_iterator:
                 if "20-to-4" in widget.name:
                     old_n_nodes = graph_data.n_nodes
                     graph_data.n_nodes = ceil(graph_data.n_nodes / 4)
@@ -302,6 +300,7 @@ class GraphResourceEstimator:
                     n_total_t_gates,
                     graph_data,
                     algorithm_implementation.error_budget.hardware_failure_tolerance,
+                    widget
                 )
                 _logical_cell_error_rate = self._logical_cell_error_rate(code_distance)
 
@@ -320,19 +319,19 @@ class GraphResourceEstimator:
 
         # get error rate after correction
         space_time_volume = self.get_logical_st_volume(
-            n_total_t_gates, graph_data, code_distance
+            n_total_t_gates, graph_data, code_distance, widget
         )
 
         total_logical_error_rate = self._get_total_logical_failure_rate(
-            code_distance, n_total_t_gates, graph_data
+            code_distance, n_total_t_gates, graph_data, widget
         )
 
         # get number of physical qubits needed for the computation
-        n_physical_qubits = self._get_n_physical_qubits(graph_data, code_distance)
+        n_physical_qubits = self._get_n_physical_qubits(graph_data, code_distance, widget)
 
         # get total time to run algorithm
         time_per_circuit_in_seconds = self._get_time_per_circuit_in_seconds(
-            graph_data, code_distance, n_total_t_gates
+            graph_data, code_distance, n_total_t_gates, widget
         )
 
         # The total space time volume, prior to measurements is,
@@ -383,7 +382,7 @@ class GraphResourceEstimator:
             n_logical_qubits=graph_data.max_graph_degree,
             total_time_in_seconds=total_time_in_seconds,
             n_physical_qubits=n_physical_qubits,
-            widget_name=self.widget_iterator.curr_widget.name,
+            widget_name=widget.name,
             decoder_info=decoder_info,
             extra=graph_data,
         )
