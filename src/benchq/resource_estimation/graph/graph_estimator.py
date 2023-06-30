@@ -1,3 +1,4 @@
+from dataclasses import replace
 import warnings
 from decimal import Decimal, getcontext
 from math import ceil
@@ -131,11 +132,13 @@ class GraphResourceEstimator:
         raise RuntimeError(f"Required distance is greater than {max_d}.")
 
     def _get_total_logical_failure_rate(
-            self, code_distance: int, n_total_t_gates: int, graph_data: GraphData, widget
+        self, code_distance: int, n_total_t_gates: int, graph_data: GraphData, widget
     ) -> float:
         return 1 - (
             1 - self._logical_cell_error_rate(code_distance)
-        ) ** self.get_logical_st_volume(n_total_t_gates, graph_data, code_distance, widget)
+        ) ** self.get_logical_st_volume(
+            n_total_t_gates, graph_data, code_distance, widget
+        )
 
     def _logical_cell_error_rate(self, distance: int) -> float:
         precise_physical_qubit_error_rate = Decimal(
@@ -288,26 +291,25 @@ class GraphResourceEstimator:
             transpilation_failure_tolerance * (0.1**i) for i in range(10)
         ]:
             for widget in widget_iterator:
-                if "20-to-4" in widget.name:
-                    old_n_nodes = graph_data.n_nodes
-                    graph_data.n_nodes = ceil(graph_data.n_nodes / 4)
+                tmp_graph_data = replace(
+                    graph_data,
+                    n_nodes=ceil(graph_data.n_nodes / widget.n_t_gates_produced)
+                )
                 n_total_t_gates = self.get_n_total_t_gates(
-                    graph_data.n_t_gates,
-                    graph_data.n_rotation_gates,
+                    tmp_graph_data.n_t_gates,
+                    tmp_graph_data.n_rotation_gates,
                     this_transpilation_failure_tolerance,
                 )
                 code_distance = self._minimize_code_distance(
                     n_total_t_gates,
-                    graph_data,
+                    tmp_graph_data,
                     algorithm_implementation.error_budget.hardware_failure_tolerance,
-                    widget
+                    widget,
                 )
                 _logical_cell_error_rate = self._logical_cell_error_rate(code_distance)
 
                 if widget.distilled_magic_state_error_rate < _logical_cell_error_rate:
                     break
-                elif "20-to-4" in widget.name:
-                    graph_data.n_nodes = old_n_nodes
             if this_transpilation_failure_tolerance < _logical_cell_error_rate:
                 if graph_data.n_t_gates != 0:
                     # re-run estimates with new synthesis failure tolerance
@@ -327,7 +329,9 @@ class GraphResourceEstimator:
         )
 
         # get number of physical qubits needed for the computation
-        n_physical_qubits = self._get_n_physical_qubits(graph_data, code_distance, widget)
+        n_physical_qubits = self._get_n_physical_qubits(
+            graph_data, code_distance, widget
+        )
 
         # get total time to run algorithm
         time_per_circuit_in_seconds = self._get_time_per_circuit_in_seconds(
