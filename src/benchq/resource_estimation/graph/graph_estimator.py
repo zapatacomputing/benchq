@@ -20,7 +20,7 @@ from ...data_structures import (
     GraphPartition,
     GraphResourceInfo,
 )
-from ..magic_state_distillation import Widget, WidgetIterator
+from ..magic_state_distillation import Widget, WidgetIterator, default_widget_list
 
 INITIAL_SYNTHESIS_ACCURACY = 0.0001
 
@@ -285,15 +285,16 @@ class GraphResourceEstimator:
             algorithm_implementation.error_budget.transpilation_failure_tolerance
         )
 
-        widget_iterator = WidgetIterator(self.hw_model)
+        widget_iterator = iter(default_widget_list(self.hw_model))
 
         for this_transpilation_failure_tolerance in [
             transpilation_failure_tolerance * (0.1**i) for i in range(10)
         ]:
+            widget_found = False
             for widget in widget_iterator:
                 tmp_graph_data = replace(
                     graph_data,
-                    n_nodes=ceil(graph_data.n_nodes / widget.n_t_gates_produced)
+                    n_nodes=ceil(graph_data.n_nodes / widget.n_t_gates_produced),
                 )
                 n_total_t_gates = self.get_n_total_t_gates(
                     tmp_graph_data.n_t_gates,
@@ -309,7 +310,10 @@ class GraphResourceEstimator:
                 _logical_cell_error_rate = self._logical_cell_error_rate(code_distance)
 
                 if widget.distilled_magic_state_error_rate < _logical_cell_error_rate:
+                    widget_found = True
                     break
+            if not widget_found:
+                raise ValueError("No viable widget found!")
             if this_transpilation_failure_tolerance < _logical_cell_error_rate:
                 if graph_data.n_t_gates != 0:
                     # re-run estimates with new synthesis failure tolerance
