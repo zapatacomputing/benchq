@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from functools import singledispatch
-from typing import Sequence, Tuple
+from typing import Iterable, Tuple
 
 from benchq.data_structures.hardware_architecture_models import (
     BasicArchitectureModel,
@@ -20,14 +20,14 @@ class Widget:
 
 
 @singledispatch
-def default_widget_list(architecture_model: BasicArchitectureModel) -> Sequence[Widget]:
+def default_widget_list(architecture_model: BasicArchitectureModel) -> Iterable[Widget]:
     raise NotImplementedError(f"No widgets known for type model {architecture_model}")
 
 
 @default_widget_list.register
 def default_widget_list_for_ion_traps(
     _architecture_model: IONTrapModel,
-) -> Sequence[Widget]:
+) -> Iterable[Widget]:
     return [
         Widget("(15-to-1)_7,3,3", 4.4e-8, (30, 27), 810, 18.1),
         Widget("(15-to-1)_9,3,3", 9.3e-10, (38, 30), 1150, 18.1),
@@ -45,7 +45,7 @@ def default_widget_list_for_ion_traps(
 
 
 @default_widget_list.register
-def default_widget_list_for_sc(_architecture_model: SCModel) -> Sequence[Widget]:
+def default_widget_list_for_sc(_architecture_model: SCModel) -> Iterable[Widget]:
     return [
         Widget("(15-to-1)_17,7,7", 4.5e-8, (72, 64), 4620, 42.6),
         Widget(
