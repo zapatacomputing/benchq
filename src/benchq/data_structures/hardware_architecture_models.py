@@ -5,10 +5,10 @@
 
 
 from dataclasses import dataclass
+from typing import Protocol
 
 
-@dataclass
-class BasicArchitectureModel:
+class BasicArchitectureModel(Protocol):
     """Basic Architecture model meant to serve as a base class for the
     other basic architecture models. WARNING! Running a resource estimate
     with this architecture model will fail as, you need to choose an ION
@@ -23,10 +23,23 @@ class BasicArchitectureModel:
         surface_code_cycle_time_in_seconds (float): The time it takes to run a
             surface code cycle.
     """
-
     physical_qubit_error_rate: float
     surface_code_cycle_time_in_seconds: float
 
 
-BASIC_ION_TRAP_ARCHITECTURE_MODEL = BasicArchitectureModel(1e-4, 1e-5)
-BASIC_SC_ARCHITECTURE_MODEL = BasicArchitectureModel(1e-3, 1e-7)
+
+@dataclass
+class IONTrapModel:
+    physical_qubit_error_rate: float
+    surface_code_cycle_time_in_seconds: float
+
+
+@dataclass
+class SCModel(BasicArchitectureModel):
+    physical_qubit_error_rate: float
+    surface_code_cycle_time_in_seconds: float
+
+
+
+BASIC_ION_TRAP_ARCHITECTURE_MODEL = IONTrapModel(1e-4, 1e-5)
+BASIC_SC_ARCHITECTURE_MODEL = SCModel(1e-3, 1e-7)
