@@ -199,7 +199,6 @@ def _replace_gate(op: cirq.Operation) -> Optional[cirq.Operation]:
     elif op.gate == cirq.I:
         return None
     elif op.gate == ZPOW_GATE_Z_EQUIVALENT:
-        # TODO: requires verification!
         return cirq.Z.on(op.qubits[0])
     elif op.gate == CZPOW_GATE_CZ_EQUIVALENT:
         return cirq.CZ.on(op.qubits[0], op.qubits[1])

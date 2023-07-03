@@ -67,7 +67,7 @@ class TestGetQSPCircuit:
 
         # Then
         # We expect this many gates being applied in the circuit
-        assert len(circuit.operations) == 375
+        assert len(circuit.operations) == 385
 
         # We expect the following gate types being applied n times
         assert _gate_op_counts(circuit) == {
@@ -79,6 +79,7 @@ class TestGetQSPCircuit:
             "T": 28,
             "T_Dagger": 28,
             "X": 26,
+            "RESET": 10,
         }
 
 
@@ -97,7 +98,7 @@ class TestGetQSPProgram:
 
         # Then
         # We expect this many gates being applied in the circuit
-        assert len(circuit_from_program.operations) == 373
+        assert len(circuit_from_program.operations) == 377
 
         # We expect the following gate types being applied n times
         assert _gate_op_counts(circuit_from_program) == {
@@ -109,4 +110,5 @@ class TestGetQSPProgram:
             "T": 28,
             "T_Dagger": 28,
             "X": 24,
+            "RESET": 4,
         }

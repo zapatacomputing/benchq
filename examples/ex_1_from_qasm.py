@@ -18,8 +18,8 @@ from benchq.resource_estimation.graph import (
     GraphResourceEstimator,
     create_big_graph_from_subcircuits,
     run_custom_resource_estimation_pipeline,
-    simplify_rotations,
     synthesize_clifford_t,
+    transpile_to_native_gates,
 )
 
 
@@ -60,7 +60,7 @@ def main(file_name):
         algorithm_description,
         estimator=GraphResourceEstimator(architecture_model),
         transformers=[
-            simplify_rotations,
+            transpile_to_native_gates,
             synthesize_clifford_t(error_budget),
             create_big_graph_from_subcircuits(),
         ],

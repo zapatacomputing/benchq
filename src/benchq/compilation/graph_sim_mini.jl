@@ -51,6 +51,7 @@ function get_graph_state_data(icm_circuit::Vector{ICMOp}, n_qubits, display=fals
         erase = "        \b\b\b\b\b\b\b\b"
     end
 
+
     for icm_op in icm_circuit
         if display
             counter += 1
@@ -289,7 +290,7 @@ function get_icm(circuit, n_qubits::Int, with_measurements::Bool=false)
     ops = get_op_list()
     curr_qubits = n_qubits
     for op in circuit
-        if op.gate.name == "RESET"
+        if occursin("ResetOperation", pyconvert(String, op.__str__()))
             original_qubit = get_qubit_1(op)
             compiled_qubit = qubit_map[original_qubit+1]
             qubit_map[original_qubit+1] = new_qubit = curr_qubits

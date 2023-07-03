@@ -19,7 +19,7 @@ from benchq.resource_estimation.graph import (
     GraphResourceEstimator,
     create_big_graph_from_subcircuits,
     run_custom_resource_estimation_pipeline,
-    simplify_rotations,
+    transpile_to_native_gates,
 )
 from benchq.timing import measure_time
 
@@ -56,7 +56,7 @@ def main():
                 hw_model=architecture_model, decoder_model=decoder_model
             ),
             transformers=[
-                simplify_rotations,
+                transpile_to_native_gates,
                 create_big_graph_from_subcircuits(),
             ],
         )

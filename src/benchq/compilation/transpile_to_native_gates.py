@@ -4,6 +4,7 @@ import numpy as np
 from orquestra.quantum.circuits import (
     CNOT,
     RZ,
+    SX,
     Circuit,
     ControlledGate,
     Dagger,
@@ -20,8 +21,9 @@ from orquestra.quantum.decompositions._decomposition import DecompositionRule
 from ..conversions._circuit_translations import import_circuit
 
 
-def simplify_rotations(circuit) -> Circuit:
-    """Changes RX and RY to RZ.
+def transpile_to_native_gates(circuit) -> Circuit:
+    """Traspile common gates to clifford + RZ gates.
+    Changes RX, RY, and U3 to RZ. Changes CCX to T gates.
     Also, translates rotations with some characteristic angles
     (-pi, -pi/2, -pi/4, 0, pi/4, pi/2, pi) to simpler gates.
     """
@@ -32,28 +34,21 @@ def simplify_rotations(circuit) -> Circuit:
     )
 
 
-class DecomposeRZNaively(DecompositionRule[GateOperation]):
-    """Decomposes RZ with characteristic angles to regular gates."""
-
-    def predicate(self, operation: GateOperation) -> bool:
-        return operation.gate.name in ["RZ"]
-
-    def production(self, operation: GateOperation) -> Iterable[GateOperation]:
-        q_index = operation.qubit_indices[0]
-        return [H(q_index), T(q_index), S(q_index), H(q_index), T(q_index), H(q_index)]
-
-
 class DecomposeStandardRZ(DecompositionRule[GateOperation]):
     """Decomposes RZ with characteristic angles to regular gates."""
 
     def predicate(self, operation: GateOperation) -> bool:
+        if not isinstance(operation, GateOperation):
+            return False
         special_angles = [
             0,
             np.pi / 4,
             np.pi / 2,
+            3 * np.pi / 4,
             np.pi,
             -np.pi / 4,
             -np.pi / 2,
+            -3 * np.pi / 4,
             -np.pi,
         ]
         theta = float(operation.params[0]) if len(operation.params) > 0 else None  # type: ignore # noqa: E501
@@ -69,12 +64,19 @@ class DecomposeStandardRZ(DecompositionRule[GateOperation]):
             return [T(*operation.qubit_indices)]
         elif np.isclose(theta, np.pi / 2):
             return [S(*operation.qubit_indices)]
+        elif np.isclose(theta, 3 * np.pi / 4):
+            return [S(*operation.qubit_indices), T(*operation.qubit_indices)]
         elif np.isclose(theta, np.pi) or np.isclose(theta, -np.pi):
             return [Z(*operation.qubit_indices)]
         elif np.isclose(theta, -np.pi / 4):
             return [Dagger(T)(*operation.qubit_indices)]
         elif np.isclose(theta, -np.pi / 2):
             return [Dagger(S)(*operation.qubit_indices)]
+        elif np.isclose(theta, -3 * np.pi / 4):
+            return [
+                Dagger(S)(*operation.qubit_indices),
+                Dagger(T)(*operation.qubit_indices),
+            ]
         else:
             raise RuntimeError(
                 "This shouldn't happen! It means there's a bug in "
@@ -86,6 +88,8 @@ class RXtoRZ(DecompositionRule[GateOperation]):
     """Decomposition of RX to RZ gate."""
 
     def predicate(self, operation: GateOperation) -> bool:
+        if not isinstance(operation, GateOperation):
+            return False
         # Only decompose U3 and its controlled version
         return (
             operation.gate.name == "RX"
@@ -117,6 +121,8 @@ class RYtoRZ(DecompositionRule[GateOperation]):
     """Decomposition of RY to RZ gate."""
 
     def predicate(self, operation: GateOperation) -> bool:
+        if not isinstance(operation, GateOperation):
+            return False
         # Only decompose U3 and its controlled version
         return (
             operation.gate.name == "RY"
@@ -148,6 +154,8 @@ class U3toRZ(DecompositionRule[GateOperation]):
     """Decomposition of U3 into RX and RZ gates."""
 
     def predicate(self, operation: GateOperation) -> bool:
+        if not isinstance(operation, GateOperation):
+            return False
         # Only decompose U3 and its controlled version
         return (
             operation.gate.name == "U3"
@@ -160,15 +168,14 @@ class U3toRZ(DecompositionRule[GateOperation]):
         phi = operation.params[1]
         lam = operation.params[2]
 
+        # ignore global phase as it's not relevant to gsc
         gate_decomposition = [
             RZ(phi),
-            H,
-            RZ(np.pi / 2),
-            H,
+            Z,
+            SX,
             RZ(theta),
-            H,
-            RZ(-np.pi / 2),
-            H,
+            Z,
+            SX,
             RZ(lam),
         ]
 
@@ -191,6 +198,8 @@ class CCZtoT(DecompositionRule[GateOperation]):
     """Decomposition of U3 into RX and RZ gates."""
 
     def predicate(self, operation: GateOperation) -> bool:
+        if not isinstance(operation, GateOperation):
+            return False
         # Only decompose CCZ
         if operation.gate.name == "Control":
             assert isinstance(operation.gate, ControlledGate)

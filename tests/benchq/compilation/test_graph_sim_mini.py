@@ -11,7 +11,11 @@ from orquestra.integrations.qiskit.conversions import import_from_qiskit
 from orquestra.quantum.circuits import CNOT, CZ, Circuit, H, S, X
 from qiskit import QuantumCircuit
 
-from benchq.compilation import jl, pyliqtr_transpile_to_clifford_t, simplify_rotations
+from benchq.compilation import (
+    jl,
+    pyliqtr_transpile_to_clifford_t,
+    transpile_to_native_gates,
+)
 
 
 @pytest.mark.parametrize(
@@ -80,7 +84,7 @@ def test_stabilizer_states_are_the_same_for_circuits(filename):
             QuantumCircuit.from_qasm_file(os.path.join("examples", "data", filename))
         )
 
-    circuit = simplify_rotations(qiskit_circuit)
+    circuit = transpile_to_native_gates(qiskit_circuit)
     test_circuit = get_icm(circuit)
 
     target_tableau = get_target_tableau(test_circuit)

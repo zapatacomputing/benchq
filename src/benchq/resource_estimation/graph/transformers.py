@@ -4,7 +4,7 @@ from ...compilation import (
     get_algorithmic_graph_from_graph_sim_mini,
     pyliqtr_transpile_to_clifford_t,
 )
-from ...compilation import simplify_rotations as _simplify_rotations
+from ...compilation import transpile_to_native_gates as _transpile_to_native_gates
 from ...data_structures import (
     ErrorBudget,
     GraphPartition,
@@ -53,8 +53,8 @@ def synthesize_clifford_t(
     return _transformer
 
 
-def simplify_rotations(program: QuantumProgram) -> QuantumProgram:
-    circuits = [_simplify_rotations(circuit) for circuit in program.subroutines]
+def transpile_to_native_gates(program: QuantumProgram) -> QuantumProgram:
+    circuits = [_transpile_to_native_gates(circuit) for circuit in program.subroutines]
     return QuantumProgram(
         circuits,
         steps=program.steps,

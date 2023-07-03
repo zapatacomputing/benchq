@@ -16,7 +16,7 @@ from benchq.resource_estimation.graph import (
     GraphResourceEstimator,
     create_big_graph_from_subcircuits,
     run_custom_resource_estimation_pipeline,
-    simplify_rotations,
+    transpile_to_native_gates,
 )
 
 task_deps = [sdk.PythonImports("pyscf==2.2.0", "openfermionpyscf==0.5")]
@@ -64,7 +64,7 @@ def gsc_estimates(algorithm, architecture_model):
         algorithm,
         estimator=GraphResourceEstimator(hw_model=architecture_model),
         transformers=[
-            simplify_rotations,
+            transpile_to_native_gates,
             create_big_graph_from_subcircuits(),
         ],
     )
