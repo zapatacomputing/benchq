@@ -2,11 +2,13 @@
 # © Copyright 2023 Zapata Computing Inc.
 ################################################################################
 import warnings
+from dataclasses import dataclass
 from typing import Dict
 
 import numpy as np
 
 
+@dataclass
 class DecoderModel:
     """Class representing decoder model for belief-propagation decoder.
 
@@ -17,17 +19,10 @@ class DecoderModel:
     belief-propagation.
     """
 
-    def __init__(
-        self,
-        power_table: Dict[int, float],
-        area_table: Dict[int, float],
-        delay_table: Dict[int, float],
-        distance_cap: int = 31,
-    ):
-        self.power_table = power_table
-        self.area_table = area_table
-        self.delay_table = delay_table
-        self.distance_cap = distance_cap
+    power_table: Dict[int, float]
+    area_table: Dict[int, float]
+    delay_table: Dict[int, float]
+    distance_cap: int = 31
 
     def power(self, distance: int) -> float:
         """Calculates the power (in W) that it will take to decode the code

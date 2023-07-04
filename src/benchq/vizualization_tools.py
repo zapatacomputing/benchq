@@ -17,6 +17,14 @@ def plot_graph_state_with_measurement_steps(
     cmap=plt.cm.rainbow,
     name="extrapolation_plot",
 ):
+    """Plot a graph state with the measurement steps highlighted in different
+    colors. The measurement steps are given as a list of lists of nodes. Each
+    list of nodes is a measurement step. The nodes are given as a list of
+    tuples. Each tuple is a node and a measurement basis. The node is an
+    integer and the measurement basis is a string. The graph state is given as
+    a networkx graph. The nodes are integers and the edges are tuples of
+    integers. The cmap is the color map to use for the measurement steps.
+    Note: Only works when substrate scheduler is run in "fast" mode."""
     node_measurement_groupings = [
         [node[0] for node in row] for row in measurement_steps
     ]
