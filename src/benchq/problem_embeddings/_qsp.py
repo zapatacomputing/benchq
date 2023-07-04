@@ -2,7 +2,7 @@
 # © Copyright 2022-2023 Zapata Computing Inc.
 ################################################################################
 from dataclasses import dataclass
-from typing import Any, Dict, Generic, Iterable, List, Optional, Sequence, TypeVar, cast
+from typing import Dict, Generic, Iterable, List, Optional, Sequence, TypeVar, cast
 
 import cirq
 import numpy as np
@@ -122,11 +122,13 @@ def get_qsp_program(
             components.select_v[0],
             components.select_v[1],
             components.select_v[2],
+            components.select_v[3],
+            _invert_without_ry_dagger(components.select_v[2]),
             _invert_without_ry_dagger(components.select_v[1]),
             _invert_without_ry_dagger(components.select_v[0]),
             components.reflection,
         ]
-        indices = _Indices(rotation=0, reflection=6, select_v=list(range(1, 6)))
+        indices = _Indices(rotation=0, reflection=8, select_v=list(range(1, 8)))
     else:
         all_circuits = [
             components.rotation,
@@ -175,11 +177,14 @@ def _create_qsp_components(
 
 
 def _dagger(operation: GateOperation) -> GateOperation:
-    return (
-        operation.replace_params((-operation.params[0],))  # type: ignore
-        if operation.gate.name == "RY"
-        else operation.gate.dagger(*operation.qubit_indices)
-    )
+    if isinstance(operation, GateOperation):
+        return (
+            operation.replace_params((-operation.params[0],))  # type: ignore
+            if operation.gate.name == "RY"
+            else operation.gate.dagger(*operation.qubit_indices)
+        )
+    else:
+        return operation
 
 
 def _invert_without_ry_dagger(circuit: Circuit):
@@ -196,9 +201,9 @@ def _invert_without_ry_dagger(circuit: Circuit):
 # 4 - Dagger of SelVBase subcircuit
 # 5 - A single reset
 # 6 - Dagger of Prepare subcircuit
-# And hence, we only need circuits 0, 2 and 3, because the rest can
-# either be safely ignored, or constructed by taking circuit.inverse()
-SELECT_V_DECOMPOSITION_INDICES = (0, 2, 3)
+# And hence, we only need circuits 0, 1, 2, and 3, because the rest can
+# be constructed by taking circuit.inverse() or are duplicates.
+SELECT_V_DECOMPOSITION_INDICES = (0, 1, 2, 3)
 
 
 def _generate_select_v_circuits(
