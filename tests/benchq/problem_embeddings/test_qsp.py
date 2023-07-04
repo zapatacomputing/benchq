@@ -29,7 +29,12 @@ def _gate_op_counts(circuit: circuits.Circuit) -> t.Mapping[str, int]:
     """
     Counts gate operations per gate type in the circuit.
     """
-    names = [op.gate.name for op in circuit.operations]
+    names = []
+    for op in circuit.operations:
+        if isinstance(op, circuits.GateOperation):
+            names.append(op.gate.name)
+        elif isinstance(op, circuits.ResetOperation):
+            names.append("RESET")
     return Counter(names)
 
 

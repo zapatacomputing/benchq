@@ -3,7 +3,7 @@
 ################################################################################
 from typing import Callable, Sequence
 
-from orquestra.quantum.circuits import Circuit, GateOperation
+from orquestra.quantum.circuits import Circuit, GateOperation, ResetOperation
 
 
 class QuantumProgram:
@@ -75,6 +75,8 @@ class QuantumProgram:
         n_gates = 0
         for op in self.subroutines[step].operations:
             if isinstance(op, GateOperation) and op.gate.name in gates:
+                n_gates += 1
+            if isinstance(op, ResetOperation) and "ResetOperation" in gates:
                 n_gates += 1
         return n_gates
 

@@ -7,7 +7,7 @@ import cirq
 import numpy as np
 import pyLIQTR.QSP as QSP
 from orquestra.integrations.cirq.conversions import import_from_cirq, to_openfermion
-from orquestra.quantum.circuits import Circuit
+from orquestra.quantum.circuits import Circuit, GateOperation
 from orquestra.quantum.operators import PauliRepresentation
 from pyLIQTR.QSP import gen_qsp
 
@@ -102,20 +102,22 @@ def get_qsp_program(
 
     # pad with identity so all subroutines have same number of qubits
     total_n_qubits = max(circuit.n_qubits for circuit in sanitized_circuits)
-    padded_sanitized_circuits = [
-        Circuit(
-            [
-                op.gate(
-                    *[
-                        total_n_qubits - circuit.n_qubits + index
-                        for index in op.qubit_indices
-                    ]
+    padded_sanitized_circuits = []
+    for circuit in sanitized_circuits:
+        padded_sanitized_ops = []
+        for op in circuit.operations:
+            if isinstance(op, GateOperation):
+                padded_sanitized_ops.append(
+                    op.gate(
+                        *[
+                            total_n_qubits - circuit.n_qubits + index
+                            for index in op.qubit_indices
+                        ],
+                    )
                 )
-                for op in circuit.operations
-            ]
-        )
-        for circuit in sanitized_circuits
-    ]
+            else:
+                padded_sanitized_ops.append(op)
+        padded_sanitized_circuits.append(Circuit(padded_sanitized_ops))
 
     def subroutine_sequence_for_qsp(n_block_encodings):
         my_subroutines = []

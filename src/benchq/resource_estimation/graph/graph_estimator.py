@@ -133,9 +133,15 @@ class GraphResourceEstimator:
     def _get_total_logical_failure_rate(
         self, code_distance: int, n_total_t_gates: int, graph_data: GraphData
     ) -> float:
-        return 1 - (
-            1 - self._logical_cell_error_rate(code_distance)
-        ) ** self.get_logical_st_volume(n_total_t_gates, graph_data, code_distance)
+        precise_logical_failure_rate = Decimal(
+            self._logical_cell_error_rate(code_distance)
+        )
+        precise_logical_st_volume = Decimal(
+            self.get_logical_st_volume(n_total_t_gates, graph_data, code_distance)
+        )
+        return float(
+            1 - (1 - precise_logical_failure_rate) ** precise_logical_st_volume
+        )
 
     def _logical_cell_error_rate(self, distance: int) -> float:
         precise_physical_qubit_error_rate = Decimal(
