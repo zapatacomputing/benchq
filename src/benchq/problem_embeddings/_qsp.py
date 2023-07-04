@@ -275,7 +275,7 @@ def _map_named_qubits_to_line_qubits(
 
     named_qubits = [qubit for qubit in all_qubits if isinstance(qubit, cirq.NamedQubit)]
 
-    max_line_id = max(qubit.x for qubit in line_qubits)
+    max_line_id = max(qubit.x for qubit in line_qubits) if len(line_qubits) != 0 else -1
 
     return {
         qubit: cirq.LineQubit(i)
