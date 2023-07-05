@@ -1,8 +1,41 @@
 import numpy as np
 import pytest
-from orquestra.quantum.circuits import RX, RY, RZ, Circuit, Dagger, H, I, S, T, Z
+from orquestra.quantum.circuits import (
+    CNOT,
+    RX,
+    RY,
+    RZ,
+    SX,
+    U3,
+    Circuit,
+    Dagger,
+    H,
+    I,
+    S,
+    T,
+    X,
+    Z,
+)
 
 from benchq.compilation import transpile_to_native_gates
+
+TOFFOLI_DECOMPOSITION = [
+    H(2),
+    CNOT(1, 2),
+    T.dagger(2),
+    CNOT(0, 2),
+    T(2),
+    CNOT(1, 2),
+    T.dagger(2),
+    CNOT(0, 2),
+    T(1),
+    T(2),
+    H(2),
+    CNOT(0, 1),
+    T.dagger(1),
+    T(0),
+    CNOT(0, 1),
+]
 
 
 @pytest.mark.parametrize(
@@ -16,6 +49,30 @@ from benchq.compilation import transpile_to_native_gates
         (
             Circuit([RY(np.pi / 5)(0)]),
             Circuit([S(0), H(0), RZ(np.pi / 5)(0), H(0), Dagger(S)(0)]),
+        ),
+        (
+            Circuit([U3(np.pi / 5, np.pi / 6, np.pi / 7)(0)]),
+            Circuit(
+                reversed(
+                    [
+                        RZ(np.pi / 5)(0),
+                        Z(0),
+                        SX(0),
+                        RZ(np.pi / 6)(0),
+                        Z(0),
+                        SX(0),
+                        RZ(np.pi / 7)(0),
+                    ]
+                )
+            ),
+        ),
+        (
+            Circuit([X.controlled(2)(0, 1, 2)]),
+            Circuit(TOFFOLI_DECOMPOSITION),
+        ),
+        (
+            Circuit([CNOT.controlled(1)(0, 1, 2)]),
+            Circuit(TOFFOLI_DECOMPOSITION),
         ),
     ],
 )

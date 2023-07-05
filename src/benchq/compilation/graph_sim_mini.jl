@@ -151,27 +151,27 @@ end
 """
 Select a neighbor to use when removing an LCO
 
-vb will be set to avoid if there are no neighbors, or avoid is the only neighbor,
+The return value be set to avoid if there are no neighbors or avoid is the only neighbor,
 otherwise it returns the neighbor with the fewest neighbors (or the first one that
 it finds with less than min_neighbors)
 """
 function get_neighbor(adj, v, avoid, min_neighbors = 6)
-    neighbors = adj[v]
+    neighbors_of_v = adj[v]
 
     # Avoid copying and modifying adjacency vector
-    check_almost_isolated(neighbors, avoid) && return avoid
+    check_almost_isolated(neighbors_of_v, avoid) && return avoid
 
-    smallest_neighborhood_size = typemax(eltype(neighbors)) # initialize to max possible value
+    smallest_neighborhood_size = typemax(eltype(neighbors_of_v)) # initialize to max possible value
     neighbor_with_smallest_neighborhood = 0
-    for vb in neighbors
-        if vb != avoid
+    for neighbor in neighbors_of_v
+        if neighbor != avoid
             # stop search if  super small neighborhood is found
-            num_neighbors = length(adj[vb])
-            num_neighbors < min_neighbors && return vb
+            num_neighbors = length(adj[neighbor])
+            num_neighbors < min_neighbors && return neighbor
             # search for smallest neighborhood
             if num_neighbors < smallest_neighborhood_size
                 smallest_neighborhood_size = num_neighbors
-                neighbor_with_smallest_neighborhood = vb
+                neighbor_with_smallest_neighborhood = neighbor
             end
         end
     end
@@ -295,10 +295,6 @@ function get_icm(circuit, n_qubits::Int, with_measurements::Bool=false)
             compiled_qubit = qubit_map[original_qubit+1]
             qubit_map[original_qubit+1] = new_qubit = curr_qubits
             curr_qubits += 1
-
-            with_measurements &&
-                push!(compiled_circuit,
-                      ICMOp(code_list[op_index]+MEASURE_OFFSET, compiled_qubit, new_qubit))
         else
             op_index = get_op_index(ops, op)
             if single_qubit_op(op_index)

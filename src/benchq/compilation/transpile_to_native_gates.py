@@ -1,4 +1,4 @@
-from typing import Iterable
+from typing import Iterable, Sequence
 
 import numpy as np
 from orquestra.quantum.circuits import (
@@ -11,12 +11,15 @@ from orquestra.quantum.circuits import (
     GateOperation,
     H,
     I,
+    Operation,
     S,
     T,
     Z,
 )
-from orquestra.quantum.decompositions import decompose_orquestra_circuit
-from orquestra.quantum.decompositions._decomposition import DecompositionRule
+from orquestra.quantum.decompositions._decomposition import (
+    DecompositionRule,
+    decompose_operation,
+)
 
 from ..conversions._circuit_translations import import_circuit
 
@@ -30,19 +33,35 @@ def transpile_to_native_gates(circuit) -> Circuit:
     circuit = import_circuit(circuit)
     # Hack: decompose drops n_qubits from the original circuits, so we add it back
     return Circuit(
-        decompose_orquestra_circuit(
+        decompose_benchq_circuit(
             circuit, [CCZtoT(), U3toRZ(), RXtoRZ(), RYtoRZ(), DecomposeStandardRZ()]
         ).operations,
         n_qubits=circuit.n_qubits,
     )
 
 
+def decompose_benchq_circuit(
+    circuit: Circuit, decomposition_rules: Sequence[DecompositionRule[GateOperation]]
+):
+    return Circuit(decompose_benchq_operations(circuit.operations, decomposition_rules))
+
+
+def decompose_benchq_operations(
+    operations: Iterable[Operation],
+    decomposition_rules: Sequence[DecompositionRule[GateOperation]],
+):
+    return [
+        decomposed_op
+        for op in operations
+        if isinstance(op, GateOperation)
+        for decomposed_op in decompose_operation(op, decomposition_rules)
+    ]
+
+
 class DecomposeStandardRZ(DecompositionRule[GateOperation]):
     """Decomposes RZ with characteristic angles to regular gates."""
 
     def predicate(self, operation: GateOperation) -> bool:
-        if not isinstance(operation, GateOperation):
-            return False
         special_angles = [
             0,
             np.pi / 4,
@@ -91,8 +110,6 @@ class RXtoRZ(DecompositionRule[GateOperation]):
     """Decomposition of RX to RZ gate."""
 
     def predicate(self, operation: GateOperation) -> bool:
-        if not isinstance(operation, GateOperation):
-            return False
         # Only decompose U3 and its controlled version
         return (
             operation.gate.name == "RX"
@@ -124,8 +141,6 @@ class RYtoRZ(DecompositionRule[GateOperation]):
     """Decomposition of RY to RZ gate."""
 
     def predicate(self, operation: GateOperation) -> bool:
-        if not isinstance(operation, GateOperation):
-            return False
         # Only decompose U3 and its controlled version
         return (
             operation.gate.name == "RY"
@@ -157,8 +172,6 @@ class U3toRZ(DecompositionRule[GateOperation]):
     """Decomposition of U3 into RX and RZ gates."""
 
     def predicate(self, operation: GateOperation) -> bool:
-        if not isinstance(operation, GateOperation):
-            return False
         # Only decompose U3 and its controlled version
         return (
             operation.gate.name == "U3"
@@ -167,8 +180,8 @@ class U3toRZ(DecompositionRule[GateOperation]):
         )
 
     def production(self, operation: GateOperation) -> Iterable[GateOperation]:
-        theta = operation.params[0]
-        phi = operation.params[1]
+        phi = operation.params[0]
+        theta = operation.params[1]
         lam = operation.params[2]
 
         # ignore global phase as it's not relevant to gsc
@@ -198,11 +211,9 @@ class U3toRZ(DecompositionRule[GateOperation]):
 
 
 class CCZtoT(DecompositionRule[GateOperation]):
-    """Decomposition of U3 into RX and RZ gates."""
+    """Decomposition of Toffoli into T, H, and CNOT gates."""
 
     def predicate(self, operation: GateOperation) -> bool:
-        if not isinstance(operation, GateOperation):
-            return False
         # Only decompose CCZ
         if operation.gate.name == "Control":
             assert isinstance(operation.gate, ControlledGate)
@@ -238,4 +249,4 @@ class CCZtoT(DecompositionRule[GateOperation]):
             CNOT(qubit_1, qubit_2),
         ]
 
-        return reversed(gate_operation_decomposition)
+        return gate_operation_decomposition
