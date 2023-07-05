@@ -85,7 +85,7 @@ class GraphResourceEstimator:
         decoder_model: Optional[DecoderModel] = None,
         optimization: str = "space",
         substrate_scheduler_preset: str = "fast",
-        widget_iterable: Optional[Iterable[Widget]] = None
+        widget_iterable: Optional[Iterable[Widget]] = None,
     ):
         self.hw_model = hw_model
         self.decoder_model = decoder_model
@@ -296,7 +296,9 @@ class GraphResourceEstimator:
             for widget in widget_iterator:
                 tmp_graph_data = replace(
                     graph_data,
-                    n_nodes=ceil(graph_data.n_nodes / widget.n_t_gates_produced_per_cycle),
+                    n_nodes=ceil(
+                        graph_data.n_nodes / widget.n_t_gates_produced_per_cycle
+                    ),
                 )
                 n_total_t_gates = self.get_n_total_t_gates(
                     tmp_graph_data.n_t_gates,
