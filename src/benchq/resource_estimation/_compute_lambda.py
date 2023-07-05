@@ -17,7 +17,7 @@
 import numpy as np
 
 
-def compute_lambda(h1, eri_full, sf_factors):
+def compute_lambda_sf(h1, eri_full, sf_factors):
     """Compute lambda for Hamiltonian using SF method of Berry, et al.
     Args:
         pyscf_mf - PySCF mean field object
@@ -41,5 +41,32 @@ def compute_lambda(h1, eri_full, sf_factors):
         "ijP,klP->", np.abs(sf_factors), np.abs(sf_factors), optimize=True
     )
     lambda_tot = lambda_T + lambda_W
+
+    return lambda_tot
+
+def compute_lambda_df(h1, eri_full, df_factors):
+    """Compute lambda for Hamiltonian using SF method of Berry, et al.
+    Args:
+        pyscf_mf - PySCF mean field object
+        df_factors (ndarray) - (N x N x rank) array of DF factors from ERI
+
+    Returns:
+        lambda_tot (float) - lambda value for the single factorized Hamiltonian
+    """
+    # one body contributions
+    T = h1 - 0.5 * np.einsum("illj->ij", eri_full) + np.einsum(
+        "llij->ij", eri_full)
+    e, _ = np.linalg.eigh(T)
+    lambda_T = np.sum(np.abs(e))
+
+    # two body contributions
+    lambda_F = 0.0
+    for vector in range(df_factors.shape[2]):
+        Lij = df_factors[:, :, vector]
+        #e, v = np.linalg.eigh(Lij)
+        e = np.linalg.eigvalsh(Lij)  # just need eigenvals
+        lambda_F += 0.25 * np.sum(np.abs(e))**2
+
+    lambda_tot = lambda_T + lambda_F
 
     return lambda_tot

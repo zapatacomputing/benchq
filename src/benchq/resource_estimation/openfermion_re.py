@@ -4,7 +4,7 @@
 from typing import Tuple
 
 import numpy as np
-from openfermion.resource_estimates import sf
+from openfermion.resource_estimates import sf, df
 from openfermion.resource_estimates.surface_code_compilation.physical_costing import (
     AlgorithmParameters,
     CostEstimate,
@@ -12,7 +12,10 @@ from openfermion.resource_estimates.surface_code_compilation.physical_costing im
 )
 
 from benchq.data_structures.resource_info import OpenFermionResourceInfo
-from benchq.resource_estimation._compute_lambda_sf import compute_lambda
+from benchq.resource_estimation._compute_lambda import (
+    compute_lambda_sf,
+    compute_lambda_df,
+)
 
 
 def get_single_factorized_qpe_toffoli_and_qubit_cost(
@@ -34,7 +37,7 @@ def get_single_factorized_qpe_toffoli_and_qubit_cost(
 
     # First, up: lambda and CCSD(T)
     eri_rr, LR = sf.factorize(eri, rank)
-    lam = compute_lambda(h1, eri_rr, LR)
+    lam = compute_lambda_sf(h1, eri_rr, LR)
 
     # now do costing
     stps1 = sf.compute_cost(
@@ -55,6 +58,103 @@ def get_single_factorized_qpe_toffoli_and_qubit_cost(
         stps=stps1,
     )
     return sf_total_toffoli_cost, sf_logical_qubits
+
+
+def get_double_factorized_qpe_toffoli_and_qubit_cost(
+    h1: np.ndarray,
+    eri: np.ndarray,
+    threshold: float,
+    allowable_phase_estimation_error: float,
+    bits_precision_state_prep: int = 10,
+    bits_precision_rotation: int = 20,
+) -> Tuple[int, int]:
+    """Get the number of Toffoli gates and logical qubits for double factorized QPE.
+    """
+    num_orb = h1.shape[0]
+    num_spinorb = num_orb * 2
+
+    eri_rr, LR, L, Lxi = df.factorize(eri, threshold)
+    lam = compute_lambda_df(h1, eri_rr, LR)
+
+    initial_step_cost, _, _ = df.compute_cost(
+        num_spinorb,
+        lam,
+        allowable_phase_estimation_error,
+        L,
+        Lxi,
+        bits_precision_state_prep,
+        bits_precision_rotation,
+        stps=20000,
+        verbose=False,
+    )
+
+    step_cost, total_cost, ancilla_cost = df.compute_cost(
+        num_spinorb,
+        lam,
+        allowable_phase_estimation_error,
+        L,
+        Lxi,
+        bits_precision_state_prep,
+        bits_precision_rotation,
+        stps=initial_step_cost,
+        verbose=False,
+    )
+
+    return step_cost, total_cost, ancilla_cost
+
+
+def get_toffoli_and_qubit_cost_for_double_factorized_block_encoding(
+    h1: np.ndarray,
+    eri: np.ndarray,
+    threshold: float,
+    allowable_phase_estimation_error: float,
+    bits_precision_state_prep: int = 10,
+    bits_precision_rotation: int = 20,
+) -> Tuple[int, int]:
+    """Get the Toffoli and qubit cost for the double factorized block encoding.
+
+    Args:
+
+    Returns:
+        A tuple whose first element is the number of Toffolis required for a controlled
+            implementation of the block encoding, and whose second element is the number
+            of qubits required for the block encoding (not including the qubit) it would
+            typically be controlled on.
+    """
+
+    # In the df.compute_cost(...) function below, we set dE = 1 since this input doesn't
+    # matter for us. We are only interested in the cost of implementing the quantum walk
+    # operator, not the cost of QPE which depends on dE. Recall, dE determines the
+    # precision of the QPE output which depends on the number of ancilla qubits in the
+    # energy register.
+
+    eri_rr, LR, L, Lxi = df.factorize(eri, threshold)
+    lam = compute_lambda_df(h1, eri_rr, LR)
+
+    allowable_phase_estimation_error = 1
+    (
+        step_cost,
+        total_cost,
+        ancilla_cost,
+    ) = get_double_factorized_qpe_toffoli_and_qubit_cost(
+        h1,
+        eri,
+        threshold,
+        allowable_phase_estimation_error,
+        bits_precision_state_prep,
+        bits_precision_rotation,
+    )
+
+    # Now, we will remove the ancilla qubits in the energy register in QPE, and only add one using Guoming's algorithm.
+    # The number of steps in Heisenberg-Limited QPE, i.e., 2^m.
+    iters = np.ceil(np.pi * lam / (allowable_phase_estimation_error * 2))
+
+    # Number of control qubits in the energy register
+    m = 2 * np.ceil(np.log2(iters)) - 1
+
+    ancilla_cost = ancilla_cost - m
+
+    return step_cost, ancilla_cost
 
 
 def get_single_factorized_qpe_resource_estimate(
