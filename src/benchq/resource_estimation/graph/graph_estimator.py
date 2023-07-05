@@ -85,16 +85,14 @@ class GraphResourceEstimator:
         decoder_model: Optional[DecoderModel] = None,
         optimization: str = "space",
         substrate_scheduler_preset: str = "fast",
-        widget_iterable_factory: Callable[
-            [BasicArchitectureModel], Iterable[Widget]
-        ] = default_widget_list,
+        widget_iterable: Optional[Iterable[Widget]] = None
     ):
         self.hw_model = hw_model
         self.decoder_model = decoder_model
         self.optimization = optimization
         self.substrate_scheduler_preset = substrate_scheduler_preset
         getcontext().prec = 100  # need some extra precision for this calculation
-        self.widget_iterable_factory = widget_iterable_factory
+        self.widget_iterable = widget_iterable or default_widget_list(hw_model)
 
     # Assumes gridsynth scaling
     SYNTHESIS_SCALING = 4
@@ -289,7 +287,7 @@ class GraphResourceEstimator:
             algorithm_implementation.error_budget.transpilation_failure_tolerance
         )
 
-        widget_iterator = iter(self.widget_iterable_factory(self.hw_model))
+        widget_iterator = iter(self.widget_iterable)
 
         for this_transpilation_failure_tolerance in [
             transpilation_failure_tolerance * (0.1**i) for i in range(10)
@@ -298,7 +296,7 @@ class GraphResourceEstimator:
             for widget in widget_iterator:
                 tmp_graph_data = replace(
                     graph_data,
-                    n_nodes=ceil(graph_data.n_nodes / widget.n_t_gates_produced),
+                    n_nodes=ceil(graph_data.n_nodes / widget.n_t_gates_produced_per_cycle),
                 )
                 n_total_t_gates = self.get_n_total_t_gates(
                     tmp_graph_data.n_t_gates,
