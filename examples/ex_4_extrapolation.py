@@ -26,7 +26,7 @@ from benchq.resource_estimation.graph import (
     ExtrapolationResourceEstimator,
     create_big_graph_from_subcircuits,
     run_custom_extrapolation_pipeline,
-    simplify_rotations,
+    transpile_to_native_gates,
 )
 from benchq.timing import measure_time
 
@@ -65,7 +65,7 @@ def main(use_hydrogen=True):
                 n_measurement_steps_fit_type="linear",
             ),
             transformers=[
-                simplify_rotations,
+                transpile_to_native_gates,
                 create_big_graph_from_subcircuits(),
             ],
         )
