@@ -82,7 +82,7 @@ def create_extrapolated_graph_data_pipeline(
 ):
     # the architecture model doesn't matter for extrapolating graph data
     dummy_extrapolation_estimator = ExtrapolationResourceEstimator(
-        BASIC_ION_TRAP_ARCHITECTURE_MODEL(),
+        BASIC_ION_TRAP_ARCHITECTURE_MODEL,
         steps_to_extrapolate_from,
         decoder_model=decoder_model,
     )
