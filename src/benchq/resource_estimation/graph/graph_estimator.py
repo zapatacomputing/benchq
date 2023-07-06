@@ -76,7 +76,9 @@ class GraphResourceEstimator:
         substrate_scheduler_preset (str): Optimize for speed ("fast") so that it can
             be run on larger graphs or for lower resource estimates ("optimized"). For
             graphs of sizes in the thousands of nodes or higher, "fast" is recommended.
-
+        widgets (Optional[Iterable[Widget]]: Widgets to be used during estimation. If
+            not provided (or passed None) default_widget_list will select widgets based
+            on hw_model parameter.
     """
 
     def __init__(
@@ -85,14 +87,14 @@ class GraphResourceEstimator:
         decoder_model: Optional[DecoderModel] = None,
         optimization: str = "space",
         substrate_scheduler_preset: str = "fast",
-        widget_iterable: Optional[Iterable[Widget]] = None,
+        widgets: Optional[Iterable[Widget]] = None,
     ):
         self.hw_model = hw_model
         self.decoder_model = decoder_model
         self.optimization = optimization
         self.substrate_scheduler_preset = substrate_scheduler_preset
         getcontext().prec = 100  # need some extra precision for this calculation
-        self.widget_iterable = widget_iterable or default_widget_list(hw_model)
+        self.widgets = widgets or default_widget_list(hw_model)
 
     # Assumes gridsynth scaling
     SYNTHESIS_SCALING = 4
@@ -293,7 +295,7 @@ class GraphResourceEstimator:
             algorithm_implementation.error_budget.transpilation_failure_tolerance
         )
 
-        widget_iterator = iter(self.widget_iterable)
+        widget_iterator = iter(self.widgets)
 
         for this_transpilation_failure_tolerance in [
             transpilation_failure_tolerance * (0.1**i) for i in range(10)

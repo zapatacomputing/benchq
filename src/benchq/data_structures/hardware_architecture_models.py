@@ -35,15 +35,15 @@ class BasicArchitectureModel(Protocol):
 
 @dataclass(frozen=True)
 class IONTrapModel:
-    physical_qubit_error_rate: float
-    surface_code_cycle_time_in_seconds: float
+    physical_qubit_error_rate: float = 1e-4
+    surface_code_cycle_time_in_seconds: float = 1e-5
 
 
 @dataclass(frozen=True)
 class SCModel:
-    physical_qubit_error_rate: float
-    surface_code_cycle_time_in_seconds: float
+    physical_qubit_error_rate: float = 1e-3
+    surface_code_cycle_time_in_seconds: float = 1e-7
 
 
-BASIC_ION_TRAP_ARCHITECTURE_MODEL = IONTrapModel(1e-4, 1e-5)
-BASIC_SC_ARCHITECTURE_MODEL = SCModel(1e-3, 1e-7)
+BASIC_ION_TRAP_ARCHITECTURE_MODEL = IONTrapModel()
+BASIC_SC_ARCHITECTURE_MODEL = SCModel()
