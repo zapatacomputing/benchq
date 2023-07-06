@@ -3,7 +3,7 @@
 ################################################################################
 from typing import Callable, Sequence
 
-from orquestra.quantum.circuits import Circuit
+from orquestra.quantum.circuits import Circuit, GateOperation, ResetOperation
 
 
 class QuantumProgram:
@@ -61,26 +61,28 @@ class QuantumProgram:
 
     @property
     def n_rotation_gates(self) -> int:
-        return self.count_gates_in_program(["RX", "RY", "RZ"])
+        return self.count_operations_in_program(["RX", "RY", "RZ"])
 
     @property
     def n_t_gates(self) -> int:
-        return self.count_gates_in_program(["T", "Tdag"])
+        return self.count_operations_in_program(["T", "Tdag"])
 
     @property
     def n_nodes(self) -> int:
         return self.n_t_gates + self.n_rotation_gates + self.subroutines[0].n_qubits
 
-    def count_gates_in_subroutine(self, step: int, gates: Sequence[str]) -> int:
+    def count_operations_in_subroutine(self, step: int, gates: Sequence[str]) -> int:
         n_gates = 0
         for op in self.subroutines[step].operations:
-            if op.gate.name in gates:
+            if isinstance(op, GateOperation) and op.gate.name in gates:
+                n_gates += 1
+            if isinstance(op, ResetOperation) and "ResetOperation" in gates:
                 n_gates += 1
         return n_gates
 
-    def count_gates_in_program(self, gates: Sequence[str]) -> int:
+    def count_operations_in_program(self, gates: Sequence[str]) -> int:
         n_gates_per_subroutine = [
-            self.count_gates_in_subroutine(subroutine, gates)
+            self.count_operations_in_subroutine(subroutine, gates)
             for subroutine in range(len(self.subroutines))
         ]
 

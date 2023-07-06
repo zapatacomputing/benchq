@@ -16,12 +16,15 @@ from pprint import pprint
 from benchq.algorithms.time_evolution import qsp_time_evolution_algorithm
 from benchq.data_structures import BASIC_SC_ARCHITECTURE_MODEL
 from benchq.problem_ingestion import get_vlasov_hamiltonian
+from benchq.problem_ingestion.hamiltonian_generation import (
+    generate_1d_heisenberg_hamiltonian,
+)
 from benchq.resource_estimation.graph import (
     GraphResourceEstimator,
     create_big_graph_from_subcircuits,
     run_custom_resource_estimation_pipeline,
-    simplify_rotations,
     synthesize_clifford_t,
+    transpile_to_native_gates,
 )
 from benchq.timing import measure_time
 
@@ -75,7 +78,7 @@ def main():
             algorithm,
             estimator=GraphResourceEstimator(architecture_model),
             transformers=[
-                simplify_rotations,
+                transpile_to_native_gates,
                 create_big_graph_from_subcircuits(),
             ],
         )

@@ -2,7 +2,7 @@
 # © Copyright 2022-2023 Zapata Computing Inc.
 ################################################################################
 from dataclasses import dataclass
-from typing import Any, Dict, Generic, Iterable, List, Optional, Sequence, TypeVar, cast
+from typing import Dict, Generic, Iterable, List, Optional, Sequence, TypeVar, cast
 
 import cirq
 import numpy as np
@@ -122,11 +122,13 @@ def get_qsp_program(
             components.select_v[0],
             components.select_v[1],
             components.select_v[2],
+            components.select_v[3],
+            _invert_without_ry_dagger(components.select_v[2]),
             _invert_without_ry_dagger(components.select_v[1]),
             _invert_without_ry_dagger(components.select_v[0]),
             components.reflection,
         ]
-        indices = _Indices(rotation=0, reflection=6, select_v=list(range(1, 6)))
+        indices = _Indices(rotation=0, reflection=8, select_v=list(range(1, 8)))
     else:
         all_circuits = [
             components.rotation,
@@ -175,11 +177,14 @@ def _create_qsp_components(
 
 
 def _dagger(operation: GateOperation) -> GateOperation:
-    return (
-        operation.replace_params((-operation.params[0],))  # type: ignore
-        if operation.gate.name == "RY"
-        else operation.gate.dagger(*operation.qubit_indices)
-    )
+    if isinstance(operation, GateOperation):
+        return (
+            operation.replace_params((-operation.params[0],))  # type: ignore
+            if operation.gate.name == "RY"
+            else operation.gate.dagger(*operation.qubit_indices)
+        )
+    else:
+        return operation
 
 
 def _invert_without_ry_dagger(circuit: Circuit):
@@ -196,9 +201,9 @@ def _invert_without_ry_dagger(circuit: Circuit):
 # 4 - Dagger of SelVBase subcircuit
 # 5 - A single reset
 # 6 - Dagger of Prepare subcircuit
-# And hence, we only need circuits 0, 2 and 3, because the rest can
-# either be safely ignored, or constructed by taking circuit.inverse()
-SELECT_V_DECOMPOSITION_INDICES = (0, 2, 3)
+# And hence, we only need circuits 0, 1, 2, and 3, because the rest can
+# be constructed by taking circuit.inverse() or are duplicates.
+SELECT_V_DECOMPOSITION_INDICES = (0, 1, 2, 3)
 
 
 def _generate_select_v_circuits(
@@ -216,7 +221,6 @@ def _generate_select_v_circuits(
 def _preprocess_qsp_cirq_components(
     components: QSPComponents[cirq.Circuit],
 ) -> QSPComponents[Circuit]:
-
     base_circuits = [components.rotation, *components.select_v, components.reflection]
 
     qubit_map = _map_named_qubits_to_line_qubits(
@@ -271,7 +275,7 @@ def _map_named_qubits_to_line_qubits(
 
     named_qubits = [qubit for qubit in all_qubits if isinstance(qubit, cirq.NamedQubit)]
 
-    max_line_id = max(qubit.x for qubit in line_qubits)
+    max_line_id = max(qubit.x for qubit in line_qubits) if len(line_qubits) != 0 else -1
 
     return {
         qubit: cirq.LineQubit(i)
@@ -293,7 +297,6 @@ def _replace_named_qubits(
 
 XPOW_X_1 = cirq.XPowGate(exponent=-1)
 XPOW_X_2 = cirq.XPowGate(global_shift=-0.25)
-RESET_CHANNEL = cirq.ResetChannel()
 
 
 ZPOW_GATE_Z_EQUIVALENT = cirq.ZPowGate(exponent=-1)
@@ -307,10 +310,9 @@ def _replace_gate(op: cirq.Operation) -> Optional[cirq.Operation]:
         return cirq.X(op.qubits[0])
     elif isinstance(op.gate, cirq.XPowGate) and op.gate == XPOW_X_2:
         return cirq.X(op.qubits[0])
-    elif op.gate == cirq.I or op.gate == RESET_CHANNEL:
+    elif op.gate == cirq.I:
         return None
     elif op.gate == ZPOW_GATE_Z_EQUIVALENT:
-        # TODO: requires verification!
         return cirq.Z.on(op.qubits[0])
     elif op.gate == CZPOW_GATE_CZ_EQUIVALENT:
         return cirq.CZ.on(op.qubits[0], op.qubits[1])
