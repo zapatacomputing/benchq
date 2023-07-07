@@ -7,9 +7,9 @@ from benchq.algorithms.time_evolution import _n_block_encodings_for_time_evoluti
 from benchq.problem_embeddings import get_qsp_program
 from benchq.problem_ingestion import (
     generate_jw_qubit_hamiltonian_from_mol_data,
+    get_hamiltonian_from_file,
     get_vlasov_hamiltonian,
 )
-from benchq.problem_ingestion import get_hamiltonian_from_file
 from benchq.problem_ingestion.molecule_instance_generation import (
     generate_hydrogen_chain_instance,
 )
