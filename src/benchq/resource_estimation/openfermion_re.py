@@ -8,7 +8,7 @@ import numpy as np
 import datetime
 from openfermion.resource_estimates import sf
 
-from benchq.resource_estimation.openfermion_modified import (
+from benchq.resource_estimation.of_modified import (
     AlgorithmParameters,
     CostEstimate,
     cost_estimator
@@ -123,4 +123,3 @@ def _openfermion_result_to_resource_info(
         widget_name=algorithm_parameters.magic_state_factory.details,
         extra=algorithm_parameters,
     )
-
