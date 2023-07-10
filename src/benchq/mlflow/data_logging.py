@@ -48,7 +48,7 @@ def log_resource_info_to_mlflow(resource_info: ResourceInfo):
             mlflow.log_metric(key, value)
         elif value is not None:
             mlflow.log_param(key, value)
-        else:
+        elif value is None:
             mlflow.log_param(key, "None")
 
 

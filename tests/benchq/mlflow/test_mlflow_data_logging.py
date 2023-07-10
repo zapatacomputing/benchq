@@ -15,7 +15,7 @@ from benchq.data_structures.hardware_architecture_models import (
     BasicArchitectureModel,
 )
 from benchq.data_structures.decoder import DecoderModel
-from unittest.mock import Mock, MagicMock, patch
+from unittest.mock import patch
 
 
 @pytest.mark.parametrize(
@@ -64,31 +64,33 @@ def test__flatten_dict(input_dict, expected):
     assert _flatten_dict(input_dict) == expected
 
 
-@patch("benchq.mlflow.data_logging.mlflow")
+@patch("benchq.mlflow.data_logging.mlflow", autospec=True)
 def test_log_input_objects_to_mlflow(mock_mlflow):
     """This one is almost an integration test, because it also relies on _flatten_dict()"""
+    # Given
     test_algo_descrip = AlgorithmImplementation(None, None, 10)
 
     test_hardware_model = BasicArchitectureModel(0.001, 0.1)
 
     test_decoder_model = DecoderModel({1: 1.5}, {2: 6.28}, {3: 0.0001}, 31)
 
-    mock_mlflow.log_metric.return_value = None
+    # When
     log_input_objects_to_mlflow(
         test_algo_descrip, "testing algo", test_hardware_model, test_decoder_model
     )
 
+    # Then
     mock_mlflow.log_metric.assert_not_called()
+    mock_mlflow.log_metrics.assert_not_called()
+
     mock_mlflow.log_param.assert_called()
-
-    mock_mlflow.log_param.assert_any_call("n_calls", 10)
-
+    mock_mlflow.log_param.assert_any_call("n_calls", 10)  # from AlgorithmImplementation
     mock_mlflow.log_param.assert_any_call("algorithm_name", "testing algo")
 
+    mock_mlflow.log_params.assert_called()
     mock_mlflow.log_params.assert_any_call(
         {"physical_qubit_error_rate": 0.001, "surface_code_cycle_time_in_seconds": 0.1}
-    )
-
+    )  # from BasicArchitectureModel
     mock_mlflow.log_params.assert_any_call(
         {
             "power_table.1": 1.5,
@@ -96,12 +98,13 @@ def test_log_input_objects_to_mlflow(mock_mlflow):
             "delay_table.3": 0.0001,
             "distance_cap": 31,
         }
-    )
+    )  # from DecoderModel
 
 
-@patch("benchq.mlflow.data_logging.mlflow")
+@patch("benchq.mlflow.data_logging.mlflow", autospec=True)
 def test_log_resource_info_to_mlflow(mock_mlflow):
     """This one is almost an integration test, because it also relies on _flatten_dict()"""
+    # Given
     test_resource_info = ResourceInfo(
         code_distance=1,
         logical_error_rate=0.1,
@@ -112,11 +115,15 @@ def test_log_resource_info_to_mlflow(mock_mlflow):
         widget_name="tau",
         extra=None,
     )
-    mock_mlflow.log_metric.return_value = None
+
+    # When
     log_resource_info_to_mlflow(test_resource_info)
 
+    # Then
     mock_mlflow.log_metric.assert_called()
+    mock_mlflow.log_metrics.assert_not_called()
     mock_mlflow.log_param.assert_called()
+    mock_mlflow.log_params.assert_not_called()
 
     mock_mlflow.log_metric.assert_any_call("code_distance", 1)
     mock_mlflow.log_metric.assert_any_call("logical_error_rate", 0.1)
