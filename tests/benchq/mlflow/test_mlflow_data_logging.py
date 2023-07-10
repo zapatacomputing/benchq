@@ -12,7 +12,7 @@ from benchq.mlflow.data_logging import (
 from benchq.data_structures.resource_info import ResourceInfo
 from benchq.data_structures.algorithm_implemenation import AlgorithmImplementation
 from benchq.data_structures.hardware_architecture_models import (
-    BasicArchitectureModel,
+    IONTrapModel,
 )
 from benchq.data_structures.decoder import DecoderModel
 from unittest.mock import patch
@@ -66,11 +66,10 @@ def test__flatten_dict(input_dict, expected):
 
 @patch("benchq.mlflow.data_logging.mlflow", autospec=True)
 def test_log_input_objects_to_mlflow(mock_mlflow):
-    """This one is almost an integration test, because it also relies on _flatten_dict()"""
     # Given
     test_algo_descrip = AlgorithmImplementation(None, None, 10)
 
-    test_hardware_model = BasicArchitectureModel(0.001, 0.1)
+    test_hardware_model = IONTrapModel(0.001, 0.1)
 
     test_decoder_model = DecoderModel({1: 1.5}, {2: 6.28}, {3: 0.0001}, 31)
 
@@ -103,7 +102,6 @@ def test_log_input_objects_to_mlflow(mock_mlflow):
 
 @patch("benchq.mlflow.data_logging.mlflow", autospec=True)
 def test_log_resource_info_to_mlflow(mock_mlflow):
-    """This one is almost an integration test, because it also relies on _flatten_dict()"""
     # Given
     test_resource_info = ResourceInfo(
         code_distance=1,
