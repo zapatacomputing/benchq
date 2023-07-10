@@ -20,7 +20,9 @@ def log_input_objects_to_mlflow(
     hardware_model: BasicArchitectureModel,
     decoder_model: Optional[DecoderModel] = None,
 ):
-    """Ingests objects used to define a resource estimation and logs their parameters to mlflow"""
+    """Ingests objects used to define a resource estimation
+    and logs their parameters to mlflow
+    """
     # Sometimes the algorithm description has a None as a value,
     #   which causes problem if we try to log it
     for algo_key, algo_value in _flatten_dict(asdict(algorithm_description)).items():
