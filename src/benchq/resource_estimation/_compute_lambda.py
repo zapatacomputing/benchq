@@ -19,8 +19,12 @@ import numpy as np
 
 def compute_lambda_sf(h1, eri_full, sf_factors):
     """Compute lambda for Hamiltonian using SF method of Berry, et al.
+
     Args:
-        pyscf_mf - PySCF mean field object
+        h1: Matrix elements of the one-body operator that includes kinetic
+            energy operator and electorn-nuclear Coulomb operator.
+        eri: Four-dimensional array containing electron-repulsion
+            integrals.
         sf_factors (ndarray) - (N x N x rank) array of SF factors from rank
             reduction of ERI
     Returns:
@@ -47,8 +51,12 @@ def compute_lambda_sf(h1, eri_full, sf_factors):
 
 def compute_lambda_df(h1, eri_full, df_factors):
     """Compute lambda for Hamiltonian using SF method of Berry, et al.
+
     Args:
-        pyscf_mf - PySCF mean field object
+        h1: Matrix elements of the one-body operator that includes kinetic
+            energy operator and electorn-nuclear Coulomb operator.
+        eri: Four-dimensional array containing electron-repulsion
+            integrals.
         df_factors (ndarray) - (N x N x rank) array of DF factors from ERI
 
     Returns:
