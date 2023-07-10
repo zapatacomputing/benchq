@@ -17,25 +17,38 @@ from benchq.resource_estimation._compute_lambda import (
     compute_lambda_df,
 )
 
+
 def _validate_eri(eri: np.ndarray):
     """Validate that the ERI tensor has the symmetries required for factorization."""
     if not np.allclose(np.transpose(eri, (2, 3, 0, 1)), eri):
         raise ValueError("ERI do not have (ij | kl) == (kl | ij) symmetry.")
 
+
 def get_single_factorized_qpe_toffoli_and_qubit_cost(
     h1: np.ndarray,
     eri: np.ndarray,
     rank: int,
-    allowable_phase_estimation_error: float,
-    bits_precision_state_prep: float,
+    allowable_phase_estimation_error: float = 0.001,
+    bits_precision_coefficients: float = 10,
 ) -> Tuple[int, int]:
-    """Get the number of Toffoli gates and logical qubits for single factorized QPE.
+    """Get the number of Toffoli gates and logical qubits for single factorized QPE as
+    described in PRX Quantum 2, 030305.
 
-    See get_single_factorized_qpe_resource_estimate for descriptions of arguments.
+    Args:
+        h1: Matrix elements of the one-body operator that includes kinetic
+            energy operator and electorn-nuclear Coulomb operator.
+        eri: Four-dimensional array containing electron-repulsion
+            integrals.
+        rank: Rank of the factorization.
+        allowable_phase_estimation_error: Allowable error in phase estimation.
+            Corresponds to epsilon_QPE in the paper.
+        bits_precision_coefficients: The number of bits for the representation of
+            the coefficients. Corresponds to aleph_1 and aleph_2 in the paper.
 
     Returns:
-        The number of Toffoli gates and logical qubits.
+        A tuple containing the number of Toffoli gates and number of logical qubits.
     """
+
     _validate_eri(eri)
     num_orb = h1.shape[0]
     num_spinorb = num_orb * 2
@@ -50,7 +63,7 @@ def get_single_factorized_qpe_toffoli_and_qubit_cost(
         lam,
         allowable_phase_estimation_error,
         L=rank,
-        chi=bits_precision_state_prep,
+        chi=bits_precision_coefficients,
         stps=20000,
     )[0]
 
@@ -59,7 +72,7 @@ def get_single_factorized_qpe_toffoli_and_qubit_cost(
         lam,
         allowable_phase_estimation_error,
         L=rank,
-        chi=bits_precision_state_prep,
+        chi=bits_precision_coefficients,
         stps=stps1,
     )
     return sf_total_toffoli_cost, sf_logical_qubits
@@ -69,11 +82,30 @@ def get_double_factorized_qpe_toffoli_and_qubit_cost(
     h1: np.ndarray,
     eri: np.ndarray,
     threshold: float,
-    allowable_phase_estimation_error: float,
-    bits_precision_state_prep: int = 10,
+    allowable_phase_estimation_error: float = 0.001,
+    bits_precision_coefficients: int = 10,
     bits_precision_rotation: int = 20,
 ) -> Tuple[int, int]:
-    """Get the number of Toffoli gates and logical qubits for double factorized QPE."""
+    """Get the number of Toffoli gates and logical qubits for double factorized QPE as
+    described in PRX Quantum 2, 030305.
+
+    Args:
+        h1: Matrix elements of the one-body operator that includes kinetic
+            energy operator and electorn-nuclear Coulomb operator.
+        eri: Four-dimensional array containing electron-repulsion
+            integrals.
+        threshold:
+        allowable_phase_estimation_error: Allowable error in phase estimation.
+            Corresponds to epsilon_QPE in the paper.
+        bits_precision_coefficients: The number of bits for the representation of
+            the coefficients. Corresponds to aleph_1 and aleph_2 in the paper.
+        bits_precision_rotations: The number of bits of precision for rotation angles.
+            Corresponds to beth in the paper.
+
+    Returns:
+        A tuple containing the number of Toffoli gates and number of logical qubits.
+    """
+
     _validate_eri(eri)
     num_orb = h1.shape[0]
     num_spinorb = num_orb * 2
@@ -87,7 +119,7 @@ def get_double_factorized_qpe_toffoli_and_qubit_cost(
         allowable_phase_estimation_error,
         L,
         Lxi,
-        bits_precision_state_prep,
+        bits_precision_coefficients,
         bits_precision_rotation,
         stps=20000,
         verbose=False,
@@ -99,67 +131,13 @@ def get_double_factorized_qpe_toffoli_and_qubit_cost(
         allowable_phase_estimation_error,
         L,
         Lxi,
-        bits_precision_state_prep,
+        bits_precision_coefficients,
         bits_precision_rotation,
         stps=initial_step_cost,
         verbose=False,
     )
 
-    return step_cost, total_cost, ancilla_cost
-
-
-def get_toffoli_and_qubit_cost_for_double_factorized_block_encoding(
-    h1: np.ndarray,
-    eri: np.ndarray,
-    threshold: float,
-    allowable_phase_estimation_error: float,
-    bits_precision_state_prep: int = 10,
-    bits_precision_rotation: int = 20,
-) -> Tuple[int, int]:
-    """Get the Toffoli and qubit cost for the double factorized block encoding.
-
-    Args:
-
-    Returns:
-        A tuple whose first element is the number of Toffolis required for a controlled
-            implementation of the block encoding, and whose second element is the number
-            of qubits required for the block encoding (not including the qubit) it would
-            typically be controlled on.
-    """
-
-    # In the df.compute_cost(...) function below, we set dE = 1 since this input doesn't
-    # matter for us. We are only interested in the cost of implementing the quantum walk
-    # operator, not the cost of QPE which depends on dE. Recall, dE determines the
-    # precision of the QPE output which depends on the number of ancilla qubits in the
-    # energy register.
-
-    eri_rr, LR, L, Lxi = df.factorize(eri, threshold)
-    lam = compute_lambda_df(h1, eri_rr, LR)
-
-    allowable_phase_estimation_error = 1
-    (
-        step_cost,
-        total_cost,
-        ancilla_cost,
-    ) = get_double_factorized_qpe_toffoli_and_qubit_cost(
-        h1,
-        eri,
-        threshold,
-        allowable_phase_estimation_error,
-        bits_precision_state_prep,
-        bits_precision_rotation,
-    )
-
-    # Now, we will remove the ancilla qubits in the energy register in QPE, and only add one using Guoming's algorithm.
-    # The number of steps in Heisenberg-Limited QPE, i.e., 2^m.
-    iters = np.ceil(np.pi * lam / (allowable_phase_estimation_error * 2))
-
-    # Number of control qubits in the energy register
-    m = 2 * np.ceil(np.log2(iters)) - 1
-
-    ancilla_cost = ancilla_cost - m
-
-    return step_cost, ancilla_cost
+    return total_cost, ancilla_cost
 
 
 def get_physical_cost(
