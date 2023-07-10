@@ -18,7 +18,7 @@ from benchq.resource_estimation.openfermion_re import (
         (["H 1s", "H 2s"], "sto-3g"),
     ],
 )
-def test_single_factorized_qpe_logical_qubit_count_is_larger_than_number_of_spin_orbitals(
+def test_sf_qpe_logical_qubit_count_is_larger_than_number_of_spin_orbitals(
     avas_atomic_orbitals, avas_minao
 ):
     instance = generate_hydrogen_chain_instance(8)
@@ -40,7 +40,7 @@ def test_single_factorized_qpe_logical_qubit_count_is_larger_than_number_of_spin
         (["H 1s", "H 2s"], "sto-3g"),
     ],
 )
-def test_double_factorized_qpe_logical_qubit_count_is_larger_than_number_of_spin_orbitals(
+def test_df_qpe_logical_qubit_count_is_larger_than_number_of_spin_orbitals(
     avas_atomic_orbitals, avas_minao
 ):
     instance = generate_hydrogen_chain_instance(8)
