@@ -3,7 +3,6 @@
 ################################################################################
 from dataclasses import dataclass
 import warnings
-from dataclasses import dataclass
 from typing import Dict
 
 import numpy as np
