@@ -2,7 +2,7 @@
 # © Copyright 2023 Zapata Computing Inc.
 ################################################################################
 """ Tools for using mlflow to log benchq data """
-import mlflow
+import mlflow  # type: ignore
 from ..data_structures import (
     AlgorithmImplementation,
     BasicArchitectureModel,
