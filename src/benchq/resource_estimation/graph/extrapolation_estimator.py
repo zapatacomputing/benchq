@@ -32,7 +32,7 @@ class ExtrapolationResourceEstimator(GraphResourceEstimator):
         self.steps_to_extrapolate_from = steps_to_extrapolate_from
         self.n_measurement_steps_fit_type = n_measurement_steps_fit_type
 
-    def _get_extrapolated_graph_data(
+    def get_extrapolated_graph_data(
         self,
         data: List[GraphData],
         program: QuantumProgram,
@@ -82,15 +82,12 @@ class ExtrapolationResourceEstimator(GraphResourceEstimator):
             steps_to_extrapolate_to=steps_to_extrapolate_to,
         )
 
-    def estimate_via_extrapolation(
+    def estimate_given_extrapolation_data(
         self,
         algorithm_description: AlgorithmImplementation,
-        data: List[GraphData],
+        extrapolated_info: ExtrapolatedGraphData,
     ):
         assert isinstance(algorithm_description.program, QuantumProgram)
-        extrapolated_info = self._get_extrapolated_graph_data(
-            data, algorithm_description.program
-        )
         resource_info = self.estimate_resources_from_graph_data(
             extrapolated_info, algorithm_description
         )

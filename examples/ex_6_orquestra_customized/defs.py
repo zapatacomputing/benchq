@@ -22,7 +22,7 @@ from benchq.problem_ingestion import get_vlasov_hamiltonian
 from benchq.resource_estimation.graph import (
     GraphResourceEstimator,
     create_big_graph_from_subcircuits,
-    simplify_rotations,
+    transpile_to_native_gates,
 )
 
 task_deps = [
@@ -72,7 +72,7 @@ def transpile(
     return replace(
         algorithm_implementation,
         program=create_big_graph_from_subcircuits()(
-            simplify_rotations(algorithm_implementation.program)
+            transpile_to_native_gates(algorithm_implementation.program)
         ),
     )
 

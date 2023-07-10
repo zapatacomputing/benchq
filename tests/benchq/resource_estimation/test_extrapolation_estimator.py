@@ -1,4 +1,4 @@
-from dataclasses import asdict
+from dataclasses import asdict, replace
 
 import numpy as np
 import pytest
@@ -14,8 +14,8 @@ from benchq.resource_estimation.graph import (
     create_big_graph_from_subcircuits,
     run_custom_extrapolation_pipeline,
     run_custom_resource_estimation_pipeline,
-    simplify_rotations,
     synthesize_clifford_t,
+    transpile_to_native_gates,
 )
 
 # Below is code snippet for inspecting the extrapolations visually
@@ -38,13 +38,13 @@ def use_delayed_gate_synthesis(request):
 def _get_transformers(use_delayed_gate_synthesis, error_budget):
     if not use_delayed_gate_synthesis:
         transformers = [
-            simplify_rotations,
+            transpile_to_native_gates,
             synthesize_clifford_t(error_budget),
             create_big_graph_from_subcircuits(),
         ]
     else:
         transformers = [
-            simplify_rotations,
+            transpile_to_native_gates,
             create_big_graph_from_subcircuits(),
         ]
     return transformers
@@ -228,8 +228,10 @@ def test_get_resource_estimations_for_large_program_gives_correct_results(
 def test_better_architecture_does_not_require_more_resources(
     use_delayed_gate_synthesis, optimization
 ):
-    low_noise_architecture_model = BASIC_SC_ARCHITECTURE_MODEL
-    low_noise_architecture_model.physical_gate_error_rate = 1e-4
+    low_noise_architecture_model = replace(
+        BASIC_SC_ARCHITECTURE_MODEL, physical_qubit_error_rate=1e-4
+    )
+
     high_noise_architecture_model = BASIC_SC_ARCHITECTURE_MODEL
 
     # set circuit generation weight to 0
