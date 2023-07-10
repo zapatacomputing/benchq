@@ -6,10 +6,10 @@ from orquestra.quantum.circuits import CNOT, RZ, Circuit, H
 
 from benchq.data_structures import (
     AlgorithmImplementation,
-    BasicArchitectureModel,
     ErrorBudget,
     get_program_from_circuit,
 )
+from benchq.data_structures.hardware_architecture_models import IONTrapModel
 from benchq.resource_estimation.azure import AzureResourceEstimator
 
 SKIP_AZURE = pytest.mark.skipif(
@@ -23,11 +23,11 @@ SKIP_AZURE = pytest.mark.skipif(
     "It looks like Azure does not take information about the hardware into account"
 )
 def test_better_architecture_does_not_require_more_resources() -> None:
-    low_quality_architecture_model = BasicArchitectureModel(
+    low_quality_architecture_model = IONTrapModel(
         physical_qubit_error_rate=1e-4,
         surface_code_cycle_time_in_seconds=1e-6,
     )
-    high_quality_architecture_model = BasicArchitectureModel(
+    high_quality_architecture_model = IONTrapModel(
         physical_qubit_error_rate=1e-3,
         surface_code_cycle_time_in_seconds=1e-9,
     )

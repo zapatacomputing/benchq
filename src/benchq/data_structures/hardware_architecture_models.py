@@ -5,15 +5,10 @@
 
 
 from dataclasses import dataclass
+from typing import Protocol
 
 
-class ABCArchitectureModel:
-    def __init__(self):
-        pass
-
-
-@dataclass
-class BasicArchitectureModel(ABCArchitectureModel):
+class BasicArchitectureModel(Protocol):
     """Basic Architecture model meant to serve as a base class for the
     other basic architecture models. WARNING! Running a resource estimate
     with this architecture model will fail as, you need to choose an ION
@@ -29,22 +24,26 @@ class BasicArchitectureModel(ABCArchitectureModel):
             surface code cycle.
     """
 
-    def __init__(
-        self,
-        physical_qubit_error_rate,
-        surface_code_cycle_time_in_seconds,
-    ):
-        self.physical_qubit_error_rate = physical_qubit_error_rate
-        self.surface_code_cycle_time_in_seconds = surface_code_cycle_time_in_seconds
+    @property
+    def physical_qubit_error_rate(self) -> float:
+        pass
 
-    def __eq__(self, __value: object) -> bool:
-        assert isinstance(__value, BasicArchitectureModel)
-        return (
-            self.physical_qubit_error_rate == __value.physical_qubit_error_rate
-            and self.surface_code_cycle_time_in_seconds
-            == __value.surface_code_cycle_time_in_seconds
-        )
+    @property
+    def surface_code_cycle_time_in_seconds(self) -> float:
+        pass
 
 
-BASIC_ION_TRAP_ARCHITECTURE_MODEL = BasicArchitectureModel(1e-4, 1e-5)
-BASIC_SC_ARCHITECTURE_MODEL = BasicArchitectureModel(1e-3, 1e-7)
+@dataclass(frozen=True)
+class IONTrapModel:
+    physical_qubit_error_rate: float = 1e-4
+    surface_code_cycle_time_in_seconds: float = 1e-5
+
+
+@dataclass(frozen=True)
+class SCModel:
+    physical_qubit_error_rate: float = 1e-3
+    surface_code_cycle_time_in_seconds: float = 1e-7
+
+
+BASIC_ION_TRAP_ARCHITECTURE_MODEL = IONTrapModel()
+BASIC_SC_ARCHITECTURE_MODEL = SCModel()

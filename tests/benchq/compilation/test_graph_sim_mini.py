@@ -11,7 +11,11 @@ from orquestra.integrations.qiskit.conversions import import_from_qiskit
 from orquestra.quantum.circuits import CNOT, CZ, Circuit, H, S, X
 from qiskit import QuantumCircuit
 
-from benchq.compilation import jl, pyliqtr_transpile_to_clifford_t
+from benchq.compilation import (
+    jl,
+    pyliqtr_transpile_to_clifford_t,
+    transpile_to_native_gates,
+)
 
 
 @pytest.mark.parametrize(
@@ -67,11 +71,43 @@ def test_stabilizer_states_are_the_same_for_simple_circuits(circuit):
 @pytest.mark.parametrize(
     "filename",
     [
+        "example_circuit.qasm",
+    ],
+)
+def test_stabilizer_states_are_the_same_for_circuits(filename):
+    # we want to repeat the experiment here since pyliqtr_transpile_to_clifford_t
+    # is a random process.
+    try:
+        qiskit_circuit = import_from_qiskit(QuantumCircuit.from_qasm_file(filename))
+    except FileNotFoundError:
+        qiskit_circuit = import_from_qiskit(
+            QuantumCircuit.from_qasm_file(os.path.join("examples", "data", filename))
+        )
+
+    circuit = transpile_to_native_gates(qiskit_circuit)
+    test_circuit = get_icm(circuit)
+
+    target_tableau = get_target_tableau(test_circuit)
+
+    loc, adj = jl.run_graph_sim_mini(test_circuit)
+    vertices = list(zip(loc, adj))
+    graph_tableau = get_stabilizer_tableau_from_vertices(vertices)
+
+    assert_tableaus_correspond_to_the_same_stabilizer_state(
+        graph_tableau, target_tableau
+    )
+
+
+@pytest.mark.parametrize(
+    "filename",
+    [
         "single_rotation.qasm",
         "example_circuit.qasm",
     ],
 )
-def test_stabilizer_states_are_the_same_for_larger_circuits(filename):
+def test_stabilizer_states_are_the_same_for_circuits_with_decomposed_rotations(
+    filename,
+):
     # we want to repeat the experiment here since pyliqtr_transpile_to_clifford_t
     # is a random process.
     try:
@@ -86,7 +122,9 @@ def test_stabilizer_states_are_the_same_for_larger_circuits(filename):
             qiskit_circuit, circuit_precision=10**-2
         )
         test_circuit = get_icm(clifford_t)
+
         target_tableau = get_target_tableau(test_circuit)
+
         loc, adj = jl.run_graph_sim_mini(test_circuit)
         vertices = list(zip(loc, adj))
         graph_tableau = get_stabilizer_tableau_from_vertices(vertices)
@@ -99,7 +137,7 @@ def test_stabilizer_states_are_the_same_for_larger_circuits(filename):
 # Everything below here is testing utils
 
 
-def get_icm(circuit: Circuit, gates_to_decompose=["T", "T_Dagger"]) -> Circuit:
+def get_icm(circuit: Circuit, gates_to_decompose=["T", "T_Dagger", "RZ"]) -> Circuit:
     """Convert a circuit to the ICM form.
 
     Args:
@@ -125,6 +163,12 @@ def get_icm(circuit: Circuit, gates_to_decompose=["T", "T_Dagger"]) -> Circuit:
                 icm_circuit_n_qubits += 1
                 compiled_qubit_index[original_qubit] = icm_circuit_n_qubits
                 icm_circuit += [CNOT(compiled_qubit, icm_circuit_n_qubits)]
+        elif op.gate.name == "RESET":
+            for original_qubit, compiled_qubit in zip(
+                op.qubit_indices, compiled_qubits
+            ):
+                icm_circuit_n_qubits += 1
+                compiled_qubit_index[original_qubit] = icm_circuit_n_qubits
         else:
             icm_circuit += [
                 op.gate(*[compiled_qubit_index[i] for i in op.qubit_indices])
@@ -136,6 +180,8 @@ def get_icm(circuit: Circuit, gates_to_decompose=["T", "T_Dagger"]) -> Circuit:
 def get_target_tableau(circuit):
     sim = stim.TableauSimulator()
     for op in circuit.operations:
+        if op.gate.name == "I":
+            continue
         if op.gate.name == "X":
             sim.x(*op.qubit_indices)
         elif op.gate.name == "Y":
@@ -148,6 +194,10 @@ def get_target_tableau(circuit):
             sim.s_dag(*op.qubit_indices)
         elif op.gate.name == "S":
             sim.s(*op.qubit_indices)
+        elif op.gate.name == "SX":
+            sim.sqrt_x(*op.qubit_indices)
+        elif op.gate.name == "SX_Dagger":
+            sim.sqrt_x_dag(*op.qubit_indices)
         elif op.gate.name == "H":
             sim.h(*op.qubit_indices)
         elif op.gate.name == "CZ":
@@ -215,13 +265,30 @@ def assert_tableaus_correspond_to_the_same_stabilizer_state(tableau_1, tableau_2
 
     # ensure that the graph tableau and the target tableau are composed
     # of paulis belonging to the same stabilizer group
-    for i in range(n_qubits):
-        for j in range(i, n_qubits):
-            assert commutes(tableau_1[i], tableau_2[j])
+    assert check_tableau_entries_commute
 
     # ensure that the stabilizers in the tableaus are linearly independent
     assert np.linalg.matrix_rank(tableau_1) == n_qubits
     assert np.linalg.matrix_rank(tableau_2) == n_qubits
+
+
+@njit
+def check_tableau_entries_commute(tableau_1, tableau_2):
+    """Checks that the entries of two tableaus commute with each other.
+
+    Args:
+        tableau (np.array): tableau to check
+
+    Returns:
+        bool: true if the entries commute, false otherwise.
+    """
+    n_qubits = len(tableau_1) // 2
+
+    for i in range(n_qubits):
+        for j in range(i, n_qubits):
+            if not commutes(tableau_1[i], tableau_2[j]):
+                return False
+    return True
 
 
 @njit

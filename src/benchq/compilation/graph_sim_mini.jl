@@ -44,19 +44,22 @@ function get_graph_state_data(icm_circuit::Vector{ICMOp}, n_qubits, display=fals
     lco = fill(H_code, n_qubits)   # local clifford operation on each node
     adj = [AdjList() for _ in 1:n_qubits]  # adjacency list
 
-    total_length = length(icm_circuit)
-    counter = 0
-    start_time = time()
-    erase = "        \b\b\b\b\b\b\b\b"
+    if display
+        total_length = length(icm_circuit)
+        counter = dispcnt = 0
+        start_time = time()
+        erase = "        \b\b\b\b\b\b\b\b"
+    end
+
 
     for icm_op in icm_circuit
         if display
             counter += 1
-            if counter > 1000
+            if (dispcnt += 1) >= 1000
                 percent = round(Int, 100 * counter / total_length)
                 elapsed = round(time() - start_time, digits=2)
-                print("\r$(percent)% completed in $erase$(elapsed)s")
-                counter = 0
+                print("\r$(percent)% ($counter) completed in $erase$(elapsed)s")
+                dispcnt = 0
             end
         end
 
@@ -75,13 +78,13 @@ function get_graph_state_data(icm_circuit::Vector{ICMOp}, n_qubits, display=fals
         elseif op_code == CZ_code
             cz(lco, adj, qubit_1, icm_op.qubit2)
         elseif op_code != Pauli_code
-            error("Unrecogniced gate code $op_code encountered")
+            error("Unrecognized gate code $op_code encountered")
         end
     end
 
     if display
         elapsed = round(time() - start_time, digits=2)
-        println("\r100% completed in $erase$(elapsed)s")
+        println("\r100% ($counter) completed in $erase$(elapsed)s")
     end
 
     return lco, adj
@@ -128,14 +131,14 @@ function cz(lco, adj, vertex_1, vertex_2)
     lst1, lst2 = adj[vertex_1], adj[vertex_2]
 
     if check_almost_isolated(lst1, vertex_2)
-        check_almost_isolated(lst2, vertex_1) || remove_lco(lco, adj, vertex_2, vertex_1)
+        check_almost_isolated(lst2, vertex_1) || remove_lco!(lco, adj, vertex_2, vertex_1)
         # if you don't remove vertex_2 from lst1, then you don't need to check again
     else
-        remove_lco(lco, adj, vertex_1, vertex_2)
+        remove_lco!(lco, adj, vertex_1, vertex_2)
         if !check_almost_isolated(lst2, vertex_1)
-            remove_lco(lco, adj, vertex_2, vertex_1)
+            remove_lco!(lco, adj, vertex_2, vertex_1)
             # recheck the adjacency list of vertex_1, because it might have been removed
-            check_almost_isolated(lst1, vertex_2) || remove_lco(lco, adj, vertex_1, vertex_2)
+            check_almost_isolated(lst1, vertex_2) || remove_lco!(lco, adj, vertex_1, vertex_2)
         end
     end
     if vertex_2 in lst1
@@ -145,21 +148,34 @@ function cz(lco, adj, vertex_1, vertex_2)
     end
 end
 
-function get_neighbor(neighbors, avoid)
+"""
+Select a neighbor to use when removing an LCO
+
+The return value be set to avoid if there are no neighbors or avoid is the only neighbor,
+otherwise it returns the neighbor with the fewest neighbors (or the first one that
+it finds with less than min_neighbors)
+"""
+function get_neighbor(adj, v, avoid, min_neighbors = 6)
+    neighbors_of_v = adj[v]
+
     # Avoid copying and modifying adjacency vector
-    # vb will be set to avoid if there are no neighbors, or avoid is the only neighbor,
-    # otherwise it will pick the first neighbor it sees that is not avoid
-    isempty(neighbors) && return avoid
-    # This is looking into the internal Set implementation for optimal speed!
-    dict = neighbors.dict
-    slots = dict.slots
-    for i = dict.idxfloor:length(slots)
-        @inbounds if Base.isslotfilled(dict, i)
-            vb = dict.keys[i]
-            vb != avoid && return vb
+    check_almost_isolated(neighbors_of_v, avoid) && return avoid
+
+    smallest_neighborhood_size = typemax(eltype(neighbors_of_v)) # initialize to max possible value
+    neighbor_with_smallest_neighborhood = 0
+    for neighbor in neighbors_of_v
+        if neighbor != avoid
+            # stop search if  super small neighborhood is found
+            num_neighbors = length(adj[neighbor])
+            num_neighbors < min_neighbors && return neighbor
+            # search for smallest neighborhood
+            if num_neighbors < smallest_neighborhood_size
+                smallest_neighborhood_size = num_neighbors
+                neighbor_with_smallest_neighborhood = neighbor
+            end
         end
     end
-    avoid
+    return neighbor_with_smallest_neighborhood
 end
 
 """
@@ -173,21 +189,18 @@ Args:
     v::Int                index of the vertex to remove local clifford operations from
     avoid::Int            index of a neighbor of v to avoid using
 """
-function remove_lco(lco, adj, v, avoid)
+function remove_lco!(lco, adj, v, avoid)
     code = lco[v]
-    if code == Pauli_code
+    if code == Pauli_code || code == S_code
     elseif code == SQRT_X_code
         local_complement!(lco, adj, v)
     else
-        vb = get_neighbor(adj[v], avoid)
-        if code == H_code
-            # use decomposition of HS to eliminate H
-            local_complement!(lco, adj, vb)
+        if code == SH_code
             local_complement!(lco, adj, v)
-        elseif code == SH_code
-            local_complement!(lco, adj, v)
+            vb = get_neighbor(adj, v, avoid)
             local_complement!(lco, adj, vb)
-        elseif code == HS_code
+        else # code == H_code || code == HS_code
+            vb = get_neighbor(adj, v, avoid)
             local_complement!(lco, adj, vb)
             local_complement!(lco, adj, v)
         end
@@ -211,7 +224,6 @@ function local_complement!(lco, adj, v)
             toggle_edge!(adj, neighbor, neighbors[j])
         end
     end
-
     lco[v] = multiply_by_sqrt_x(lco[v])
     for i in adj[v]
         lco[i] = multiply_by_s(lco[i])
@@ -252,9 +264,9 @@ get_qubit_1(op) = pyconvert(Int, op.qubit_indices[0])
 get_qubit_2(op) = pyconvert(Int, op.qubit_indices[1])
 
 const op_list = ["I", "X", "Y", "Z", "H", "S", "S_Dagger", "CZ", "CNOT",
-                 "T", "T_Dagger", "RX", "RY", "RZ"]
+                 "T", "T_Dagger", "RX", "RY", "RZ", "SX", "SX_Dagger", "RESET"]
 const code_list = LCO[0, 0, 0, 0, H_code, S_code, S_Dagger_code, CZ_code, CNOT_code,
-                      T_code, T_Dagger_code, RX_code, RY_code, RZ_code]
+                      T_code, T_Dagger_code, RX_code, RY_code, RZ_code, SQRT_X_code, SQRT_X_code, 0]
 
 """Get Python version of op_list of to speed up getting index"""
 get_op_list() = pylist(op_list)
@@ -278,24 +290,31 @@ function get_icm(circuit, n_qubits::Int, with_measurements::Bool=false)
     ops = get_op_list()
     curr_qubits = n_qubits
     for op in circuit
-        op_index = get_op_index(ops, op)
-        if single_qubit_op(op_index)
-            push!(compiled_circuit, ICMOp(code_list[op_index], qubit_map[get_qubit_1(op)+1]))
-        elseif double_qubit_op(op_index)
-            push!(compiled_circuit,
-                  ICMOp(code_list[op_index],
-                        qubit_map[get_qubit_1(op)+1], qubit_map[get_qubit_2(op)+1]))
-        elseif decompose_op(op_index)
-            # Note: these are currently all single qubit gates
+        if occursin("ResetOperation", pyconvert(String, op.__str__()))
             original_qubit = get_qubit_1(op)
             compiled_qubit = qubit_map[original_qubit+1]
             qubit_map[original_qubit+1] = new_qubit = curr_qubits
             curr_qubits += 1
-
-            push!(compiled_circuit, ICMOp(CNOT_code, compiled_qubit, new_qubit))
-            with_measurements &&
+        else
+            op_index = get_op_index(ops, op)
+            if single_qubit_op(op_index)
+                push!(compiled_circuit, ICMOp(code_list[op_index], qubit_map[get_qubit_1(op)+1]))
+            elseif double_qubit_op(op_index)
                 push!(compiled_circuit,
-                      ICMOp(code_list[op_index]+MEASURE_OFFSET, compiled_qubit, new_qubit))
+                    ICMOp(code_list[op_index],
+                            qubit_map[get_qubit_1(op)+1], qubit_map[get_qubit_2(op)+1]))
+            elseif decompose_op(op_index)
+                # Note: these are currently all single qubit gates
+                original_qubit = get_qubit_1(op)
+                compiled_qubit = qubit_map[original_qubit+1]
+                qubit_map[original_qubit+1] = new_qubit = curr_qubits
+                curr_qubits += 1
+
+                push!(compiled_circuit, ICMOp(CNOT_code, compiled_qubit, new_qubit))
+                with_measurements &&
+                    push!(compiled_circuit,
+                        ICMOp(code_list[op_index]+MEASURE_OFFSET, compiled_qubit, new_qubit))
+            end
         end
     end
 
@@ -329,8 +348,9 @@ function run_graph_sim_mini(circuit, display=false)
             print("\nGraph Sim Mini: qubits=$n_qubits, gates=$(length(ops))")
             (icm_circuit, icm_n_qubits) = get_icm(ops, n_qubits)
             print(" => $icm_n_qubits, $(length(icm_circuit))\n\t")
-            (lco, adj) = get_graph_state_data(icm_circuit, icm_n_qubits, true)
         end
+        print("get_graph_state_data:\t")
+        (lco, adj) = @time get_graph_state_data(icm_circuit, icm_n_qubits, true)
     else
         (icm_circuit, icm_n_qubits) = get_icm(ops, n_qubits)
         (lco, adj) = get_graph_state_data(icm_circuit, icm_n_qubits, false)

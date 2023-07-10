@@ -23,8 +23,15 @@ def _make_real_pauli_sum(terms_str: str) -> PauliSum:
 
 
 def _gate_op_counts(circuit: circuits.Circuit) -> Mapping[str, int]:
-    """Counts gate operations per gate type in the circuit."""
-    names = [op.gate.name for op in circuit.operations]
+    """
+    Counts gate operations per gate type in the circuit.
+    """
+    names = []
+    for op in circuit.operations:
+        if isinstance(op, circuits.GateOperation):
+            names.append(op.gate.name)
+        elif isinstance(op, circuits.ResetOperation):
+            names.append("RESET")
     return Counter(names)
 
 
@@ -60,7 +67,7 @@ class TestGetQSPCircuit:
 
         # Then
         # We expect this many gates being applied in the circuit
-        assert len(circuit.operations) == 375
+        assert len(circuit.operations) == 385
 
         # We expect the following gate types being applied n times
         assert _gate_op_counts(circuit) == {
@@ -72,6 +79,7 @@ class TestGetQSPCircuit:
             "T": 28,
             "T_Dagger": 28,
             "X": 26,
+            "RESET": 10,
         }
 
 
@@ -91,7 +99,7 @@ def test_example_program(decompose_select_v):
 
     # Then
     # We expect this many gates being applied in the circuit
-    assert len(circuit_from_program.operations) == 373
+    assert len(circuit_from_program.operations) == 377
 
     # We expect the following gate types being applied n times
     assert _gate_op_counts(circuit_from_program) == {
@@ -103,6 +111,7 @@ def test_example_program(decompose_select_v):
         "T": 28,
         "T_Dagger": 28,
         "X": 24,
+        "RESET": 4,
     }
 
 

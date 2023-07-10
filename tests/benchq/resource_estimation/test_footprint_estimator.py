@@ -1,5 +1,5 @@
 import os
-from dataclasses import asdict
+from dataclasses import asdict, replace
 
 import numpy as np
 import pytest
@@ -16,8 +16,8 @@ from benchq.data_structures import (
 )
 from benchq.resource_estimation.graph import (
     run_custom_resource_estimation_pipeline,
-    simplify_rotations,
     synthesize_clifford_t,
+    transpile_to_native_gates,
 )
 from benchq.resource_estimation.graph.footprint_estimator import (
     FootprintResourceEstimator,
@@ -37,12 +37,12 @@ def use_delayed_gate_synthesis(request):
 def _get_transformers(use_delayed_gate_synthesis, error_budget):
     if use_delayed_gate_synthesis:
         transformers = [
-            simplify_rotations,
+            transpile_to_native_gates,
             synthesize_clifford_t(error_budget),
         ]
     else:
         transformers = [
-            simplify_rotations,
+            transpile_to_native_gates,
         ]
     return transformers
 
@@ -120,8 +120,9 @@ def test_better_architecture_does_not_require_more_resources(
     optimization,
     use_delayed_gate_synthesis,
 ):
-    low_noise_architecture_model = BASIC_SC_ARCHITECTURE_MODEL
-    low_noise_architecture_model.physical_gate_error_rate = 1e-4
+    low_noise_architecture_model = replace(
+        BASIC_SC_ARCHITECTURE_MODEL, physical_qubit_error_rate=1e-4
+    )
     high_noise_architecture_model = BASIC_SC_ARCHITECTURE_MODEL
 
     # set algorithm failure tolerance to 0

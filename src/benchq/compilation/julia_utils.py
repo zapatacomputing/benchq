@@ -9,7 +9,7 @@ from . import jl
 
 
 def get_algorithmic_graph_from_graph_sim_mini(circuit):
-    lco, adj = jl.run_graph_sim_mini(circuit)
+    lco, adj = jl.run_graph_sim_mini(circuit, True)
 
     print("getting networkx graph from vertices")
     start = time.time()

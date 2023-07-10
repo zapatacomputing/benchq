@@ -5,6 +5,7 @@ from typing import Optional, Union
 
 from cirq.circuits import Circuit as CirqCircuit
 from orquestra.quantum.circuits import Circuit as OrquestraCircuit
+from orquestra.quantum.circuits import GateOperation
 from pyLIQTR.gate_decomp.cirq_transforms import clifford_plus_t_direct_transform
 from qiskit.circuit import QuantumCircuit as QiskitCircuit
 
@@ -41,7 +42,7 @@ def pyliqtr_transpile_to_clifford_t(
     has_rotations = False
     orquestra_circuit = import_circuit(circuit)
     for op in orquestra_circuit.operations:
-        if op.gate.name in ["RX", "RY", "RZ"]:
+        if isinstance(op, GateOperation) and op.gate.name in ["RX", "RY", "RZ"]:
             has_rotations = True
             break
     if not has_rotations:
