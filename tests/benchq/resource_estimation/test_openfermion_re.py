@@ -4,9 +4,10 @@ from openfermion.resource_estimates.molecule import pyscf_to_cas
 from benchq.problem_ingestion.molecule_instance_generation import (
     generate_hydrogen_chain_instance,
 )
-from benchq.resource_estimation import (
-    get_single_factorized_qpe_toffoli_and_qubit_cost,
+from benchq.resource_estimation.openfermion_re import (
     get_double_factorized_qpe_toffoli_and_qubit_cost,
+    get_physical_cost,
+    get_single_factorized_qpe_toffoli_and_qubit_cost,
 )
 
 
@@ -74,3 +75,10 @@ def test_double_factorization_raises_exception_for_invalid_eri():
     h1, eri_full = _get_asymmetric_hamiltonian()
     with pytest.raises(ValueError):
         get_double_factorized_qpe_toffoli_and_qubit_cost(h1, eri_full, 1e-6)
+
+
+def test_physical_qubits_larger_than_logical_qubits():
+    n_toffoli = 100
+    n_logical_qubits = 100
+    resource_estimate = get_physical_cost(n_toffoli, n_logical_qubits)
+    assert resource_estimate.n_physical_qubits > n_logical_qubits

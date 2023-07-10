@@ -4,7 +4,7 @@
 from typing import Tuple
 
 import numpy as np
-from openfermion.resource_estimates import sf, df
+from openfermion.resource_estimates import df, sf
 from openfermion.resource_estimates.surface_code_compilation.physical_costing import (
     AlgorithmParameters,
     CostEstimate,
@@ -13,8 +13,8 @@ from openfermion.resource_estimates.surface_code_compilation.physical_costing im
 
 from benchq.data_structures.resource_info import OpenFermionResourceInfo
 from benchq.resource_estimation._compute_lambda import (
-    compute_lambda_sf,
     compute_lambda_df,
+    compute_lambda_sf,
 )
 
 
