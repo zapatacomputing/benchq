@@ -3,19 +3,19 @@
 ################################################################################
 """Unit tests for benchq.mlflow.data_logging."""
 
+from unittest.mock import patch
+
 import pytest
+
+from benchq.data_structures.algorithm_implemenation import AlgorithmImplementation
+from benchq.data_structures.decoder import DecoderModel
+from benchq.data_structures.hardware_architecture_models import IONTrapModel
+from benchq.data_structures.resource_info import ResourceInfo
 from benchq.mlflow.data_logging import (
     _flatten_dict,
-    log_resource_info_to_mlflow,
     log_input_objects_to_mlflow,
+    log_resource_info_to_mlflow,
 )
-from benchq.data_structures.resource_info import ResourceInfo
-from benchq.data_structures.algorithm_implemenation import AlgorithmImplementation
-from benchq.data_structures.hardware_architecture_models import (
-    IONTrapModel,
-)
-from benchq.data_structures.decoder import DecoderModel
-from unittest.mock import patch
 
 
 @pytest.mark.parametrize(

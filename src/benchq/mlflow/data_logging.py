@@ -2,16 +2,18 @@
 # © Copyright 2023 Zapata Computing Inc.
 ################################################################################
 """ Tools for using mlflow to log benchq data """
+from dataclasses import asdict
+from numbers import Number
+from typing import Any, Dict, Optional
+
 import mlflow  # type: ignore
+
 from ..data_structures import (
     AlgorithmImplementation,
     BasicArchitectureModel,
     DecoderModel,
     ResourceInfo,
 )
-from typing import Optional, Dict, Any
-from dataclasses import asdict
-from numbers import Number
 
 
 def log_input_objects_to_mlflow(
