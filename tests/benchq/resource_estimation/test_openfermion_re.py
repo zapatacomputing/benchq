@@ -1,3 +1,6 @@
+import datetime
+
+import numpy
 import pytest
 from openfermion.resource_estimates.molecule import pyscf_to_cas
 
@@ -5,8 +8,6 @@ from benchq.problem_ingestion.molecule_instance_generation import (
     generate_hydrogen_chain_instance,
 )
 from benchq.resource_estimation import get_single_factorized_qpe_resource_estimate
-import datetime
-import numpy
 
 
 @pytest.mark.parametrize(
