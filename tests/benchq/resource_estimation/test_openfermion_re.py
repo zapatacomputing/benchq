@@ -6,6 +6,7 @@ from benchq.problem_ingestion.molecule_instance_generation import (
 )
 from benchq.resource_estimation import get_single_factorized_qpe_resource_estimate
 import datetime
+import numpy
 
 
 @pytest.mark.parametrize(
@@ -57,7 +58,6 @@ def test_monotonicity_of_duration_wrt_SCC_time(SCC_time_low, SCC_time_high):
         h1, eri_full, 20, SCC_time_high
     )
 
-    # assert  (qpe_resource_estimates_low_1.total_time_in_seconds == qpe_resource_estimates_low_1.total_time_in_seconds)
     print(
         "High, low: ",
         qpe_resource_estimates_high.total_time_in_seconds,
@@ -66,6 +66,37 @@ def test_monotonicity_of_duration_wrt_SCC_time(SCC_time_low, SCC_time_high):
     assert (
         qpe_resource_estimates_high.total_time_in_seconds
         > qpe_resource_estimates_low.total_time_in_seconds
+    )
+
+
+@pytest.mark.parametrize(
+    "SCC_time_low,SCC_time_high",
+    [
+        (datetime.timedelta(microseconds=1), datetime.timedelta(microseconds=8)),
+        (datetime.timedelta(microseconds=4), datetime.timedelta(microseconds=9)),
+        (datetime.timedelta(microseconds=4), datetime.timedelta(microseconds=9)),
+        (datetime.timedelta(microseconds=5), datetime.timedelta(microseconds=10)),
+    ],
+)
+def test_linearity_of_duration_wrt_SCC_time(SCC_time_low, SCC_time_high):
+    instance = generate_hydrogen_chain_instance(8)
+    instance.avas_atomic_orbitals = ["H 1s", "H 2s"]
+    instance.avas_minao = "sto-3g"
+    mean_field_object = instance.get_active_space_meanfield_object()
+    h1, eri_full, _, _, _ = pyscf_to_cas(mean_field_object)
+
+    qpe_resource_estimates_low = get_single_factorized_qpe_resource_estimate(
+        h1, eri_full, 20, SCC_time_low
+    )
+
+    qpe_resource_estimates_high = get_single_factorized_qpe_resource_estimate(
+        h1, eri_full, 20, SCC_time_high
+    )
+
+    numpy.testing.assert_allclose(
+        qpe_resource_estimates_high.total_time_in_seconds / SCC_time_high.microseconds,
+        qpe_resource_estimates_low.total_time_in_seconds / SCC_time_low.microseconds,
+        1e-02,
     )
 
 
