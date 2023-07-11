@@ -1,6 +1,5 @@
-
 ################################################################################
-# © Copyright 2022 Zapata Computing Inc.
+# © Copyright 2023 Zapata Computing Inc.
 ################################################################################
 from typing import Tuple
 
@@ -11,10 +10,16 @@ from openfermion.resource_estimates import sf
 from benchq.resource_estimation.of_modified import (
     AlgorithmParameters,
     CostEstimate,
-    cost_estimator
+    cost_estimator,
 )
 from benchq.data_structures.resource_info import OpenFermionResourceInfo
 from benchq.resource_estimation._compute_lambda_sf import compute_lambda
+
+from openfermion.resource_estimates.molecule import pyscf_to_cas
+
+from benchq.problem_ingestion.molecule_instance_generation import (
+    generate_hydrogen_chain_instance,
+)
 
 
 def get_single_factorized_qpe_toffoli_and_qubit_cost(
@@ -63,10 +68,9 @@ def get_single_factorized_qpe_resource_estimate(
     h1: np.ndarray,
     eri: np.ndarray,
     rank: int,
-    surface_code_cycle_time: datetime.timedelta,
+    surface_code_cycle_time: datetime.timedelta = datetime.timedelta(microseconds=1),
     allowable_phase_estimation_error: float = 0.001,
     bits_precision_state_prep: int = 10,
-
 ) -> OpenFermionResourceInfo:
     """Get the estimated resources for single factorized QPE as described in PRX Quantum
     2, 030305.
@@ -102,7 +106,7 @@ def get_single_factorized_qpe_resource_estimate(
     best_cost, best_params = cost_estimator(
         sf_logical_qubits,
         sf_total_toffoli_cost,
-        surface_code_cycle_time,
+        surface_code_cycle_time=surface_code_cycle_time,
         physical_error_rate=1.0e-3,
         portion_of_bounding_box=1.0,
     )
