@@ -37,13 +37,13 @@ ms_task_deps = [
     )
 ]
 standard_task = sdk.task(
-    source_import=sdk.GithubImport("zapatacomputing/benchq", git_ref="main"),
+    source_import=sdk.GithubImport("zapatacomputing/benchq", git_ref="mlflow-demo"),
     dependency_imports=task_deps,
     resources=sdk.Resources(memory="4Gi"),
 )
 
 ms_task = sdk.task(
-    source_import=sdk.GithubImport("zapatacomputing/benchq", git_ref="main"),
+    source_import=sdk.GithubImport("zapatacomputing/benchq", git_ref="mlflow-demo"),
     dependency_imports=ms_task_deps,
 )
 
