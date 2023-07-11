@@ -18,7 +18,7 @@ from benchq.resource_estimation.graph import (
     GraphResourceEstimator,
     create_big_graph_from_subcircuits,
     run_custom_resource_estimation_pipeline,
-    simplify_rotations,
+    transpile_to_native_gates,
     synthesize_clifford_t,
 )
 from benchq.mlflow import log_input_objects_to_mlflow, log_resource_info_to_mlflow
@@ -38,7 +38,9 @@ def main(file_name, total_failure_tolerance=1e-3):
     # Error budget is used to define what should be the failure rate of running
     # the whole calculation. It also allows to set relative weights for different
     # parts of the calculation, such as gate synthesis or circuit generation.
-    error_budget = ErrorBudget.from_even_split(total_failure_tolerance=total_failure_tolerance)
+    error_budget = ErrorBudget.from_even_split(
+        total_failure_tolerance=total_failure_tolerance
+    )
 
     # algorithm implementation encapsulates the how the algorithm is implemented
     # including the program, the number of times the program must be repeated,
@@ -62,7 +64,7 @@ def main(file_name, total_failure_tolerance=1e-3):
         algorithm_description,
         estimator=GraphResourceEstimator(architecture_model),
         transformers=[
-            simplify_rotations,
+            transpile_to_native_gates,
             synthesize_clifford_t(error_budget),
             create_big_graph_from_subcircuits(),
         ],
@@ -70,10 +72,12 @@ def main(file_name, total_failure_tolerance=1e-3):
 
     # mlflow.set_tracking_uri("http://127.0.0.1:5000")
     with mlflow.start_run():
-        log_input_objects_to_mlflow(algorithm_description, "simple qiskit circuit", BASIC_SC_ARCHITECTURE_MODEL)
+        log_input_objects_to_mlflow(
+            algorithm_description, "simple qiskit circuit", BASIC_SC_ARCHITECTURE_MODEL
+        )
         log_resource_info_to_mlflow(gsc_resource_estimates)
 
 
 if __name__ == "__main__":
     for i in range(5):
-        main("data/example_circuit.qasm", 10**(-i))
+        main("data/example_circuit.qasm", 10 ** (-i))
