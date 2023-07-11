@@ -1,24 +1,22 @@
 ################################################################################
 # © Copyright 2023 Zapata Computing Inc.
 ################################################################################
+import datetime
 from typing import Tuple
 
 import numpy as np
-import datetime
 from openfermion.resource_estimates import sf
+from openfermion.resource_estimates.molecule import pyscf_to_cas
 
+from benchq.data_structures.resource_info import OpenFermionResourceInfo
+from benchq.problem_ingestion.molecule_instance_generation import (
+    generate_hydrogen_chain_instance,
+)
+from benchq.resource_estimation._compute_lambda_sf import compute_lambda
 from benchq.resource_estimation.of_modified import (
     AlgorithmParameters,
     CostEstimate,
     cost_estimator,
-)
-from benchq.data_structures.resource_info import OpenFermionResourceInfo
-from benchq.resource_estimation._compute_lambda_sf import compute_lambda
-
-from openfermion.resource_estimates.molecule import pyscf_to_cas
-
-from benchq.problem_ingestion.molecule_instance_generation import (
-    generate_hydrogen_chain_instance,
 )
 
 
