@@ -21,7 +21,7 @@ def log_input_objects_to_mlflow(
     algorithm_name: str,
     hardware_model: BasicArchitectureModel,
     decoder_model: Optional[DecoderModel] = None,
-):
+) -> None:
     """Ingests objects used to define a resource estimation
     and logs their parameters to mlflow
     """
@@ -44,7 +44,7 @@ def log_input_objects_to_mlflow(
         mlflow.log_param("decoder_model", "None")
 
 
-def log_resource_info_to_mlflow(resource_info: ResourceInfo):
+def log_resource_info_to_mlflow(resource_info: ResourceInfo) -> None:
     """Ingests a ResourceInfo object and logs those values as metrics to mlflow"""
     flat_resource_dict = _flatten_dict(asdict(resource_info))
     for key, value in flat_resource_dict.items():
