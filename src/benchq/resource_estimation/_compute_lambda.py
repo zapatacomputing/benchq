@@ -25,10 +25,11 @@ def compute_lambda_sf(h1, eri_full, sf_factors):
             energy operator and electorn-nuclear Coulomb operator.
         eri: Four-dimensional array containing electron-repulsion
             integrals.
-        sf_factors (ndarray) - (N x N x rank) array of SF factors from rank
-            reduction of ERI
+        sf_factors: (N x N x rank) array of SF factors from rank
+            reduction of ERI.
+
     Returns:
-        lambda_tot (float) - lambda value for the single factorized Hamiltonian
+        lambda value for the single factorized Hamiltonian.
     """
 
     # Effective one electron operator contribution
@@ -50,17 +51,17 @@ def compute_lambda_sf(h1, eri_full, sf_factors):
 
 
 def compute_lambda_df(h1, eri_full, df_factors):
-    """Compute lambda for Hamiltonian using SF method of Berry, et al.
+    """Compute lambda for Hamiltonian using DF method of von Burg, et al.
 
     Args:
         h1: Matrix elements of the one-body operator that includes kinetic
             energy operator and electorn-nuclear Coulomb operator.
         eri: Four-dimensional array containing electron-repulsion
             integrals.
-        df_factors (ndarray) - (N x N x rank) array of DF factors from ERI
+        df_factors: (N x N x rank) array of DF factors from ERI.
 
     Returns:
-        lambda_tot (float) - lambda value for the single factorized Hamiltonian
+        lambda value for the double factorized Hamiltonian.
     """
     # one body contributions
     T = h1 - 0.5 * np.einsum("illj->ij", eri_full) + np.einsum("llij->ij", eri_full)
