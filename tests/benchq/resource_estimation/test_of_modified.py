@@ -1,7 +1,7 @@
+import numpy
 import pytest
 
 from benchq.resource_estimation import cost_estimator
-import numpy
 
 
 @pytest.mark.parametrize(
