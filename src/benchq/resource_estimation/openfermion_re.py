@@ -170,7 +170,7 @@ def _openfermion_result_to_resource_info(
     return OpenFermionResourceInfo(
         n_physical_qubits=cost.physical_qubit_count,
         n_logical_qubits=algorithm_parameters.max_allocated_logical_qubits,
-        total_time_in_seconds=cost.duration.seconds,
+        total_time_in_seconds=cost.duration.total_seconds(),
         code_distance=algorithm_parameters.logical_data_qubit_distance,
         logical_error_rate=cost.algorithm_failure_probability,
         decoder_info=None,
