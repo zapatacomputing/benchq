@@ -311,9 +311,12 @@ class ChemistryApplicationInstance:
         molecular_data.canonical_orbitals = mean_field_object.mo_coeff.astype(float)
         molecular_data.orbital_energies = mean_field_object.mo_energy.astype(float)
 
+        print("# orbitals: ", molecular_data.n_orbitals)
+
         one_body_integrals, two_body_integrals = compute_integrals(
             mean_field_object._eri, mean_field_object
         )
+        print("Integrals computed....")
         molecular_data.one_body_integrals = one_body_integrals
         molecular_data.two_body_integrals = two_body_integrals
         molecular_data.overlap_integrals = mean_field_object.get_ovlp()
