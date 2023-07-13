@@ -33,6 +33,7 @@ ms_task_deps = [
         "qiskit_ionq==0.3.10",
         "mlflow>=2.3.2",
         "juliacall",
+        "stim==1.10",
     ),
     sdk.GithubImport("zapatacomputing/benchq", git_ref="mlflow-demo"),
 ]
