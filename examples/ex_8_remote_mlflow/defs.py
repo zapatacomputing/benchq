@@ -14,12 +14,7 @@ from benchq.algorithms.time_evolution import qsp_time_evolution_algorithm
 from benchq.data_structures import ErrorBudget
 from benchq.data_structures.hardware_architecture_models import IONTrapModel
 from benchq.problem_ingestion import get_vlasov_hamiltonian
-from benchq.resource_estimation.graph import (
-    GraphResourceEstimator,
-    create_big_graph_from_subcircuits,
-    run_custom_resource_estimation_pipeline,
-    transpile_to_native_gates,
-)
+
 from benchq.mlflow.data_logging import (
     log_input_objects_to_mlflow,
     log_resource_info_to_mlflow,
@@ -71,6 +66,13 @@ def get_operator(problem_size):
 
 @ms_task
 def gsc_estimates(algorithm, architecture_model):
+    from benchq.resource_estimation.graph import (
+        GraphResourceEstimator,
+        create_big_graph_from_subcircuits,
+        run_custom_resource_estimation_pipeline,
+        transpile_to_native_gates,
+    )
+
     resource_info = run_custom_resource_estimation_pipeline(
         algorithm,
         estimator=GraphResourceEstimator(hw_model=architecture_model),
