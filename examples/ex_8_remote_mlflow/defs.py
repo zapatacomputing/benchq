@@ -25,7 +25,10 @@ from benchq.mlflow.data_logging import (
     log_resource_info_to_mlflow,
 )
 
-task_deps = [sdk.PythonImports("pyscf==2.2.0", "openfermionpyscf==0.5")]
+task_deps = [
+    sdk.PythonImports("pyscf==2.2.0", "openfermionpyscf==0.5", "juliacall"),
+    sdk.GithubImport("zapatacomputing/benchq", git_ref="mlflow-demo"),
+]
 ms_task_deps = [
     sdk.PythonImports(
         "pyscf==2.2.0",
@@ -34,17 +37,22 @@ ms_task_deps = [
         "qiskit_qir==0.3.1",
         "qiskit_ionq==0.3.10",
         "mlflow>=2.3.2",
-    )
+        "juliacall",
+    ),
+    sdk.GithubImport("zapatacomputing/benchq", git_ref="mlflow-demo"),
 ]
 standard_task = sdk.task(
-    source_import=sdk.GithubImport("zapatacomputing/benchq", git_ref="mlflow-demo"),
+    source_import=sdk.InlineImport(),
     dependency_imports=task_deps,
     resources=sdk.Resources(memory="4Gi"),
 )
 
+# GithubImport("zapatacomputing/benchq", git_ref="mlflow-demo")
+
 ms_task = sdk.task(
-    source_import=sdk.GithubImport("zapatacomputing/benchq", git_ref="mlflow-demo"),
+    source_import=sdk.InlineImport(),
     dependency_imports=ms_task_deps,
+    custom_image="hub.nexus.orquestra.io/users/james.clark/benchq-ce:0.51.0",
 )
 
 
