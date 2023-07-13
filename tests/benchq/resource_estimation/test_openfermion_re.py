@@ -1,3 +1,6 @@
+import datetime
+
+import numpy
 import pytest
 from openfermion.resource_estimates.molecule import pyscf_to_cas
 
@@ -82,3 +85,52 @@ def test_physical_qubits_larger_than_logical_qubits():
     n_logical_qubits = 100
     resource_estimate = get_physical_cost(n_toffoli, n_logical_qubits)
     assert resource_estimate.n_physical_qubits > n_logical_qubits
+
+
+@pytest.mark.parametrize(
+    "SCC_time_low,SCC_time_high",
+    [
+        (datetime.timedelta(seconds=0.000001), datetime.timedelta(seconds=0.000008)),
+        (datetime.timedelta(seconds=0.000004), datetime.timedelta(seconds=0.000009)),
+        (datetime.timedelta(seconds=0.000001), datetime.timedelta(seconds=0.000009)),
+        (datetime.timedelta(seconds=0.000005), datetime.timedelta(seconds=0.000010)),
+    ],
+)
+def test_monotonicity_of_duration_wrt_SCC_time(SCC_time_low, SCC_time_high):
+    n_toffoli = 100
+    n_logical_qubits = 100
+    resource_estimates_low = get_physical_cost(
+        n_toffoli, n_logical_qubits, SCC_time_low
+    )
+    resource_estimates_high = get_physical_cost(
+        n_toffoli, n_logical_qubits, SCC_time_high
+    )
+    assert (
+        resource_estimates_high.total_time_in_seconds
+        > resource_estimates_low.total_time_in_seconds
+    )
+
+
+@pytest.mark.parametrize(
+    "SCC_time_low,SCC_time_high",
+    [
+        (datetime.timedelta(microseconds=1), datetime.timedelta(microseconds=8)),
+        (datetime.timedelta(microseconds=4), datetime.timedelta(microseconds=9)),
+        (datetime.timedelta(microseconds=1), datetime.timedelta(microseconds=9)),
+        (datetime.timedelta(microseconds=5), datetime.timedelta(microseconds=10)),
+    ],
+)
+def test_linearity_of_duration_wrt_SCC_time(SCC_time_low, SCC_time_high):
+    n_toffoli = 100
+    n_logical_qubits = 100
+    resource_estimates_low = get_physical_cost(
+        n_toffoli, n_logical_qubits, SCC_time_low
+    )
+    resource_estimates_high = get_physical_cost(
+        n_toffoli, n_logical_qubits, SCC_time_high
+    )
+
+    numpy.testing.assert_allclose(
+        resource_estimates_high.total_time_in_seconds / SCC_time_high.microseconds,
+        resource_estimates_low.total_time_in_seconds / SCC_time_low.microseconds,
+    )
