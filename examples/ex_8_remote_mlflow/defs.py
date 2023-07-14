@@ -28,8 +28,8 @@ from benchq.resource_estimation.graph import (
 )
 
 task_deps = [
-    sdk.PythonImports("pyscf==2.2.0", "openfermionpyscf==0.5", "juliacall"),
-    sdk.GithubImport("zapatacomputing/benchq", git_ref="mlflow-demo"),
+    sdk.PythonImports("pyscf==2.2.0", "openfermionpyscf==0.5"),
+    sdk.GithubImport("zapatacomputing/benchq", git_ref="main"),
 ]
 gsc_task_deps = [
     sdk.PythonImports(
@@ -37,7 +37,7 @@ gsc_task_deps = [
         "mlflow>=2.3.2",
         "stim==1.10",
     ),
-    sdk.GithubImport("zapatacomputing/benchq", git_ref="mlflow-demo"),
+    sdk.GithubImport("zapatacomputing/benchq", git_ref="main"),
 ]
 standard_task = sdk.task(
     source_import=sdk.InlineImport(),
