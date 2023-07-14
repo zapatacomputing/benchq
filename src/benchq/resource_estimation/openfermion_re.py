@@ -78,6 +78,7 @@ def get_single_factorized_qpe_toffoli_and_qubit_cost(
     )
     return sf_total_toffoli_cost, sf_logical_qubits
 
+
 def _get_double_factorized_qpe_info(
     h1: np.ndarray,
     eri: np.ndarray,
@@ -87,14 +88,14 @@ def _get_double_factorized_qpe_info(
     bits_precision_rotation: int = 20,
 ):
     """Get information about the double factorized QPE algorithm.
-    
+
     Args: See get_double_factorized_qpe_toffoli_and_qubit_cost.
 
     Returns:
         Tuple containing the number of Toffoli gates per iteration, total number of
             Tofolli gates, and total number of qubits.
     """
-    
+
     _validate_eri(eri)
     num_orb = h1.shape[0]
     num_spinorb = num_orb * 2
@@ -127,6 +128,7 @@ def _get_double_factorized_qpe_info(
     )
 
     return step_cost, total_cost, ancilla_cost
+
 
 def get_double_factorized_qpe_toffoli_and_qubit_cost(
     h1: np.ndarray,
@@ -166,11 +168,11 @@ def get_double_factorized_qpe_toffoli_and_qubit_cost(
 
     return total_cost, ancilla_cost
 
+
 def get_double_factorized_block_encoding_toffoli_and_qubit_cost(
     h1: np.ndarray,
     eri: np.ndarray,
     threshold: float,
-    allowable_phase_estimation_error: float,
     bits_precision_state_prep: int = 10,
     bits_precision_rotation: int = 20,
 ) -> Tuple[int, int]:
@@ -205,11 +207,7 @@ def get_double_factorized_block_encoding_toffoli_and_qubit_cost(
     lam = compute_lambda_df(h1, eri_rr, LR)
 
     allowable_phase_estimation_error = 1
-    (
-        step_cost,
-        total_cost,
-        ancilla_cost,
-    ) = _get_double_factorized_qpe_info(
+    (step_cost, total_cost, ancilla_cost,) = _get_double_factorized_qpe_info(
         h1,
         eri,
         threshold,
