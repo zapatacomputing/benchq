@@ -9,12 +9,12 @@ Running:
    imports work correctly.
 """
 
-from .defs import example_workflow
+from .defs import mlflow_example_workflow
 
 
 def main():
     # example workflow which roughly reproduces ex_3_packages_comparison
-    wf = example_workflow()
+    wf = mlflow_example_workflow()
 
     # Run locally, sequentially, in a single Python process. Useful for debugging, but
     # doesn't use Orquestra to its full potential.
