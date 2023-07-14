@@ -3,51 +3,78 @@ from dataclasses import dataclass
 
 @dataclass
 class ErrorBudget:
-    circuit_generation_failure_tolerance: float
-    synthesis_failure_tolerance: float
-    ec_failure_tolerance: float
+    """A class that manages the sources of error for the resource estimation.
+
+    Attributes:
+        algorithm_failure_tolerance (float): A Failure tolerance which is
+            inherent to the algorithm itself. i.e. even if the circuit
+            was implemented perfectly, the algorithm would still have a
+            probability of failure. Example: grover's algorithm can still
+            fail due to limited application of grover diffusion operator,
+            even if the operator is implemented without error.
+        transpilation_failure_tolerance (float): A failure tolerance which is
+            stems from imperfect decomposition of the gates used in the
+            algorithm to native gates. Example: decomposing arbitrary
+            rotations into Clifford + T.
+        hardware_failure_tolerance (float): The failure tolerance
+            due to imperfections in the gate implementation which persist
+            after error correction. Example: imperfect implementation of
+            a circuit at the physical level is 1e-2, but after error
+            correction, the failure rate drops to 1e-8. This refers to
+            the 1e-8 quantity.
+    """
+
+    algorithm_failure_tolerance: float
+    transpilation_failure_tolerance: float
+    hardware_failure_tolerance: float
 
     @property
     def total_failure_tolerance(self):
         return (
-            self.circuit_generation_failure_tolerance
-            + self.synthesis_failure_tolerance
-            + self.ec_failure_tolerance
+            self.algorithm_failure_tolerance
+            + self.transpilation_failure_tolerance
+            + self.hardware_failure_tolerance
         )
 
     @staticmethod
     def from_weights(
         total_failure_tolerance: float,
-        circuit_generation_weight: int = 1,
-        ec_weight: int = 1,
-        synthesis_weight: int = 1,
+        algorithm_failure_weight: int = 1,
+        transpilation_failure_weight: int = 1,
+        hardware_failure_weight: int = 1,
     ) -> "ErrorBudget":
         """Split the error budget between the three types of errors according to the
         weights.
 
         Args:
             total_tolerance (float): The total error budget.
-            circuit_generation_weight (int): The weight of the circuit generation error.
-            ec_weight (int): The weight of the error correction error.
-            synthesis_weight (int): The weight of the synthesis error.
+            algorithm_failure_weight (int): The weight of the circuit generation error.
+            hardware_failure_weight (int): The weight of the error correction error.
+            transpilation_failure_weight (int): The weight of the synthesis error.
 
         Returns:
             ErrorBudget: The error budget split according to the weights.
         """
 
-        total_weights = circuit_generation_weight + ec_weight + synthesis_weight
+        total_weights = (
+            algorithm_failure_weight
+            + hardware_failure_weight
+            + transpilation_failure_weight
+        )
 
-        circuit_generation_failure_tolerance = (
-            total_failure_tolerance * circuit_generation_weight / total_weights
+        algorithm_failure_tolerance = (
+            total_failure_tolerance * algorithm_failure_weight / total_weights
         )
-        synthesis_failure_tolerance = (
-            total_failure_tolerance * synthesis_weight / total_weights
+        transpilation_failure_tolerance = (
+            total_failure_tolerance * transpilation_failure_weight / total_weights
         )
-        ec_failure_tolerance = total_failure_tolerance * ec_weight / total_weights
+        hardware_failure_tolerance = (
+            total_failure_tolerance * hardware_failure_weight / total_weights
+        )
         return ErrorBudget(
-            circuit_generation_failure_tolerance,
-            synthesis_failure_tolerance,
-            ec_failure_tolerance,
+            algorithm_failure_tolerance,
+            transpilation_failure_tolerance,
+            hardware_failure_tolerance,
         )
 
     @staticmethod

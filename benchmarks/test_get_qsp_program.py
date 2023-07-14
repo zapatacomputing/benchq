@@ -7,9 +7,9 @@ from benchq.algorithms.time_evolution import _n_block_encodings_for_time_evoluti
 from benchq.problem_embeddings import get_qsp_program
 from benchq.problem_ingestion import (
     generate_jw_qubit_hamiltonian_from_mol_data,
+    get_hamiltonian_from_file,
     get_vlasov_hamiltonian,
 )
-from benchq.problem_ingestion.hamiltonian_generation import fast_load_qubit_op
 from benchq.problem_ingestion.molecule_instance_generation import (
     generate_hydrogen_chain_instance,
 )
@@ -60,7 +60,7 @@ def jw_test_case():
 
 def fast_load_test_cases():
     def _load_hamiltonian(name):
-        return fast_load_qubit_op(
+        return get_hamiltonian_from_file(
             str(Path(__file__).parent / f"../examples/data/small_molecules/{name}.json")
         )
 

@@ -1,23 +1,30 @@
 ################################################################################
 # © Copyright 2022-2023 Zapata Computing Inc.
 ################################################################################
-from math import floor
 from typing import List, Optional
 
 import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
+from scipy.optimize import minimize
 
-from .resource_estimation.graph.extrapolation_estimator import ExtrapolatedResourceInfo
-from .resource_estimation.graph.graph_estimator import ResourceInfo
+from .data_structures import ExtrapolatedGraphResourceInfo, ResourceInfo
 
 
 def plot_graph_state_with_measurement_steps(
     graph_state_graph,
     measurement_steps,
     cmap=plt.cm.rainbow,
-    name="measurement_steps_plot",
+    name="extrapolation_plot",
 ):
+    """Plot a graph state with the measurement steps highlighted in different
+    colors. The measurement steps are given as a list of lists of nodes. Each
+    list of nodes is a measurement step. The nodes are given as a list of
+    tuples. Each tuple is a node and a measurement basis. The node is an
+    integer and the measurement basis is a string. The graph state is given as
+    a networkx graph. The nodes are integers and the edges are tuples of
+    integers. The cmap is the color map to use for the measurement steps.
+    Note: Only works when substrate scheduler is run in "fast" mode."""
     node_measurement_groupings = [
         [node[0] for node in row] for row in measurement_steps
     ]
@@ -36,7 +43,7 @@ def plot_graph_state_with_measurement_steps(
 
 
 def plot_extrapolations(
-    info: ExtrapolatedResourceInfo,
+    info: ExtrapolatedGraphResourceInfo,
     steps_to_extrapolate_from: List[int],
     n_measurement_steps_fit_type: str = "logarithmic",
     exact_info: Optional[ResourceInfo] = None,
@@ -45,36 +52,30 @@ def plot_extrapolations(
     from a smaller number of steps. If exact_info is provided, we also plot the
     exact values for the problem size in green. The extrapolated point is plotted
     in black. The points used to extrapolate are plotted in blue. The fit is plotted
-    in red.
+    in red. If the green or black dot is below the red line on the "n_nodes" plot,
+    then we are using a 20-to-4 magic state distillation widget and the "n_nodes"
+    was cut in 4 to compensate. This is fine because the original number of nodes
+    (without the division by 4) will always follow the red line.
     """
     figure, axis = plt.subplots(3, 1)
     figure.tight_layout(pad=1.5)
 
     for i, property in enumerate(
-        ["n_logical_qubits", "n_measurement_steps", "n_nodes"]
+        ["max_graph_degree", "n_measurement_steps", "n_nodes"]
     ):
         x = np.array(steps_to_extrapolate_from)
-        y = np.array([getattr(d, property) for d in info.data_used_to_extrapolate])
+        y = np.array(
+            [getattr(d, property) for d in info.extra.data_used_to_extrapolate]
+        )
 
         # logarithmic extrapolation
         if (
             property == "n_measurement_steps"
             and n_measurement_steps_fit_type == "logarithmic"
         ):
-            x = np.log(x)
+            m, c, r_squared = _get_logarithmic_extrapolation(x, y)
 
-        coeffs, sum_of_residuals, _, _, _ = np.polyfit(x, y, 1, full=True)
-        r_squared = 1 - (sum_of_residuals[0] / (len(y) * np.var(y)))
-        m, c = coeffs
-
-        # logarithmic extrapolation
-        if (
-            property == "n_measurement_steps"
-            and n_measurement_steps_fit_type == "logarithmic"
-        ):
-            x = np.exp(x)  # rescale the x values for plotting
-
-            all_x = np.arange(1, info.steps_to_extrapolate_to + 1, 1)
+            all_x = np.arange(1, info.extra.steps_to_extrapolate_to + 1, 1)
             axis[i].plot(
                 all_x,
                 m * np.log(all_x) + c,
@@ -82,31 +83,79 @@ def plot_extrapolations(
                 label="fitted line",
             )
         else:
+            m, c, r_squared = _get_linear_extrapolation(x, y)
             axis[i].plot(
-                [0, info.steps_to_extrapolate_to],
-                [c, m * info.steps_to_extrapolate_to + c],
+                [0, info.extra.steps_to_extrapolate_to],
+                [c, m * info.extra.steps_to_extrapolate_to + c],
                 "r",
                 label="fitted line",
             )
 
         axis[i].plot(x, y, "bo")
         axis[i].plot(
-            [info.steps_to_extrapolate_to],
-            [getattr(info, property)],
+            [info.extra.steps_to_extrapolate_to],
+            [getattr(info.extra, property)],
             "ko",
         )
         if exact_info is not None:
             axis[i].plot(
-                [info.steps_to_extrapolate_to],
-                [getattr(exact_info, property)],
+                [info.extra.steps_to_extrapolate_to],
+                [getattr(exact_info.extra, property)],
                 "go",
             )
-
-        plt.yticks(range(floor(min(y)) - 1, getattr(info, property) + 1))
 
         axis[i].plot([], [], " ", label="r_squared: " + str(r_squared))
         axis[i].legend()
         axis[i].set_title(property)
-        axis[i].ticklabel_format(useOffset=False)
-        axis[i].yaxis.set_major_formatter(plt.FormatStrFormatter("%d"))
+
     plt.show()
+
+
+def _get_logarithmic_extrapolation(x, y):
+    x = np.array(x)
+    y = np.array(y)
+
+    def _logarithmic_objective(params):
+        a, b = params
+        y_pred = a * np.log(x) + b
+        error = y_pred - y
+        return np.sum(error**2)
+
+    return _extrapolate(x, y, _logarithmic_objective)
+
+
+def _get_linear_extrapolation(x, y):
+    x = np.array(x)
+    y = np.array(y)
+
+    def _linear_objective(params):
+        a, b = params
+        y_pred = a * x + b
+        error = y_pred - y
+        return np.sum(error**2)
+
+    return _extrapolate(x, y, _linear_objective)
+
+
+def _extrapolate(x, y, objective):
+    # Define the constraint that the slope (a) must be greater than zero
+    def slope_constraint(params):
+        a, _ = params
+        return a
+
+    # Perform the optimization
+    initial_guess = [1.0, 1.0]
+    bounds = [(0, None), (None, None)]
+    constraints = {"type": "ineq", "fun": slope_constraint}
+    result = minimize(objective, initial_guess, bounds=bounds, constraints=constraints)
+
+    # Extrapolated to desired point
+    a_opt, b_opt = result.x
+
+    # Calculate R-squared value
+    y_mean = np.mean(y)
+    total_sum_of_squares = np.sum((y - y_mean) ** 2)
+    residual_sum_of_squares = np.sum((y - (a_opt * x + b_opt)) ** 2)
+    r_squared = 1 - (residual_sum_of_squares / total_sum_of_squares)
+
+    return a_opt, b_opt, r_squared

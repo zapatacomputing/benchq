@@ -3,7 +3,6 @@
 ################################################################################
 import os
 import warnings
-from dataclasses import dataclass
 from typing import Dict, Optional
 
 from azure.quantum.qiskit import AzureQuantumProvider
@@ -11,34 +10,25 @@ from orquestra.integrations.qiskit.conversions import export_to_qiskit
 from orquestra.quantum.circuits import Circuit
 from qiskit.tools.monitor import job_monitor
 
-from ..data_structures import ErrorBudget, QuantumProgram
-from ..data_structures.hardware_architecture_models import BasicArchitectureModel
-
-
-@dataclass
-class AzureResourceInfo:
-    physical_qubit_count: int
-    logical_qubit_count: int
-    total_time: float
-    depth: int
-    distance: int
-    cycle_time: float
-    logical_error_rate: float
-    raw_data: dict
+from ..data_structures import AzureExtra, AzureResourceInfo, BasicArchitectureModel
 
 
 def _azure_result_to_resource_info(job_results: dict) -> AzureResourceInfo:
     return AzureResourceInfo(
-        physical_qubit_count=job_results["physicalCounts"]["physicalQubits"],
-        logical_qubit_count=job_results["physicalCounts"]["breakdown"][
+        n_physical_qubits=job_results["physicalCounts"]["physicalQubits"],
+        n_logical_qubits=job_results["physicalCounts"]["breakdown"][
             "algorithmicLogicalQubits"
         ],
-        total_time=job_results["physicalCounts"]["runtime_in_s"],
-        depth=job_results["physicalCounts"]["breakdown"]["algorithmicLogicalDepth"],
-        distance=job_results["logicalQubit"]["codeDistance"],
-        cycle_time=job_results["logicalQubit"]["logicalCycleTime"],
+        total_time_in_seconds=job_results["physicalCounts"]["runtime_in_s"],
+        code_distance=job_results["logicalQubit"]["codeDistance"],
         logical_error_rate=job_results["errorBudget"]["logical"],
-        raw_data=job_results,
+        decoder_info=None,
+        widget_name="default",
+        extra=AzureExtra(
+            cycle_time=job_results["logicalQubit"]["logicalCycleTime"],
+            depth=job_results["physicalCounts"]["breakdown"]["algorithmicLogicalDepth"],
+            raw_data=job_results,
+        ),
     )
 
 
@@ -81,8 +71,8 @@ class AzureResourceEstimator:
             azure_error_budget = {}
             azure_error_budget[
                 "rotations"
-            ] = algorithm.error_budget.synthesis_failure_tolerance
-            remaining_error = algorithm.error_budget.ec_failure_tolerance
+            ] = algorithm.error_budget.transpilation_failure_tolerance
+            remaining_error = algorithm.error_budget.hardware_failure_tolerance
             azure_error_budget["logical"] = remaining_error / 2
             azure_error_budget["tstates"] = remaining_error / 2
         if self.use_full_circuit:
@@ -98,14 +88,14 @@ class AzureResourceEstimator:
         self, circuit: Circuit, error_budget: Dict[str, float]
     ) -> AzureResourceInfo:
         if self.hw_model is not None:
-            gate_time = self.hw_model.physical_gate_time_in_seconds
+            gate_time = self.hw_model.surface_code_cycle_time_in_seconds
             gate_time_string = f"{int(gate_time * 1e9)} ns"
             qubitParams = {
                 "name": "custom gate-based",
                 "instructionSet": "GateBased",
                 "oneQubitGateTime": gate_time_string,
                 # "oneQubitMeasurementTime": "30 μs",
-                "oneQubitGateErrorRate": self.hw_model.physical_gate_error_rate,
+                "oneQubitGateErrorRate": (self.hw_model.physical_qubit_error_rate),
                 # "tStateErrorRate": 1e-3
             }
         else:

@@ -5,6 +5,7 @@ from typing import Optional, Union
 
 from cirq.circuits import Circuit as CirqCircuit
 from orquestra.quantum.circuits import Circuit as OrquestraCircuit
+from orquestra.quantum.circuits import GateOperation
 from pyLIQTR.gate_decomp.cirq_transforms import clifford_plus_t_direct_transform
 from qiskit.circuit import QuantumCircuit as QiskitCircuit
 
@@ -15,6 +16,7 @@ def pyliqtr_transpile_to_clifford_t(
     circuit: Union[OrquestraCircuit, CirqCircuit, QiskitCircuit],
     gate_precision: Optional[float] = None,
     circuit_precision: Optional[float] = None,
+    n_rotation_gates: Optional[int] = None,
 ) -> OrquestraCircuit:
     """Compile a circuit into clifford + T using pyLIQTR. The only non-clifford + T
     gates that can be compiled are X, Y, and Z rotations.
@@ -30,7 +32,9 @@ def pyliqtr_transpile_to_clifford_t(
             Each gate will be bounded by either `circuit_precision` divided by
             the number of rotation gates (if given a float),
             or 10^{-circuit_precision} (if given an int)
-
+        n_rotation_gates (int): Number of rotation gates to use in the decomposition.
+            If not given, pyliqtr will send erroneous warnings saying that the
+            provided gates cannot be decomposed.
 
     Returns:
         OrquestraCircuit: circuit decomposed to Clifford + T using pyLIQTR.
@@ -38,7 +42,7 @@ def pyliqtr_transpile_to_clifford_t(
     has_rotations = False
     orquestra_circuit = import_circuit(circuit)
     for op in orquestra_circuit.operations:
-        if op.gate.name in ["RX", "RY", "RZ"]:
+        if isinstance(op, GateOperation) and op.gate.name in ["RX", "RY", "RZ"]:
             has_rotations = True
             break
     if not has_rotations:
@@ -53,7 +57,11 @@ def pyliqtr_transpile_to_clifford_t(
 
     cirq_circuit = export_circuit(CirqCircuit, orquestra_circuit)
     compiled_cirq_circuit = clifford_plus_t_direct_transform(
-        cirq_circuit, precision=gate_precision, circuit_precision=circuit_precision
+        cirq_circuit,
+        precision=gate_precision,
+        circuit_precision=circuit_precision,
+        use_random_decomp=False,
+        num_rotation_gates=n_rotation_gates,
     )
 
-    return import_circuit(compiled_cirq_circuit)
+    return import_circuit(compiled_cirq_circuit, orquestra_circuit.n_qubits)
