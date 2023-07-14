@@ -1,20 +1,21 @@
 ################################################################################
-# © Copyright 2022 Zapata Computing Inc.
+# © Copyright 2023 Zapata Computing Inc.
 ################################################################################
+import datetime
 from typing import Tuple
 
 import numpy as np
 from openfermion.resource_estimates import df, sf
-from openfermion.resource_estimates.surface_code_compilation.physical_costing import (
-    AlgorithmParameters,
-    CostEstimate,
-    cost_estimator,
-)
 
 from benchq.data_structures.resource_info import OpenFermionResourceInfo
 from benchq.resource_estimation._compute_lambda import (
     compute_lambda_df,
     compute_lambda_sf,
+)
+from benchq.resource_estimation.footprint_analysis import (
+    AlgorithmParameters,
+    CostEstimate,
+    cost_estimator,
 )
 
 
@@ -143,6 +144,7 @@ def get_double_factorized_qpe_toffoli_and_qubit_cost(
 def get_physical_cost(
     num_logical_qubits: int,
     num_toffoli: int,
+    surface_code_cycle_time: datetime.timedelta = datetime.timedelta(microseconds=1),
 ) -> OpenFermionResourceInfo:
     """Get the estimated resources for single factorized QPE as described in PRX Quantum
     2, 030305.
@@ -157,6 +159,7 @@ def get_physical_cost(
     best_cost, best_params = cost_estimator(
         num_logical_qubits,
         num_toffoli,
+        surface_code_cycle_time=surface_code_cycle_time,
         physical_error_rate=1.0e-3,
         portion_of_bounding_box=1.0,
     )
