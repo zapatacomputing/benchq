@@ -194,7 +194,8 @@ def get_double_factorized_block_encoding_toffoli_and_qubit_cost(
     Returns:
         A tuple whose first element is the number of Toffolis required for a controlled
             implementation of the block encoding, and whose second element is the number
-            of qubits required for the block encoding (not including the contol qubit).
+            of qubits required for the controlled block encoding (including the control
+            qubit).
     """
 
     # In the df.compute_cost(...) function below, we set dE = 1 since this input doesn't
@@ -223,7 +224,7 @@ def get_double_factorized_block_encoding_toffoli_and_qubit_cost(
     # Number of control qubits in the energy register
     m = 2 * np.ceil(np.log2(iters)) - 1
 
-    ancilla_cost = ancilla_cost - m
+    ancilla_cost = ancilla_cost - m + 1
 
     return step_cost, ancilla_cost
 
