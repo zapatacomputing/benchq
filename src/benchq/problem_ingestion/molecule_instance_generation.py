@@ -153,6 +153,7 @@ class ChemistryApplicationInstance:
         Raises:
             SCFConvergenceError: If the SCF calculation does not converge.
         """
+        print("Basis mol data...")
         molecular_data = self._get_basis_molecular_data()
         mean_field_object = molecular_data._pyscf_data["scf"]
 
