@@ -157,7 +157,7 @@ def get_double_factorized_qpe_toffoli_and_qubit_cost(
     Returns:
         A tuple containing the number of Toffoli gates and number of logical qubits.
     """
-    tep_cost, total_cost, ancilla_cost = _get_double_factorized_qpe_info(
+    step_cost, total_cost, ancilla_cost = _get_double_factorized_qpe_info(
         h1,
         eri,
         threshold,
@@ -217,14 +217,10 @@ def get_double_factorized_block_encoding_toffoli_and_qubit_cost(
         bits_precision_rotation,
     )
 
-    # Now, we will remove the ancilla qubits in the energy register in QPE, and only add one using Guoming's algorithm.
-    # The number of steps in Heisenberg-Limited QPE, i.e., 2^m.
-    iters = np.ceil(np.pi * lam / (allowable_phase_estimation_error * 2))
-
-    # Number of control qubits in the energy register
-    m = 2 * np.ceil(np.log2(iters)) - 1
-
-    ancilla_cost = ancilla_cost - m + 1
+    # Remove all but one of the ancilla qubits in the QPE energy register.
+    iterations = np.ceil(np.pi * lam / (allowable_phase_estimation_error * 2))
+    num_qubits_energy_register = 2 * np.ceil(np.log2(iterations)) - 1
+    ancilla_cost = ancilla_cost - num_qubits_energy_register + 1
 
     return step_cost, ancilla_cost
 
