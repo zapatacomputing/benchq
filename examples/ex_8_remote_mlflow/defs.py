@@ -45,8 +45,6 @@ standard_task = sdk.task(
     resources=sdk.Resources(memory="4Gi"),
 )
 
-# GithubImport("zapatacomputing/benchq", git_ref="mlflow-demo")
-
 gsc_task = sdk.task(
     source_import=sdk.InlineImport(),
     dependency_imports=gsc_task_deps,
