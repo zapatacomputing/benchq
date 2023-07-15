@@ -5,6 +5,7 @@
 algorithm (arXiv:2209.06811v2)."""
 
 import numpy as np
+from benchq.data_structures import SubroutineModel
 
 
 def _get_sigma(
@@ -106,3 +107,20 @@ def get_ff_ld_gsee_num_circuit_repetitions(
         * np.log(4 * M / failure_probability)
         / (sigma**4 * epsilon_1**2)
     )
+
+
+class LDGSEEModel(SubroutineModel):
+    def __init__(
+        self,
+        name="test_parent_subroutine",
+        requirements=None,
+        test_child_subroutine=SubroutineModel("test_child_subroutine"),
+    ):
+        super().__init__(
+            name, requirements, test_child_subroutine=test_child_subroutine
+        )
+
+    def populate_subroutine_profile(self):
+        for i, (subroutine, count) in enumerate(self.subroutine_profile):
+            if subroutine.name == "test_child_subroutine":
+                self.subroutine_profile[i] = (subroutine, 1)

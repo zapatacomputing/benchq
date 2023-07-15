@@ -14,6 +14,7 @@ from .hardware_architecture_models import (
     BasicArchitectureModel,
 )
 from .quantum_program import QuantumProgram, get_program_from_circuit
+from .subroutine_model import SubroutineModel
 from .resource_info import (
     AzureExtra,
     AzureResourceInfo,
@@ -44,4 +45,5 @@ __all__ = [
     "ExtrapolatedGraphResourceInfo",
     "AzureResourceInfo",
     "AzureExtra",
+    "SubroutineModel",
 ]
