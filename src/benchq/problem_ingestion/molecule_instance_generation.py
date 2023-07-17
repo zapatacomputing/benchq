@@ -209,10 +209,10 @@ class ChemistryApplicationInstance:
         print("Types....")
         print(type(mean_field_object._eri), type(mean_field_object.mo_coeff))
 
-        #print(
-        #    "ERI tensor size in MB: ",
-        #    mean_field_object._eri.size * mean_field_object._eri.itemsize * 1e-6,
-        #)
+        print(
+            "ERI tensor size in MB: ",
+            mean_field_object._eri.size * mean_field_object._eri.itemsize * 1e-6,
+        )
         print(
             "mo_coeff size in MB: ",
             mean_field_object.mo_coeff.size
