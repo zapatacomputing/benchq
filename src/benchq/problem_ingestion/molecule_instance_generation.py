@@ -206,9 +206,21 @@ class ChemistryApplicationInstance:
         molecular_data.canonical_orbitals = natural_orbital_coefficients
         mean_field_object.mo_coeff = molecular_data.canonical_orbitals
 
+        print(
+            "ERI tensor size in MB: ",
+            mean_field_object._eri.size * mean_field_object._eri.itemsize * 1e-6,
+        )
+        print(
+            "mo_coeff size in MP: ",
+            mean_field_object.mo_coeff.size
+            * mean_field_object.mo_coeff.itemsize
+            * 1e-6,
+        )
+
         one_body_integrals, two_body_integrals = compute_integrals(
             mean_field_object._eri, mean_field_object
         )
+        print("Integrals computed...")
         molecular_data.one_body_integrals = one_body_integrals
         molecular_data.two_body_integrals = two_body_integrals
         molecular_data.overlap_integrals = mean_field_object.get_ovlp()
