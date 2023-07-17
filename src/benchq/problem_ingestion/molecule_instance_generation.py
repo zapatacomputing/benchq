@@ -211,7 +211,7 @@ class ChemistryApplicationInstance:
             mean_field_object._eri.size * mean_field_object._eri.itemsize * 1e-6,
         )
         print(
-            "mo_coeff size in MP: ",
+            "mo_coeff size in MB: ",
             mean_field_object.mo_coeff.size
             * mean_field_object.mo_coeff.itemsize
             * 1e-6,
