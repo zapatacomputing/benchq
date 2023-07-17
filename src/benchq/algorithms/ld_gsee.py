@@ -5,7 +5,8 @@
 algorithm (arXiv:2209.06811v2)."""
 
 import numpy as np
-from benchq.data_structures import SubroutineModel
+
+from ..data_structures import SubroutineModel
 
 
 def _get_sigma(
@@ -109,18 +110,57 @@ def get_ff_ld_gsee_num_circuit_repetitions(
     )
 
 
-class LDGSEEModel(SubroutineModel):
+class LD_GSEE(SubroutineModel):
     def __init__(
         self,
-        name="test_parent_subroutine",
+        task_name="ground_state_energy_estimation",
         requirements=None,
-        test_child_subroutine=SubroutineModel("test_child_subroutine"),
+        c_time_evolution=None,
     ):
         super().__init__(
-            name, requirements, test_child_subroutine=test_child_subroutine
+            task_name,
+            requirements,
+            c_time_evolution=c_time_evolution
+            if c_time_evolution is not None
+            else SubroutineModel("c_time_evolution"),
         )
 
-    def populate_subroutine_profile(self):
-        for i, (subroutine, count) in enumerate(self.subroutine_profile):
-            if subroutine.name == "test_child_subroutine":
-                self.subroutine_profile[i] = (subroutine, 1)
+    def set_requirements(
+        self,
+        alpha,
+        energy_gap,
+        square_overlap,
+        precision,
+        failure_tolerance,
+        hamiltonian,
+    ):
+        args = locals()
+        # Clean up the args dictionary before setting requirements
+        args.pop("self")
+        args = {k: v for k, v in args.items() if not k.startswith("__")}
+        super().set_requirements(**args)
+
+    def populate_requirements_for_subroutines(self):
+        # Compute number of samples
+        n_samples = get_ff_ld_gsee_num_circuit_repetitions(
+            self.requirements["alpha"],
+            self.requirements["energy_gap"],
+            self.requirements["square_overlap"],
+            self.requirements["precision"],
+            self.requirements["failure_tolerance"],
+        )
+        self.c_time_evolution.number_of_times_called = n_samples
+
+        # Set controlled time evolution hadamard test requirements
+        hadamard_failure_rate = self.requirements["failure_tolerance"] / n_samples
+        evolution_time = get_ff_ld_gsee_max_evolution_time(
+            self.requirements["alpha"],
+            self.requirements["energy_gap"],
+            self.requirements["square_overlap"],
+            self.requirements["precision"],
+        )
+        self.c_time_evolution.set_requirements(
+            evolution_time=evolution_time,
+            hamiltonian=self.requirements["hamiltonian"],
+            failure_rate=hadamard_failure_rate,
+        )

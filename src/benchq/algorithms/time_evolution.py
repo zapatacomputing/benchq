@@ -6,6 +6,7 @@ from pyLIQTR.QSP import gen_qsp
 from ..conversions import openfermion_to_pyliqtr
 from ..data_structures import AlgorithmImplementation, ErrorBudget
 from ..problem_embeddings import get_qsp_program, get_trotter_program
+from ..data_structures import SubroutineModel
 
 
 # TODO: This logic is copied from pyLIQTR, perhaps we want to change it to our own?
@@ -49,6 +50,44 @@ def qsp_time_evolution_algorithm(
     return AlgorithmImplementation(
         program, ErrorBudget.from_even_split(failure_tolerance), 1
     )
+
+
+class QSPTimeEvolution(SubroutineModel):
+    def __init__(
+        self,
+        task_name="c_time_evolution",
+        requirements=None,
+        hamiltonian_block_encoding=None,
+    ):
+        super().__init__(
+            task_name,
+            requirements,
+            hamiltonian_block_encoding=hamiltonian_block_encoding
+            if hamiltonian_block_encoding is not None
+            else SubroutineModel("hamiltonian_block_encoding"),
+        )
+
+    def set_requirements(
+        self,
+        evolution_time,
+        hamiltonian,
+        failure_rate,
+    ):
+        args = locals()
+        # Clean up the args dictionary before setting requirements
+        args.pop("self")
+        args = {k: v for k, v in args.items() if not k.startswith("__")}
+        super().set_requirements(**args)
+
+    def populate_requirements_for_subroutines(self):
+        # Compute number of samples
+        n_block_encodings = 1 / self.requirements["failure_rate"]
+        self.hamiltonian_block_encoding.number_of_times_called = n_block_encodings
+
+        be_failure_rate = self.requirements["failure_rate"] / n_block_encodings
+        self.hamiltonian_block_encoding.set_requirements(
+            failure_rate=be_failure_rate,
+        )
 
 
 # TODO: This method of calculating number of steps is not exact.
