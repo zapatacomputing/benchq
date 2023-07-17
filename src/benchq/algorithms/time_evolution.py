@@ -20,10 +20,25 @@ def _get_steps(tau, req_prec):
     return steps
 
 
-def _n_block_encodings_for_time_evolution(hamiltonian, time, failure_tolerance):
-    pyliqtr_operator = openfermion_to_pyliqtr(to_openfermion(hamiltonian))
+def _n_block_encodings_for_time_evolution(
+    hamiltonian, evolution_time, failure_tolerance
+):
+    subnormalization = _get_subnormalization(hamiltonian)
+    return _n_block_encodings_for_time_evolution_from_subnormalization(
+        subnormalization, evolution_time, failure_tolerance
+    )
 
-    tau = time * pyliqtr_operator.alpha
+
+def _get_subnormalization(hamiltonian):
+    pyliqtr_operator = openfermion_to_pyliqtr(to_openfermion(hamiltonian))
+    subnormalization = pyliqtr_operator.alpha
+    return subnormalization
+
+
+def _n_block_encodings_for_time_evolution_from_subnormalization(
+    subnormalization, evolution_time, failure_tolerance
+):
+    tau = evolution_time * subnormalization
     steps = _get_steps(tau, failure_tolerance)
 
     # number of steps needs to be odd for QSP
@@ -71,7 +86,7 @@ class QSPTimeEvolution(SubroutineModel):
         self,
         evolution_time,
         hamiltonian,
-        failure_rate,
+        failure_tolerance,
     ):
         args = locals()
         # Clean up the args dictionary before setting requirements
@@ -80,13 +95,24 @@ class QSPTimeEvolution(SubroutineModel):
         super().set_requirements(**args)
 
     def populate_requirements_for_subroutines(self):
-        # Compute number of samples
-        n_block_encodings = 1 / self.requirements["failure_rate"]
+        # Compute subnormalization of block encoding
+        # TODO: update the following to take in some info about the hamiltonian
+        subnormalization = self.hamiltonian_block_encoding.get_subnormalization()
+        # Compute number of block encodings
+        n_block_encodings = _n_block_encodings_for_time_evolution_from_subnormalization(
+            subnormalization,
+            self.requirements["evolution_time"],
+            self.requirements["failure_tolerance"],
+        )
+
         self.hamiltonian_block_encoding.number_of_times_called = n_block_encodings
 
-        be_failure_rate = self.requirements["failure_rate"] / n_block_encodings
+        be_failure_tolerance = (
+            self.requirements["failure_tolerance"] / n_block_encodings
+        )
         self.hamiltonian_block_encoding.set_requirements(
-            failure_rate=be_failure_rate,
+            hamiltonian=self.requirements["hamiltonian"],
+            failure_tolerance=be_failure_tolerance,
         )
 
 

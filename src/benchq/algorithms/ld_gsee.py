@@ -152,7 +152,7 @@ class LD_GSEE(SubroutineModel):
         self.c_time_evolution.number_of_times_called = n_samples
 
         # Set controlled time evolution hadamard test requirements
-        hadamard_failure_rate = self.requirements["failure_tolerance"] / n_samples
+        hadamard_failure_tolerance = self.requirements["failure_tolerance"] / n_samples
         evolution_time = get_ff_ld_gsee_max_evolution_time(
             self.requirements["alpha"],
             self.requirements["energy_gap"],
@@ -162,5 +162,5 @@ class LD_GSEE(SubroutineModel):
         self.c_time_evolution.set_requirements(
             evolution_time=evolution_time,
             hamiltonian=self.requirements["hamiltonian"],
-            failure_rate=hadamard_failure_rate,
+            failure_tolerance=hadamard_failure_tolerance,
         )
