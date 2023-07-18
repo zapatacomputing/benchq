@@ -10,7 +10,9 @@ from orquestra import sdk
 
 from benchq.algorithms.time_evolution import qsp_time_evolution_algorithm
 from benchq.data_structures import ErrorBudget
-from benchq.data_structures.hardware_architecture_models import IONTrapModel
+from benchq.data_structures.hardware_architecture_models import (
+    BASIC_SC_ARCHITECTURE_MODEL,
+)
 from benchq.problem_ingestion import get_vlasov_hamiltonian
 from benchq.resource_estimation.azure import AzureResourceEstimator
 from benchq.resource_estimation.graph import (
@@ -113,10 +115,7 @@ def azure_estimates(algorithm, architecture_model):
 def example_workflow():
     evolution_time = 5.0
     error_budget = ErrorBudget.from_even_split(total_failure_tolerance=1e-3)
-    architecture_model = IONTrapModel(
-        physical_qubit_error_rate=1e-3,
-        surface_code_cycle_time_in_seconds=1e-6,
-    )
+    architecture_model = BASIC_SC_ARCHITECTURE_MODEL
 
     results = []
 
