@@ -12,9 +12,10 @@ from openfermion.resource_estimates.molecule import (
     localize,
     stability,
 )
+from functools import reduce
 from openfermionpyscf import PyscfMolecularData
 from openfermionpyscf._run_pyscf import compute_integrals
-from pyscf import gto, mp, scf
+from pyscf import gto, mp, scf, ao2mo
 import time
 
 
@@ -108,7 +109,8 @@ class ChemistryApplicationInstance:
             SCFConvergenceError: If the SCF calculation does not converge.
         """
         molecule = self.get_pyscf_molecule()
-        mean_field_object = (scf.RHF if self.multiplicity == 1 else scf.ROHF)(molecule)
+        mean_field_object = (scf.RHF if self.multiplicity ==
+                             1 else scf.ROHF)(molecule)
 
         # mean_field_object = molecule.RKS(xc="wb97x-d").apply(
         #    scf.addons.remove_linear_dep_
@@ -153,8 +155,8 @@ class ChemistryApplicationInstance:
         Raises:
             SCFConvergenceError: If the SCF calculation does not converge.
         """
-        print("Basis mol data...")
-        molecular_data = self._get_basis_molecular_data()
+
+        molecular_data = self._get_basic_molecular_data()
         mean_field_object = molecular_data._pyscf_data["scf"]
 
         if molecular_data.multiplicity != 1:
@@ -190,26 +192,41 @@ class ChemistryApplicationInstance:
             self.fno_n_virtual_natural_orbitals,
         )
 
+        # Do we need all this?
         all_orbital_indicies = list(range(molecular_data.n_orbitals))
         occupied_indices = list(range(n_frozen_core_orbitals))
 
         if len(frozen_natural_orbitals) != 0:
             active_indicies = all_orbital_indicies[
-                len(occupied_indices) : -len(frozen_natural_orbitals)
+                len(occupied_indices): -len(frozen_natural_orbitals)
             ]
+
+            molecular_data.canonical_orbitals = natural_orbital_coefficients[:, len(
+                occupied_indices):-len(frozen_natural_orbitals)]
         else:
             active_indicies = all_orbital_indicies[len(occupied_indices):]
+
+            molecular_data.canonical_orbitals = natural_orbital_coefficients[:, len(
+                occupied_indices):]
 
         print("All: ", molecular_data.n_orbitals)
         print("Nat orbs: ", len(frozen_natural_orbitals))
         print("Occ indices: ", len(occupied_indices))
         print("Active indices: ", len(active_indicies))
 
-        molecular_data.canonical_orbitals = natural_orbital_coefficients
-        mean_field_object.mo_coeff = molecular_data.canonical_orbitals
+        print(" mean_field_object.mo_coeff.shape",
+              mean_field_object.mo_coeff.shape)
 
-        print("Types....")
-        print(type(mean_field_object._eri), type(mean_field_object.mo_coeff))
+        # Check the case when occupied indicies are provided
+        # molecular_data.canonical_orbitals = natural_orbital_coefficients[:,
+        #                                                                 len(occupied_indices):-len(frozen_natural_orbitals)]
+
+        mean_field_object.mo_coeff = molecular_data.canonical_orbitals
+        print("After")
+        print(" natural_orbital_coefficients.shape",
+              natural_orbital_coefficients.shape)
+        print(" mean_field_object.mo_coeff.shape",
+              mean_field_object.mo_coeff.shape)
 
         print(
             "ERI tensor size in MB: ",
@@ -225,20 +242,10 @@ class ChemistryApplicationInstance:
         one_body_integrals, two_body_integrals = compute_integrals(
             mean_field_object._eri, mean_field_object
         )
-        print("Integrals computed...")
+
         molecular_data.one_body_integrals = one_body_integrals
         molecular_data.two_body_integrals = two_body_integrals
         molecular_data.overlap_integrals = mean_field_object.get_ovlp()
-
-        all_orbital_indicies = list(range(molecular_data.n_orbitals))
-        occupied_indices = list(range(n_frozen_core_orbitals))
-
-        if len(frozen_natural_orbitals) != 0:
-            active_indicies = all_orbital_indicies[
-                len(occupied_indices) : -len(frozen_natural_orbitals)
-            ]
-        else:
-            active_indicies = all_orbital_indicies[len(occupied_indices) :]
 
         return molecular_data, occupied_indices, active_indicies
 
@@ -270,15 +277,17 @@ class ChemistryApplicationInstance:
                 active_indices,
             ) = self.get_occupied_and_active_indicies_with_FNO()
 
-            return molecular_data.get_molecular_hamiltonian(
-                occupied_indices=occupied_indices, active_indices=active_indices
-            )
+            return molecular_data.get_molecular_hamiltonian()
+            # return molecular_data.get_molecular_hamiltonian(
+            #    occupied_indices=occupied_indices, active_indices=active_indices
+            # )
 
         else:
             molecular_data = self._get_molecular_data()
 
             if self.freeze_core:
-                n_frozen_core = self._set_frozen_core_orbitals(molecular_data).frozen
+                n_frozen_core = self._set_frozen_core_orbitals(
+                    molecular_data).frozen
                 if n_frozen_core > 0:
                     self.occupied_indices = list(range(n_frozen_core))
 
@@ -345,8 +354,10 @@ class ChemistryApplicationInstance:
         pyscf_data["mol"] = molecule
         pyscf_data["scf"] = mean_field_object
 
-        molecular_data.canonical_orbitals = mean_field_object.mo_coeff.astype(float)
-        molecular_data.orbital_energies = mean_field_object.mo_energy.astype(float)
+        molecular_data.canonical_orbitals = mean_field_object.mo_coeff.astype(
+            float)
+        molecular_data.orbital_energies = mean_field_object.mo_energy.astype(
+            float)
 
         one_body_integrals, two_body_integrals = compute_integrals(
             mean_field_object._eri, mean_field_object
@@ -360,7 +371,7 @@ class ChemistryApplicationInstance:
 
         return molecular_data
 
-    def _get_basis_molecular_data(self):
+    def _get_basic_molecular_data(self):
         """Given a PySCF meanfield object and molecule, return a PyscfMolecularData
         object.
 
@@ -388,8 +399,10 @@ class ChemistryApplicationInstance:
         pyscf_data["mol"] = molecule
         pyscf_data["scf"] = mean_field_object
 
-        molecular_data.canonical_orbitals = mean_field_object.mo_coeff.astype(float)
-        molecular_data.orbital_energies = mean_field_object.mo_energy.astype(float)
+        molecular_data.canonical_orbitals = mean_field_object.mo_coeff.astype(
+            float)
+        molecular_data.orbital_energies = mean_field_object.mo_energy.astype(
+            float)
 
         pyscf_molecular_data = PyscfMolecularData.__new__(PyscfMolecularData)
         pyscf_molecular_data.__dict__.update(molecule.__dict__)
@@ -449,7 +462,8 @@ def generate_hydrogen_chain_instance(
         bond_distance: The distance between the hydrogen atoms (Angstrom).
     """
     return ChemistryApplicationInstance(
-        geometry=[("H", (0, 0, i * bond_distance)) for i in range(number_of_hydrogens)],
+        geometry=[("H", (0, 0, i * bond_distance))
+                  for i in range(number_of_hydrogens)],
         basis=basis,
         charge=0,
         multiplicity=number_of_hydrogens % 2 + 1,
