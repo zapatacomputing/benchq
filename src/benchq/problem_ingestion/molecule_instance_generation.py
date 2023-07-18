@@ -198,8 +198,10 @@ class ChemistryApplicationInstance:
                 len(occupied_indices) : -len(frozen_natural_orbitals)
             ]
         else:
-            active_indicies = all_orbital_indicies[len(occupied_indices) :]
+            active_indicies = all_orbital_indicies[len(occupied_indices):]
 
+        print("All: ", molecular_data.n_orbitals)
+        print("Nat orbs: ", len(frozen_natural_orbitals))
         print("Occ indices: ", len(occupied_indices))
         print("Active indices: ", len(active_indicies))
 
