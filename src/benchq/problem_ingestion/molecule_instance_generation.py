@@ -112,12 +112,6 @@ class ChemistryApplicationInstance:
         mean_field_object = (scf.RHF if self.multiplicity ==
                              1 else scf.ROHF)(molecule)
 
-        # mean_field_object = molecule.RKS(xc="wb97x-d").apply(
-        #    scf.addons.remove_linear_dep_
-        # )
-
-        # mean_field_object = scf.addons.convert_to_uhf(mean_field_object)
-
         if self.scf_options is not None:
             time0 = time.time()
             mean_field_object.run(**self.scf_options)
@@ -201,13 +195,13 @@ class ChemistryApplicationInstance:
                 len(occupied_indices): -len(frozen_natural_orbitals)
             ]
 
-            molecular_data.canonical_orbitals = natural_orbital_coefficients[:, len(
-                occupied_indices):-len(frozen_natural_orbitals)]
+            molecular_data.canonical_orbitals = natural_orbital_coefficients[:, n_frozen_core_orbitals:-len(
+                frozen_natural_orbitals)]
         else:
             active_indicies = all_orbital_indicies[len(occupied_indices):]
 
-            molecular_data.canonical_orbitals = natural_orbital_coefficients[:, len(
-                occupied_indices):]
+            molecular_data.canonical_orbitals = natural_orbital_coefficients[:,
+                                                                             n_frozen_core_orbitals:]
 
         print("All: ", molecular_data.n_orbitals)
         print("Nat orbs: ", len(frozen_natural_orbitals))
@@ -216,10 +210,6 @@ class ChemistryApplicationInstance:
 
         print(" mean_field_object.mo_coeff.shape",
               mean_field_object.mo_coeff.shape)
-
-        # Check the case when occupied indicies are provided
-        # molecular_data.canonical_orbitals = natural_orbital_coefficients[:,
-        #                                                                 len(occupied_indices):-len(frozen_natural_orbitals)]
 
         mean_field_object.mo_coeff = molecular_data.canonical_orbitals
         print("After")
@@ -239,9 +229,8 @@ class ChemistryApplicationInstance:
             * 1e-6,
         )
 
-        one_body_integrals, two_body_integrals = compute_integrals(
-            mean_field_object._eri, mean_field_object
-        )
+        one_body_integrals, two_body_integrals = self._compute_integrals(
+            molecular_data)
 
         molecular_data.one_body_integrals = one_body_integrals
         molecular_data.two_body_integrals = two_body_integrals
@@ -284,6 +273,12 @@ class ChemistryApplicationInstance:
 
         else:
             molecular_data = self._get_molecular_data()
+            one_body_integrals, two_body_integrals = self._compute_integrals(
+                molecular_data)
+            molecular_data.one_body_integrals = one_body_integrals
+            molecular_data.two_body_integrals = two_body_integrals
+            molecular_data.overlap_integrals = molecular_data._pyscf_data["scf"].get_ovlp(
+            )
 
             if self.freeze_core:
                 n_frozen_core = self._set_frozen_core_orbitals(
@@ -359,17 +354,37 @@ class ChemistryApplicationInstance:
         molecular_data.orbital_energies = mean_field_object.mo_energy.astype(
             float)
 
+        """
         one_body_integrals, two_body_integrals = compute_integrals(
             mean_field_object._eri, mean_field_object
         )
+    
         molecular_data.one_body_integrals = one_body_integrals
         molecular_data.two_body_integrals = two_body_integrals
         molecular_data.overlap_integrals = mean_field_object.get_ovlp()
+        """
 
         pyscf_molecular_data = PyscfMolecularData.__new__(PyscfMolecularData)
         pyscf_molecular_data.__dict__.update(molecule.__dict__)
 
         return molecular_data
+
+    def _compute_integrals(self, molecular_data):
+        """
+        For a given PyscfMolecularData compute one- and two-body integrals.
+
+        Args:
+            molecular_data: PyscfMolecularData object.
+
+        Returns:
+            One- and two-body integrals. 
+
+        """
+        one_body_integrals, two_body_integrals = compute_integrals(
+            molecular_data._pyscf_data["scf"]._eri, molecular_data._pyscf_data["scf"]
+        )
+
+        return one_body_integrals, two_body_integrals
 
     def _get_basic_molecular_data(self):
         """Given a PySCF meanfield object and molecule, return a PyscfMolecularData
