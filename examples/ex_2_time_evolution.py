@@ -11,25 +11,25 @@ but is also more expensive in terms of runtime and memory usage.
 Most of the objects has been described in the `1_from_qasm.py` examples, here
 we only explain new concepts.
 """
-from copy import copy
 from pprint import pprint
 
-from benchq import BASIC_SC_ARCHITECTURE_MODEL
 from benchq.algorithms.time_evolution import qsp_time_evolution_algorithm
-from benchq.data_structures import ErrorBudget
+from benchq.data_structures import BASIC_SC_ARCHITECTURE_MODEL
 from benchq.problem_ingestion import get_vlasov_hamiltonian
+from benchq.problem_ingestion.hamiltonian_generation import (
+    generate_1d_heisenberg_hamiltonian,
+)
 from benchq.resource_estimation.graph import (
     GraphResourceEstimator,
     create_big_graph_from_subcircuits,
     run_custom_resource_estimation_pipeline,
-    simplify_rotations,
     synthesize_clifford_t,
+    transpile_to_native_gates,
 )
 from benchq.timing import measure_time
 
 
 def main():
-
     evolution_time = 5
 
     architecture_model = BASIC_SC_ARCHITECTURE_MODEL
@@ -42,7 +42,7 @@ def main():
         N = 2  # Problem size
         operator = get_vlasov_hamiltonian(N=N, k=2.0, alpha=0.6, nu=0)
 
-        ## Alternative operator: 1D Heisenberg model
+        # Alternative operator: 1D Heisenberg model
         # N = 100
         # operator = generate_1d_heisenberg_hamiltonian(N)
 
@@ -78,7 +78,7 @@ def main():
             algorithm,
             estimator=GraphResourceEstimator(architecture_model),
             transformers=[
-                simplify_rotations,
+                transpile_to_native_gates,
                 create_big_graph_from_subcircuits(),
             ],
         )

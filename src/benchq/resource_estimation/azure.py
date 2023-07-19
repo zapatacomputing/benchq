@@ -3,7 +3,6 @@
 ################################################################################
 import os
 import warnings
-from dataclasses import dataclass
 from typing import Dict, Optional
 
 from azure.quantum.qiskit import AzureQuantumProvider
@@ -24,6 +23,7 @@ def _azure_result_to_resource_info(job_results: dict) -> AzureResourceInfo:
         code_distance=job_results["logicalQubit"]["codeDistance"],
         logical_error_rate=job_results["errorBudget"]["logical"],
         decoder_info=None,
+        widget_name="default",
         extra=AzureExtra(
             cycle_time=job_results["logicalQubit"]["logicalCycleTime"],
             depth=job_results["physicalCounts"]["breakdown"]["algorithmicLogicalDepth"],
@@ -71,8 +71,8 @@ class AzureResourceEstimator:
             azure_error_budget = {}
             azure_error_budget[
                 "rotations"
-            ] = algorithm.error_budget.synthesis_failure_tolerance
-            remaining_error = algorithm.error_budget.ec_failure_tolerance
+            ] = algorithm.error_budget.transpilation_failure_tolerance
+            remaining_error = algorithm.error_budget.hardware_failure_tolerance
             azure_error_budget["logical"] = remaining_error / 2
             azure_error_budget["tstates"] = remaining_error / 2
         if self.use_full_circuit:
@@ -88,14 +88,14 @@ class AzureResourceEstimator:
         self, circuit: Circuit, error_budget: Dict[str, float]
     ) -> AzureResourceInfo:
         if self.hw_model is not None:
-            gate_time = self.hw_model.physical_gate_time_in_seconds
+            gate_time = self.hw_model.surface_code_cycle_time_in_seconds
             gate_time_string = f"{int(gate_time * 1e9)} ns"
             qubitParams = {
                 "name": "custom gate-based",
                 "instructionSet": "GateBased",
                 "oneQubitGateTime": gate_time_string,
                 # "oneQubitMeasurementTime": "30 μs",
-                "oneQubitGateErrorRate": self.hw_model.physical_gate_error_rate,
+                "oneQubitGateErrorRate": (self.hw_model.physical_qubit_error_rate),
                 # "tStateErrorRate": 1e-3
             }
         else:

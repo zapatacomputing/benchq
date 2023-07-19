@@ -5,6 +5,10 @@
 from dataclasses import dataclass, field
 from typing import Generic, List, Optional, TypeVar
 
+from openfermion.resource_estimates.surface_code_compilation.physical_costing import (
+    AlgorithmParameters,
+)
+
 TExtra = TypeVar("TExtra")
 
 
@@ -26,7 +30,7 @@ class ResourceInfo(Generic[TExtra]):
     in the extra field. This information should relate to the specific
     compilation method or algorithm used for estimating resources.
 
-    Other fields are commont between estimation methods that we currently have.
+    Other fields are common between estimation methods that we currently have.
 
     There are several variants of this class aliased below.
     """
@@ -37,6 +41,7 @@ class ResourceInfo(Generic[TExtra]):
     n_physical_qubits: int
     total_time_in_seconds: float
     decoder_info: Optional[DecoderInfo]
+    widget_name: str
     extra: TExtra
 
 
@@ -61,7 +66,7 @@ class ExtrapolatedGraphData(GraphData):
 
     n_logical_qubits_r_squared: float
     n_measurement_steps_r_squared: float
-    data_used_to_extrapolate: List[GraphResourceInfo] = field(repr=False)
+    data_used_to_extrapolate: List[GraphData] = field(repr=False)
     steps_to_extrapolate_to: int = field(repr=False)
 
     @property
@@ -84,3 +89,6 @@ class AzureExtra:
 
 # Alias for type of resource info returned by AzureResourceEstimator
 AzureResourceInfo = ResourceInfo[AzureExtra]
+
+# Alias for type of resource info returned by OpenFermion
+OpenFermionResourceInfo = ResourceInfo[AlgorithmParameters]

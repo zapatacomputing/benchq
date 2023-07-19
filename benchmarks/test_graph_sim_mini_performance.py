@@ -1,20 +1,9 @@
 import itertools
-from pathlib import Path
 
 import pytest
-from orquestra.integrations.qiskit.conversions import import_from_qiskit
 from orquestra.quantum.circuits import CNOT, RX, Circuit, H, S, X, Z
-from qiskit import QuantumCircuit
 
 from benchq.compilation import jl, pyliqtr_transpile_to_clifford_t
-
-H_CHAIN_CIRCUIT_PATH = (
-    Path(__file__).parent.parent
-    / "tests"
-    / "benchq"
-    / "compilation"
-    / "h_chain_circuit.qasm"
-)
 
 
 @pytest.mark.parametrize(
@@ -45,16 +34,6 @@ H_CHAIN_CIRCUIT_PATH = (
                 Circuit([RX(0.237482734682374687)(0)]), 1e-10
             ),
             id="rotation chain",
-        ),
-        # h_chain_from_qasm circuit
-        pytest.param(
-            pyliqtr_transpile_to_clifford_t(
-                import_from_qiskit(
-                    QuantumCircuit.from_qasm_file(str(H_CHAIN_CIRCUIT_PATH))
-                ),
-                1e-10,
-            ),
-            id="h_chain_from_qasm",
         ),
     ],
 )
