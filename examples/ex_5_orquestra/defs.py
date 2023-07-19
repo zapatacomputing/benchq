@@ -9,7 +9,10 @@ import os
 from orquestra import sdk
 
 from benchq.algorithms.time_evolution import qsp_time_evolution_algorithm
-from benchq.data_structures import BasicArchitectureModel, ErrorBudget
+from benchq.data_structures import ErrorBudget
+from benchq.data_structures.hardware_architecture_models import (
+    BASIC_SC_ARCHITECTURE_MODEL,
+)
 from benchq.problem_ingestion import get_vlasov_hamiltonian
 from benchq.resource_estimation.azure import AzureResourceEstimator
 from benchq.resource_estimation.graph import (
@@ -19,30 +22,31 @@ from benchq.resource_estimation.graph import (
     transpile_to_native_gates,
 )
 
-task_deps = [sdk.PythonImports("pyscf==2.2.0", "openfermionpyscf==0.5")]
+task_deps = [
+    sdk.PythonImports("pyscf==2.2.0", "stim==1.10"),
+    sdk.GithubImport("zapatacomputing/benchq", git_ref="main"),
+]
 ms_task_deps = [
     sdk.PythonImports(
         "pyscf==2.2.0",
-        "openfermionpyscf==0.5",
         "azure-quantum==0.28.262328b1",
-        "pyqir==0.8.0",
-        "qiskit_qir==0.3.1",
-        "qiskit_ionq==0.3.10",
-    )
+    ),
+    sdk.GithubImport("zapatacomputing/benchq", git_ref="main"),
 ]
+
 standard_task = sdk.task(
-    source_import=sdk.GitImport.infer(),
+    source_import=sdk.InlineImport(),
     dependency_imports=task_deps,
     resources=sdk.Resources(memory="4Gi"),
 )
 
 task_with_julia = sdk.task(
-    source_import=sdk.GitImport.infer(),
+    source_import=sdk.InlineImport(),
     dependency_imports=task_deps,
-    custom_image="mstechly/ta2-julia-test",
+    custom_image="hub.nexus.orquestra.io/users/james.clark/benchq-ce:0.51.0",
 )
 
-ms_task = sdk.task(source_import=sdk.GitImport.infer(), dependency_imports=ms_task_deps)
+ms_task = sdk.task(source_import=sdk.InlineImport(), dependency_imports=ms_task_deps)
 
 
 @standard_task
@@ -58,7 +62,7 @@ def get_operator(problem_size):
     return get_vlasov_hamiltonian(N=problem_size, k=2.0, alpha=0.6, nu=0)
 
 
-@ms_task
+@task_with_julia
 def gsc_estimates(algorithm, architecture_model):
     return run_custom_resource_estimation_pipeline(
         algorithm,
@@ -73,10 +77,26 @@ def gsc_estimates(algorithm, architecture_model):
 @ms_task
 def azure_estimates(algorithm, architecture_model):
     try:
-        os.environ["AZURE_CLIENT_ID"] = sdk.secrets.get("AZURE-CLIENT-ID")
-        os.environ["AZURE_TENANT_ID"] = sdk.secrets.get("AZURE-TENANT-ID")
-        os.environ["AZURE_CLIENT_SECRET"] = sdk.secrets.get("AZURE-CLIENT-SECRET")
-        os.environ["AZURE_RESOURCE_ID"] = sdk.secrets.get("AZURE-RESOURCE-ID")
+        os.environ["AZURE_CLIENT_ID"] = sdk.secrets.get(
+            "AZURE-CLIENT-ID",
+            workspace_id="mlflow-benchq-testing-dd0cb1",
+            config_name="darpa-benchmarking",
+        )
+        os.environ["AZURE_TENANT_ID"] = sdk.secrets.get(
+            "AZURE-TENANT-ID",
+            workspace_id="mlflow-benchq-testing-dd0cb1",
+            config_name="darpa-benchmarking",
+        )
+        os.environ["AZURE_CLIENT_SECRET"] = sdk.secrets.get(
+            "AZURE-CLIENT-SECRET",
+            workspace_id="mlflow-benchq-testing-dd0cb1",
+            config_name="darpa-benchmarking",
+        )
+        os.environ["AZURE_RESOURCE_ID"] = sdk.secrets.get(
+            "AZURE-RESOURCE-ID",
+            workspace_id="mlflow-benchq-testing-dd0cb1",
+            config_name="darpa-benchmarking",
+        )
     except sdk.exceptions.NotFoundError as e:
         print(
             "Cannot load the Azure secrets for execution on cluster, "
@@ -95,10 +115,7 @@ def azure_estimates(algorithm, architecture_model):
 def example_workflow():
     evolution_time = 5.0
     error_budget = ErrorBudget.from_even_split(total_failure_tolerance=1e-3)
-    architecture_model = BasicArchitectureModel(
-        physical_qubit_error_rate=1e-3,
-        surface_code_cycle_time_in_seconds=1e-6,
-    )
+    architecture_model = BASIC_SC_ARCHITECTURE_MODEL
 
     results = []
 
