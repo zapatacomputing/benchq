@@ -106,7 +106,8 @@ class ChemistryApplicationInstance:
             SCFConvergenceError: If the SCF calculation does not converge.
         """
         molecule = self.get_pyscf_molecule()
-        mean_field_object = (scf.RHF if self.multiplicity == 1 else scf.ROHF)(molecule)
+        mean_field_object = (scf.RHF if self.multiplicity ==
+                             1 else scf.ROHF)(molecule)
 
         if self.scf_options is not None:
             mean_field_object.run(**self.scf_options)
@@ -124,23 +125,20 @@ class ChemistryApplicationInstance:
             )
         return molecule, mean_field_object
 
-    def get_occupied_and_active_indicies_with_FNO(
+    def get_molecular_data_with_FNO(
         self,
     ) -> Tuple[openfermion.MolecularData, List[int], List[int]]:
         """
         Reduce the virtual space with the frozen natural orbital (FNO)
-        approach and get occupied and active orbital indicies needed for
-        computing the fermionic Hamiltonian.
+        approach and return an updated PyscfMolecularData object.
 
         Returns:
             molecular data: A PyscfMolecularData object.
-            occupied_indices: A list of molecular orbitals not in the active space.
-                              They need to be consecutive values.
-            active_indicies: A list of molecular orbitals to include in the active space. # noqa:E501
 
         Raises:
             SCFConvergenceError: If the SCF calculation does not converge.
         """
+
         molecular_data = self._get_molecular_data()
         mean_field_object = molecular_data._pyscf_data["scf"]
 
@@ -167,7 +165,7 @@ class ChemistryApplicationInstance:
             mp2 = mp.MP2(mean_field_object)
 
         mp2.verbose = 4
-        mp2.run()
+        mp2 = mp2.run()
         mp2_energy = mean_field_object.e_tot + mp2.e_corr
         molecular_data._pyscf_data["mp2"] = mp2_energy
 
@@ -177,28 +175,16 @@ class ChemistryApplicationInstance:
             self.fno_n_virtual_natural_orbitals,
         )
 
-        molecular_data.canonical_orbitals = natural_orbital_coefficients
+        if len(frozen_natural_orbitals) != 0:
+            molecular_data.canonical_orbitals = natural_orbital_coefficients[:, n_frozen_core_orbitals:-len(
+                frozen_natural_orbitals)]
+        else:
+            molecular_data.canonical_orbitals = natural_orbital_coefficients[:,
+                                                                             n_frozen_core_orbitals:]
+
         mean_field_object.mo_coeff = molecular_data.canonical_orbitals
 
-        one_body_integrals, two_body_integrals = compute_integrals(
-            mean_field_object._eri, mean_field_object
-        )
-
-        molecular_data.one_body_integrals = one_body_integrals
-        molecular_data.two_body_integrals = two_body_integrals
-        molecular_data.overlap_integrals = mean_field_object.get_ovlp()
-
-        all_orbital_indicies = list(range(molecular_data.n_orbitals))
-        occupied_indices = list(range(n_frozen_core_orbitals))
-
-        if len(frozen_natural_orbitals) != 0:
-            active_indicies = all_orbital_indicies[
-                len(occupied_indices) : -len(frozen_natural_orbitals)
-            ]
-        else:
-            active_indicies = all_orbital_indicies[len(occupied_indices) :]
-
-        return molecular_data, occupied_indices, active_indicies
+        return molecular_data
 
     def get_active_space_hamiltonian(self) -> openfermion.InteractionOperator:
         """Generate the fermionic Hamiltonian corresponding to the instance's
@@ -222,21 +208,29 @@ class ChemistryApplicationInstance:
             or self.fno_threshold
             or self.fno_n_virtual_natural_orbitals
         ):
-            (
-                molecular_data,
-                occupied_indices,
-                active_indices,
-            ) = self.get_occupied_and_active_indicies_with_FNO()
 
-            return molecular_data.get_molecular_hamiltonian(
-                occupied_indices=occupied_indices, active_indices=active_indices
+            molecular_data = self.get_molecular_data_with_FNO()
+            one_body_integrals, two_body_integrals = self._compute_integrals(
+                molecular_data)
+            molecular_data.one_body_integrals = one_body_integrals
+            molecular_data.two_body_integrals = two_body_integrals
+            molecular_data.overlap_integrals = molecular_data._pyscf_data["scf"].get_ovlp(
             )
+
+            return molecular_data.get_molecular_hamiltonian()
 
         else:
             molecular_data = self._get_molecular_data()
+            one_body_integrals, two_body_integrals = self._compute_integrals(
+                molecular_data)
+            molecular_data.one_body_integrals = one_body_integrals
+            molecular_data.two_body_integrals = two_body_integrals
+            molecular_data.overlap_integrals = molecular_data._pyscf_data["scf"].get_ovlp(
+            )
 
             if self.freeze_core:
-                n_frozen_core = self._set_frozen_core_orbitals(molecular_data).frozen
+                n_frozen_core = self._set_frozen_core_orbitals(
+                    molecular_data).frozen
                 if n_frozen_core > 0:
                     self.occupied_indices = list(range(n_frozen_core))
 
@@ -303,20 +297,32 @@ class ChemistryApplicationInstance:
         pyscf_data["mol"] = molecule
         pyscf_data["scf"] = mean_field_object
 
-        molecular_data.canonical_orbitals = mean_field_object.mo_coeff.astype(float)
-        molecular_data.orbital_energies = mean_field_object.mo_energy.astype(float)
-
-        one_body_integrals, two_body_integrals = compute_integrals(
-            mean_field_object._eri, mean_field_object
-        )
-        molecular_data.one_body_integrals = one_body_integrals
-        molecular_data.two_body_integrals = two_body_integrals
-        molecular_data.overlap_integrals = mean_field_object.get_ovlp()
+        molecular_data.canonical_orbitals = mean_field_object.mo_coeff.astype(
+            float)
+        molecular_data.orbital_energies = mean_field_object.mo_energy.astype(
+            float)
 
         pyscf_molecular_data = PyscfMolecularData.__new__(PyscfMolecularData)
         pyscf_molecular_data.__dict__.update(molecule.__dict__)
 
         return molecular_data
+
+    def _compute_integrals(self, molecular_data):
+        """
+        For a given PyscfMolecularData compute one- and two-body integrals.
+
+        Args:
+            molecular_data: PyscfMolecularData object.
+
+        Returns:
+            One- and two-body integrals. 
+
+        """
+        one_body_integrals, two_body_integrals = compute_integrals(
+            molecular_data._pyscf_data["scf"]._eri, molecular_data._pyscf_data["scf"]
+        )
+
+        return one_body_integrals, two_body_integrals
 
     def _set_frozen_core_orbitals(self, molecular_data) -> mp.mp2.MP2:
         """
@@ -371,7 +377,8 @@ def generate_hydrogen_chain_instance(
         bond_distance: The distance between the hydrogen atoms (Angstrom).
     """
     return ChemistryApplicationInstance(
-        geometry=[("H", (0, 0, i * bond_distance)) for i in range(number_of_hydrogens)],
+        geometry=[("H", (0, 0, i * bond_distance))
+                  for i in range(number_of_hydrogens)],
         basis=basis,
         charge=0,
         multiplicity=number_of_hydrogens % 2 + 1,
