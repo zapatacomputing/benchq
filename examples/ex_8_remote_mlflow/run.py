@@ -5,16 +5,16 @@ Prerequisites:
 Running:
 1. Comment/uncomment "in_process"/"prod-d" lines to select the runtime to use.
 2. ``cd`` to the repo root.
-3. Run ``python -m examples.ex_5_orquestra.run``. This ensures that relative
+3. Run ``python -m examples.ex_8_remote_mlflow.run``. This ensures that relative
    imports work correctly.
 """
 
-from .defs import example_workflow
+from .defs import mlflow_example_workflow
 
 
 def main():
     # example workflow which roughly reproduces ex_3_packages_comparison
-    wf = example_workflow()
+    wf = mlflow_example_workflow()
 
     # Run locally, sequentially, in a single Python process. Useful for debugging, but
     # doesn't use Orquestra to its full potential.
