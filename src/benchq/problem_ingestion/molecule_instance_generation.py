@@ -303,9 +303,14 @@ class ChemistryApplicationInstance:
             molecule = self.get_pyscf_molecule()
             fci = pyscf.tools.fcidump.read(self.mean_field_obejct_from_fcidump)
             eri = pyscf.ao2mo.restore("s1", fci["H2"], fci["H1"].shape[0])
+            
+
+            nalpha = (fci["NELEC"] + fci["MS2"]) // 2
+            nbeta = nalpha - fci["MS2"]
+
+
             molecule, mean_field_object = cas_to_pyscf(
-                fci["H1"], eri, fci["ECORE"], fci["NELEC"] // 2, fci["NELEC"] // 2
-            )
+                fci["H1"], eri, fci["ECORE"], nalpha, nbeta)
 
         else:
             molecule, mean_field_object = self._run_pyscf()
