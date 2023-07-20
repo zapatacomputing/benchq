@@ -7,12 +7,15 @@ from typing import Tuple
 import numpy as np
 from openfermion.resource_estimates import df, sf
 
-from benchq.data_structures.resource_info import OpenFermionResourceInfo
+from benchq.data_structures.resource_info import (
+    ExtendedOpenFermionResourceInfo,
+    OpenFermionExtra,
+)
 from benchq.resource_estimation._compute_lambda import (
     compute_lambda_df,
     compute_lambda_sf,
 )
-from benchq.resource_estimation.footprint_analysis import (
+from benchq.resource_estimation._footprint_analysis import (
     AlgorithmParameters,
     CostEstimate,
     cost_estimator,
@@ -143,9 +146,12 @@ def get_double_factorized_qpe_toffoli_and_qubit_cost(
 
 def get_physical_cost(
     num_logical_qubits: int,
-    num_toffoli: int,
+    num_toffoli: int = 0,
+    num_T: int = 0,
     surface_code_cycle_time: datetime.timedelta = datetime.timedelta(microseconds=1),
-) -> OpenFermionResourceInfo:
+    physical_error_rate=1.0e-3,
+    routing_overhead_proportion=0.5,
+) -> ExtendedOpenFermionResourceInfo:
     """Get the estimated resources for single factorized QPE as described in PRX Quantum
     2, 030305.
 
@@ -158,10 +164,11 @@ def get_physical_cost(
 
     best_cost, best_params = cost_estimator(
         num_logical_qubits,
-        num_toffoli,
+        num_toffoli=num_toffoli,
+        num_T=num_T,
         surface_code_cycle_time=surface_code_cycle_time,
-        physical_error_rate=1.0e-3,
-        portion_of_bounding_box=1.0,
+        physical_error_rate=physical_error_rate,
+        routing_overhead_proportion=routing_overhead_proportion,
     )
 
     return _openfermion_result_to_resource_info(best_cost, best_params)
@@ -169,8 +176,8 @@ def get_physical_cost(
 
 def _openfermion_result_to_resource_info(
     cost: CostEstimate, algorithm_parameters: AlgorithmParameters
-) -> OpenFermionResourceInfo:
-    return OpenFermionResourceInfo(
+) -> ExtendedOpenFermionResourceInfo:
+    return ExtendedOpenFermionResourceInfo(
         n_physical_qubits=cost.physical_qubit_count,
         n_logical_qubits=algorithm_parameters.max_allocated_logical_qubits,
         total_time_in_seconds=cost.duration.total_seconds(),
@@ -178,5 +185,8 @@ def _openfermion_result_to_resource_info(
         logical_error_rate=cost.algorithm_failure_probability,
         decoder_info=None,
         widget_name=algorithm_parameters.magic_state_factory.details,
-        extra=algorithm_parameters,
+        extra=OpenFermionExtra(
+            failure_prob=algorithm_parameters.magic_state_factory.failure_rate,
+            rounds=algorithm_parameters.magic_state_factory.rounds,
+        ),
     )
