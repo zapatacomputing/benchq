@@ -18,10 +18,13 @@ from .resource_info import (
     AzureExtra,
     AzureResourceInfo,
     DecoderInfo,
+    ExtendedOpenFermionResourceInfo,
     ExtrapolatedGraphData,
     ExtrapolatedGraphResourceInfo,
     GraphData,
     GraphResourceInfo,
+    OpenFermionExtra,
+    OpenFermionResourceInfo,
     ResourceInfo,
 )
 
@@ -44,4 +47,7 @@ __all__ = [
     "ExtrapolatedGraphResourceInfo",
     "AzureResourceInfo",
     "AzureExtra",
+    "OpenFermionExtra",
+    "ExtendedOpenFermionResourceInfo",
+    "OpenFermionResourceInfo",
 ]
