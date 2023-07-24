@@ -184,6 +184,8 @@ class ChemistryApplicationInstance:
             ]
 
         mean_field_object.mo_coeff = molecular_data.canonical_orbitals
+        molecular_data.n_orbitals = molecular_data.canonical_orbitals.shape[1]
+        molecular_data.n_qubits = 2 * molecular_data.n_orbitals
 
         return molecular_data
 
