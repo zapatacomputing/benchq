@@ -106,8 +106,7 @@ class ChemistryApplicationInstance:
             SCFConvergenceError: If the SCF calculation does not converge.
         """
         molecule = self.get_pyscf_molecule()
-        mean_field_object = (scf.RHF if self.multiplicity ==
-                             1 else scf.ROHF)(molecule)
+        mean_field_object = (scf.RHF if self.multiplicity == 1 else scf.ROHF)(molecule)
 
         if self.scf_options is not None:
             mean_field_object.run(**self.scf_options)
@@ -176,11 +175,13 @@ class ChemistryApplicationInstance:
         )
 
         if len(frozen_natural_orbitals) != 0:
-            molecular_data.canonical_orbitals = natural_orbital_coefficients[:, n_frozen_core_orbitals:-len(
-                frozen_natural_orbitals)]
+            molecular_data.canonical_orbitals = natural_orbital_coefficients[
+                :, n_frozen_core_orbitals : -len(frozen_natural_orbitals)
+            ]
         else:
-            molecular_data.canonical_orbitals = natural_orbital_coefficients[:,
-                                                                             n_frozen_core_orbitals:]
+            molecular_data.canonical_orbitals = natural_orbital_coefficients[
+                :, n_frozen_core_orbitals:
+            ]
 
         mean_field_object.mo_coeff = molecular_data.canonical_orbitals
 
@@ -208,29 +209,17 @@ class ChemistryApplicationInstance:
             or self.fno_threshold
             or self.fno_n_virtual_natural_orbitals
         ):
-
             molecular_data = self.get_molecular_data_with_FNO()
-            one_body_integrals, two_body_integrals = self._compute_integrals(
-                molecular_data)
-            molecular_data.one_body_integrals = one_body_integrals
-            molecular_data.two_body_integrals = two_body_integrals
-            molecular_data.overlap_integrals = molecular_data._pyscf_data["scf"].get_ovlp(
-            )
+            molecular_data = self._compute_integrals(molecular_data)
 
             return molecular_data.get_molecular_hamiltonian()
 
         else:
             molecular_data = self._get_molecular_data()
-            one_body_integrals, two_body_integrals = self._compute_integrals(
-                molecular_data)
-            molecular_data.one_body_integrals = one_body_integrals
-            molecular_data.two_body_integrals = two_body_integrals
-            molecular_data.overlap_integrals = molecular_data._pyscf_data["scf"].get_ovlp(
-            )
+            molecular_data = self._compute_integrals(molecular_data)
 
             if self.freeze_core:
-                n_frozen_core = self._set_frozen_core_orbitals(
-                    molecular_data).frozen
+                n_frozen_core = self._set_frozen_core_orbitals(molecular_data).frozen
                 if n_frozen_core > 0:
                     self.occupied_indices = list(range(n_frozen_core))
 
@@ -297,10 +286,8 @@ class ChemistryApplicationInstance:
         pyscf_data["mol"] = molecule
         pyscf_data["scf"] = mean_field_object
 
-        molecular_data.canonical_orbitals = mean_field_object.mo_coeff.astype(
-            float)
-        molecular_data.orbital_energies = mean_field_object.mo_energy.astype(
-            float)
+        molecular_data.canonical_orbitals = mean_field_object.mo_coeff.astype(float)
+        molecular_data.orbital_energies = mean_field_object.mo_energy.astype(float)
 
         pyscf_molecular_data = PyscfMolecularData.__new__(PyscfMolecularData)
         pyscf_molecular_data.__dict__.update(molecule.__dict__)
@@ -309,20 +296,24 @@ class ChemistryApplicationInstance:
 
     def _compute_integrals(self, molecular_data):
         """
-        For a given PyscfMolecularData compute one- and two-body integrals.
+        For a given PyscfMolecularData compute one- and two-body integrals,
+        as well as overlap integrals.
 
         Args:
             molecular_data: PyscfMolecularData object.
 
         Returns:
-            One- and two-body integrals. 
-
+            Updated PyscfMolecularData object with one- and two-body integrals,
+            as well as overlap integrals.
         """
         one_body_integrals, two_body_integrals = compute_integrals(
             molecular_data._pyscf_data["scf"]._eri, molecular_data._pyscf_data["scf"]
         )
 
-        return one_body_integrals, two_body_integrals
+        molecular_data.one_body_integrals = one_body_integrals
+        molecular_data.two_body_integrals = two_body_integrals
+        molecular_data.overlap_integrals = molecular_data._pyscf_data["scf"].get_ovlp()
+        return molecular_data
 
     def _set_frozen_core_orbitals(self, molecular_data) -> mp.mp2.MP2:
         """
@@ -377,8 +368,7 @@ def generate_hydrogen_chain_instance(
         bond_distance: The distance between the hydrogen atoms (Angstrom).
     """
     return ChemistryApplicationInstance(
-        geometry=[("H", (0, 0, i * bond_distance))
-                  for i in range(number_of_hydrogens)],
+        geometry=[("H", (0, 0, i * bond_distance)) for i in range(number_of_hydrogens)],
         basis=basis,
         charge=0,
         multiplicity=number_of_hydrogens % 2 + 1,
