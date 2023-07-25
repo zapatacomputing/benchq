@@ -112,7 +112,8 @@ class ChemistryApplicationInstance:
             SCFConvergenceError: If the SCF calculation does not converge.
         """
         molecule = self.get_pyscf_molecule()
-        mean_field_object = (scf.RHF if self.multiplicity == 1 else scf.ROHF)(molecule)
+        mean_field_object = (scf.RHF if self.multiplicity ==
+                             1 else scf.ROHF)(molecule)
 
         if self.scf_options is not None:
             mean_field_object.run(**self.scf_options)
@@ -199,10 +200,10 @@ class ChemistryApplicationInstance:
 
         if len(frozen_natural_orbitals) != 0:
             active_indicies = all_orbital_indicies[
-                len(occupied_indices) : -len(frozen_natural_orbitals)
+                len(occupied_indices): -len(frozen_natural_orbitals)
             ]
         else:
-            active_indicies = all_orbital_indicies[len(occupied_indices) :]
+            active_indicies = all_orbital_indicies[len(occupied_indices):]
 
         return molecular_data, occupied_indices, active_indicies
 
@@ -242,8 +243,8 @@ class ChemistryApplicationInstance:
             molecular_data = self._get_molecular_data()
 
             if self.freeze_core:
-
-                n_frozen_core = self._set_frozen_core_orbitals(molecular_data).frozen
+                n_frozen_core = self._set_frozen_core_orbitals(
+                    molecular_data).frozen
                 if n_frozen_core > 0:
                     self.occupied_indices = list(range(n_frozen_core))
 
@@ -303,14 +304,13 @@ class ChemistryApplicationInstance:
             molecule = self.get_pyscf_molecule()
             fci = pyscf.tools.fcidump.read(self.mean_field_obejct_from_fcidump)
             eri = pyscf.ao2mo.restore("s1", fci["H2"], fci["H1"].shape[0])
-            
 
             nalpha = (fci["NELEC"] + fci["MS2"]) // 2
             nbeta = nalpha - fci["MS2"]
 
-
-            molecule, mean_field_object = cas_to_pyscf(
-                fci["H1"], eri, fci["ECORE"], nalpha, nbeta)
+            _, mean_field_object = cas_to_pyscf(
+                fci["H1"], eri, fci["ECORE"], nalpha, nbeta
+            )
 
         else:
             molecule, mean_field_object = self._run_pyscf()
@@ -325,8 +325,10 @@ class ChemistryApplicationInstance:
         pyscf_data["mol"] = molecule
         pyscf_data["scf"] = mean_field_object
 
-        molecular_data.canonical_orbitals = mean_field_object.mo_coeff.astype(float)
-        molecular_data.orbital_energies = mean_field_object.mo_energy.astype(float)
+        molecular_data.canonical_orbitals = mean_field_object.mo_coeff.astype(
+            float)
+        molecular_data.orbital_energies = mean_field_object.mo_energy.astype(
+            float)
 
         one_body_integrals, two_body_integrals = compute_integrals(
             mean_field_object._eri, mean_field_object
@@ -393,7 +395,8 @@ def generate_hydrogen_chain_instance(
         bond_distance: The distance between the hydrogen atoms (Angstrom).
     """
     return ChemistryApplicationInstance(
-        geometry=[("H", (0, 0, i * bond_distance)) for i in range(number_of_hydrogens)],
+        geometry=[("H", (0, 0, i * bond_distance))
+                  for i in range(number_of_hydrogens)],
         basis=basis,
         charge=0,
         multiplicity=number_of_hydrogens % 2 + 1,
