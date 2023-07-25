@@ -1,26 +1,8 @@
 name: Build and Push Python Wheel by triggering cicd-actions workflow via Github API Call
 
 on:
-  push:
-    tags:
-      - "*"
-  workflow_dispatch:
-    inputs:
-      pypi:
-        description: Push to PyPI
-        required: false
-        default: false
-        type: boolean
-      pypitest:
-        description: Push to PyPI Test
-        required: false
-        default: true
-        type: boolean
-      nexus:
-        description: Push to Nexus
-        required: false
-        default: false
-        type: boolean
+  release:
+    types: [published]
 
 jobs:
   trigger-build-and-push:
@@ -41,9 +23,9 @@ jobs:
                 "repository": "'"$repository"'",
                 "ref": "'"$ref"'",
                 "package_directory": "'"$package_directory"'",
-                "pypi": "'"$push_pypi"'",
-                "pypitest": "true",
-                "nexus": "'"$push_nexus"'"
+                "pypi": "true",
+                "pypitest": "false",
+                "nexus": "false"
               }
             }
           '
