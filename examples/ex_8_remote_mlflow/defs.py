@@ -37,7 +37,6 @@ gsc_task_deps = [
     sdk.PythonImports(
         "pyscf==2.2.0",
         "mlflow>=2.3.2",
-        "stim==1.10",
     ),
     sdk.GithubImport("zapatacomputing/benchq", git_ref="main"),
 ]
