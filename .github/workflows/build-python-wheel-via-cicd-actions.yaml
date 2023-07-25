@@ -1,0 +1,59 @@
+name: Build and Push Python Wheel by triggering cicd-actions workflow via Github API Call
+
+on:
+  push:
+    tags:
+      - "*"
+  workflow_dispatch:
+    inputs:
+      pypi:
+        description: Push to PyPI
+        required: false
+        default: false
+        type: boolean
+      pypitest:
+        description: Push to PyPI Test
+        required: false
+        default: true
+        type: boolean
+      nexus:
+        description: Push to Nexus
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  trigger-build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger cicd-actions repository workflow over Github API
+        run: |
+          curl -L \
+          "https://api.github.com/repos/zapatacomputing/cicd-actions/actions/workflows/30157612/dispatches" \
+          -H "Authorization: token "$USER_TOKEN \
+          -H 'Accept: application/vnd.github+json' \
+          --fail-with-body \
+          --data-raw '
+          {
+            "ref": "main",
+            "inputs":
+              {
+                "repository": "'"$repository"'",
+                "ref": "'"$ref"'",
+                "package_directory": "'"$package_directory"'",
+                "pypi": "'"$push_pypi"'",
+                "pypitest": "'"$push_pypitest"'",
+                "nexus": "'"$push_nexus"'"
+              }
+            }
+          '
+        env:
+          USER_TOKEN: ${{ secrets.PAGES_TOKEN }}
+          repository: ${{github.repository}}
+          ref: ${{ github.ref_name }}
+          package_directory: "."
+          github_sha: ${{ github.sha }}
+          build_number: ${{ github.run_number }}
+          push_pypi: ${{ github.event.inputs.pypi }}
+          push_pypitest: ${{ github.event.inputs.pypitest }}
+          push_nexus: ${{ github.event.inputs.nexus }}
