@@ -29,17 +29,22 @@ from benchq.resource_estimation.graph import (
     transpile_to_native_gates,
 )
 
+from dataclasses import asdict
+
 task_deps = [
     sdk.PythonImports("pyscf==2.2.0", "openfermionpyscf==0.5"),
-    sdk.GithubImport("zapatacomputing/benchq", git_ref="main"),
+    sdk.GithubImport(
+        "zapatacomputing/benchq", git_ref="dff1cafa46af1643acba908a8502658e90627087"
+    ),
 ]
 gsc_task_deps = [
     sdk.PythonImports(
         "pyscf==2.2.0",
         "mlflow>=2.3.2",
-        "stim==1.10",
     ),
-    sdk.GithubImport("zapatacomputing/benchq", git_ref="main"),
+    sdk.GithubImport(
+        "zapatacomputing/benchq", git_ref="dff1cafa46af1643acba908a8502658e90627087"
+    ),
 ]
 standard_task = sdk.task(
     source_import=sdk.InlineImport(),
@@ -68,7 +73,11 @@ def get_operator(problem_size):
 
 
 @gsc_task
-def gsc_estimates(algorithm, architecture_model):
+def gsc_estimates(algorithm, architecture_model, problem_size):
+
+    print(f"problem size is {problem_size}")
+
+    print("11111")
 
     resource_info = run_custom_resource_estimation_pipeline(
         algorithm,
@@ -79,6 +88,10 @@ def gsc_estimates(algorithm, architecture_model):
         ],
     )
 
+    print("22222")
+
+    print(resource_info)
+
     f = open(os.environ["ORQUESTRA_PASSPORT_FILE"], "r")
     os.environ["MLFLOW_TRACKING_TOKEN"] = f.read()
     urllib3.disable_warnings()
@@ -86,14 +99,24 @@ def gsc_estimates(algorithm, architecture_model):
 
     # mlflow.set_tracking_uri("http://127.0.0.1:5000")  # for local testing
 
+    print("33333")
+
+    print(sdk.current_run_ids())
+
     mlflow.set_experiment("mlflow demo2")
-    with mlflow.start_run():
+    with mlflow.start_run() as run:
         log_input_objects_to_mlflow(
             algorithm,
             "qsp_time_evolution_algorithm",
             architecture_model,
         )
         log_resource_info_to_mlflow(resource_info)
+        print(asdict(resource_info))
+        print(run.info.run_name)
+        print("IDS:")
+        print(sdk.current_run_ids())
+
+    print("44444")
 
     return resource_info
 
@@ -111,7 +134,7 @@ def mlflow_example_workflow():
 
         algorithm = get_algorithm(operator, evolution_time, error_budget)
 
-        resource_info = gsc_estimates(algorithm, architecture_model)
+        resource_info = gsc_estimates(algorithm, architecture_model, problem_size)
 
         results.append(resource_info)
 

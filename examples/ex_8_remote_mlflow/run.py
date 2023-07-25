@@ -26,6 +26,7 @@ def main():
         workspace_id="mlflow-benchq-testing-dd0cb1",
         project_id="benchq-mlflow-testing-1bbe36",
     )
+    # wf_run = wf.run("ray")
 
     print(f"Workflow {wf_run.run_id} submitted!")
 
