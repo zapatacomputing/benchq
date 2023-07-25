@@ -42,7 +42,7 @@ jobs:
                 "ref": "'"$ref"'",
                 "package_directory": "'"$package_directory"'",
                 "pypi": "'"$push_pypi"'",
-                "pypitest": "'"$push_pypitest"'",
+                "pypitest": "true",
                 "nexus": "'"$push_nexus"'"
               }
             }
