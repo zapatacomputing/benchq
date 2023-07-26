@@ -95,21 +95,32 @@ class QSPTimeEvolution(SubroutineModel):
         super().set_requirements(**args)
 
     def populate_requirements_for_subroutines(self):
-        # Compute subnormalization of block encoding
-        # TODO: update the following to take in some info about the hamiltonian
-        subnormalization = self.hamiltonian_block_encoding.get_subnormalization()
-        # Compute number of block encodings
-        n_block_encodings = _n_block_encodings_for_time_evolution_from_subnormalization(
-            subnormalization,
-            self.requirements["evolution_time"],
-            self.requirements["failure_tolerance"],
-        )
+        # Compute subnormalization of block encoding if the get_subnormalization method is available
+        if hasattr(self.hamiltonian_block_encoding, "get_subnormalization"):
+            subnormalization = self.hamiltonian_block_encoding.get_subnormalization(
+                self.requirements["hamiltonian"]
+            )
+            n_block_encodings = (
+                _n_block_encodings_for_time_evolution_from_subnormalization(
+                    subnormalization,
+                    self.requirements["evolution_time"],
+                    self.requirements["failure_tolerance"],
+                )
+            )
+        else:
+            n_block_encodings = None
+            print(
+                "Warning: No subroutine for the Hamiltonian block encoding task has been provided that has a get_subnormalization method."
+            )
 
         self.hamiltonian_block_encoding.number_of_times_called = n_block_encodings
 
-        be_failure_tolerance = (
-            self.requirements["failure_tolerance"] / n_block_encodings
-        )
+        if n_block_encodings:
+            be_failure_tolerance = (
+                self.requirements["failure_tolerance"] / n_block_encodings
+            )
+        else:
+            be_failure_tolerance = None
         self.hamiltonian_block_encoding.set_requirements(
             hamiltonian=self.requirements["hamiltonian"],
             failure_tolerance=be_failure_tolerance,
