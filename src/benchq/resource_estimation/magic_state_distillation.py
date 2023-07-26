@@ -8,6 +8,14 @@ from benchq.data_structures.hardware_architecture_models import (
     SCModel,
 )
 
+from benchq.data_structures import SubroutineModel
+
+from openfermion.resource_estimates.surface_code_compilation.physical_costing import (
+    _autoccz_factory_dimensions,
+    _compute_autoccz_distillation_error,
+    _physical_qubits_per_logical_qubit,
+)
+
 
 @dataclass(frozen=True)
 class Widget:
@@ -85,3 +93,72 @@ def default_widget_list_for_sc(_architecture_model: SCModel) -> Iterable[Widget]
             128,
         ),
     ]
+
+
+class AutoCCZDistillation(SubroutineModel):
+    def __init__(
+        self,
+        task_name="toffoli_gate",
+        requirements=None,
+        hardware_architecture_model=SubroutineModel("hardware_architecture_model"),
+    ):
+        super().__init__(
+            task_name,
+            requirements,
+            hardware_architecture_model=hardware_architecture_model,
+        )
+
+    def set_requirements(self, failure_tolerance):
+        args = locals()
+        # Clean up the args dictionary before setting requirements
+        args.pop("self")
+        args = {k: v for k, v in args.items() if not k.startswith("__")}
+        super().set_requirements(**args)
+
+    def populate_requirements_for_subroutines(self):
+        t_state_physical_error_rate = (
+            self.hardware_architecture_model.get_physical_error_rate()
+        )
+        surface_code_cycle_time_in_seconds = (
+            self.hardware_architecture_model.get_cycle_time()
+        )
+
+        ### Find the smallest-volume factory that meets the allotted failure tolerance
+        distillation_failure_tolerance = self.requirements["failure_tolerance"]
+        width, height, depth, l1_distance, l2_distance = self.find_smallest_factory(
+            t_state_physical_error_rate, distillation_failure_tolerance
+        )
+
+        number_of_surface_code_cycles = depth * l2_distance
+        self.hardware_architecture_model.number_of_times_called = (
+            number_of_surface_code_cycles
+        )
+        self.hardware_architecture_model.requirements["qubits"] = (
+            width * height * _physical_qubits_per_logical_qubit(l2_distance)
+        )
+        self.hardware_architecture_model.requirements["runtime_in_seconds"] = (
+            number_of_surface_code_cycles * surface_code_cycle_time_in_seconds
+        )
+
+    def find_smallest_factory(
+        self, t_state_physical_error_rate, distillation_failure_tolerance
+    ):
+        best_volume = None
+        for l1_distance in range(5, 25, 2):
+            for l2_distance in range(l1_distance + 2, 41, 2):
+                width, height, depth = _autoccz_factory_dimensions(
+                    l1_distance=l1_distance, l2_distance=l2_distance
+                )
+                current_distillation_volume = width * height * depth
+                failure_rate = _compute_autoccz_distillation_error(
+                    l1_distance=l1_distance,
+                    l2_distance=l2_distance,
+                    physical_error_rate=t_state_physical_error_rate,
+                )
+
+                if failure_rate > distillation_failure_tolerance:
+                    continue
+                if best_volume is None or current_distillation_volume < best_volume:
+                    best_volume = current_distillation_volume
+
+            return width, height, depth, l1_distance, l2_distance
