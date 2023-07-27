@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1690462251912,
+  "lastUpdate": 1690467503294,
   "repoUrl": "https://github.com/zapatacomputing/benchq",
   "entries": {
     "My Project Go Benchmark": [
@@ -118,6 +118,65 @@ window.BENCHMARK_DATA = {
             "unit": "iter/sec",
             "range": "stddev: 0.01346795796880035",
             "extra": "mean: 2.2869074744519 msec\nrounds: 822"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "Sebastian.Morawiec@zapatacomputing.com",
+            "name": "Sebastian Morawiec",
+            "username": "SebastianMorawiec"
+          },
+          "committer": {
+            "email": "Sebastian.Morawiec@zapatacomputing.com",
+            "name": "Sebastian Morawiec",
+            "username": "SebastianMorawiec"
+          },
+          "distinct": true,
+          "id": "fb02338e1a4429ba32cae0dd6a7b615876fb8b06",
+          "message": "change ref to sub workflow, reduce permissions",
+          "timestamp": "2023-07-27T16:13:24+02:00",
+          "tree_id": "abda40092767503d0cd8f698169c365bcd078c9c",
+          "url": "https://github.com/zapatacomputing/benchq/commit/fb02338e1a4429ba32cae0dd6a7b615876fb8b06"
+        },
+        "date": 1690467502754,
+        "tool": "pytest",
+        "benches": [
+          {
+            "name": "benchmarks/test_graph_sim_mini_performance.py::test_graph_sim_mini[many single qubit gates]",
+            "value": 2.813128228499203,
+            "unit": "iter/sec",
+            "range": "stddev: 0.0852747423699998",
+            "extra": "mean: 355.47615280000855 msec\nrounds: 5"
+          },
+          {
+            "name": "benchmarks/test_graph_sim_mini_performance.py::test_graph_sim_mini[GHZ state]",
+            "value": 936.3502825456305,
+            "unit": "iter/sec",
+            "range": "stddev: 0.009462950462756114",
+            "extra": "mean: 1.0679763958433661 msec\nrounds: 1877"
+          },
+          {
+            "name": "benchmarks/test_graph_sim_mini_performance.py::test_graph_sim_mini[Fully connected state]",
+            "value": 25.207556075846746,
+            "unit": "iter/sec",
+            "range": "stddev: 0.0464576551959406",
+            "extra": "mean: 39.67064466666704 msec\nrounds: 54"
+          },
+          {
+            "name": "benchmarks/test_graph_sim_mini_performance.py::test_graph_sim_mini[CNOT chain]",
+            "value": 58.76605270379395,
+            "unit": "iter/sec",
+            "range": "stddev: 0.0037013902630292717",
+            "extra": "mean: 17.016627014926932 msec\nrounds: 67"
+          },
+          {
+            "name": "benchmarks/test_graph_sim_mini_performance.py::test_graph_sim_mini[rotation chain]",
+            "value": 547.955413210515,
+            "unit": "iter/sec",
+            "range": "stddev: 0.010063235257844536",
+            "extra": "mean: 1.8249660025090717 msec\nrounds: 1196"
           }
         ]
       }
