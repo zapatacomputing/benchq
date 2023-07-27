@@ -31,10 +31,13 @@ jobs:
         shell: bash
         run: julia -e 'using Pkg; Pkg.add("JSON"); Pkg.add("Jabalizer")'
 
+      - name: Upgrade pip
+        shell: bash
+        run: python -m pip install --upgrade pip
+
       - name: Install deps
         shell: bash
-        run: make github_actions
-
+        run: python -m pip install -e '.[dev]'
 
       # Run benchmark with `go test -bench` and stores the output to a file
       - name: Run benchmark
