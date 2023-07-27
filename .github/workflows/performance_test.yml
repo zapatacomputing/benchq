@@ -1,7 +1,7 @@
 on:
-  push:
-    branches:
-      - Morawiec/performance_testing
+  release:
+    types: [ published ]
+  workflow_dispatch:
 
 permissions:
   # contents permission to update benchmark contents in gh-pages branch
