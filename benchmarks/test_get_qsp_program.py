@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 
 import pytest
+import zipfile
 
 from benchq.algorithms.time_evolution import _n_block_encodings_for_time_evolution
 from benchq.problem_embeddings import get_qsp_program
@@ -59,13 +60,21 @@ def jw_test_case():
 
 
 def fast_load_test_cases():
-    def _load_hamiltonian(name):
-        return get_hamiltonian_from_file(
-            str(Path(__file__).parent / f"../examples/data/small_molecules/{name}.json")
-        )
+
 
     evolution_time = 5
     failure_tolerance = 1e-3
+    base_location = "./examples/data/"
+    zip_location = base_location + "small_molecules.zip"
+
+    with zipfile.ZipFile(zip_location, 'r') as zip_ref:
+        zip_ref.extractall(base_location)
+
+    def _load_hamiltonian(name):
+        return get_hamiltonian_from_file(
+            str(Path(__file__).parent / f"../{base_location}/"
+                                        f"small_molecules/{name}.json")
+        )
 
     return [
         pytest.param(
@@ -90,5 +99,4 @@ def fast_load_test_cases():
     [vlasov_test_case(), jw_test_case(), *fast_load_test_cases()],
 )
 def test_get_qsp_program(benchmark, operator, n_block_encodings):
-
     benchmark(get_qsp_program, operator, n_block_encodings)
