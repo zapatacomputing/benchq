@@ -44,10 +44,9 @@ jobs:
       - name: Store benchmark result
         uses: benchmark-action/github-action-benchmark@70405016b032d44f409e4b1b451c40215cbe2393
         with:
-          name: My Project Go Benchmark
+          name: Benchq Benchmarking
           tool: 'pytest'
           output-file-path: output.json
-          # Push and deploy GitHub pages branch automatically
           auto-push: false
       - name: Push benchmark result
         run: git push 'https://${{ secrets.GITHUB_TOKEN }}@github.com/zapatacomputing/benchq.git' gh-pages:gh-pages
