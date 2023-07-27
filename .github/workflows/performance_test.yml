@@ -1,0 +1,52 @@
+on:
+  push:
+    branches:
+      - Morawiec/performance_testing
+
+permissions:
+  # deployments permission to deploy GitHub pages website
+  deployments: write
+  # contents permission to update benchmark contents in gh-pages branch
+  contents: write
+
+
+jobs:
+  benchmark:
+    name: Performance tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Setup python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.10'
+          architecture: x64
+
+      - uses: julia-actions/setup-julia@v1
+        with:
+          version: '1.8'
+
+      - name: Install Julia deps
+        shell: bash
+        run: julia -e 'using Pkg; Pkg.add("JSON"); Pkg.add("Jabalizer")'
+
+      - name: Install deps
+        shell: bash
+        run: make github_actions
+
+
+      # Run benchmark with `go test -bench` and stores the output to a file
+      - name: Run benchmark
+        run: python -m pytest benchmarks/test_graph_sim_mini_performance.py --benchmark-json output.json
+      # gh-pages branch is updated and pushed automatically with extracted benchmark data
+      - name: Store benchmark result
+        uses: benchmark-action/github-action-benchmark@v1
+        with:
+          name: My Project Go Benchmark
+          tool: 'pytest'
+          output-file-path: output.json
+          # Push and deploy GitHub pages branch automatically
+          auto-push: false
+      # - name: Push benchmark result
+      # run: git push 'https://you:${{ secrets.GITHUB_TOKEN }}@github.com/you/repo-name.git' gh-pages:gh-pages
