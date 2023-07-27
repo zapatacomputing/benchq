@@ -9,7 +9,6 @@ permissions:
   # contents permission to update benchmark contents in gh-pages branch
   contents: write
 
-
 jobs:
   benchmark:
     name: Performance tests
@@ -51,5 +50,5 @@ jobs:
           output-file-path: output.json
           # Push and deploy GitHub pages branch automatically
           auto-push: false
-      # - name: Push benchmark result
-      # run: git push 'https://you:${{ secrets.GITHUB_TOKEN }}@github.com/you/repo-name.git' gh-pages:gh-pages
+       - name: Push benchmark result
+       run: git push 'https://${{ secrets.GITHUB_TOKEN }}@github.com/zapatacomputing/benchq.git' gh-pages:gh-pages
