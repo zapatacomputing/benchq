@@ -4,8 +4,6 @@ on:
       - Morawiec/performance_testing
 
 permissions:
-  # deployments permission to deploy GitHub pages website
-  deployments: write
   # contents permission to update benchmark contents in gh-pages branch
   contents: write
 
@@ -44,7 +42,7 @@ jobs:
         run: python -m pytest benchmarks/test_graph_sim_mini_performance.py --benchmark-json output.json
       # gh-pages branch is updated and pushed automatically with extracted benchmark data
       - name: Store benchmark result
-        uses: benchmark-action/github-action-benchmark@v1
+        uses: benchmark-action/github-action-benchmark@70405016b032d44f409e4b1b451c40215cbe2393
         with:
           name: My Project Go Benchmark
           tool: 'pytest'
