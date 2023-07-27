@@ -51,4 +51,4 @@ jobs:
           # Push and deploy GitHub pages branch automatically
           auto-push: false
        - name: Push benchmark result
-       run: git push 'https://${{ secrets.GITHUB_TOKEN }}@github.com/zapatacomputing/benchq.git' gh-pages:gh-pages
+         run: git push 'https://${{ secrets.GITHUB_TOKEN }}@github.com/zapatacomputing/benchq.git' gh-pages:gh-pages
