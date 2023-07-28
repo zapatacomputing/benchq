@@ -4,6 +4,10 @@
 import datetime
 from typing import Tuple
 
+# For silencing the pyscf output for the demo
+import os
+import contextlib
+
 import numpy as np
 from openfermion.resource_estimates import df, sf
 from openfermion.resource_estimates.molecule import pyscf_to_cas
@@ -29,7 +33,8 @@ def _validate_eri(eri: np.ndarray):
 
 
 def get_integrals_from_hamiltonian_instance(hamiltonian_instance):
-    mean_field_object = hamiltonian_instance.get_active_space_meanfield_object()
+    with open(os.devnull, "w") as f, contextlib.redirect_stdout(f):
+        mean_field_object = hamiltonian_instance.get_active_space_meanfield_object()
     h1, eri_full, _, _, _ = pyscf_to_cas(mean_field_object)
     return h1, eri_full
 
@@ -338,7 +343,15 @@ class DFHamiltonianBlockEncoding(SubroutineModel):
         super().set_requirements(**args)
 
     def populate_requirements_for_subroutines(self):
-        # self.requirements["hamiltonian"]
+        # Allocate failure tolerance
+        allocation = 0.5
+        consumed_failure_tolerance = allocation * self.requirements["failure_tolerance"]
+        remaining_failure_tolerance = (
+            self.requirements["failure_tolerance"] - consumed_failure_tolerance
+        )
+        # Convert instance into Toffoli cost
+        # Note: The openfermion functions do not naturally take in a failure
+        # tolerance so the consumed_failure_tolerance does not get used here
         h1, eri_full = get_integrals_from_hamiltonian_instance(
             self.requirements["hamiltonian"]
         )
@@ -348,9 +361,10 @@ class DFHamiltonianBlockEncoding(SubroutineModel):
             eri_full,
             truncation_threshold,
         )
+        # Populate requirements
         self.toffoli_gate.number_of_times_called = toffoli_gate_cost
         self.toffoli_gate.set_requirements(
-            failure_tolerance=self.requirements["failure_tolerance"] / toffoli_gate_cost
+            failure_tolerance=remaining_failure_tolerance / toffoli_gate_cost
         )
 
     def get_subnormalization(self, hamiltonian_instance):

@@ -141,19 +141,26 @@ class LD_GSEE(SubroutineModel):
         super().set_requirements(**args)
 
     def populate_requirements_for_subroutines(self):
+        # Allocate failure tolerance
+        allocation = 0.5
+        consumed_failure_tolerance = allocation * self.requirements["failure_tolerance"]
+        remaining_failure_tolerance = (
+            self.requirements["failure_tolerance"] - consumed_failure_tolerance
+        )
+
         # Compute number of samples
         n_samples = get_ff_ld_gsee_num_circuit_repetitions(
             self.requirements["alpha"],
             self.requirements["energy_gap"],
             self.requirements["square_overlap"],
             self.requirements["precision"],
-            self.requirements["failure_tolerance"],
+            consumed_failure_tolerance,
         )
         self.c_time_evolution.number_of_times_called = n_samples
 
         # Set controlled time evolution hadamard test requirements
-        # TODO: properly set this with a correct error budgeting
-        hadamard_failure_tolerance = self.requirements["failure_tolerance"]
+        # TODO: properly set this with a correct error budgeting: depends on robustness of algorithm
+        hadamard_failure_tolerance = remaining_failure_tolerance
         evolution_time = get_ff_ld_gsee_max_evolution_time(
             self.requirements["alpha"],
             self.requirements["energy_gap"],

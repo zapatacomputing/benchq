@@ -52,20 +52,25 @@ class PhaseEstimationGSEE(SubroutineModel):
         super().set_requirements(**args)
 
     def populate_requirements_for_subroutines(self):
+        # Allocate failure tolerance
+        allocation = 0.5
+        consumed_failure_tolerance = allocation * self.requirements["failure_tolerance"]
+        remaining_failure_tolerance = (
+            self.requirements["failure_tolerance"] - consumed_failure_tolerance
+        )
+
         # Compute number of samples
         n_samples = (1 / self.requirements["square_overlap"]) * np.ceil(
-            np.log(1 / self.requirements["failure_tolerance"])
+            np.log(1 / consumed_failure_tolerance)
         )
 
         self.phase_estimation.number_of_times_called = n_samples
 
         # Set phase estimation requirements
-        # TODO: properly set this with a correct error budgeting
-        failure_tolerance = self.requirements["failure_tolerance"]
 
         self.phase_estimation.set_requirements(
             precision=self.requirements["precision"],
-            failure_tolerance=failure_tolerance,
+            failure_tolerance=remaining_failure_tolerance,
             hamiltonian=self.requirements["hamiltonian"],
         )
 
@@ -98,16 +103,22 @@ class StandardQuantumPhaseEstimation(SubroutineModel):
         super().set_requirements(**args)
 
     def populate_requirements_for_subroutines(self):
-        self.c_time_evolution.number_of_times_called = (
-            1 / self.requirements["failure_tolerance"]
+        # Allocate failure tolerance
+        allocation = 0.5
+        consumed_failure_tolerance = allocation * self.requirements["failure_tolerance"]
+        remaining_failure_tolerance = (
+            self.requirements["failure_tolerance"] - consumed_failure_tolerance
         )
+
+        self.c_time_evolution.number_of_times_called = 1
 
         # Set controlled time evolution hadamard test requirements
         # TODO: properly set this with a correct error budgeting
-        hadamard_failure_tolerance = self.requirements["failure_tolerance"]
-        evolution_time = np.ceil(np.pi / (self.requirements["precision"] * 2))
+        evolution_time = np.ceil(
+            (1 + 1 / consumed_failure_tolerance) / (self.requirements["precision"] * 2)
+        )
         self.c_time_evolution.set_requirements(
             evolution_time=evolution_time,
             hamiltonian=self.requirements["hamiltonian"],
-            failure_tolerance=hadamard_failure_tolerance,
+            failure_tolerance=remaining_failure_tolerance,
         )

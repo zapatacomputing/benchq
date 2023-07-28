@@ -95,6 +95,13 @@ class QSPTimeEvolution(SubroutineModel):
         super().set_requirements(**args)
 
     def populate_requirements_for_subroutines(self):
+        # Allocate failure tolerance
+        allocation = 0.5
+        consumed_failure_tolerance = allocation * self.requirements["failure_tolerance"]
+        remaining_failure_tolerance = (
+            self.requirements["failure_tolerance"] - consumed_failure_tolerance
+        )
+
         # Compute subnormalization of block encoding if the get_subnormalization method is available
         if hasattr(self.hamiltonian_block_encoding, "get_subnormalization"):
             subnormalization = self.hamiltonian_block_encoding.get_subnormalization(
@@ -104,7 +111,7 @@ class QSPTimeEvolution(SubroutineModel):
                 _n_block_encodings_for_time_evolution_from_subnormalization(
                     subnormalization,
                     self.requirements["evolution_time"],
-                    self.requirements["failure_tolerance"],
+                    consumed_failure_tolerance,
                 )
             )
         else:
@@ -116,9 +123,7 @@ class QSPTimeEvolution(SubroutineModel):
         self.hamiltonian_block_encoding.number_of_times_called = n_block_encodings
 
         if n_block_encodings:
-            be_failure_tolerance = (
-                self.requirements["failure_tolerance"] / n_block_encodings
-            )
+            be_failure_tolerance = remaining_failure_tolerance / n_block_encodings
         else:
             be_failure_tolerance = None
         self.hamiltonian_block_encoding.set_requirements(
