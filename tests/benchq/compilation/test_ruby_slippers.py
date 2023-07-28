@@ -133,7 +133,7 @@ def test_stabilizer_states_are_the_same_for_circuits_with_decomposed_rotations(
         target_tableau = get_target_tableau(test_circuit)
 
         # ensure state does not teleport
-        loc, adj = jl.run_ruby_slippers(test_circuit, True, 9999)
+        loc, adj = jl.run_ruby_slippers(test_circuit, True, 9999, 9999)
         vertices = list(zip(loc, adj))
 
         graph_tableau = get_stabilizer_tableau_from_vertices(vertices)
@@ -183,7 +183,7 @@ def test_teleportation_produces_correct_number_of_nodes_for_small_circuits(
     n_rotations = quantum_program.n_rotation_gates
 
     loc, adj = jl.run_ruby_slippers(
-        circuit, True, 9999, teleportation_threshold, oz_to_kansas_distance
+        circuit, True, 9999, teleportation_threshold, oz_to_kansas_distance, 6, 99999, 1
     )
 
     n_nodes = len(loc)

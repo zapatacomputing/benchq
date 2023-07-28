@@ -36,9 +36,10 @@ struct RubySlippersHyperparams
     oz_to_kansas_distance::UInt8
     min_neighbors::UInt8
     max_num_neighbors_to_search::UInt32
+    decomposition_strategy::UInt8
 end
 
-default_hyperparams = RubySlippersHyperparams(40, 4, 6, 99999)
+default_hyperparams = RubySlippersHyperparams(40, 4, 6, 99999, 0)
 
 
 """
@@ -69,6 +70,7 @@ function run_ruby_slippers(
     oz_to_kansas_distance = 4,
     min_neighbors = 6,
     max_num_neighbors_to_search = 99999,
+    decomposition_strategy = 0,
 )
     max_graph_size = pyconvert(UInt32, max_graph_size)
 
@@ -78,6 +80,7 @@ function run_ruby_slippers(
         oz_to_kansas_distance,
         min_neighbors,
         max_num_neighbors_to_search,
+        decomposition_strategy,
     )
 
 
@@ -167,6 +170,9 @@ function get_graph_state_data(
                 original_qubit = get_qubit_1(op)
                 compiled_qubit = data_qubits[original_qubit]
                 curr_qubits[1] += 1
+                if hyperparams.decomposition_strategy == 0
+                    data_qubits[original_qubit] = curr_qubits[1]
+                end
                 icm_op = ICMOp(CNOT_code, compiled_qubit, curr_qubits[1])
             end
         end
@@ -455,7 +461,15 @@ Args:
 function local_complement!(lco, adj, v, data_qubits, curr_qubits, hyperparams)
 
     if length(adj[v]) >= hyperparams.teleportation_threshold
-        v = teleportation!(lco, adj, v, data_qubits, curr_qubits, hyperparams, hyperparams.oz_to_kansas_distance)
+        v = teleportation!(
+            lco,
+            adj,
+            v,
+            data_qubits,
+            curr_qubits,
+            hyperparams,
+            hyperparams.oz_to_kansas_distance,
+        )
     end
 
     local_complement_no_teleport!(lco, adj, v, data_qubits, curr_qubits)
@@ -540,7 +554,15 @@ function teleportation!(
 
     # teleport
     lco[slippers_qubit] = multiply_h(lco[slippers_qubit])
-    cz_no_teleport(lco, adj, oz_qubit, slippers_qubit, data_qubits, curr_qubits, hyperparams)
+    cz_no_teleport(
+        lco,
+        adj,
+        oz_qubit,
+        slippers_qubit,
+        data_qubits,
+        curr_qubits,
+        hyperparams,
+    )
     lco[slippers_qubit] = multiply_h(lco[slippers_qubit])
     lco[oz_qubit] = multiply_h(lco[oz_qubit])
 

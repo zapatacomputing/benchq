@@ -5,6 +5,7 @@ import numpy as np
 import pytest
 from orquestra.quantum.circuits import CNOT, RX, RY, RZ, Circuit, H, T
 
+from benchq.compilation import get_algorithmic_graph_from_ruby_slippers_with_hyperparams
 from benchq.data_structures import (
     BASIC_SC_ARCHITECTURE_MODEL,
     AlgorithmImplementation,
@@ -19,6 +20,10 @@ from benchq.resource_estimation.graph import (
     run_custom_resource_estimation_pipeline,
     synthesize_clifford_t,
     transpile_to_native_gates,
+)
+
+fast_ruby_slippers = get_algorithmic_graph_from_ruby_slippers_with_hyperparams(
+    max_graph_size=10
 )
 
 
@@ -36,12 +41,12 @@ def _get_transformers(use_delayed_gate_synthesis, error_budget):
     if use_delayed_gate_synthesis:
         transformers = [
             synthesize_clifford_t(error_budget),
-            create_big_graph_from_subcircuits(),
+            create_big_graph_from_subcircuits(fast_ruby_slippers),
         ]
     else:
         transformers = [
             transpile_to_native_gates,
-            create_big_graph_from_subcircuits(),
+            create_big_graph_from_subcircuits(fast_ruby_slippers),
         ]
     return transformers
 
@@ -247,4 +252,5 @@ def test_get_resource_estimations_for_program_accounts_for_decoder(optimization)
     )
 
     assert gsc_resource_estimates_no_decoder.decoder_info is None
+    assert gsc_resource_estimates_with_decoder.decoder_info is not None
     assert gsc_resource_estimates_with_decoder.decoder_info is not None
