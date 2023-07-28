@@ -55,7 +55,8 @@ def get_ff_ld_gsee_max_evolution_time(
         precision: The desired ground state energy precision. Corresponds to epsilon in
             the paper. Should use the same units as energy_gap.
 
-    Returns: The estimated number of iterations required by the FF-LD-GSEE algorithm.
+    Returns: The estimated maximum evolution time, given in the inverse units of
+        energy_gap and precision.
     """
     sigma = _get_sigma(alpha, energy_gap, square_overlap, precision)
     epsilon_1 = _get_epsilon_1(precision, square_overlap, sigma)
