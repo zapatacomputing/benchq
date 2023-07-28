@@ -44,6 +44,13 @@ class ExtrapolationResourceEstimator(GraphResourceEstimator):
             np.array([d.max_graph_degree for d in data]),
             steps_to_extrapolate_to,
         )
+
+        n_nodes, n_nodes_r_squared = _get_linear_extrapolation(
+            self.steps_to_extrapolate_from,
+            np.array([d.n_nodes for d in data]),
+            steps_to_extrapolate_to,
+        )
+
         # sometimes the n_measurement_steps is logarithmic, sometimes it's linear.
         # we need to check which one is better by inspecting the fit
         if self.n_measurement_steps_fit_type == "logarithmic":
@@ -73,11 +80,12 @@ class ExtrapolationResourceEstimator(GraphResourceEstimator):
         return ExtrapolatedGraphData(
             max_graph_degree=max_graph_degree,
             n_measurement_steps=n_measurement_steps,
-            n_nodes=program.n_t_gates + program.n_rotation_gates,
+            n_nodes=n_nodes,
             n_t_gates=program.n_t_gates,
             n_rotation_gates=program.n_rotation_gates,
             n_logical_qubits_r_squared=max_graph_degree_r_squared,
             n_measurement_steps_r_squared=n_measurement_steps_r_squared,
+            n_nodes_r_squared=n_nodes_r_squared,
             data_used_to_extrapolate=data,
             steps_to_extrapolate_to=steps_to_extrapolate_to,
         )

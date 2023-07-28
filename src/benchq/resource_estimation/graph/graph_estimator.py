@@ -2,7 +2,7 @@ import warnings
 from dataclasses import replace
 from decimal import Decimal, getcontext
 from math import ceil
-from typing import Callable, Iterable, Optional
+from typing import Iterable, Optional
 
 import networkx as nx
 from graph_state_generation.optimizers import (
@@ -110,7 +110,7 @@ class GraphResourceEstimator:
         n_measurement_steps = self._get_n_measurement_steps(graph)
         return GraphData(
             max_graph_degree=max_graph_degree,
-            n_nodes=problem.n_nodes,
+            n_nodes=graph.number_of_nodes(),
             n_t_gates=problem.n_t_gates,
             n_rotation_gates=problem.n_rotation_gates,
             n_measurement_steps=n_measurement_steps,
@@ -138,7 +138,7 @@ class GraphResourceEstimator:
     def _get_total_logical_failure_rate(
         self, code_distance: int, n_total_t_gates: int, graph_data: GraphData, widget
     ) -> float:
-        precise_logical_failure_rate = Decimal(
+        precise_logical_cell_failure_rate = Decimal(
             self._logical_cell_error_rate(code_distance)
         )
         precise_logical_st_volume = Decimal(
@@ -147,7 +147,7 @@ class GraphResourceEstimator:
             )
         )
         return float(
-            1 - (1 - precise_logical_failure_rate) ** precise_logical_st_volume
+            1 - (1 - precise_logical_cell_failure_rate) ** precise_logical_st_volume
         )
 
     def _logical_cell_error_rate(self, distance: int) -> float:

@@ -10,12 +10,12 @@ icm_compile(circuit, n_qubits) =
 function out_cnt(opcnt, prevcnt, tn, pt, t0)
     print("  Ops: $opcnt ($(opcnt-prevcnt)), ")
     print("elapsed: $(round((tn-t0)/60_000_000_000, digits=2)) min (")
-    println(round((tn - pt) / 1_000_000_000, digits=2), " s)")
+    println(round((tn - pt) / 1_000_000_000, digits = 2), " s)")
 end
 
 function map_qubits(num_qubits, icm_output)
     qubit_map = Dict{String,Int}()
-    for qubit in 1:num_qubits
+    for qubit = 1:num_qubits
         qubit_map[string(qubit - 1)] = qubit
     end
     for (op_name, op_qubits) in icm_output
@@ -28,7 +28,7 @@ function map_qubits(num_qubits, icm_output)
     num_qubits, qubit_map
 end
 
-function prepare(num_qubits, qubit_map, icm_output, debug_flag=false)
+function prepare(num_qubits, qubit_map, icm_output, debug_flag = false)
     state = zero_state(num_qubits)
     chkcnt = prevbits = prevop = opcnt = 0
     pt = t0 = time_ns()
@@ -39,7 +39,9 @@ function prepare(num_qubits, qubit_map, icm_output, debug_flag=false)
         if len == 1
             (Jabalizer.gate_map[op_name](qubit_map[op_qubits[1]]))(state)
         elseif len == 2
-            (Jabalizer.gate_map[op_name](qubit_map[op_qubits[1]], qubit_map[op_qubits[2]]))(state)
+            (Jabalizer.gate_map[op_name](qubit_map[op_qubits[1]], qubit_map[op_qubits[2]]))(
+                state,
+            )
         else
             error("Too many arguments to $op_name: $len")
         end
@@ -56,7 +58,7 @@ function prepare(num_qubits, qubit_map, icm_output, debug_flag=false)
     state
 end
 
-function run_jabalizer(circuit, debug_flag=false)
+function run_jabalizer(circuit, debug_flag = false)
     # Convert to Julia values
     n_qubits = Jabalizer.pyconvert(Int, circuit.n_qubits)
     icm_input = Jabalizer.ICMGate[]
@@ -72,7 +74,9 @@ function run_jabalizer(circuit, debug_flag=false)
 
         (n_qubits, qubit_map) = map_qubits(n_qubits, icm_output)
 
-        print("Jabalizer state preparation: qubits=$n_qubits, gates=$(length(icm_output))\n\t")
+        print(
+            "Jabalizer state preparation: qubits=$n_qubits, gates=$(length(icm_output))\n\t",
+        )
         @time state = prepare(n_qubits, qubit_map, icm_output)
 
         print("Jabalizer graph generation: $n_qubits\n\t")

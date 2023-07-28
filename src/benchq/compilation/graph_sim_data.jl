@@ -10,33 +10,77 @@ the results of certain small calculations which are performed repeatedly.
 const LCO = UInt8 # code for local Clifford operation
 
 # numbers which correspond to each of the gates in multiply_lco
-const Pauli_code    = LCO(1)
-const S_code        = LCO(2)
-const S_Dagger_code = LCO(2) # S and S_Dagger are treated identically for this
-const H_code        = LCO(3)
-const SQRT_X_code   = LCO(4)
-const SH_code       = LCO(5)
-const HS_code       = LCO(6)
+const Pauli_code = LCO(1)
+const S_code = LCO(2)
+const S_Dagger_code = LCO(2) # S and S_Dagger are equal up to a pauli
+const H_code = LCO(3)
+const SQRT_X_code = LCO(4)
+const SH_code = LCO(5)
+const HS_code = LCO(6)
 
 # Two qubit gates
-const CZ_code       = LCO(7)
-const CNOT_code     = LCO(8)
+const CZ_code = LCO(7)
+const CNOT_code = LCO(8)
 
 # Gates that get decomposed
-const T_code        = LCO(9)
+const T_code = LCO(9)
 const T_Dagger_code = LCO(10)
-const RX_code       = LCO(11)
-const RY_code       = LCO(12)
-const RZ_code       = LCO(13)
+const RX_code = LCO(11)
+const RY_code = LCO(12)
+const RZ_code = LCO(13)
 
 const MEASURE_OFFSET = (RZ_code - T_code + 0x1)
 
 # Measurement markers
-const M_T_code        = MEASURE_OFFSET + T_code
+const M_T_code = MEASURE_OFFSET + T_code
 const M_T_Dagger_code = MEASURE_OFFSET + T_Dagger_code
-const M_RX_code       = MEASURE_OFFSET + RX_code
-const M_RY_code       = MEASURE_OFFSET + RY_code
-const M_RZ_code       = MEASURE_OFFSET + RZ_code
+const M_RX_code = MEASURE_OFFSET + RX_code
+const M_RY_code = MEASURE_OFFSET + RY_code
+const M_RZ_code = MEASURE_OFFSET + RZ_code
+
+# enumerate the supported gates
+const op_list = [
+    "I",
+    "X",
+    "Y",
+    "Z",
+    "H",
+    "S",
+    "S_Dagger",
+    "CZ",
+    "CNOT",
+    "T",
+    "T_Dagger",
+    "RX",
+    "RY",
+    "RZ",
+    "SX",
+    "SX_Dagger",
+    "RESET",
+]
+
+# convert indices of supported gates to the corresponding code
+const code_list = LCO[
+    0,
+    0,
+    0,
+    0,
+    H_code,
+    S_code,
+    S_Dagger_code,
+    CZ_code,
+    CNOT_code,
+    T_code,
+    T_Dagger_code,
+    RX_code,
+    RY_code,
+    RZ_code,
+    SQRT_X_code,
+    SQRT_X_code,
+    0,
+]
+
+
 
 #=
 """
@@ -71,16 +115,16 @@ Product of two local clifford operations:
    unsigned integer, where each nibble is one of the values (all shifted up by 4 to avoid
    a shift at runtime.
 =#
-_unpack(c, v) = (c >> (v<<2)) & 0x7
+_unpack(c, v) = (c >> (v << 2)) & 0x7
 
-multiply_h(v)         = _unpack(0x4261530, v)
-multiply_s(v)         = _unpack(0x3456120, v)
-multiply_by_s(v)      = _unpack(0x4365120, v)
+multiply_h(v) = _unpack(0x4261530, v)
+multiply_s(v) = _unpack(0x3456120, v)
+multiply_by_s(v) = _unpack(0x4365120, v)
 multiply_by_sqrt_x(v) = _unpack(0x3216540, v)
 
 # Packing functions to more efficiently store CZ data
-c0(a,b) = UInt8((a<<4) | b)
-c1(a,b) = c0(a,b) | 0x80
+c0(a, b) = UInt8((a << 4) | b)
+c1(a, b) = c0(a, b) | 0x80
 
 """
 Lookup table for the product of a CZ gate and a local clifford operation.
@@ -92,19 +136,19 @@ after applying the CZ gate and 1 if they are connected after applying the CZ gat
 The second and third values of the table are the local clifford operations on the
 first and second nodes respectively after applying the CZ gate.
 """
-const cz_isolated =
-    [c1(1, 1) c1(1, 2) c0(1, 3) c1(1, 1) c1(1, 2) c0(1, 3)
-     c1(2, 1) c1(2, 2) c0(2, 3) c1(2, 1) c1(2, 2) c0(2, 3)
-     c0(3, 1) c0(3, 2) c0(3, 3) c0(3, 1) c0(3, 2) c0(3, 3)
-     c1(1, 1) c1(1, 2) c0(1, 3) c1(1, 1) c1(1, 2) c0(1, 3)
-     c1(2, 1) c1(2, 2) c0(2, 3) c1(2, 1) c1(2, 2) c0(2, 3)
-     c0(3, 1) c0(3, 2) c0(3, 3) c0(3, 1) c0(3, 2) c0(3, 3)
+const cz_isolated = [
+    c1(1, 1) c1(1, 2) c0(1, 3) c1(1, 1) c1(1, 2) c0(1, 3)
+    c1(2, 1) c1(2, 2) c0(2, 3) c1(2, 1) c1(2, 2) c0(2, 3)
+    c0(3, 1) c0(3, 2) c0(3, 3) c0(3, 1) c0(3, 2) c0(3, 3)
+    c1(1, 1) c1(1, 2) c0(1, 3) c1(1, 1) c1(1, 2) c0(1, 3)
+    c1(2, 1) c1(2, 2) c0(2, 3) c1(2, 1) c1(2, 2) c0(2, 3)
+    c0(3, 1) c0(3, 2) c0(3, 3) c0(3, 1) c0(3, 2) c0(3, 3)
 ]
-const cz_connected =
-    [c0(1, 1) c0(1, 2) c1(2, 6) c0(2, 1) c0(2, 2) c1(2, 3)
-     c0(2, 1) c0(2, 2) c1(1, 6) c0(1, 1) c0(1, 2) c1(1, 3)
-     c1(6, 2) c1(6, 1) c0(1, 1) c0(2, 2) c0(2, 1) c0(1, 2)
-     c0(1, 2) c0(1, 1) c0(2, 2) c1(5, 5) c1(5, 4) c0(2, 1)
-     c0(2, 2) c0(2, 1) c0(1, 2) c1(4, 5) c1(4, 4) c0(1, 1)
-     c1(3, 2) c1(3, 1) c0(2, 1) c0(1, 2) c0(1, 1) c0(2, 2)
+const cz_connected = [
+    c0(1, 1) c0(1, 2) c1(2, 6) c0(2, 1) c0(2, 2) c1(2, 3)
+    c0(2, 1) c0(2, 2) c1(1, 6) c0(1, 1) c0(1, 2) c1(1, 3)
+    c1(6, 2) c1(6, 1) c0(1, 1) c0(2, 2) c0(2, 1) c0(1, 2)
+    c0(1, 2) c0(1, 1) c0(2, 2) c1(5, 5) c1(5, 4) c0(2, 1)
+    c0(2, 2) c0(2, 1) c0(1, 2) c1(4, 5) c1(4, 4) c0(1, 1)
+    c1(3, 2) c1(3, 1) c0(2, 1) c0(1, 2) c0(1, 1) c0(2, 2)
 ]

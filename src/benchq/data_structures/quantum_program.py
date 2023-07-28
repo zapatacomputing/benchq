@@ -68,7 +68,7 @@ class QuantumProgram:
         return self.count_operations_in_program(["T", "Tdag"])
 
     @property
-    def n_nodes(self) -> int:
+    def min_n_nodes(self) -> int:
         return self.n_t_gates + self.n_rotation_gates + self.subroutines[0].n_qubits
 
     def count_operations_in_subroutine(self, step: int, gates: Sequence[str]) -> int:

@@ -35,7 +35,9 @@ class FootprintResourceEstimator(GraphResourceEstimator):
         algorithm_implementation: AlgorithmImplementation,
     ) -> GraphResourceInfo:
         """Estimates the resources needed to run an algorithm using a footprint analysis
-        which is derived from graph state compilation.
+        which is derived from graph state compilation. Assumes that the graph
+        creation is optimal, in the sense that the graph has the minimum number of
+        nodes.
 
         Args:
             algorithm_implementation (AlgorithmImplementation): The algorithm
@@ -53,10 +55,10 @@ class FootprintResourceEstimator(GraphResourceEstimator):
         # simulate graph data
         simulated_graph_data = GraphData(
             max_graph_degree=estimated_max_graph_degree,
-            n_nodes=algorithm_implementation.program.n_nodes,
+            n_nodes=algorithm_implementation.program.min_n_nodes,
             n_t_gates=algorithm_implementation.program.n_t_gates,
             n_rotation_gates=algorithm_implementation.program.n_rotation_gates,
-            n_measurement_steps=algorithm_implementation.program.n_nodes,
+            n_measurement_steps=algorithm_implementation.program.min_n_nodes,
         )
 
         return self.estimate_resources_from_graph_data(
