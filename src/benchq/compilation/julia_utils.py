@@ -24,6 +24,8 @@ def get_algorithmic_graph_from_graph_sim_mini(circuit):
 
 
 def get_algorithmic_graph_from_Jabalizer(circuit):
+    print("circuit length: ", len(circuit.operations))
+    print("number of qubits: ", circuit.n_qubits)
     svec, op_seq, icm_output, data_qubits_map = jl.run_jabalizer(circuit)
     # use dummy graph for quick resource estimate as we are just trying to
     # benchmark Jabalizer here

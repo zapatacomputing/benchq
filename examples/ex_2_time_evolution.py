@@ -37,7 +37,7 @@ def main():
 
     architecture_model = BASIC_SC_ARCHITECTURE_MODEL
 
-    for N in range(2, 30):
+    for N in range(30, 31):
         print(f"Length of Hydrogen Chain: {N}")
 
         # Generating Hamiltonian for a given set of parameters, which
