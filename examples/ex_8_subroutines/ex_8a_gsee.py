@@ -59,7 +59,7 @@ class SuperconductingHardwareArchitecture(SubroutineModel):
         return 1e-6
 
 
-def get_hamiltonian_instance(number_of_hydrogens):
+def get_hydrogen_chain_hamiltonian_instance(number_of_hydrogens):
     instance = generate_hydrogen_chain_instance(number_of_hydrogens=number_of_hydrogens)
     instance.avas_atomic_orbitals = ["H 1s", "H 2s"]
     instance.avas_minao = "sto-3g"
@@ -70,7 +70,9 @@ def generate_counts_for_hydrogen_list(hydrogen_list):
     counts_list = []
 
     for number_of_hydrogens in hydrogen_list:
-        hydrogen_chain_instance = get_hamiltonian_instance(number_of_hydrogens)
+        hydrogen_chain_instance = get_hydrogen_chain_hamiltonian_instance(
+            number_of_hydrogens
+        )
 
         sc_arch = SuperconductingHardwareArchitecture()
         ccz_distillation = AutoCCZDistillation(hardware_architecture_model=sc_arch)
@@ -113,7 +115,9 @@ def plot_hydrogen_resource_estimates(hydrogen_list):
     gsee_results = {}
 
     for number_of_hydrogens in hydrogen_list:
-        hydrogen_chain_instance = get_hamiltonian_instance(number_of_hydrogens)
+        hydrogen_chain_instance = get_hydrogen_chain_hamiltonian_instance(
+            number_of_hydrogens
+        )
 
         for be_name, ham_be in [
             ("SF", SFHamiltonianBlockEncoding()),
@@ -217,4 +221,38 @@ hydrogen_list = [
     8,
 ]
 # plot_hydrogen_resource_estimates(hydrogen_list)
-generate_counts_for_hydrogen_list(hydrogen_list)
+# generate_counts_for_hydrogen_list(hydrogen_list)
+
+# DEMO FOR DARPA QB
+number_of_hydrogens = 8
+
+# Goal: estimate resources for GSEE using the low-depth GSEE method for a hydrogen chain hamiltonian
+hydrogen_chain_instance = get_hydrogen_chain_hamiltonian_instance(number_of_hydrogens)
+
+
+# df_be = DFHamiltonianBlockEncoding()
+sf_be = SFHamiltonianBlockEncoding()
+
+# # Create an instance of QSPTimeEvolution with the current HamiltonianBlockEncoding
+qsp_te = QSPTimeEvolution(hamiltonian_block_encoding=sf_be)
+# qsp_te = QSPTimeEvolution()
+
+# # Create an instance of LD_GSEE with QSPTimeEvolution as a task
+ld_gsee = LD_GSEE(c_time_evolution=qsp_te)
+
+# # Set the requirements for LD_GSEE
+ld_gsee.set_requirements(
+    alpha=1,
+    energy_gap=0.3,
+    square_overlap=0.8,
+    precision=0.001,
+    failure_tolerance=0.1,
+    hamiltonian=hydrogen_chain_instance,
+)
+
+# Run the profiles
+ld_gsee.run_profile()
+
+ld_gsee.print_profile()
+
+print(ld_gsee.count_subroutines())
