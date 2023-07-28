@@ -14,6 +14,7 @@ from orquestra.quantum.circuits import (
     Operation,
     S,
     T,
+    X,
     Z,
 )
 from orquestra.quantum.decompositions._decomposition import (
@@ -34,7 +35,8 @@ def transpile_to_native_gates(circuit) -> Circuit:
     # Hack: decompose drops n_qubits from the original circuits, so we add it back
     return Circuit(
         decompose_benchq_circuit(
-            circuit, [CCZtoT(), U3toRZ(), RXtoRZ(), RYtoRZ(), DecomposeStandardRZ()]
+            circuit,
+            [CCXtoCCZ(), CCZtoT(), U3toRZ(), RXtoRZ(), RYtoRZ(), DecomposeStandardRZ()],
         ).operations,
         n_qubits=circuit.n_qubits,
     )
@@ -210,7 +212,7 @@ class U3toRZ(DecompositionRule[GateOperation]):
         return reversed(gate_operation_decomposition)
 
 
-class CCZtoT(DecompositionRule[GateOperation]):
+class CCXtoT(DecompositionRule[GateOperation]):
     """Decomposition of Toffoli into T, H, and CNOT gates."""
 
     def predicate(self, operation: GateOperation) -> bool:
@@ -243,6 +245,46 @@ class CCZtoT(DecompositionRule[GateOperation]):
             T(qubit_2),
             T(qubit_3),
             H(qubit_3),
+            CNOT(qubit_1, qubit_2),
+            T.dagger(qubit_2),
+            T(qubit_1),
+            CNOT(qubit_1, qubit_2),
+        ]
+
+        return gate_operation_decomposition
+
+
+class CCZtoCCX(DecompositionRule[GateOperation]):
+    """Decomposition of Toffoli into T, H, and CNOT gates."""
+
+    def predicate(self, operation: GateOperation) -> bool:
+        # Only decompose CCX
+        if operation.gate.name == "Control":
+            assert isinstance(operation.gate, ControlledGate)
+            if (
+                operation.gate.wrapped_gate.name == "Z"
+                and operation.gate.num_control_qubits == 2
+            ) or (
+                operation.gate.wrapped_gate.name == "CZ"
+                and operation.gate.num_control_qubits == 1
+            ):
+                return True
+
+        return False
+
+    def production(self, operation: GateOperation) -> Iterable[GateOperation]:
+        qubit_1, qubit_2, qubit_3 = operation.qubit_indices
+
+        gate_operation_decomposition = [
+            CNOT(qubit_2, qubit_3),
+            T.dagger(qubit_3),
+            CNOT(qubit_1, qubit_3),
+            T(qubit_3),
+            CNOT(qubit_2, qubit_3),
+            T.dagger(qubit_3),
+            CNOT(qubit_1, qubit_3),
+            T(qubit_2),
+            T(qubit_3),
             CNOT(qubit_1, qubit_2),
             T.dagger(qubit_2),
             T(qubit_1),
