@@ -107,11 +107,11 @@ def test_get_resource_estimations_for_small_program_gives_correct_results(
 
     # set circuit generation weight to 0
     error_budget = ErrorBudget.from_weights(1e-2, 0, 1, 1)
-    algorithm_description = AlgorithmImplementation(quantum_program, error_budget, 1)
+    algorithm_implementation = AlgorithmImplementation(quantum_program, error_budget, 1)
     transformers = _get_transformers(use_delayed_gate_synthesis, error_budget)
 
     extrapolated_resource_estimates = run_custom_extrapolation_pipeline(
-        algorithm_description,
+        algorithm_implementation,
         estimator=ExtrapolationResourceEstimator(
             architecture_model,
             steps_to_extrapolate_from,
@@ -122,7 +122,7 @@ def test_get_resource_estimations_for_small_program_gives_correct_results(
         transformers=transformers,
     )
     gsc_resource_estimates = run_custom_resource_estimation_pipeline(
-        algorithm_description,
+        algorithm_implementation,
         estimator=GraphResourceEstimator(
             architecture_model,
             optimization=optimization,
@@ -187,11 +187,11 @@ def test_get_resource_estimations_for_large_program_gives_correct_results(
     architecture_model = BASIC_SC_ARCHITECTURE_MODEL
     # set circuit generation weight to 0
     error_budget = ErrorBudget.from_weights(1e-2, 0, 1, 1)
-    algorithm_description = AlgorithmImplementation(quantum_program, error_budget, 1)
+    algorithm_implementation = AlgorithmImplementation(quantum_program, error_budget, 1)
     transformers = _get_transformers(use_delayed_gate_synthesis, error_budget)
 
     extrapolated_resource_estimates = run_custom_extrapolation_pipeline(
-        algorithm_description,
+        algorithm_implementation,
         estimator=ExtrapolationResourceEstimator(
             architecture_model,
             steps_to_extrapolate_from,
@@ -201,7 +201,7 @@ def test_get_resource_estimations_for_large_program_gives_correct_results(
         transformers=transformers,
     )
     gsc_resource_estimates = run_custom_resource_estimation_pipeline(
-        algorithm_description,
+        algorithm_implementation,
         estimator=GraphResourceEstimator(architecture_model, optimization=optimization),
         transformers=transformers,
     )
@@ -244,9 +244,9 @@ def test_better_architecture_does_not_require_more_resources(
         steps=100,
         calculate_subroutine_sequence=lambda x: [0] * x,
     )
-    algorithm_description = AlgorithmImplementation(quantum_program, error_budget, 1)
+    algorithm_implementation = AlgorithmImplementation(quantum_program, error_budget, 1)
     low_noise_resource_estimates = run_custom_extrapolation_pipeline(
-        algorithm_description,
+        algorithm_implementation,
         estimator=ExtrapolationResourceEstimator(
             low_noise_architecture_model, [1, 2, 3, 4], optimization=optimization
         ),
@@ -254,7 +254,7 @@ def test_better_architecture_does_not_require_more_resources(
     )
 
     high_noise_resource_estimates = run_custom_extrapolation_pipeline(
-        algorithm_description,
+        algorithm_implementation,
         estimator=ExtrapolationResourceEstimator(
             high_noise_architecture_model, [1, 2, 3, 4], optimization=optimization
         ),
@@ -299,15 +299,15 @@ def test_higher_error_budget_does_not_require_more_resources(
         steps=100,
         calculate_subroutine_sequence=lambda x: [0] * x,
     )
-    algorithm_description_low_error_budget = AlgorithmImplementation(
+    algorithm_implementation_low_error_budget = AlgorithmImplementation(
         quantum_program, low_error_budget, 1
     )
-    algorithm_description_high_error_budget = AlgorithmImplementation(
+    algorithm_implementation_high_error_budget = AlgorithmImplementation(
         quantum_program, high_error_budget, 1
     )
 
     low_error_resource_estimates = run_custom_extrapolation_pipeline(
-        algorithm_description_low_error_budget,
+        algorithm_implementation_low_error_budget,
         estimator=ExtrapolationResourceEstimator(
             architecture_model, [1, 2, 3, 4], optimization=optimization
         ),
@@ -315,7 +315,7 @@ def test_higher_error_budget_does_not_require_more_resources(
     )
 
     high_error_resource_estimates = run_custom_extrapolation_pipeline(
-        algorithm_description_high_error_budget,
+        algorithm_implementation_high_error_budget,
         estimator=ExtrapolationResourceEstimator(
             architecture_model, [1, 2, 3, 4], optimization=optimization
         ),

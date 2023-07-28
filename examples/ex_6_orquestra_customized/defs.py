@@ -93,7 +93,7 @@ def estimation_workflow() -> List[GraphResourceInfo]:
     """The workflow for estimating resources.
 
     The workflow does the following:
-    1. Creates algorithm description.
+    1. Creates algorithm implementation.
     2. Transpiles it into a graph representation.
     3. Defines two architecture models.
     4. Estimates the resources for the constructed algorithm implementation assuming
