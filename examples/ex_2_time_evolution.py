@@ -37,61 +37,27 @@ def main():
 
     architecture_model = BASIC_SC_ARCHITECTURE_MODEL
 
-    # Generating Hamiltonian for a given set of parameters, which
-    # defines the problem we try to solve.
-    # measure_time is a utility tool which measures the execution time of
-    # the code inside the with statement.
-    with measure_time() as t_info:
-        # N = 2  # Problem size
-        # operator = get_vlasov_hamiltonian(N=N, k=2.0, alpha=0.6, nu=0)
+    for N in range(2, 30):
+        print(f"Length of Hydrogen Chain: {N}")
 
-        # Alternative operator: 1D Heisenberg model
-        N = 10
+        # Generating Hamiltonian for a given set of parameters, which
+        # defines the problem we try to solve.
+        # measure_time is a utility tool which measures the execution time of
+        # the code inside the with statement.
         operator = generate_1d_heisenberg_hamiltonian(N)
 
-    print("Operator generation time:", t_info.total)
-
-    # Here we generate the AlgorithmImplementation structure, which contains
-    # information such as what subroutine needs to be executed and how many times.
-    # In this example we perform time evolution using the QSP algorithm.
-    with measure_time() as t_info:
+        # Here we generate the AlgorithmImplementation structure, which contains
+        # information such as what subroutine needs to be executed and how many times.
+        # In this example we perform time evolution using the QSP algorithm.
         algorithm = qsp_time_evolution_algorithm(operator, evolution_time, 1e-3)
-    print("Circuit generation time:", t_info.total)
 
-    # First we perform resource estimation with gate synthesis at the circuit level.
-    # It's more accurate and leads to lower estimates, but also more expensive
-    # in terms of runtime and memory usage.
-    # Then we perform resource estimation with gate synthesis during the measurement,
-    # which we call "delayed gate synthesis".
-    with measure_time() as t_info:
-        gsc_resource_estimates = run_custom_resource_estimation_pipeline(
-            algorithm,
-            estimator=GraphResourceEstimator(architecture_model),
-            transformers=[
-                synthesize_clifford_t(algorithm.error_budget),
-                create_big_graph_from_subcircuits(
-                    graph_production_method=get_algorithmic_graph_from_chp
-                ),
-            ],
-        )
+        # Perform resource estimation using Jabalizer and caputure the timing output
+        with measure_time() as t_info:
+            algorithm.program = simplify_rotations(algorithm.program)
+            big_circuit = algorithm.program.full_circuit
+            get_algorithmic_graph_from_Jabalizer(big_circuit)
 
-    print("Resource estimation time with synthesis:", t_info.total)
-    pprint(gsc_resource_estimates)
-
-    # with measure_time() as t_info:
-    #     gsc_resource_estimates = run_custom_resource_estimation_pipeline(
-    #         algorithm,
-    #         estimator=GraphResourceEstimator(architecture_model),
-    #         transformers=[
-    #             simplify_rotations,
-    #             create_big_graph_from_subcircuits(
-    #                 graph_production_method=get_algorithmic_graph_from_Jabalizer
-    #             ),
-    #         ],
-    #     )
-
-    # print("Resource estimation time without synthesis:", t_info.total)
-    # pprint(gsc_resource_estimates)
+        print("total time: ", t_info.total, "\n")
 
 
 if __name__ == "__main__":

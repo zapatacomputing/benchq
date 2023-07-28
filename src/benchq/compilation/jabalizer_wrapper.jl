@@ -56,7 +56,7 @@ function prepare(num_qubits, qubit_map, icm_output, debug_flag=false)
     state
 end
 
-function run_jabalizer(circuit, debug_flag=false)
+function run_jabalizer(circuit)
     # Convert to Julia values
     n_qubits = Jabalizer.pyconvert(Int, circuit.n_qubits)
     icm_input = Jabalizer.ICMGate[]
@@ -66,23 +66,22 @@ function run_jabalizer(circuit, debug_flag=false)
         push!(icm_input, (name, indices))
     end
 
-    if debug_flag
-        print("ICM compilation: qubits=$n_qubits, gates=$(length(icm_input))\n\t")
-        @time (icm_output, data_qubits_map) = icm_compile(icm_input, n_qubits)
+    (icm_output, data_qubits_map) = icm_compile(icm_input, n_qubits)
 
-        (n_qubits, qubit_map) = map_qubits(n_qubits, icm_output)
+    (n_qubits, qubit_map) = map_qubits(n_qubits, icm_output)
 
-        print("Jabalizer state preparation: qubits=$n_qubits, gates=$(length(icm_output))\n\t")
-        @time state = prepare(n_qubits, qubit_map, icm_output)
+    print("Jabalizer state preparation: qubits=$n_qubits, gates=$(length(icm_output))\n\t")
+    @time state = prepare(n_qubits, qubit_map, icm_output)
 
-        print("Jabalizer graph generation: $n_qubits\n\t")
-        @time (svec, op_seq) = graph_as_stabilizer_vector(state)
-    else
-        icm_output, data_qubits_map = icm_compile(icm_input, n_qubits)
-        n_qubits, qubit_map = map_qubits(n_qubits, icm_output)
-        state = prepare(n_qubits, qubit_map, icm_output)
-        svec, op_seq = graph_as_stabilizer_vector(state)
-    end
+    print("Inverting the tableau: \n\t")
+    @time Jabalizer.update_tableau(state)
+
+    print("Jabalizer graph generation: $n_qubits\n\t")
+    @time (svec, op_seq) = graph_as_stabilizer_vector(state)
+
+    (svec, op_seq) = (zeros(n_qubits), 2) # dummy values
 
     return svec, op_seq, icm_output, data_qubits_map
 end
+
+
