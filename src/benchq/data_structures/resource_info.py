@@ -92,13 +92,11 @@ AzureResourceInfo = ResourceInfo[AzureExtra]
 class OpenFermionExtra:
     """Extra info relating to resource estimation using OpenFermion."""
 
-    failure_prob: float
-    rounds: int
+    fail_rate_msFactory: float
+    rounds_magicstateFactory: int
+    scc_time: float
+    physical_qubit_error_rate: float
 
 
 # Alias for type of resource info returned by OpenFermion
-ExtendedOpenFermionResourceInfo = ResourceInfo[OpenFermionExtra]
-if True:
-    from benchq.resource_estimation._footprint_analysis import AlgorithmParameters
-
-OpenFermionResourceInfo = ResourceInfo[AlgorithmParameters]
+OpenFermionResourceInfo = ResourceInfo[OpenFermionExtra]
