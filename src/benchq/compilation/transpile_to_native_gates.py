@@ -14,7 +14,6 @@ from orquestra.quantum.circuits import (
     Operation,
     S,
     T,
-    X,
     Z,
 )
 from orquestra.quantum.decompositions._decomposition import (
