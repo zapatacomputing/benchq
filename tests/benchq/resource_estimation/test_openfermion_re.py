@@ -1,9 +1,8 @@
-import datetime
-
 import numpy
 import pytest
 from openfermion.resource_estimates.molecule import pyscf_to_cas
 
+from benchq.data_structures import BASIC_SC_ARCHITECTURE_MODEL, BasicArchitectureModel
 from benchq.problem_ingestion.molecule_instance_generation import (
     generate_hydrogen_chain_instance,
 )
@@ -83,39 +82,48 @@ def test_double_factorization_raises_exception_for_invalid_eri():
 def test_physical_qubits_larger_than_logical_qubits():
     n_toffoli = 100
     n_logical_qubits = 100
-    physical_error_rate = 1.0e-4
+    BAM = BasicArchitectureModel
+    BAM.physical_qubit_error_rate = 1.0e-4
+    BAM.surface_code_cycle_time_in_seconds = 1e-7
+
     resource_estimate = get_physical_cost(
         num_toffoli=n_toffoli,
         num_logical_qubits=n_logical_qubits,
-        physical_error_rate=physical_error_rate,
+        architecture_model=BAM,
     )
     assert resource_estimate.n_physical_qubits > n_logical_qubits
 
 
 @pytest.mark.parametrize(
-    "SCC_time_low,SCC_time_high",
+    "scc_time_low,scc_time_high",
     [
-        (datetime.timedelta(seconds=0.000001), datetime.timedelta(seconds=0.000008)),
-        (datetime.timedelta(seconds=0.000004), datetime.timedelta(seconds=0.000009)),
-        (datetime.timedelta(seconds=0.000001), datetime.timedelta(seconds=0.000009)),
-        (datetime.timedelta(seconds=0.000005), datetime.timedelta(seconds=0.000010)),
+        (0.000001, 0.000008),
+        (0.000004, 0.000009),
+        (0.000001, 0.000009),
+        (0.000005, 0.000010),
     ],
 )
-def test_monotonicity_of_duration_wrt_SCC_time(SCC_time_low, SCC_time_high):
+def test_monotonicity_of_duration_wrt_scc_time(scc_time_low, scc_time_high):
+    """
+    This tests if duration (run-time) increases as surface code cycle time increases
+    """
     n_toffoli = 100
     n_logical_qubits = 100
-    physical_error_rate = 1.0e-4
+    BAM_fast = BasicArchitectureModel
+    BAM_fast.physical_qubit_error_rate = 1.0e-4
+    BAM_fast.surface_code_cycle_time_in_seconds = scc_time_low
     resource_estimates_low = get_physical_cost(
         num_toffoli=n_toffoli,
         num_logical_qubits=n_logical_qubits,
-        surface_code_cycle_time=SCC_time_low,
-        physical_error_rate=physical_error_rate,
+        architecture_model=BAM_fast,
     )
+    BAM_slow = BasicArchitectureModel
+    BAM_slow.physical_qubit_error_rate = 1.0e-4
+    BAM_slow.surface_code_cycle_time_in_seconds = scc_time_high
     resource_estimates_high = get_physical_cost(
         num_toffoli=n_toffoli,
         num_logical_qubits=n_logical_qubits,
-        surface_code_cycle_time=SCC_time_high,
-        physical_error_rate=physical_error_rate,
+        architecture_model=BAM_slow,
     )
     assert (
         resource_estimates_high.total_time_in_seconds
@@ -124,66 +132,80 @@ def test_monotonicity_of_duration_wrt_SCC_time(SCC_time_low, SCC_time_high):
 
 
 @pytest.mark.parametrize(
-    "SCC_time_low,SCC_time_high",
+    "scc_time_low,scc_time_high",
     [
-        (datetime.timedelta(microseconds=1), datetime.timedelta(microseconds=8)),
-        (datetime.timedelta(microseconds=4), datetime.timedelta(microseconds=9)),
-        (datetime.timedelta(microseconds=1), datetime.timedelta(microseconds=9)),
-        (datetime.timedelta(microseconds=5), datetime.timedelta(microseconds=10)),
+        (0.000001, 0.000008),
+        (0.000004, 0.000009),
+        (0.000001, 0.000009),
+        (0.000005, 0.000010),
     ],
 )
-def test_linearity_of_duration_wrt_SCC_time(SCC_time_low, SCC_time_high):
+def test_linearity_of_duration_wrt_scc_time(scc_time_low, scc_time_high):
+    """
+    This tests if duration (run-time) proportionately
+    increases wrt surface code cycle time
+    """
+
     n_toffoli = 100
     n_logical_qubits = 100
-    physical_error_rate = 1.0e-4
+    BAM_fast = BasicArchitectureModel
+    BAM_fast.physical_qubit_error_rate = 1.0e-4
+    BAM_fast.surface_code_cycle_time_in_seconds = scc_time_low
+
     resource_estimates_low = get_physical_cost(
         num_toffoli=n_toffoli,
         num_logical_qubits=n_logical_qubits,
-        surface_code_cycle_time=SCC_time_low,
-        physical_error_rate=physical_error_rate,
+        architecture_model=BAM_fast,
     )
+    BAM_slow = BasicArchitectureModel
+    BAM_slow.physical_qubit_error_rate = 1.0e-4
+    BAM_slow.surface_code_cycle_time_in_seconds = scc_time_high
     resource_estimates_high = get_physical_cost(
         num_toffoli=n_toffoli,
         num_logical_qubits=n_logical_qubits,
-        surface_code_cycle_time=SCC_time_high,
-        physical_error_rate=physical_error_rate,
+        architecture_model=BAM_slow,
     )
 
     numpy.testing.assert_allclose(
-        resource_estimates_high.total_time_in_seconds / SCC_time_high.total_seconds(),
-        resource_estimates_low.total_time_in_seconds / SCC_time_low.total_seconds(),
+        resource_estimates_high.total_time_in_seconds / scc_time_high,
+        resource_estimates_low.total_time_in_seconds / scc_time_low,
     )
 
 
 @pytest.mark.parametrize(
-    "num_toffoli,num_T",
+    "num_toffoli,num_t",
     [
         (20, 20),
         (40, 40),
         (20, 30),
     ],
 )
-def test_ratio_of_failure_prob(num_toffoli, num_T):
+def test_ratio_of_failure_prob_of_magicstateFactory(num_toffoli, num_t):
+    """
+    This ascertains if ratio of failure rate of magic state factory for a ckt
+    with only Toffoli gates and of a ckt with only T gates is 1:1, given the same
+    physical error rate and surface code cycle time.
+
+    """
     num_logical_qubits = 12
-    SCC_time = datetime.timedelta(microseconds=2)
-    physical_error_rate = 1.0e-4
+    BAM = BasicArchitectureModel
+    BAM.physical_qubit_error_rate = 1.0e-4
+    BAM.surface_code_cycle_time_in_seconds = 2e-6
+
     best_toffoli = get_physical_cost(
         num_logical_qubits=num_logical_qubits,
         num_toffoli=num_toffoli,
-        surface_code_cycle_time=SCC_time,
-        physical_error_rate=physical_error_rate,
+        architecture_model=BAM,
     )
     best_T = get_physical_cost(
         num_logical_qubits=num_logical_qubits,
-        num_T=num_T,
-        surface_code_cycle_time=SCC_time,
-        physical_error_rate=physical_error_rate,
+        num_t=num_t,
+        architecture_model=BAM,
     )
-    """
-    This ascertains if ratio of failure rate of Toffoli
-    and T Magic State factories is 2:1
-    """
-    assert best_toffoli.extra.failure_prob / best_T.extra.failure_prob == 2.0
+
+    assert (
+        best_toffoli.extra.fail_rate_msFactory / best_T.extra.fail_rate_msFactory == 1.0
+    )
 
 
 @pytest.mark.parametrize(
@@ -193,102 +215,138 @@ def test_ratio_of_failure_prob(num_toffoli, num_T):
         (40, 40),
     ],
 )
-def test_calc_of_Algorithm_Failure_Prob(n_toffoli, n_T):
-    num_logical_qubits = 12
-    SCC_time = datetime.timedelta(microseconds=2)
-    physical_error_rate = 1.0e-4
-    best_toffoli = get_physical_cost(
-        num_logical_qubits=num_logical_qubits,
-        num_toffoli=n_toffoli,
-        surface_code_cycle_time=SCC_time,
-        physical_error_rate=physical_error_rate,
-    )
-    best_T = get_physical_cost(
-        num_logical_qubits=num_logical_qubits,
-        num_T=n_T,
-        surface_code_cycle_time=SCC_time,
-        physical_error_rate=physical_error_rate,
-    )
+def test_calc_of_algorithm_failure_prob(n_toffoli, n_T):
     """
-    X+Yf - (X+Yf/2) = Yf/2, where X+Yf and X+Yf/2 are
-    Algorithm Failure Prob for Toffoli and T cases respectively,
+    X+Yf - 2*(X/2+Yf/2) = 0, where X+Yf and X/2+Yf/2 are
+    algorithm Failurf prob for Toffoli and T cases respectively,
     where X -> data failure, Yf -> distillation
     failure, Y=#Toffoli gate=#T gates and f is 1 CCZ error.
     If failure rate is calculated correctly,
-    to ascertain if Algorithm Failure Probability is calculated correctly
+    to ascertain if algorithm failure probability is calculated correctly
     for both toffoli and T.
     """
-
-    numpy.testing.assert_almost_equal(
-        2 * (best_toffoli.logical_error_rate - best_T.logical_error_rate) / n_toffoli,
-        best_toffoli.extra.failure_prob,
+    num_logical_qubits = 12
+    BAM = BasicArchitectureModel
+    BAM.physical_qubit_error_rate = 1.0e-4
+    BAM.surface_code_cycle_time_in_seconds = 2e-6
+    best_toffoli = get_physical_cost(
+        num_logical_qubits=num_logical_qubits,
+        num_toffoli=n_toffoli,
+        architecture_model=BAM,
+    )
+    best_T = get_physical_cost(
+        num_logical_qubits=num_logical_qubits,
+        num_t=n_T,
+        architecture_model=BAM,
     )
 
     numpy.testing.assert_almost_equal(
-        (best_toffoli.logical_error_rate - best_T.logical_error_rate) / n_T,
-        best_T.extra.failure_prob,
+        (best_toffoli.logical_error_rate - 2 * best_T.logical_error_rate),
+        0,
+    )
+
+
+def test_algorithm_failure_prob_calculation():
+    """
+    To ascertain if algorithm failure probability is
+    calculated correctly for a ckt with (num_toffoli=20,
+    num_t=20) and for a ckt with (num_toffoli=30,
+    num_t=0)
+    """
+    num_logical_qubits = 12
+    BAM = BasicArchitectureModel
+    BAM.physical_qubit_error_rate = 1.0e-4
+    BAM.surface_code_cycle_time_in_seconds = 2e-6
+    best_cost_toffoli = get_physical_cost(
+        num_logical_qubits=num_logical_qubits,
+        num_toffoli=20,
+        num_t=20,
+        architecture_model=BAM,
+    )
+    best_cost_t = get_physical_cost(
+        num_logical_qubits=num_logical_qubits,
+        num_toffoli=30,
+        num_t=0,
+        architecture_model=BAM,
+    )
+    numpy.testing.assert_almost_equal(
+        best_cost_toffoli.logical_error_rate, best_cost_t.logical_error_rate
     )
 
 
 def test_default_T_factories():
+    """
+    If physical_error_rate == default value,
+    this ascertains if the default T factory is called.
+    """
     num_logical_qubits = 12
-    SCC_time = datetime.timedelta(microseconds=2)
-    physical_error_rate = 1.0e-3
-    # Default Magic State Factory details
-    # used based on this physical error rate.
-    num_T = 200
+    BAM = BasicArchitectureModel
+    BAM.physical_qubit_error_rate = 1.0e-3
+    BAM.surface_code_cycle_time_in_seconds = 2 * 1e-6
+    num_t = 200
     num_toffoli = 140
     best_T = get_physical_cost(
         num_logical_qubits=num_logical_qubits,
-        num_T=num_T,
-        surface_code_cycle_time=SCC_time,
-        physical_error_rate=physical_error_rate,
+        num_t=num_t,
+        architecture_model=BAM,
     )
     best_toffoli = get_physical_cost(
         num_logical_qubits=num_logical_qubits,
         num_toffoli=num_toffoli,
-        surface_code_cycle_time=SCC_time,
-        physical_error_rate=physical_error_rate,
+        architecture_model=BAM,
     )
-    assert (
-        best_T.extra.rounds == 186
-        and best_T.extra.failure_prob == 3.6000000000000003e-16
-    )
-    assert (
-        best_toffoli.extra.rounds == 186
-        and best_toffoli.extra.failure_prob == 3.6000000000000003e-16
-    )
+
+    numpy.testing.assert_allclose(best_T.extra.rounds_magicstateFactory, 186)
+    numpy.testing.assert_allclose(best_T.extra.fail_rate_msFactory, 3.6e-16)
+    numpy.testing.assert_allclose(best_T.extra.rounds_magicstateFactory, 186)
+    numpy.testing.assert_allclose(best_toffoli.extra.fail_rate_msFactory, 3.6e-16)
 
 
 def test_default_values():
-    num_logical_qubits = 12
-    physical_error_rate = 1.0e-4
     """
     If physical_error_rate != default value,
-    this ascertains if both num_T=0 and num_toffoli=0,
-    then it must throw an error.
+    this ascertains if both num_t=0 and num_toffoli=0,
+    then it must throw an error. This basically tests
+    the 'else statement' in iter_known_factories()
     """
-    with pytest.raises(SystemExit) as dvalue:
+
+    num_logical_qubits = 12
+    BAM = BasicArchitectureModel
+    BAM.physical_qubit_error_rate = 1.0e-4
+    BAM.surface_code_cycle_time_in_seconds = 2 * 1e-6
+    with pytest.raises(ValueError) as dvalue:
         a, b = get_physical_cost(
             num_logical_qubits=num_logical_qubits,
-            physical_error_rate=physical_error_rate,
+            architecture_model=BAM,
         )
 
-    assert dvalue.type == SystemExit
-    assert dvalue.value.code == 1
+    assert dvalue.type == ValueError
 
 
 def test_all_default_values():
-    num_logical_qubits = 12
     """
     If physical_error_rate == default value,
-    this ascertains if both num_T=0 and num_toffoli=0,
-    then it must throw an error.
+    this ascertains if both num_t=0 and num_toffoli=0,
+    then it must throw an error. This basically tests
+    the 'if statement' in iter_known_factories()
     """
-    with pytest.raises(SystemExit) as dvalue:
-        a, b = get_physical_cost(
-            num_logical_qubits=num_logical_qubits,
-        )
+    num_logical_qubits = 12
+    with pytest.raises(ValueError) as dvalue:
+        get_physical_cost(num_logical_qubits=num_logical_qubits)
 
-    assert dvalue.type == SystemExit
-    assert dvalue.value.code == 1
+    assert dvalue.type == ValueError
+
+
+def test_default_scc_time():
+    num_logical_qubits = 12
+    """
+    This test will verify attributes of
+    default Architecture Model i.e. BASIC_SC_ARCHITECTURE_MODEL
+    """
+    cost = get_physical_cost(
+        num_logical_qubits=num_logical_qubits,
+        num_t=25,
+        num_toffoli=25,
+    )
+    assert cost.extra.physical_qubit_error_rate == 1e-3
+    assert cost.extra.scc_time == 0.1e-6
