@@ -326,7 +326,6 @@ class GraphResourceEstimator:
                     break
             if not widget_found:
                 raise ValueError("No viable widget found!")
-            n_t_gates_per_rotation = 2
             if this_transpilation_failure_tolerance < _logical_cell_error_rate:
                 if graph_data.n_t_gates < 0.01 * graph_data.n_nodes:
                     # re-run estimates with new synthesis failure tolerance
