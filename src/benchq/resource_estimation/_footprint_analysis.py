@@ -14,9 +14,7 @@
 #   limitations under the License.
 
 import dataclasses
-import datetime
 import math
-import sys
 from typing import Iterator, Tuple
 
 
@@ -31,14 +29,14 @@ class MagicStateFactory:
 @dataclasses.dataclass(frozen=True, unsafe_hash=True)
 class CostEstimate:
     physical_qubit_count: int
-    duration: datetime.timedelta
+    duration: float
     algorithm_failure_probability: float
 
 
 @dataclasses.dataclass(frozen=True, unsafe_hash=True)
 class AlgorithmParameters:
     physical_error_rate: float
-    surface_code_cycle_time: datetime.timedelta
+    surface_code_cycle_time: float
     logical_data_qubit_distance: int
     magic_state_factory: MagicStateFactory
     max_allocated_logical_qubits: int
@@ -68,44 +66,27 @@ class AlgorithmParameters:
         distillation_area = (
             self.factory_count * self.magic_state_factory.physical_qubit_footprint
         )
-        if self.t_count != 0 and self.toffoli_count == 0:
-            rounds = int(
-                math.ceil(self.t_count / 2)
-                / self.factory_count
-                * self.magic_state_factory.rounds
-            )
-            distillation_failure = self.magic_state_factory.failure_rate * self.t_count
-            data_failure = (
-                self.proportion_of_bounding_box
-                * _topological_error_per_unit_cell(
-                    self.logical_data_qubit_distance, gate_err=self.physical_error_rate
-                )
-                * logical_storage
-                * rounds
+        if self.t_count == 0 and self.toffoli_count == 0:
+            raise ValueError(
+                "Cannot accommodate circuits having no T gates and Toffoli gates."
             )
 
-        elif self.toffoli_count != 0 and self.t_count == 0:
-            rounds = int(
-                self.toffoli_count
-                / self.factory_count
-                * self.magic_state_factory.rounds
+        rounds = int(
+            (self.toffoli_count + math.ceil(self.t_count / 2))
+            / self.factory_count
+            * self.magic_state_factory.rounds
+        )
+        distillation_failure = self.magic_state_factory.failure_rate * (
+            math.ceil(self.t_count / 2) + self.toffoli_count
+        )
+        data_failure = (
+            self.proportion_of_bounding_box
+            * _topological_error_per_unit_cell(
+                self.logical_data_qubit_distance, gate_err=self.physical_error_rate
             )
-            distillation_failure = (
-                self.magic_state_factory.failure_rate * self.toffoli_count
-            )
-
-            data_failure = (
-                self.proportion_of_bounding_box
-                * _topological_error_per_unit_cell(
-                    self.logical_data_qubit_distance, gate_err=self.physical_error_rate
-                )
-                * logical_storage
-                * rounds
-            )
-
-        else:
-            print("Enter either number of T gates or Toffoli gates")
-            sys.exit(1)
+            * logical_storage
+            * rounds
+        )
 
         return CostEstimate(
             physical_qubit_count=storage_area + distillation_area,
@@ -127,26 +108,17 @@ def _total_topological_error(
 def iter_known_factories(
     physical_error_rate: float, num_toffoli: int, num_t: int
 ) -> Iterator[MagicStateFactory]:
-    if physical_error_rate == 0.001:
-        if (num_t != 0 and num_toffoli == 0) or (num_toffoli != 0 and num_t == 0):
-            yield _two_level_t_state_factory_1p1000(
-                physical_error_rate=physical_error_rate
-            )
-        else:
-            print(
-                "Enter a non-zero number for either number of T gates or Toffoli gates"
-            )
-            sys.exit(1)
+    error_msg = "Cannot accommodate circuits having no T gates and Toffoli gates."
+
+    if physical_error_rate == 0.001 and num_t == 0 and num_toffoli == 0:
+        raise ValueError(error_msg)
+
+    elif physical_error_rate == 0.001:
+        yield _two_level_t_state_factory_1p1000(physical_error_rate=physical_error_rate)
     else:
-        if num_toffoli != 0 and num_t == 0:
-            yield from iter_auto_ccz_factories(physical_error_rate)
-        elif num_t != 0 and num_toffoli == 0:
-            yield from iter_auto_t_factories(physical_error_rate)
-        else:
-            print(
-                "Enter a non-zero number for either number of T gates or Toffoli gates"
-            )
-            sys.exit(1)
+        if num_t == 0 and num_toffoli == 0:
+            raise ValueError(error_msg)
+        yield from iter_auto_ccz_factories(physical_error_rate)
 
 
 def _two_level_t_state_factory_1p1000(physical_error_rate: float) -> MagicStateFactory:
@@ -192,7 +164,7 @@ def iter_auto_ccz_factories(physical_error_rate: float) -> Iterator[MagicStateFa
             w, h, d = _autoccz_or_t_factory_dimensions(
                 l1_distance=l1_distance, l2_distance=l2_distance
             )
-            f_CCZ = _compute_autoccz_distillation_error(
+            f_ccz = _compute_autoccz_distillation_error(
                 l1_distance=l1_distance,
                 l2_distance=l2_distance,
                 physical_error_rate=physical_error_rate,
@@ -204,30 +176,7 @@ def iter_auto_ccz_factories(physical_error_rate: float) -> Iterator[MagicStateFa
                 * h
                 * _physical_qubits_per_logical_qubit(l2_distance),
                 rounds=int(d * l2_distance),
-                failure_rate=float(f_CCZ),
-            )
-
-
-def iter_auto_t_factories(physical_error_rate: float) -> Iterator[MagicStateFactory]:
-    for l1_distance in range(5, 25, 2):
-        for l2_distance in range(l1_distance + 2, 41, 2):
-            w, h, d = _autoccz_or_t_factory_dimensions(
-                l1_distance=l1_distance, l2_distance=l2_distance
-            )
-            f_CCZ = _compute_autoccz_distillation_error(
-                l1_distance=l1_distance,
-                l2_distance=l2_distance,
-                physical_error_rate=physical_error_rate,
-            )
-            f_t = f_CCZ / 2
-
-            yield MagicStateFactory(
-                details=f"AutoT({physical_error_rate=},{l1_distance=},{l2_distance=}",
-                physical_qubit_footprint=w
-                * h
-                * _physical_qubits_per_logical_qubit(l2_distance),
-                rounds=int(d * l2_distance),
-                failure_rate=float(f_t),
+                failure_rate=float(f_ccz),
             )
 
 
@@ -273,7 +222,7 @@ def cost_estimator(
     num_logical_qubits,
     num_toffoli=0,
     num_t=0,
-    surface_code_cycle_time=datetime.timedelta(microseconds=1),
+    surface_code_cycle_time=1e-6,
     physical_error_rate=1.0e-3,
     portion_of_bounding_box=1.0,
     routing_overhead_proportion=0.5,
