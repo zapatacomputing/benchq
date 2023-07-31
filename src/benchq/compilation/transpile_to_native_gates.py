@@ -35,7 +35,7 @@ def transpile_to_native_gates(circuit) -> Circuit:
     return Circuit(
         decompose_benchq_circuit(
             circuit,
-            [CCZtoCCX(), CCXtoT(), U3toRZ(), RXtoRZ(), RYtoRZ(), DecomposeStandardRZ()],
+            [CCZtoT(), CCXtoT(), U3toRZ(), RXtoRZ(), RYtoRZ(), DecomposeStandardRZ()],
         ).operations,
         n_qubits=circuit.n_qubits,
     )
@@ -253,7 +253,7 @@ class CCXtoT(DecompositionRule[GateOperation]):
         return gate_operation_decomposition
 
 
-class CCZtoCCX(DecompositionRule[GateOperation]):
+class CCZtoT(DecompositionRule[GateOperation]):
     """Decomposition of Toffoli into T, H, and CNOT gates."""
 
     def predicate(self, operation: GateOperation) -> bool:

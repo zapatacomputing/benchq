@@ -36,8 +36,7 @@ class WorstCaseFootprintResourceEstimator(GraphResourceEstimator):
     ) -> GraphResourceInfo:
         """Estimates the resources needed to run an algorithm using a footprint analysis
         which is derived from graph state compilation. Assumes that the graph
-        creation is optimal, in the sense that the graph has the minimum number of
-        nodes.
+        has a node of maximal degree, which is the worst case for the footprint.
 
         Args:
             algorithm_implementation (AlgorithmImplementation): The algorithm
