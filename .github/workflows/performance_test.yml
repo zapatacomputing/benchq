@@ -51,5 +51,6 @@ jobs:
           output-file-path: output.json
           auto-push: false
           ref: "${GITHUB_SHA}"
+          github-token: "dummy_token"
       - name: Push benchmark result
         run: git push 'https://${{ secrets.GITHUB_TOKEN }}@github.com/zapatacomputing/benchq.git' gh-pages:gh-pages
