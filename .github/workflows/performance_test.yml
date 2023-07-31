@@ -1,7 +1,12 @@
+name: Performance tests
+
 on:
   release:
     types: [ published ]
-  workflow_dispatch:
+  # Triggers the workflow on push to main
+  push:
+    branches:
+      - main
 
 permissions:
   # contents permission to update benchmark contents in gh-pages branch
