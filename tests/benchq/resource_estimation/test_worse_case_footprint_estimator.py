@@ -19,8 +19,8 @@ from benchq.resource_estimation.graph import (
     synthesize_clifford_t,
     transpile_to_native_gates,
 )
-from benchq.resource_estimation.graph.footprint_estimator import (
-    FootprintResourceEstimator,
+from benchq.resource_estimation.graph.worstcase_footprint_estimator import (
+    WorstCaseFootprintResourceEstimator,
 )
 
 
@@ -94,7 +94,7 @@ def test_get_resource_estimations_for_program_gives_correct_results(
     footprint_resource_estimates = asdict(
         run_custom_resource_estimation_pipeline(
             algorithm_implementation,
-            estimator=FootprintResourceEstimator(
+            estimator=WorstCaseFootprintResourceEstimator(
                 architecture_model, optimization=optimization
             ),
             transformers=transformers,
@@ -136,7 +136,7 @@ def test_better_architecture_does_not_require_more_resources(
     algorithm_implementation = AlgorithmImplementation(quantum_program, error_budget, 1)
     low_noise_resource_estimates = run_custom_resource_estimation_pipeline(
         algorithm_implementation,
-        estimator=FootprintResourceEstimator(
+        estimator=WorstCaseFootprintResourceEstimator(
             low_noise_architecture_model, optimization=optimization
         ),
         transformers=transformers,
@@ -144,7 +144,7 @@ def test_better_architecture_does_not_require_more_resources(
 
     high_noise_resource_estimates = run_custom_resource_estimation_pipeline(
         algorithm_implementation,
-        estimator=FootprintResourceEstimator(
+        estimator=WorstCaseFootprintResourceEstimator(
             high_noise_architecture_model, optimization=optimization
         ),
         transformers=transformers,
@@ -195,7 +195,7 @@ def test_higher_error_budget_does_not_require_more_resources(
 
     low_error_resource_estimates = run_custom_resource_estimation_pipeline(
         algorithm_implementation_low_error_budget,
-        estimator=FootprintResourceEstimator(
+        estimator=WorstCaseFootprintResourceEstimator(
             architecture_model, optimization=optimization
         ),
         transformers=low_error_transformers,
@@ -203,7 +203,7 @@ def test_higher_error_budget_does_not_require_more_resources(
 
     high_error_resource_estimates = run_custom_resource_estimation_pipeline(
         algorithm_implementation_high_error_budget,
-        estimator=FootprintResourceEstimator(
+        estimator=WorstCaseFootprintResourceEstimator(
             architecture_model, optimization=optimization
         ),
         transformers=high_error_transformers,
@@ -235,7 +235,7 @@ def test_get_resource_estimations_for_program_accounts_for_decoder(optimization)
     transformers = _get_transformers(True, error_budget)
     gsc_resource_estimates_no_decoder = run_custom_resource_estimation_pipeline(
         algorithm_implementation,
-        estimator=FootprintResourceEstimator(
+        estimator=WorstCaseFootprintResourceEstimator(
             architecture_model, decoder_model=None, optimization=optimization
         ),
         transformers=transformers,
@@ -249,7 +249,7 @@ def test_get_resource_estimations_for_program_accounts_for_decoder(optimization)
     decoder = DecoderModel.from_csv(file_path)
     gsc_resource_estimates_with_decoder = run_custom_resource_estimation_pipeline(
         algorithm_implementation,
-        estimator=FootprintResourceEstimator(
+        estimator=WorstCaseFootprintResourceEstimator(
             architecture_model, decoder_model=decoder, optimization=optimization
         ),
         transformers=transformers,

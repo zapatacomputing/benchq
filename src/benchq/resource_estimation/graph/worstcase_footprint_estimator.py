@@ -29,7 +29,7 @@ class SubroutineInfo:
         self.n_edges_added_before_reset = [0] * n_qubits
 
 
-class FootprintResourceEstimator(GraphResourceEstimator):
+class WorstCaseFootprintResourceEstimator(GraphResourceEstimator):
     def estimate(
         self,
         algorithm_implementation: AlgorithmImplementation,
