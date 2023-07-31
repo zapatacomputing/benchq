@@ -2,12 +2,9 @@
 # © Copyright 2022-2023 Zapata Computing Inc.
 ################################################################################
 """Data structures describing estimated resources and related info."""
+
 from dataclasses import dataclass, field
 from typing import Generic, List, Optional, TypeVar
-
-from openfermion.resource_estimates.surface_code_compilation.physical_costing import (
-    AlgorithmParameters,
-)
 
 TExtra = TypeVar("TExtra")
 
@@ -90,5 +87,16 @@ class AzureExtra:
 # Alias for type of resource info returned by AzureResourceEstimator
 AzureResourceInfo = ResourceInfo[AzureExtra]
 
+
+@dataclass
+class OpenFermionExtra:
+    """Extra info relating to resource estimation using OpenFermion."""
+
+    fail_rate_msFactory: float
+    rounds_magicstateFactory: int
+    scc_time: float
+    physical_qubit_error_rate: float
+
+
 # Alias for type of resource info returned by OpenFermion
-OpenFermionResourceInfo = ResourceInfo[AlgorithmParameters]
+OpenFermionResourceInfo = ResourceInfo[OpenFermionExtra]

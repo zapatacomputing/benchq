@@ -22,6 +22,8 @@ from .resource_info import (
     ExtrapolatedGraphResourceInfo,
     GraphData,
     GraphResourceInfo,
+    OpenFermionExtra,
+    OpenFermionResourceInfo,
     ResourceInfo,
 )
 
@@ -44,4 +46,6 @@ __all__ = [
     "ExtrapolatedGraphResourceInfo",
     "AzureResourceInfo",
     "AzureExtra",
+    "OpenFermionExtra",
+    "OpenFermionResourceInfo",
 ]

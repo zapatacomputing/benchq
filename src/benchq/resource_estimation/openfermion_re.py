@@ -1,18 +1,22 @@
 ################################################################################
 # © Copyright 2023 Zapata Computing Inc.
 ################################################################################
-import datetime
+
 from typing import Tuple
 
 import numpy as np
 from openfermion.resource_estimates import df, sf
 
-from benchq.data_structures.resource_info import OpenFermionResourceInfo
+from benchq.data_structures import BASIC_SC_ARCHITECTURE_MODEL, BasicArchitectureModel
+from benchq.data_structures.resource_info import (
+    OpenFermionExtra,
+    OpenFermionResourceInfo,
+)
 from benchq.resource_estimation._compute_lambda import (
     compute_lambda_df,
     compute_lambda_sf,
 )
-from benchq.resource_estimation.footprint_analysis import (
+from benchq.resource_estimation._footprint_analysis import (
     AlgorithmParameters,
     CostEstimate,
     cost_estimator,
@@ -227,8 +231,10 @@ def get_double_factorized_block_encoding_toffoli_and_qubit_cost(
 
 def get_physical_cost(
     num_logical_qubits: int,
-    num_toffoli: int,
-    surface_code_cycle_time: datetime.timedelta = datetime.timedelta(microseconds=1),
+    num_toffoli: int = 0,
+    num_t: int = 0,
+    architecture_model: BasicArchitectureModel = BASIC_SC_ARCHITECTURE_MODEL,
+    routing_overhead_proportion=0.5,
 ) -> OpenFermionResourceInfo:
     """Get the estimated resources for single factorized QPE as described in PRX Quantum
     2, 030305.
@@ -242,10 +248,11 @@ def get_physical_cost(
 
     best_cost, best_params = cost_estimator(
         num_logical_qubits,
-        num_toffoli,
-        surface_code_cycle_time=surface_code_cycle_time,
-        physical_error_rate=1.0e-3,
-        portion_of_bounding_box=1.0,
+        num_toffoli=num_toffoli,
+        num_t=num_t,
+        physical_error_rate=architecture_model.physical_qubit_error_rate,
+        surface_code_cycle_time=architecture_model.surface_code_cycle_time_in_seconds,
+        routing_overhead_proportion=routing_overhead_proportion,
     )
 
     return _openfermion_result_to_resource_info(best_cost, best_params)
@@ -257,10 +264,15 @@ def _openfermion_result_to_resource_info(
     return OpenFermionResourceInfo(
         n_physical_qubits=cost.physical_qubit_count,
         n_logical_qubits=algorithm_parameters.max_allocated_logical_qubits,
-        total_time_in_seconds=cost.duration.total_seconds(),
+        total_time_in_seconds=cost.duration,
         code_distance=algorithm_parameters.logical_data_qubit_distance,
         logical_error_rate=cost.algorithm_failure_probability,
         decoder_info=None,
         widget_name=algorithm_parameters.magic_state_factory.details,
-        extra=algorithm_parameters,
+        extra=OpenFermionExtra(
+            fail_rate_msFactory=algorithm_parameters.magic_state_factory.failure_rate,
+            rounds_magicstateFactory=algorithm_parameters.magic_state_factory.rounds,
+            physical_qubit_error_rate=algorithm_parameters.physical_error_rate,
+            scc_time=algorithm_parameters.surface_code_cycle_time,
+        ),
     )
