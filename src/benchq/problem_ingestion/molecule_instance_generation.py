@@ -15,6 +15,7 @@ from openfermion.resource_estimates.molecule import (
 from openfermionpyscf import PyscfMolecularData
 from openfermionpyscf._run_pyscf import compute_integrals
 from pyscf import gto, mp, scf
+from copy import deepcopy
 
 
 class SCFConvergenceError(Exception):
@@ -183,8 +184,10 @@ class ChemistryApplicationInstance:
         if mean_field_object._eri is None:
             raise ValueError("The ERI tensor is not available.")
 
+        copied_eri = deepcopy(mean_field_object._eri)
+
         one_body_integrals, two_body_integrals = compute_integrals(
-            mean_field_object._eri, mean_field_object
+            copied_eri, mean_field_object
         )
 
         molecular_data.one_body_integrals = one_body_integrals
@@ -309,8 +312,10 @@ class ChemistryApplicationInstance:
         molecular_data.canonical_orbitals = mean_field_object.mo_coeff.astype(float)
         molecular_data.orbital_energies = mean_field_object.mo_energy.astype(float)
 
+        copied_eri = deepcopy(mean_field_object._eri)
+
         one_body_integrals, two_body_integrals = compute_integrals(
-            mean_field_object._eri, mean_field_object
+            copied_eri, mean_field_object
         )
         molecular_data.one_body_integrals = one_body_integrals
         molecular_data.two_body_integrals = two_body_integrals
