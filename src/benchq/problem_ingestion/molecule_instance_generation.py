@@ -180,6 +180,9 @@ class ChemistryApplicationInstance:
         molecular_data.canonical_orbitals = natural_orbital_coefficients
         mean_field_object.mo_coeff = molecular_data.canonical_orbitals
 
+        if mean_field_object is None:
+            raise ValueError("WTF??? Why are you zero boi?")
+
         one_body_integrals, two_body_integrals = compute_integrals(
             mean_field_object._eri, mean_field_object
         )
