@@ -7,6 +7,7 @@ from numbers import Number
 from typing import Any, Dict, Optional
 
 import mlflow  # type: ignore
+from logging import getLogger
 
 from ..data_structures import (
     AlgorithmImplementation,
@@ -54,6 +55,27 @@ def log_resource_info_to_mlflow(resource_info: ResourceInfo) -> None:
             mlflow.log_param(key, value)
         elif value is None:
             mlflow.log_param(key, "None")
+
+
+def mlflow_scf_callback(vars) -> None:
+    """
+    Callback function for pySCF calculations that also logs to mlflow
+    Note that to work, an active mlflow instance must be running and configured and that
+    the pyscf calculation must be run inside of a mlflow.start_run() context. See _run_pyscf()
+    for an example.
+    """
+    logger = getLogger(__name__)
+    data = {
+        "last_hf_e": vars.get("last_hf_e"),
+        "norm_gorb": vars.get("norm_gorb"),
+        "norm_ddm": vars.get("norm_ddm"),
+        "cond": vars.get("cond"),
+        "cput0_0": vars.get("cput0")[0],
+        "cput0_1": vars.get("cput0")[1],
+    }
+    print(data)
+    logger.info(str(data))
+    mlflow.log_metrics(data)
 
 
 def _flatten_dict(input_dict: Dict[str, Any]) -> Dict[str, Any]:

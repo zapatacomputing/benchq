@@ -1,6 +1,7 @@
 ################################################################################
 # © Copyright 2022 Zapata Computing Inc.
 ################################################################################
+from copy import deepcopy
 from dataclasses import dataclass
 from typing import Iterable, List, Optional, Tuple
 
@@ -14,7 +15,15 @@ from openfermion.resource_estimates.molecule import (
 )
 from openfermionpyscf import PyscfMolecularData
 from openfermionpyscf._run_pyscf import compute_integrals
+from orquestra import sdk
 from pyscf import gto, mp, scf
+
+from ..mlflow import mlflow_scf_callback
+from benchq import mlflow
+
+import os
+import mlflow
+import urllib3
 
 
 class SCFConvergenceError(Exception):
@@ -91,12 +100,18 @@ class ChemistryApplicationInstance:
         pyscf_molecule.build()
         return pyscf_molecule
 
-    def _run_pyscf(self) -> Tuple[gto.Mole, scf.hf.SCF]:
+    def _run_pyscf(
+        self,
+        mlflow_experiment_name: Optional[str] = "",
+    ) -> Tuple[gto.Mole, scf.hf.SCF]:
         """Run an SCF calculation using PySCF and return the results as a meanfield
         object.
 
         Note that this method will apply AVAS but does not account for occupied_indices
         and active_indices.
+
+        Args:
+            log_to_mlflow: if supplied and true, will log metrics from SCF calculation to mlflow
 
         Returns:
             Tuple whose first element is the PySCF molecule object after AVAS reduction
@@ -108,10 +123,41 @@ class ChemistryApplicationInstance:
         molecule = self.get_pyscf_molecule()
         mean_field_object = (scf.RHF if self.multiplicity == 1 else scf.ROHF)(molecule)
 
-        if self.scf_options is not None:
-            mean_field_object.run(**self.scf_options)
+        run_id = ""
+
+        if mlflow_experiment_name != "":
+            mlflow_path = f"{sdk.mlflow.get_temp_artifacts_dir()}/{file_name}"
+            os.environ["MLFLOW_TRACKING_TOKEN"] = sdk.mlflow.get_tracking_token()
+            urllib3.disable_warnings()
+            print(
+                sdk.mlflow.get_tracking_uri(workspace_id="mlflow-benchq-testing-dd0cb1")
+            )
+            mlflow.set_tracking_uri(
+                sdk.mlflow.get_tracking_uri(workspace_id="mlflow-benchq-testing-dd0cb1")
+            )
+            mlflow.set_experiment(mlflow_experiment_name)
+            with mlflow.start_run() as run:
+                run_id = run.info.run_id
+                if self.scf_options is not None:
+                    if self.scf_options["callback"] is not None:
+                        # we want to log to mlflow, and we've defined the callback in scf_options
+                        mean_field_object.run(**self.scf_options)
+                    else:
+                        # we want to log to mlflow, but haven't defined the callback in scf_options
+                        temp_options = deepcopy(self.scf_options)
+                        temp_options["callback"] = mlflow_scf_callback
+                        mean_field_object.run(scf_options=temp_options)
+                else:
+                    # we want to log to mlflow, but haven't defined scf_options
+                    temp_options = {"callback": mlflow_scf_callback}
+                    mean_field_object.run(scf_options=temp_options)
         else:
-            mean_field_object.run()
+            if self.scf_options is not None:
+                # we don't want to run on mlflow, but we've specified scf_options
+                mean_field_object.run(**self.scf_options)
+            else:
+                # we don't want to run on mlflow, and haven't specified scf_options
+                mean_field_object.run()
 
         if not mean_field_object.converged:
             raise SCFConvergenceError()
@@ -245,7 +291,10 @@ class ChemistryApplicationInstance:
                 active_indices=self.active_indices,
             )
 
-    def get_active_space_meanfield_object(self) -> scf.hf.SCF:
+    def get_active_space_meanfield_object(
+        self,
+        mlflow_experiment_name: Optional[str] = "",
+    ) -> scf.hf.SCF:
         """Run an SCF calculation using PySCF and return the results as a meanfield
         object.
 
@@ -272,9 +321,9 @@ class ChemistryApplicationInstance:
                 "active and occupied indices, as well as with the FNO approach  "
                 " is not currently supported."
             )
-        return self._run_pyscf()[1]
+        return self._run_pyscf(mlflow_experiment_name)[1]
 
-    def _get_molecular_data(self):
+    def _get_molecular_data(self, mlflow_experiment_name: Optional[bool] = ""):
         """Given a PySCF meanfield object and molecule, return a PyscfMolecularData
         object.
 
@@ -292,7 +341,7 @@ class ChemistryApplicationInstance:
             charge=self.charge,
         )
 
-        molecule, mean_field_object = self._run_pyscf()
+        molecule, mean_field_object = self._run_pyscf(mlflow_experiment_name)
         molecular_data.n_orbitals = int(molecule.nao_nr())
         molecular_data.n_qubits = 2 * molecular_data.n_orbitals
         molecular_data.nuclear_repulsion = float(molecule.energy_nuc())
