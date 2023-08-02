@@ -2,7 +2,7 @@
 # © Copyright 2022 Zapata Computing Inc.
 ################################################################################
 from copy import deepcopy
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 from typing import Iterable, List, Optional, Tuple
 
 import numpy as np
@@ -18,7 +18,7 @@ from openfermionpyscf._run_pyscf import compute_integrals
 from orquestra import sdk
 from pyscf import gto, mp, scf
 
-from ..mlflow import mlflow_scf_callback
+from ..mlflow import mlflow_scf_callback, _flatten_dict
 from benchq import mlflow
 
 import os
@@ -126,38 +126,44 @@ class ChemistryApplicationInstance:
         run_id = ""
 
         if mlflow_experiment_name != "":
-            mlflow_path = f"{sdk.mlflow.get_temp_artifacts_dir()}/{file_name}"
+            print(mlflow_experiment_name)
+            # mlflow_path = f"{sdk.mlflow.get_temp_artifacts_dir()}/{file_name}"
             os.environ["MLFLOW_TRACKING_TOKEN"] = sdk.mlflow.get_tracking_token()
             urllib3.disable_warnings()
-            print(
-                sdk.mlflow.get_tracking_uri(workspace_id="mlflow-benchq-testing-dd0cb1")
-            )
             mlflow.set_tracking_uri(
                 sdk.mlflow.get_tracking_uri(workspace_id="mlflow-benchq-testing-dd0cb1")
             )
             mlflow.set_experiment(mlflow_experiment_name)
+
             with mlflow.start_run() as run:
+                print(_flatten_dict(asdict(self)))
+                mlflow.log_params(_flatten_dict(asdict(self)))
                 run_id = run.info.run_id
                 if self.scf_options is not None:
                     if self.scf_options["callback"] is not None:
                         # we want to log to mlflow, and we've defined the callback in scf_options
                         mean_field_object.run(**self.scf_options)
+                        print("11111")
                     else:
                         # we want to log to mlflow, but haven't defined the callback in scf_options
                         temp_options = deepcopy(self.scf_options)
                         temp_options["callback"] = mlflow_scf_callback
                         mean_field_object.run(scf_options=temp_options)
+                        print("22222")
                 else:
                     # we want to log to mlflow, but haven't defined scf_options
                     temp_options = {"callback": mlflow_scf_callback}
                     mean_field_object.run(scf_options=temp_options)
+                    print("33333")
         else:
             if self.scf_options is not None:
                 # we don't want to run on mlflow, but we've specified scf_options
                 mean_field_object.run(**self.scf_options)
+                print("44444")
             else:
                 # we don't want to run on mlflow, and haven't specified scf_options
                 mean_field_object.run()
+                print("55555")
 
         if not mean_field_object.converged:
             raise SCFConvergenceError()
