@@ -73,7 +73,6 @@ def mlflow_scf_callback(vars) -> None:
         "cput0_0": vars.get("cput0")[0],
         "cput0_1": vars.get("cput0")[1],
     }
-    print(data)
     logger.info(str(data))
     mlflow.log_metrics(data)
 

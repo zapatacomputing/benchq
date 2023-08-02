@@ -14,25 +14,29 @@ task_deps = [
 standard_task = sdk.task(
     source_import=sdk.InlineImport(),
     dependency_imports=task_deps,
-    resources=sdk.Resources(memory="4Gi"),
 )
 
 @standard_task
 def testing_get_active_space_meanfield_object(number_of_hydrogens):
+    print("ENTRY")
     instance = generate_hydrogen_chain_instance(number_of_hydrogens=number_of_hydrogens)
+    print("after instance")
     instance.avas_atomic_orbitals = ["H 1s", "H 2s"]
+    print("after orbitals")
     instance.avas_minao = "sto-3g"
-    mean_field_object = instance.get_active_space_meanfield_object()
-    #     mlflow_experiment_name=f"chain of {number_of_hydrogens} hydrogens"
-    # )
-    is_sane = mean_field_object.check_sanity()
-    return is_sane
+    print("after minao")
+    mean_field_object = instance.get_active_space_meanfield_object(
+        mlflow_experiment_name=f"chain of {number_of_hydrogens} hydrogens"
+    )
+    print("before return")
+    return mean_field_object.converged
 
 
 @sdk.workflow
 def scf_mlflow_workflow():
     results = []
     for n in [2, 3, 4]:
+        print(n)
         mean_field_object = testing_get_active_space_meanfield_object(n)
         results.append(mean_field_object)
     return mean_field_object
