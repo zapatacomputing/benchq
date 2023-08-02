@@ -23,7 +23,7 @@ from benchq.resource_estimation.graph import (
 )
 
 task_deps = [
-    sdk.PythonImports("pyscf==2.2.0", "stim==1.10"),
+    sdk.PythonImports("pyscf==2.2.0"),
     sdk.GithubImport("zapatacomputing/benchq", git_ref="main"),
 ]
 ms_task_deps = [

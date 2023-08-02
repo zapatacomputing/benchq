@@ -1,18 +1,22 @@
 ################################################################################
 # © Copyright 2023 Zapata Computing Inc.
 ################################################################################
-import datetime
+
 from typing import Tuple
 
 import numpy as np
 from openfermion.resource_estimates import df, sf
 
-from benchq.data_structures.resource_info import OpenFermionResourceInfo
+from benchq.data_structures import BASIC_SC_ARCHITECTURE_MODEL, BasicArchitectureModel
+from benchq.data_structures.resource_info import (
+    OpenFermionExtra,
+    OpenFermionResourceInfo,
+)
 from benchq.resource_estimation._compute_lambda import (
     compute_lambda_df,
     compute_lambda_sf,
 )
-from benchq.resource_estimation.footprint_analysis import (
+from benchq.resource_estimation._footprint_analysis import (
     AlgorithmParameters,
     CostEstimate,
     cost_estimator,
@@ -79,32 +83,21 @@ def get_single_factorized_qpe_toffoli_and_qubit_cost(
     return sf_total_toffoli_cost, sf_logical_qubits
 
 
-def get_double_factorized_qpe_toffoli_and_qubit_cost(
+def _get_double_factorized_qpe_info(
     h1: np.ndarray,
     eri: np.ndarray,
     threshold: float,
     allowable_phase_estimation_error: float = 0.001,
     bits_precision_coefficients: int = 10,
     bits_precision_rotation: int = 20,
-) -> Tuple[int, int]:
-    """Get the number of Toffoli gates and logical qubits for double factorized QPE as
-    described in PRX Quantum 2, 030305.
+):
+    """Get information about the double factorized QPE algorithm.
 
-    Args:
-        h1: Matrix elements of the one-body operator that includes kinetic
-            energy operator and electorn-nuclear Coulomb operator.
-        eri: Four-dimensional array containing electron-repulsion
-            integrals.
-        threshold:
-        allowable_phase_estimation_error: Allowable error in phase estimation.
-            Corresponds to epsilon_QPE in the paper.
-        bits_precision_coefficients: The number of bits for the representation of
-            the coefficients. Corresponds to aleph_1 and aleph_2 in the paper.
-        bits_precision_rotations: The number of bits of precision for rotation angles.
-            Corresponds to beth in the paper.
+    Args: See get_double_factorized_qpe_toffoli_and_qubit_cost.
 
     Returns:
-        A tuple containing the number of Toffoli gates and number of logical qubits.
+        Tuple containing the number of Toffoli gates per iteration, total number of
+            Tofolli gates, and total number of qubits.
     """
 
     _validate_eri(eri)
@@ -138,13 +131,110 @@ def get_double_factorized_qpe_toffoli_and_qubit_cost(
         verbose=False,
     )
 
+    return step_cost, total_cost, ancilla_cost
+
+
+def get_double_factorized_qpe_toffoli_and_qubit_cost(
+    h1: np.ndarray,
+    eri: np.ndarray,
+    threshold: float,
+    allowable_phase_estimation_error: float = 0.001,
+    bits_precision_coefficients: int = 10,
+    bits_precision_rotation: int = 20,
+) -> Tuple[int, int]:
+    """Get the number of Toffoli gates and logical qubits for double factorized QPE as
+    described in PRX Quantum 2, 030305.
+
+    Args:
+        h1: Matrix elements of the one-body operator that includes kinetic
+            energy operator and electorn-nuclear Coulomb operator.
+        eri: Four-dimensional array containing electron-repulsion
+            integrals.
+        threshold: Threshold for the factorization.
+        allowable_phase_estimation_error: Allowable error in phase estimation.
+            Corresponds to epsilon_QPE in the paper.
+        bits_precision_coefficients: The number of bits for the representation of
+            the coefficients. Corresponds to aleph_1 and aleph_2 in the paper.
+        bits_precision_rotations: The number of bits of precision for rotation angles.
+            Corresponds to beth in the paper.
+
+    Returns:
+        A tuple containing the number of Toffoli gates and number of logical qubits.
+    """
+    step_cost, total_cost, ancilla_cost = _get_double_factorized_qpe_info(
+        h1,
+        eri,
+        threshold,
+        allowable_phase_estimation_error,
+        bits_precision_coefficients,
+        bits_precision_rotation,
+    )
+
     return total_cost, ancilla_cost
+
+
+def get_double_factorized_block_encoding_toffoli_and_qubit_cost(
+    h1: np.ndarray,
+    eri: np.ndarray,
+    threshold: float,
+    bits_precision_state_prep: int = 10,
+    bits_precision_rotation: int = 20,
+) -> Tuple[int, int]:
+    """Get the Toffoli and qubit cost for the double factorized block encoding.
+
+    Args:
+        h1: Matrix elements of the one-body operator that includes kinetic
+            energy operator and electorn-nuclear Coulomb operator.
+        eri: Four-dimensional array containing electron-repulsion
+            integrals.
+        threshold: Threshold for the factorization.
+        allowable_phase_estimation_error: Allowable error in phase estimation.
+            Corresponds to epsilon_QPE in the paper.
+        bits_precision_coefficients: The number of bits for the representation of
+            the coefficients. Corresponds to aleph_1 and aleph_2 in the paper.
+        bits_precision_rotations: The number of bits of precision for rotation angles.
+            Corresponds to beth in the paper.
+
+    Returns:
+        A tuple whose first element is the number of Toffolis required for a controlled
+            implementation of the block encoding, and whose second element is the number
+            of qubits required for the controlled block encoding (including the control
+            qubit).
+    """
+
+    # In the df.compute_cost(...) function below, we set dE = 1 since this input doesn't
+    # matter for us. We are only interested in the cost of implementing the quantum walk
+    # operator, not the cost of QPE which depends on dE. Recall, dE determines the
+    # precision of the QPE output which depends on the number of ancilla qubits in the
+    # energy register.
+
+    eri_rr, LR, L, Lxi = df.factorize(eri, threshold)
+    lam = compute_lambda_df(h1, eri_rr, LR)
+
+    allowable_phase_estimation_error = 1
+    (step_cost, total_cost, ancilla_cost,) = _get_double_factorized_qpe_info(
+        h1,
+        eri,
+        threshold,
+        allowable_phase_estimation_error,
+        bits_precision_state_prep,
+        bits_precision_rotation,
+    )
+
+    # Remove all but one of the ancilla qubits in the QPE energy register.
+    iterations = np.ceil(np.pi * lam / (allowable_phase_estimation_error * 2))
+    num_qubits_energy_register = 2 * np.ceil(np.log2(iterations)) - 1
+    ancilla_cost = ancilla_cost - num_qubits_energy_register + 1
+
+    return step_cost, ancilla_cost
 
 
 def get_physical_cost(
     num_logical_qubits: int,
-    num_toffoli: int,
-    surface_code_cycle_time: datetime.timedelta = datetime.timedelta(microseconds=1),
+    num_toffoli: int = 0,
+    num_t: int = 0,
+    architecture_model: BasicArchitectureModel = BASIC_SC_ARCHITECTURE_MODEL,
+    routing_overhead_proportion=0.5,
 ) -> OpenFermionResourceInfo:
     """Get the estimated resources for single factorized QPE as described in PRX Quantum
     2, 030305.
@@ -158,10 +248,11 @@ def get_physical_cost(
 
     best_cost, best_params = cost_estimator(
         num_logical_qubits,
-        num_toffoli,
-        surface_code_cycle_time=surface_code_cycle_time,
-        physical_error_rate=1.0e-3,
-        portion_of_bounding_box=1.0,
+        num_toffoli=num_toffoli,
+        num_t=num_t,
+        physical_error_rate=architecture_model.physical_qubit_error_rate,
+        surface_code_cycle_time=architecture_model.surface_code_cycle_time_in_seconds,
+        routing_overhead_proportion=routing_overhead_proportion,
     )
 
     return _openfermion_result_to_resource_info(best_cost, best_params)
@@ -173,10 +264,15 @@ def _openfermion_result_to_resource_info(
     return OpenFermionResourceInfo(
         n_physical_qubits=cost.physical_qubit_count,
         n_logical_qubits=algorithm_parameters.max_allocated_logical_qubits,
-        total_time_in_seconds=cost.duration.total_seconds(),
+        total_time_in_seconds=cost.duration,
         code_distance=algorithm_parameters.logical_data_qubit_distance,
         logical_error_rate=cost.algorithm_failure_probability,
         decoder_info=None,
         widget_name=algorithm_parameters.magic_state_factory.details,
-        extra=algorithm_parameters,
+        extra=OpenFermionExtra(
+            fail_rate_msFactory=algorithm_parameters.magic_state_factory.failure_rate,
+            rounds_magicstateFactory=algorithm_parameters.magic_state_factory.rounds,
+            physical_qubit_error_rate=algorithm_parameters.physical_error_rate,
+            scc_time=algorithm_parameters.surface_code_cycle_time,
+        ),
     )
