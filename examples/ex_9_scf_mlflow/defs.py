@@ -7,16 +7,13 @@ from orquestra import sdk
 
 from benchq.problem_ingestion.molecule_instance_generation import generate_hydrogen_chain_instance
 
-task_deps = [
-    sdk.PythonImports("pyscf==2.2.0", "openfermionpyscf==0.5", "scipy<1.11.0",),
-    sdk.GithubImport("zapatacomputing/benchq", git_ref="ZQS-1365-Create-user-accessible-mlflow-for-scf-tooling"),
-]
-standard_task = sdk.task(
+@sdk.task(
     source_import=sdk.InlineImport(),
-    dependency_imports=task_deps,
+    dependency_imports=[
+        sdk.PythonImports("pyscf==2.2.0", "openfermionpyscf==0.5", "scipy<1.11.0",),
+        sdk.GithubImport("zapatacomputing/benchq", git_ref="ZQS-1365-Create-user-accessible-mlflow-for-scf-tooling"),
+    ]
 )
-
-@standard_task
 def testing_get_active_space_meanfield_object(number_of_hydrogens):
     print("ENTRY")
     instance = generate_hydrogen_chain_instance(number_of_hydrogens=number_of_hydrogens)
@@ -39,5 +36,5 @@ def scf_mlflow_workflow():
         print(n)
         mean_field_object = testing_get_active_space_meanfield_object(n)
         results.append(mean_field_object)
-    return mean_field_object
+    return results
 

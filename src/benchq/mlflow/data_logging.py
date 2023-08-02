@@ -4,7 +4,7 @@
 """ Tools for using mlflow to log benchq data """
 from dataclasses import asdict
 from numbers import Number
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Callable
 
 import mlflow  # type: ignore
 from logging import getLogger
@@ -57,24 +57,27 @@ def log_resource_info_to_mlflow(resource_info: ResourceInfo) -> None:
             mlflow.log_param(key, "None")
 
 
-def mlflow_scf_callback(vars) -> None:
+def create_mlflow_scf_callback(mlflow_client, run_id) -> Callable[[Dict, str], None]:
     """
     Callback function for pySCF calculations that also logs to mlflow
-    Note that to work, an active mlflow instance must be running and configured and that
-    the pyscf calculation must be run inside of a mlflow.start_run() context. See _run_pyscf()
-    for an example.
+
+    In order to make logging to mlflow in parallel work (for instance, parallel Orquestra
+    tasks), we need to have started an mlflow Client and a run that can be passed in.
     """
-    logger = getLogger(__name__)
-    data = {
-        "last_hf_e": vars.get("last_hf_e"),
-        "norm_gorb": vars.get("norm_gorb"),
-        "norm_ddm": vars.get("norm_ddm"),
-        "cond": vars.get("cond"),
-        "cput0_0": vars.get("cput0")[0],
-        "cput0_1": vars.get("cput0")[1],
-    }
-    logger.info(str(data))
-    mlflow.log_metrics(data)
+    def scf_callback(vars):
+        logger = getLogger(__name__)
+        data = {
+            "last_hf_e": vars.get("last_hf_e"),
+            "norm_gorb": vars.get("norm_gorb"),
+            "norm_ddm": vars.get("norm_ddm"),
+            "cond": vars.get("cond"),
+            "cput0_0": vars.get("cput0")[0],
+            "cput0_1": vars.get("cput0")[1],
+        }
+        logger.info(str(data))
+        for key, val in data.items():
+            mlflow_client.log_metric(run_id, key, val)
+    return scf_callback
 
 
 def _flatten_dict(input_dict: Dict[str, Any]) -> Dict[str, Any]:

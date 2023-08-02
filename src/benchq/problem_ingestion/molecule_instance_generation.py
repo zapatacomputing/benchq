@@ -127,34 +127,37 @@ class ChemistryApplicationInstance:
 
         if mlflow_experiment_name != "":
             print(mlflow_experiment_name)
+
             # mlflow_path = f"{sdk.mlflow.get_temp_artifacts_dir()}/{file_name}"
             os.environ["MLFLOW_TRACKING_TOKEN"] = sdk.mlflow.get_tracking_token()
             urllib3.disable_warnings()
-            mlflow.set_tracking_uri(
-                sdk.mlflow.get_tracking_uri(workspace_id="mlflow-benchq-testing-dd0cb1")
-            )
-            mlflow.set_experiment(mlflow_experiment_name)
+            client = mlflow.MlflowClient(tracking_uri=sdk.mlflow.get_tracking_uri(workspace_id="mlflow-benchq-testing-dd0cb1"))
+            # mlflow.set_tracking_uri("http://127.0.0.1:5000")
+            # mlflow.set_experiment(mlflow_experiment_name)
+            experiment = client.get_experiment_by_name(name=mlflow_experiment_name)
+            if experiment is None:
+                client.create_experiment(mlflow_experiment_name)
+            experiment = client.get_experiment_by_name(name=mlflow_experiment_name)
 
-            with mlflow.start_run() as run:
-                print(_flatten_dict(asdict(self)))
-                mlflow.log_params(_flatten_dict(asdict(self)))
-                run_id = run.info.run_id
-                if self.scf_options is not None:
-                    if self.scf_options["callback"] is not None:
-                        # we want to log to mlflow, and we've defined the callback in scf_options
-                        mean_field_object.run(**self.scf_options)
-                        print("11111")
-                    else:
-                        # we want to log to mlflow, but haven't defined the callback in scf_options
-                        temp_options = deepcopy(self.scf_options)
-                        temp_options["callback"] = mlflow_scf_callback
-                        mean_field_object.run(**temp_options)
-                        print("22222")
+            run = client.create_run(experiment.experiment_id)
+            print(_flatten_dict(asdict(self)))
+            client.log_params(_flatten_dict(asdict(self)))
+            if self.scf_options is not None:
+                if self.scf_options["callback"] is not None:
+                    # we want to log to mlflow, and we've defined the callback in scf_options
+                    mean_field_object.run(**self.scf_options)
+                    print("11111")
                 else:
-                    # we want to log to mlflow, but haven't defined scf_options
-                    temp_options = {"callback": mlflow_scf_callback}
+                    # we want to log to mlflow, but haven't defined the callback in scf_options
+                    temp_options = deepcopy(self.scf_options)
+                    temp_options["callback"] = create_mlflow_scf_callback(client, run.info.run_id)
                     mean_field_object.run(**temp_options)
-                    print("33333")
+                    print("22222")
+            else:
+                # we want to log to mlflow, but haven't defined scf_options
+                temp_options = {"callback": create_mlflow_scf_callback(client, run.info.run_id)}
+                mean_field_object.run(**temp_options)
+                print("33333")
         else:
             if self.scf_options is not None:
                 # we don't want to run on mlflow, but we've specified scf_options

@@ -23,6 +23,8 @@ def main():
         project_id="benchq-mlflow-testing-1bbe36",
     )
 
+    # wf_run = wf.run("in_process")
+
     print(f"Workflow {wf_run.run_id} submitted!")
 
     wf_run.wait_until_finished()
