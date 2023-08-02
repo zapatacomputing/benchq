@@ -18,7 +18,7 @@ from openfermionpyscf._run_pyscf import compute_integrals
 from orquestra import sdk
 from pyscf import gto, mp, scf
 
-from ..mlflow import mlflow_scf_callback, _flatten_dict
+from ..mlflow import create_mlflow_scf_callback, _flatten_dict
 from benchq import mlflow
 
 import os
