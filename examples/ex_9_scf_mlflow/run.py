@@ -9,12 +9,12 @@ Running:
    imports work correctly.
 """
 
-from .defs import mlflow_example_workflow
+from .defs import scf_mlflow_workflow
 
 
 def main():
     # example workflow which roughly reproduces ex_3_packages_comparison
-    wf = mlflow_example_workflow()
+    wf = scf_mlflow_workflow()
 
     # Run remotely on Orquestra Platform.
     wf_run = wf.run(
