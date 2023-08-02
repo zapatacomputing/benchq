@@ -53,8 +53,13 @@ class GraphData:
     n_measurement_steps: int
 
 
+@dataclass
+class GraphDataResourceInfo(GraphData):
+    graph_measure_ratio: float
+
+
 # Alias for type of resource info returned by GraphResourceEstimator
-GraphResourceInfo = ResourceInfo[GraphData]
+GraphResourceInfo = ResourceInfo[GraphDataResourceInfo]
 
 
 @dataclass

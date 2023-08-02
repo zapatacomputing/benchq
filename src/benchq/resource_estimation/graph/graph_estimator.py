@@ -1,3 +1,4 @@
+import dataclasses
 import warnings
 from dataclasses import replace
 from decimal import Decimal, getcontext
@@ -17,6 +18,7 @@ from ...data_structures import (
     DecoderInfo,
     DecoderModel,
     GraphData,
+    GraphDataResourceInfo,
     GraphPartition,
     GraphResourceInfo,
 )
@@ -167,15 +169,11 @@ class GraphResourceEstimator:
             ** precise_distance
         )
 
-    def get_logical_st_volume(
+    def _get_v_graph(
         self,
-        n_total_t_gates: int,
         graph_data: GraphData,
         code_distance: int,
-        widget: Widget,
     ):
-        # For example, check that we are properly including/excluding
-        # the distillation spacetime volume
         if self.optimization == "space":
             V_graph = (
                 2
@@ -183,6 +181,25 @@ class GraphResourceEstimator:
                 * graph_data.n_measurement_steps
                 * code_distance
             )
+        elif self.optimization == "time":
+            V_graph = (
+                2 * graph_data.n_nodes * graph_data.n_measurement_steps * code_distance
+            )
+        else:
+            raise ValueError(
+                f"Unknown optimization: {self.optimization}. "
+                "Should be either 'time' or 'space'."
+            )
+        return V_graph
+
+    def _get_v_measure(
+        self,
+        n_total_t_gates: int,
+        graph_data: GraphData,
+        code_distance: int,
+        widget: Widget,
+    ):
+        if self.optimization == "space":
             V_measure = (
                 2
                 * graph_data.max_graph_degree
@@ -190,9 +207,6 @@ class GraphResourceEstimator:
                 * (widget.time_in_tocks + code_distance)
             )
         elif self.optimization == "time":
-            V_graph = (
-                2 * graph_data.n_nodes * graph_data.n_measurement_steps * code_distance
-            )
             V_measure = (
                 n_total_t_gates
                 * widget.space[1]
@@ -204,7 +218,18 @@ class GraphResourceEstimator:
                 f"Unknown optimization: {self.optimization}. "
                 "Should be either 'time' or 'space'."
             )
-        return V_graph + V_measure
+        return V_measure
+
+    def get_logical_st_volume(
+        self,
+        n_total_t_gates: int,
+        graph_data: GraphData,
+        code_distance: int,
+        widget: Widget,
+    ):
+        return self._get_v_graph(graph_data, code_distance) + self._get_v_measure(
+            n_total_t_gates, graph_data, code_distance, widget
+        )
 
     def find_max_decodable_distance(self, min_d=4, max_d=100):
         max_distance = 0
@@ -340,6 +365,10 @@ class GraphResourceEstimator:
             n_total_t_gates, graph_data, code_distance, widget
         )
 
+        graph_measure_ratio = (
+            self._get_v_graph(graph_data, code_distance) / space_time_volume
+        )
+
         total_logical_error_rate = self._get_total_logical_failure_rate(
             code_distance, n_total_t_gates, graph_data, widget
         )
@@ -395,6 +424,10 @@ class GraphResourceEstimator:
                 warnings.warn("Code distance is too high to be decoded.")
             decoder_info = None
 
+        graph_data_resource_info = GraphDataResourceInfo(
+            **dataclasses.asdict(graph_data), graph_measure_ratio=graph_measure_ratio
+        )
+
         return GraphResourceInfo(
             code_distance=code_distance,
             logical_error_rate=total_logical_error_rate,
@@ -404,7 +437,7 @@ class GraphResourceEstimator:
             n_physical_qubits=n_physical_qubits,
             widget_name=widget.name,
             decoder_info=decoder_info,
-            extra=graph_data,
+            extra=graph_data_resource_info,
         )
 
     def estimate(
