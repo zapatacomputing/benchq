@@ -140,8 +140,11 @@ class ChemistryApplicationInstance:
             experiment = client.get_experiment_by_name(name=mlflow_experiment_name)
 
             run = client.create_run(experiment.experiment_id)
-            print(_flatten_dict(asdict(self)))
-            client.log_params(_flatten_dict(asdict(self)))
+
+            flat_dict = _flatten_dict(asdict(self))
+            for key, val in flat_dict.items():
+                client.log_param(run.info.run_id, key, val)
+
             if self.scf_options is not None:
                 if self.scf_options["callback"] is not None:
                     # we want to log to mlflow, and we've defined the callback in scf_options
