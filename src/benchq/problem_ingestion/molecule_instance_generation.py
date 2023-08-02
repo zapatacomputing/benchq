@@ -3,6 +3,7 @@
 ################################################################################
 from dataclasses import dataclass
 from typing import Iterable, List, Optional, Tuple
+import icecream as ic
 
 import numpy as np
 import openfermion
@@ -183,6 +184,8 @@ class ChemistryApplicationInstance:
 
         if mean_field_object._eri is None:
             raise ValueError("The ERI tensor is not available.")
+
+        ic(mean_field_object)
 
         copied_eri = deepcopy(mean_field_object._eri)
 

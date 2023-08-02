@@ -32,37 +32,37 @@ class SubroutineInfo:
 class WorstCaseFootprintResourceEstimator(GraphResourceEstimator):
     def estimate(
         self,
-        algorithm_description: AlgorithmImplementation,
+        algorithm_implementation: AlgorithmImplementation,
     ) -> GraphResourceInfo:
         """Estimates the resources needed to run an algorithm using a footprint analysis
         which is derived from graph state compilation. Assumes that the graph
         has a node of maximal degree, which is the worst case for the footprint.
 
         Args:
-            algorithm_description (AlgorithmImplementation): The algorithm
+            algorithm_implementation (AlgorithmImplementation): The algorithm
                 implementation to estimate the resources for.
 
         Returns:
             ResourceInfo: The estimated resources needed to run the algorithm.
         """
-        assert isinstance(algorithm_description.program, QuantumProgram)
+        assert isinstance(algorithm_implementation.program, QuantumProgram)
 
         estimated_max_graph_degree = self.estimate_max_graph_degree(
-            algorithm_description.program
+            algorithm_implementation.program
         )
 
         # simulate graph data
         simulated_graph_data = GraphData(
             max_graph_degree=estimated_max_graph_degree,
-            n_nodes=algorithm_description.program.min_n_nodes,
-            n_t_gates=algorithm_description.program.n_t_gates,
-            n_rotation_gates=algorithm_description.program.n_rotation_gates,
-            n_measurement_steps=algorithm_description.program.min_n_nodes,
+            n_nodes=algorithm_implementation.program.min_n_nodes,
+            n_t_gates=algorithm_implementation.program.n_t_gates,
+            n_rotation_gates=algorithm_implementation.program.n_rotation_gates,
+            n_measurement_steps=algorithm_implementation.program.min_n_nodes,
         )
 
         return self.estimate_resources_from_graph_data(
             simulated_graph_data,
-            algorithm_description,
+            algorithm_implementation,
         )
 
     def estimate_max_graph_degree(self, program: QuantumProgram) -> int:

@@ -92,12 +92,12 @@ class ExtrapolationResourceEstimator(GraphResourceEstimator):
 
     def estimate_given_extrapolation_data(
         self,
-        algorithm_description: AlgorithmImplementation,
+        algorithm_implementation: AlgorithmImplementation,
         extrapolated_info: ExtrapolatedGraphData,
     ):
-        assert isinstance(algorithm_description.program, QuantumProgram)
+        assert isinstance(algorithm_implementation.program, QuantumProgram)
         resource_info = self.estimate_resources_from_graph_data(
-            extrapolated_info, algorithm_description
+            extrapolated_info, algorithm_implementation
         )
         info = ExtrapolatedGraphResourceInfo(
             n_logical_qubits=resource_info.n_logical_qubits,

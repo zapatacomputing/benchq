@@ -9,7 +9,7 @@ from . import jl
 
 
 def get_algorithmic_graph_from_ruby_slippers(circuit):
-    lco, adj = jl.run_ruby_slippers(circuit, True)
+    lco, adj = jl.run_ruby_slippers(circuit, False)
 
     print("getting networkx graph from vertices")
     start = time.time()
@@ -35,7 +35,7 @@ def get_algorithmic_graph_from_ruby_slippers_with_hyperparams(
     def _run_compiler(circuit):
         lco, adj = jl.run_ruby_slippers(
             circuit,
-            verbose,
+            False,
             max_graph_size,
             teleportation_threshold,
             oz_to_kansas_distance,

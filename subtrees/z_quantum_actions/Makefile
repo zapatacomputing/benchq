@@ -64,12 +64,12 @@ dev-default: clean
 
 # Why we want to use `python3` and not `$(PYTHON)` here.
 # In order to enable running make commands both from CICD and locally
-# we need to use virtualenv when running on GitHub Actions, as otherwise 
+# we need to use virtualenv when running on GitHub Actions, as otherwise
 # we might get into rare and hard to debug edge cases (as we did in the past).
 # After this action is executed $(PYTHON) will get resolved to the Python version
 # from virtual environment.
-# This make task is used to create new virtual environment so we want to use 
-# `python3` here as it's more explicit, because $(PYTHON) would evaluate to 
+# This make task is used to create new virtual environment so we want to use
+# `python3` here as it's more explicit, because $(PYTHON) would evaluate to
 # something else after executing this task, which might be confusing.
 github_actions-default:
 	${PYTHON_EXE} -m venv ${VENV_NAME}
@@ -100,7 +100,7 @@ test-default:
 #    '.coverage' binary file. It's passed to other commands like
 #    'python -m coverage report'
 coverage-default:
-	$(PYTHON) -m pytest \
+	$(PYTHON) -m pytest -s --disable-warnings\
 		--cov=src \
 		--cov-fail-under=$(MIN_COVERAGE) tests \
 		--no-cov-on-fail \

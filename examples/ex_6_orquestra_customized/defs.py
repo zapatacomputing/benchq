@@ -43,7 +43,7 @@ task = sdk.task(
 
 
 @task
-def get_algorithm_description(
+def get_algorithm_implementation(
     problem_size: int, evolution_time: float, error_budget: ErrorBudget
 ) -> AlgorithmImplementation:
     """Task producing algorithm implementation.
@@ -60,7 +60,7 @@ def get_algorithm_description(
 
 @task
 def transpile(
-    algorithm_description: AlgorithmImplementation[QuantumProgram],
+    algorithm_implementation: AlgorithmImplementation[QuantumProgram],
 ) -> AlgorithmImplementation[GraphPartition]:
     """Transpile algorithm implementation into a graph representationp.
 
@@ -70,21 +70,21 @@ def transpile(
     2. Converting the QuantumProgram of the algorithm into a graph representation.
     """
     return replace(
-        algorithm_description,
+        algorithm_implementation,
         program=create_big_graph_from_subcircuits()(
-            transpile_to_native_gates(algorithm_description.program)
+            transpile_to_native_gates(algorithm_implementation.program)
         ),
     )
 
 
 @task
 def estimate_resources(
-    algorithm_description: AlgorithmImplementation,
+    algorithm_implementation: AlgorithmImplementation,
     architecture_model: BasicArchitectureModel,
 ) -> GraphResourceInfo:
     """Estimate resources for algorithm impl., assuming given architecture_model."""
     return GraphResourceEstimator(hw_model=architecture_model).estimate(
-        algorithm_description
+        algorithm_implementation
     )
 
 
@@ -105,7 +105,7 @@ def estimation_workflow() -> List[GraphResourceInfo]:
     compilation is not repeated for each hardware model, bur rather computed
     once and reused.
     """
-    algorithm = get_algorithm_description(
+    algorithm = get_algorithm_implementation(
         problem_size=2,
         evolution_time=5.0,
         error_budget=ErrorBudget.from_even_split(total_failure_tolerance=1e-3),
