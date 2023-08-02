@@ -15,17 +15,12 @@ from benchq.problem_ingestion.molecule_instance_generation import generate_hydro
     ]
 )
 def testing_get_active_space_meanfield_object(number_of_hydrogens):
-    print("ENTRY")
     instance = generate_hydrogen_chain_instance(number_of_hydrogens=number_of_hydrogens)
-    print("after instance")
     instance.avas_atomic_orbitals = ["H 1s", "H 2s"]
-    print("after orbitals")
     instance.avas_minao = "sto-3g"
-    print("after minao")
     mean_field_object = instance.get_active_space_meanfield_object(
         mlflow_experiment_name=f"chain of {number_of_hydrogens} hydrogens"
     )
-    print("before return")
     return mean_field_object.converged
 
 
