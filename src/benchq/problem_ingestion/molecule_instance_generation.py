@@ -148,12 +148,12 @@ class ChemistryApplicationInstance:
                         # we want to log to mlflow, but haven't defined the callback in scf_options
                         temp_options = deepcopy(self.scf_options)
                         temp_options["callback"] = mlflow_scf_callback
-                        mean_field_object.run(scf_options=temp_options)
+                        mean_field_object.run(**temp_options)
                         print("22222")
                 else:
                     # we want to log to mlflow, but haven't defined scf_options
                     temp_options = {"callback": mlflow_scf_callback}
-                    mean_field_object.run(scf_options=temp_options)
+                    mean_field_object.run(**temp_options)
                     print("33333")
         else:
             if self.scf_options is not None:
