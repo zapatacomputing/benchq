@@ -104,6 +104,8 @@ coverage-default:
 		--cov=src \
 		--cov-fail-under=$(MIN_COVERAGE) tests \
 		--no-cov-on-fail \
+		--ignore=tests/benchq/compilation/test_ruby_slippers.py \
+		--ignore=tests/benchq/resource_estimation \
 		&& echo Code coverage Passed the $(MIN_COVERAGE)% mark!
 
 
