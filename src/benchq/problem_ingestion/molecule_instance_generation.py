@@ -326,7 +326,7 @@ class ChemistryApplicationInstance:
             )
         return self._run_pyscf(mlflow_experiment_name)[1]
 
-    def _get_molecular_data(self, mlflow_experiment_name: Optional[bool] = ""):
+    def _get_molecular_data(self, mlflow_experiment_name: Optional[str] = ""):
         """Given a PySCF meanfield object and molecule, return a PyscfMolecularData
         object.
 
