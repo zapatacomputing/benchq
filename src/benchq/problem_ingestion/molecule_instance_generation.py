@@ -309,6 +309,9 @@ class ChemistryApplicationInstance:
         molecular_data.canonical_orbitals = mean_field_object.mo_coeff.astype(float)
         molecular_data.orbital_energies = mean_field_object.mo_energy.astype(float)
 
+        if mean_field_object._eri is None:
+            assert False
+
         one_body_integrals, two_body_integrals = compute_integrals(
             mean_field_object._eri, mean_field_object
         )
