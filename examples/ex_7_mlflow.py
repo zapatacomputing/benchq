@@ -47,7 +47,7 @@ def main(file_name, total_failure_tolerance=1e-3):
     # algorithm implementation encapsulates the how the algorithm is implemented
     # including the program, the number of times the program must be repeated,
     # and the error budget which will be used in the circuit.
-    algorithm_implementation = AlgorithmImplementation(quantum_program, error_budget, 1)
+    algorithm_description = AlgorithmImplementation(quantum_program, error_budget, 1)
 
     # Architecture model is used to define the hardware model.
     architecture_model = BASIC_SC_ARCHITECTURE_MODEL
@@ -63,7 +63,7 @@ def main(file_name, total_failure_tolerance=1e-3):
     # the graph resource estimator. In this case we use delayed gate synthesis, as
     # we have already performed gate synthesis in the previous step.
     gsc_resource_estimates = run_custom_resource_estimation_pipeline(
-        algorithm_implementation,
+        algorithm_description,
         estimator=GraphResourceEstimator(architecture_model),
         transformers=[
             transpile_to_native_gates,
@@ -75,7 +75,7 @@ def main(file_name, total_failure_tolerance=1e-3):
     # mlflow.set_tracking_uri("http://127.0.0.1:5000")
     with mlflow.start_run():
         log_input_objects_to_mlflow(
-            algorithm_implementation,
+            algorithm_description,
             "simple qiskit circuit",
             BASIC_SC_ARCHITECTURE_MODEL,
         )

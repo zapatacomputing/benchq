@@ -289,10 +289,10 @@ class GraphResourceEstimator:
     def estimate_resources_from_graph_data(
         self,
         graph_data: GraphData,
-        algorithm_implementation: AlgorithmImplementation,
+        algorithm_description: AlgorithmImplementation,
     ) -> GraphResourceInfo:
         transpilation_failure_tolerance = 10 * (
-            algorithm_implementation.error_budget.transpilation_failure_tolerance
+            algorithm_description.error_budget.transpilation_failure_tolerance
         )
 
         widget_iterator = iter(self.widgets)
@@ -316,7 +316,7 @@ class GraphResourceEstimator:
                 code_distance = self._minimize_code_distance(
                     n_total_t_gates,
                     tmp_graph_data,
-                    algorithm_implementation.error_budget.hardware_failure_tolerance,
+                    algorithm_description.error_budget.hardware_failure_tolerance,
                     widget,
                 )
                 _logical_cell_error_rate = self._logical_cell_error_rate(code_distance)
@@ -365,7 +365,7 @@ class GraphResourceEstimator:
         # V = 2*Delta*S*d+ 2*Delta*(C+d).
 
         total_time_in_seconds = (
-            time_per_circuit_in_seconds * algorithm_implementation.n_calls
+            time_per_circuit_in_seconds * algorithm_description.n_calls
         )
 
         # get decoder requirements
@@ -408,15 +408,15 @@ class GraphResourceEstimator:
         )
 
     def estimate(
-        self, algorithm_implementation: AlgorithmImplementation
+        self, algorithm_description: AlgorithmImplementation
     ) -> GraphResourceInfo:
-        assert isinstance(algorithm_implementation.program, GraphPartition)
-        if len(algorithm_implementation.program.subgraphs) == 1:
+        assert isinstance(algorithm_description.program, GraphPartition)
+        if len(algorithm_description.program.subgraphs) == 1:
             graph_data = self._get_graph_data_for_single_graph(
-                algorithm_implementation.program
+                algorithm_description.program
             )
             resource_info = self.estimate_resources_from_graph_data(
-                graph_data, algorithm_implementation
+                graph_data, algorithm_description
             )
             return resource_info
         else:

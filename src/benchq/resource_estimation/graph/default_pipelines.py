@@ -18,7 +18,7 @@ from .transformers import create_big_graph_from_subcircuits, synthesize_clifford
 
 
 def run_precise_graph_estimate(
-    algorithm_implementation: AlgorithmImplementation,
+    algorithm_description: AlgorithmImplementation,
     hardware_model: BasicArchitectureModel,
     decoder_model: Optional[DecoderModel] = None,
 ) -> ResourceInfo:
@@ -30,7 +30,7 @@ def run_precise_graph_estimate(
     accurate one and gives the least amount of resources needed to run the algorithm.
 
     Args:
-        algorithm_implementation (AlgorithmImplementation): The algorithm to estimate
+        algorithm_description (AlgorithmImplementation): The algorithm to estimate
             resources for.
         hardware_model (BasicArchitectureModel): The hardware model to estimate
             resources for.
@@ -44,17 +44,17 @@ def run_precise_graph_estimate(
     estimator = GraphResourceEstimator(hardware_model, decoder_model=decoder_model)
 
     return run_custom_resource_estimation_pipeline(
-        algorithm_implementation,
+        algorithm_description,
         estimator,
         transformers=[
-            synthesize_clifford_t(algorithm_implementation.error_budget),
+            synthesize_clifford_t(algorithm_description.error_budget),
             create_big_graph_from_subcircuits(),
         ],
     )
 
 
 def run_fast_graph_estimate(
-    algorithm_implementation: AlgorithmImplementation,
+    algorithm_description: AlgorithmImplementation,
     hardware_model: BasicArchitectureModel,
     decoder_model: Optional[DecoderModel] = None,
 ) -> ResourceInfo:
@@ -67,7 +67,7 @@ def run_fast_graph_estimate(
     full circuit.
 
     Args:
-        algorithm_implementation (AlgorithmImplementation): The algorithm to estimate
+        algorithm_description (AlgorithmImplementation): The algorithm to estimate
             resources for.
         hardware_model (BasicArchitectureModel): The hardware model to estimate
             resources for.
@@ -81,7 +81,7 @@ def run_fast_graph_estimate(
     estimator = GraphResourceEstimator(hardware_model, decoder_model=decoder_model)
 
     return run_custom_resource_estimation_pipeline(
-        algorithm_implementation,
+        algorithm_description,
         estimator,
         transformers=[
             create_big_graph_from_subcircuits(
@@ -92,7 +92,7 @@ def run_fast_graph_estimate(
 
 
 def run_precise_extrapolation_estimate(
-    algorithm_implementation: AlgorithmImplementation,
+    algorithm_description: AlgorithmImplementation,
     hardware_model: BasicArchitectureModel,
     steps_to_extrapolate_from: List[int],
     decoder_model: Optional[DecoderModel] = None,
@@ -106,7 +106,7 @@ def run_precise_extrapolation_estimate(
     and can give smaller resource estimates than the fast graph estimate.
 
     Args:
-        algorithm_implementation (AlgorithmImplementation): The algorithm to estimate
+        algorithm_description (AlgorithmImplementation): The algorithm to estimate
             resources for.
         hardware_model (BasicArchitectureModel): The hardware model to estimate
             resources for.
@@ -125,17 +125,17 @@ def run_precise_extrapolation_estimate(
     )
 
     return run_custom_extrapolation_pipeline(
-        algorithm_implementation,
+        algorithm_description,
         estimator,
         transformers=[
-            synthesize_clifford_t(algorithm_implementation.error_budget),
+            synthesize_clifford_t(algorithm_description.error_budget),
             create_big_graph_from_subcircuits(),
         ],
     )
 
 
 def run_fast_extrapolation_estimate(
-    algorithm_implementation: AlgorithmImplementation,
+    algorithm_description: AlgorithmImplementation,
     hardware_model: BasicArchitectureModel,
     steps_to_extrapolate_from: List[int],
     decoder_model: Optional[DecoderModel] = None,
@@ -149,7 +149,7 @@ def run_fast_extrapolation_estimate(
     to run the algorithm.
 
     Args:
-        algorithm_implementation (AlgorithmImplementation): The algorithm to estimate
+        algorithm_description (AlgorithmImplementation): The algorithm to estimate
             resources for.
         hardware_model (BasicArchitectureModel): The hardware model to estimate
             resources for.
@@ -168,7 +168,7 @@ def run_fast_extrapolation_estimate(
     )
 
     return run_custom_extrapolation_pipeline(
-        algorithm_implementation,
+        algorithm_description,
         estimator,
         transformers=[
             create_big_graph_from_subcircuits(
