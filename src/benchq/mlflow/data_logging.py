@@ -62,7 +62,9 @@ def create_mlflow_scf_callback(mlflow_client, run_id) -> Callable[[Dict, str], N
     Callback function for pySCF calculations that also logs to mlflow
 
     In order to make logging to mlflow in parallel work (for instance, parallel Orquestra
-    tasks), we need to have started an mlflow Client and a run that can be passed in.
+    tasks), we need to have started an mlflow Client and a run associated with that client
+    that can be passed in.
+    For an example of creating the mlflow_client and run_id, see _run_pyscf() in ChemistryApplicationInstance
     """
     def scf_callback(vars):
         logger = getLogger(__name__)
