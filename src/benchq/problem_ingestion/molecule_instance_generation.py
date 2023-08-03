@@ -299,12 +299,10 @@ class ChemistryApplicationInstance:
 
         if len(frozen_natural_orbitals) != 0:
             mean_field_object.mo_coeff = natural_orbital_coefficients[
-                :, n_frozen_core_orbitals : -len(frozen_natural_orbitals)
+                :, : -len(frozen_natural_orbitals)
             ]
         else:
-            mean_field_object.mo_coeff = natural_orbital_coefficients[
-                :, n_frozen_core_orbitals:
-            ]
+            mean_field_object.mo_coeff = natural_orbital_coefficients
 
         # Calculate the number of orbitals after truncation with fno
         molecule._nao = mean_field_object.mo_coeff.shape[1]
