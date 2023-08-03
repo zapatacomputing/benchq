@@ -64,13 +64,13 @@ Returns:
 """
 function run_ruby_slippers(
     circuit,
-    verbose=false,
-    max_graph_size=1e7,
-    teleportation_threshold=40,
-    teleportation_distance=4,
-    min_neighbors=6,
-    max_num_neighbors_to_search=1e5,
-    decomposition_strategy=0,
+    verbose = false,
+    max_graph_size = 1e7,
+    teleportation_threshold = 40,
+    teleportation_distance = 4,
+    min_neighbors = 6,
+    max_num_neighbors_to_search = 1e5,
+    decomposition_strategy = 0,
 )
     max_graph_size = pyconvert(UInt32, max_graph_size)
 
@@ -113,9 +113,9 @@ Returns:
 """
 function get_graph_state_data(
     circuit,
-    verbose::Bool=false,
-    max_graph_size::UInt32=1e8,
-    hyperparams::RubySlippersHyperparams=default_hyperparams,
+    verbose::Bool = false,
+    max_graph_size::UInt32 = 1e8,
+    hyperparams::RubySlippersHyperparams = default_hyperparams,
 )
     n_qubits = pyconvert(Int, circuit.n_qubits)
     ops = circuit.operations
@@ -143,7 +143,7 @@ function get_graph_state_data(
             counter += 1
             if (dispcnt += 1) >= 1000
                 percent = round(Int, 100 * counter / total_length)
-                elapsed = round(time() - start_time, digits=2)
+                elapsed = round(time() - start_time, digits = 2)
                 print("\r$(percent)% ($counter) completed in $erase$(elapsed)s")
                 dispcnt = 0
             end
@@ -198,7 +198,7 @@ function get_graph_state_data(
     end
 
     if verbose
-        elapsed = round(time() - start_time, digits=2)
+        elapsed = round(time() - start_time, digits = 2)
         println("\r100% ($counter) completed in $erase$(elapsed)s")
     end
 
@@ -380,7 +380,7 @@ function get_neighbor(adj, v, avoid, hyperparams)
         neighbors_to_search = sample(
             collect(neighbors_of_v),
             hyperparams.max_num_neighbors_to_search;
-            replace=false
+            replace = false,
         )
     end
     for neighbor in neighbors_to_search
