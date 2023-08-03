@@ -215,7 +215,7 @@ class CCXtoT(DecompositionRule[GateOperation]):
     """Decomposition of Toffoli into T, H, and CNOT gates."""
 
     def predicate(self, operation: GateOperation) -> bool:
-        # Only decompose CCZ
+        # Only decompose CCX
         if operation.gate.name == "Control":
             assert isinstance(operation.gate, ControlledGate)
             if (
@@ -257,7 +257,7 @@ class CCZtoT(DecompositionRule[GateOperation]):
     """Decomposition of Toffoli into T, H, and CNOT gates."""
 
     def predicate(self, operation: GateOperation) -> bool:
-        # Only decompose CCX
+        # Only decompose CCZ
         if operation.gate.name == "Control":
             assert isinstance(operation.gate, ControlledGate)
             if (

@@ -33,20 +33,20 @@ end
 
 struct RubySlippersHyperparams
     teleportation_threshold::UInt16
-    oz_to_kansas_distance::UInt8
+    teleportation_distance::UInt8
     min_neighbors::UInt8
     max_num_neighbors_to_search::UInt32
     decomposition_strategy::UInt8
 end
 
-default_hyperparams = RubySlippersHyperparams(40, 4, 6, 99999, 0)
+default_hyperparams = RubySlippersHyperparams(40, 4, 6, 1e5, 0)
 
 
 """
 Converts a given circuit in Clifford + T form to icm form and simulates the icm
 circuit using the graph sim mini simulator. Returns the adjacency list of the graph
 state created by the icm circuit along with the single qubit operations on each vertex.
-teleportation_threshold, min_neighbors, oz_to_kansas_distance, and  max_num_neighbors_to_search
+teleportation_threshold, min_neighbors, teleportation_distance, and  max_num_neighbors_to_search
 are metaparameters which can be optimized to speed up the simulation.
 
 Args:
@@ -58,26 +58,26 @@ Returns:
     teleportation_threshold::Int      max node degree allowed before state is teleported
     min_neighbors::Int                stop searching for neighbor with low degree if
                                         neighbor has at least this many neighbors
-    oz_to_kansas_distance::Int        number of teleportations to do when state is teleported
+    teleportation_distance::Int        number of teleportations to do when state is teleported
     max_num_neighbors_to_search::Int  max number of neighbors to search through when finding
                                         a neighbor with low degree
 """
 function run_ruby_slippers(
     circuit,
-    verbose = false,
-    max_graph_size = 9999999,
-    teleportation_threshold = 40,
-    oz_to_kansas_distance = 4,
-    min_neighbors = 6,
-    max_num_neighbors_to_search = 99999,
-    decomposition_strategy = 0,
+    verbose=false,
+    max_graph_size=1e7,
+    teleportation_threshold=40,
+    teleportation_distance=4,
+    min_neighbors=6,
+    max_num_neighbors_to_search=1e5,
+    decomposition_strategy=0,
 )
     max_graph_size = pyconvert(UInt32, max_graph_size)
 
     # params which can be optimized to speed up computation
     hyperparams = RubySlippersHyperparams(
         teleportation_threshold,
-        oz_to_kansas_distance,
+        teleportation_distance,
         min_neighbors,
         max_num_neighbors_to_search,
         decomposition_strategy,
@@ -113,9 +113,9 @@ Returns:
 """
 function get_graph_state_data(
     circuit,
-    verbose::Bool = false,
-    max_graph_size::UInt32 = 9999999,
-    hyperparams::RubySlippersHyperparams = default_hyperparams,
+    verbose::Bool=false,
+    max_graph_size::UInt32=1e8,
+    hyperparams::RubySlippersHyperparams=default_hyperparams,
 )
     n_qubits = pyconvert(Int, circuit.n_qubits)
     ops = circuit.operations
@@ -143,7 +143,7 @@ function get_graph_state_data(
             counter += 1
             if (dispcnt += 1) >= 1000
                 percent = round(Int, 100 * counter / total_length)
-                elapsed = round(time() - start_time, digits = 2)
+                elapsed = round(time() - start_time, digits=2)
                 print("\r$(percent)% ($counter) completed in $erase$(elapsed)s")
                 dispcnt = 0
             end
@@ -198,7 +198,7 @@ function get_graph_state_data(
     end
 
     if verbose
-        elapsed = round(time() - start_time, digits = 2)
+        elapsed = round(time() - start_time, digits=2)
         println("\r100% ($counter) completed in $erase$(elapsed)s")
     end
 
@@ -257,7 +257,7 @@ function cz(lco, adj, vertex_1, vertex_2, data_qubits, curr_qubits, hyperparams)
             data_qubits,
             curr_qubits,
             hyperparams,
-            hyperparams.oz_to_kansas_distance,
+            hyperparams.teleportation_distance,
         )
     end
     if length(adj[vertex_2]) >= hyperparams.teleportation_threshold
@@ -268,7 +268,7 @@ function cz(lco, adj, vertex_1, vertex_2, data_qubits, curr_qubits, hyperparams)
             data_qubits,
             curr_qubits,
             hyperparams,
-            hyperparams.oz_to_kansas_distance,
+            hyperparams.teleportation_distance,
         )
     end
 
@@ -380,7 +380,7 @@ function get_neighbor(adj, v, avoid, hyperparams)
         neighbors_to_search = sample(
             collect(neighbors_of_v),
             hyperparams.max_num_neighbors_to_search;
-            replace = false,
+            replace=false
         )
     end
     for neighbor in neighbors_to_search
@@ -468,7 +468,7 @@ function local_complement!(lco, adj, v, data_qubits, curr_qubits, hyperparams)
             data_qubits,
             curr_qubits,
             hyperparams,
-            hyperparams.oz_to_kansas_distance,
+            hyperparams.teleportation_distance,
         )
     end
 
