@@ -18,7 +18,6 @@ from ...data_structures import (
     DecoderInfo,
     DecoderModel,
     GraphData,
-    GraphDataResourceInfo,
     GraphPartition,
     GraphResourceInfo,
 )
@@ -424,8 +423,8 @@ class GraphResourceEstimator:
                 warnings.warn("Code distance is too high to be decoded.")
             decoder_info = None
 
-        graph_data_resource_info = GraphDataResourceInfo(
-            **dataclasses.asdict(graph_data), graph_measure_ratio=graph_measure_ratio
+        graph_data_resource_info = graph_data.return_as_resource_estimate(
+            graph_measure_ratio
         )
 
         return GraphResourceInfo(

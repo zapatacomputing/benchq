@@ -2,7 +2,7 @@
 # © Copyright 2022-2023 Zapata Computing Inc.
 ################################################################################
 """Data structures describing estimated resources and related info."""
-
+import dataclasses
 from dataclasses import dataclass, field
 from typing import Generic, List, Optional, TypeVar
 
@@ -52,14 +52,19 @@ class GraphData:
     n_rotation_gates: int
     n_measurement_steps: int
 
+    def return_as_resource_estimate(self, graph_measure_ratio):
+        return GraphDataResource(
+            **dataclasses.asdict(self), graph_measure_ratio=graph_measure_ratio
+        )
+
 
 @dataclass
-class GraphDataResourceInfo(GraphData):
+class GraphDataResource(GraphData):
     graph_measure_ratio: float
 
 
 # Alias for type of resource info returned by GraphResourceEstimator
-GraphResourceInfo = ResourceInfo[GraphDataResourceInfo]
+GraphResourceInfo = ResourceInfo[GraphDataResource]
 
 
 @dataclass
@@ -75,9 +80,19 @@ class ExtrapolatedGraphData(GraphData):
     def max_graph_degree_r_squared(self) -> float:
         return self.n_logical_qubits_r_squared
 
+    def return_as_resource_estimate(self, graph_measure_ratio):
+        return ExtrapolatedGraphDataResource(
+            **dataclasses.asdict(self), graph_measure_ratio=graph_measure_ratio
+        )
+
+
+@dataclass
+class ExtrapolatedGraphDataResource(ExtrapolatedGraphData):
+    graph_measure_ratio: float
+
 
 # Alias for type of resource info returned by ExtrapolationResourceEstimator
-ExtrapolatedGraphResourceInfo = ResourceInfo[ExtrapolatedGraphData]
+ExtrapolatedGraphResourceInfo = ResourceInfo[ExtrapolatedGraphDataResource]
 
 
 @dataclass
