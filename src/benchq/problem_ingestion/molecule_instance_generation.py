@@ -107,6 +107,7 @@ class ChemistryApplicationInstance:
         """
         molecule = self.get_pyscf_molecule()
         mean_field_object = (scf.RHF if self.multiplicity == 1 else scf.ROHF)(molecule)
+        mean_field_object.max_memory = 400000  # set allowed memory high so tests pass
 
         if self.scf_options is not None:
             mean_field_object.run(**self.scf_options)
@@ -179,9 +180,6 @@ class ChemistryApplicationInstance:
 
         molecular_data.canonical_orbitals = natural_orbital_coefficients
         mean_field_object.mo_coeff = molecular_data.canonical_orbitals
-
-        if mean_field_object is None:
-            raise ValueError("WTF??? Why are you zero boi?")
 
         one_body_integrals, two_body_integrals = compute_integrals(
             mean_field_object._eri, mean_field_object
