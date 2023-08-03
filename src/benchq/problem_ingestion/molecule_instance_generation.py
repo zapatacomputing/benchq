@@ -112,8 +112,6 @@ class ChemistryApplicationInstance:
             mean_field_object.run(**self.scf_options)
         else:
             mean_field_object.run()
-            if mean_field_object._eri is None:
-                assert False
 
         if not mean_field_object.converged:
             raise SCFConvergenceError()
