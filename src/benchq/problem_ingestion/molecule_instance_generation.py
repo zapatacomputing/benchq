@@ -26,55 +26,38 @@ import mlflow
 import urllib3
 
 
+def truncate_with_avas(
+    mean_field_object: scf.hf.SCF,
+    ao_list: Optional[Iterable[str]] = None,
+    minao: Optional[str] = None,
+) -> Tuple[gto.Mole, scf.hf.SCF]:
+    """Truncates a meanfield object to a specific active space that captures the
+    essential chemistry.
+
+    Args:
+        mean_field_object: The meanfield object to be truncated.
+        ao_list: A list of atomic orbitals to use for AVAS.
+        minao: The minimum active orbital to use for AVAS.
+    """
+    mean_field_object.verbose = 4
+
+    # make sure wave function is stable before we proceed
+    mean_field_object = stability(mean_field_object)
+
+    # localize before automatically selecting active space with AVAS
+    mean_field_object = localize(
+        mean_field_object, loc_type="pm"
+    )  # default is loc_type ='pm' (Pipek-Mezey)
+
+    return avas_active_space(mean_field_object, ao_list=ao_list, minao=minao)
+
+
 class SCFConvergenceError(Exception):
     pass
 
 
 @dataclass
-class ChemistryApplicationInstance:
-    """Class for representing chemistry application instances.
-
-    A chemistry application instance is a specification of how to generate a fermionic
-    Hamiltonian, including information such as the molecular geometry and choice of
-    active space. Note that the active space can be specified in one of the following
-    ways:
-
-    1. the use of Atomic Valence Active Space (AVAS),
-
-    2. by specifying the indices of the occupied and active orbitals,
-
-        If freeze_core option is True, chemical frozen core orbitals
-        are choosen for occuped_indicies.
-
-    3. by using the frozen natural orbital (FNO) approach.
-       In this case, a user needs to set one of the FNO parameters:
-            - fno_percentage_occupation_number
-            - fno_threshold
-            - fno_n_virtual_natural_orbitals
-        to decide how much virtual space will be kept for the active space.
-
-        If freeze_core option is True, chemical frozen core orbitals
-        are choosen for occuped_indicies.
-
-
-    Args:
-        geometry: A list of tuples of the form (atom, (x, y, z)) where atom is the
-            atom type and (x, y, z) are the coordinates of the atom in Angstroms.
-        basis: The basis set to use for the calculation.
-        multiplicity: The spin multiplicity of the molecule.
-        charge: The charge of the molecule.
-        avas_atomic_orbitals: A list of atomic orbitals to use for (AVAS).
-        avas_minao: The minimum active orbital to use for AVAS.
-        occupied_indices: A list of molecular orbitals not in the active space that
-            should be assumed to be fully occupied.
-        active_indices: A list of molecular orbitals to include in the active space.
-        freeze_core: A boolean specifying whether frozen core orbitals are selected
-                    for calculations.
-        fno_percentage_occupation_number: Percentage of total occupation number.
-        fno_threshold: Threshold on NO occupation numbers.
-        fno_n_virtual_natural_orbitals: Number of virtual NOs to keep.
-    """
-
+class ChemistryApplicationData:
     geometry: List[Tuple[str, Tuple[float, float, float]]]
     basis: str
     multiplicity: int
@@ -87,22 +70,30 @@ class ChemistryApplicationInstance:
     fno_percentage_occupation_number: Optional[float] = None
     fno_threshold: Optional[float] = None
     fno_n_virtual_natural_orbitals: Optional[int] = None
-    scf_options: Optional[dict] = None
 
-    def get_pyscf_molecule(self) -> gto.Mole:
+
+class ChemistryApplicationSCFInfo:
+    scf_options: Optional[dict] = None
+    mlflow_experiment_name: Optional[str] = None
+
+    def __init__(self, scf_options=None, mlflow_experiment_name=None):
+        self.scf_options = scf_options
+        self.mlflow_experiment_name = mlflow_experiment_name
+
+    def get_pyscf_molecule(self, app_data: ChemistryApplicationData) -> gto.Mole:
         "Generate the PySCF molecule object describing the system to be calculated."
         pyscf_molecule = gto.Mole()
-        pyscf_molecule.atom = self.geometry
-        pyscf_molecule.basis = self.basis
-        pyscf_molecule.spin = self.multiplicity - 1
-        pyscf_molecule.charge = self.charge
+        pyscf_molecule.atom = app_data.geometry
+        pyscf_molecule.basis = app_data.basis
+        pyscf_molecule.spin = app_data.multiplicity - 1
+        pyscf_molecule.charge = app_data.charge
         pyscf_molecule.symmetry = False
         pyscf_molecule.build()
         return pyscf_molecule
 
     def _run_pyscf(
         self,
-        mlflow_experiment_name: Optional[str] = "",
+        app_data: ChemistryApplicationData,
     ) -> Tuple[gto.Mole, scf.hf.SCF]:
         """Run an SCF calculation using PySCF and return the results as a meanfield
         object.
@@ -111,7 +102,7 @@ class ChemistryApplicationInstance:
         and active_indices.
 
         Args:
-            log_to_mlflow: if supplied and true, will log metrics from SCF calculation to mlflow
+            log_to_mlflow: if supplied, will log metrics from SCF calculation to mlflow
 
         Returns:
             Tuple whose first element is the PySCF molecule object after AVAS reduction
@@ -121,19 +112,27 @@ class ChemistryApplicationInstance:
             SCFConvergenceError: If the SCF calculation does not converge.
         """
         molecule = self.get_pyscf_molecule()
-        mean_field_object = (scf.RHF if self.multiplicity == 1 else scf.ROHF)(molecule)
+        mean_field_object = (scf.RHF if app_data.multiplicity == 1 else scf.ROHF)(
+            molecule
+        )
 
         run_id = ""
 
-        if mlflow_experiment_name != "":
+        if self.mlflow_experiment_name is not None:
             os.environ["MLFLOW_TRACKING_TOKEN"] = sdk.mlflow.get_tracking_token()
             urllib3.disable_warnings()
-            client = mlflow.MlflowClient(tracking_uri=sdk.mlflow.get_tracking_uri(workspace_id="mlflow-benchq-testing-dd0cb1"))
+            client = mlflow.MlflowClient(
+                tracking_uri=sdk.mlflow.get_tracking_uri(
+                    workspace_id="mlflow-benchq-testing-dd0cb1"
+                )
+            )
 
-            experiment = client.get_experiment_by_name(name=mlflow_experiment_name)
+            experiment = client.get_experiment_by_name(name=self.mlflow_experiment_name)
             if experiment is None:
-                client.create_experiment(mlflow_experiment_name)
-                experiment = client.get_experiment_by_name(name=mlflow_experiment_name)
+                client.create_experiment(self.mlflow_experiment_name)
+                experiment = client.get_experiment_by_name(
+                    name=self.mlflow_experiment_name
+                )
 
             run = client.create_run(experiment.experiment_id)
 
@@ -148,11 +147,15 @@ class ChemistryApplicationInstance:
                 else:
                     # we want to log to mlflow, but haven't defined the callback in scf_options
                     temp_options = deepcopy(self.scf_options)
-                    temp_options["callback"] = create_mlflow_scf_callback(client, run.info.run_id)
+                    temp_options["callback"] = create_mlflow_scf_callback(
+                        client, run.info.run_id
+                    )
                     mean_field_object.run(**temp_options)
             else:
                 # we want to log to mlflow, but haven't defined scf_options
-                temp_options = {"callback": create_mlflow_scf_callback(client, run.info.run_id)}
+                temp_options = {
+                    "callback": create_mlflow_scf_callback(client, run.info.run_id)
+                }
                 mean_field_object.run(**temp_options)
         else:
             if self.scf_options is not None:
@@ -173,8 +176,11 @@ class ChemistryApplicationInstance:
             )
         return molecule, mean_field_object
 
+
+class ChemistryApplicationActiveSpaceInfo:
     def get_occupied_and_active_indicies_with_FNO(
         self,
+        app_data: ChemistryApplicationData,
     ) -> Tuple[openfermion.MolecularData, List[int], List[int]]:
         """
         Reduce the virtual space with the frozen natural orbital (FNO)
@@ -198,20 +204,17 @@ class ChemistryApplicationInstance:
 
         n_frozen_core_orbitals = 0
 
-        if self.freeze_core and self.occupied_indices:
+        if app_data.freeze_core and app_data.occupied_indices:
             raise ValueError(
                 "Both freeze core and occupied_indices were set!"
                 "Those options are exclusive. Please select either one."
             )
-
-        elif self.freeze_core and not self.occupied_indices:
+        elif app_data.freeze_core and not app_data.occupied_indices:
             mp2 = self._set_frozen_core_orbitals(molecular_data)
             n_frozen_core_orbitals = mp2.frozen
-
-        elif self.occupied_indices and not self.freeze_core:
-            mp2 = mp.MP2(mean_field_object).set(frozen=self.occupied_indices)
-            n_frozen_core_orbitals = len(list(self.occupied_indices))
-
+        elif app_data.occupied_indices and not app_data.freeze_core:
+            mp2 = mp.MP2(mean_field_object).set(frozen=app_data.occupied_indices)
+            n_frozen_core_orbitals = len(list(app_data.occupied_indices))
         else:
             mp2 = mp.MP2(mean_field_object)
 
@@ -221,9 +224,9 @@ class ChemistryApplicationInstance:
         molecular_data._pyscf_data["mp2"] = mp2_energy
 
         frozen_natural_orbitals, natural_orbital_coefficients = mp2.make_fno(
-            self.fno_threshold,
-            self.fno_percentage_occupation_number,
-            self.fno_n_virtual_natural_orbitals,
+            app_data.fno_threshold,
+            app_data.fno_percentage_occupation_number,
+            app_data.fno_n_virtual_natural_orbitals,
         )
 
         molecular_data.canonical_orbitals = natural_orbital_coefficients
@@ -384,30 +387,93 @@ class ChemistryApplicationInstance:
         return mp2
 
 
-def truncate_with_avas(
-    mean_field_object: scf.hf.SCF,
-    ao_list: Optional[Iterable[str]] = None,
-    minao: Optional[str] = None,
-) -> Tuple[gto.Mole, scf.hf.SCF]:
-    """Truncates a meanfield object to a specific active space that captures the
-    essential chemistry.
+class ChemistryApplicationInstance:
+    """Class for representing chemistry application instances.
+
+    A chemistry application instance is a specification of how to generate a fermionic
+    Hamiltonian, including information such as the molecular geometry and choice of
+    active space. Note that the active space can be specified in one of the following
+    ways:
+
+    1. the use of Atomic Valence Active Space (AVAS),
+
+    2. by specifying the indices of the occupied and active orbitals,
+
+        If freeze_core option is True, chemical frozen core orbitals
+        are choosen for occuped_indicies.
+
+    3. by using the frozen natural orbital (FNO) approach.
+       In this case, a user needs to set one of the FNO parameters:
+            - fno_percentage_occupation_number
+            - fno_threshold
+            - fno_n_virtual_natural_orbitals
+        to decide how much virtual space will be kept for the active space.
+
+        If freeze_core option is True, chemical frozen core orbitals
+        are choosen for occuped_indicies.
+
 
     Args:
-        mean_field_object: The meanfield object to be truncated.
-        ao_list: A list of atomic orbitals to use for AVAS.
-        minao: The minimum active orbital to use for AVAS.
+        geometry: A list of tuples of the form (atom, (x, y, z)) where atom is the
+            atom type and (x, y, z) are the coordinates of the atom in Angstroms.
+        basis: The basis set to use for the calculation.
+        multiplicity: The spin multiplicity of the molecule.
+        charge: The charge of the molecule.
+        avas_atomic_orbitals: A list of atomic orbitals to use for (AVAS).
+        avas_minao: The minimum active orbital to use for AVAS.
+        occupied_indices: A list of molecular orbitals not in the active space that
+            should be assumed to be fully occupied.
+        active_indices: A list of molecular orbitals to include in the active space.
+        freeze_core: A boolean specifying whether frozen core orbitals are selected
+                    for calculations.
+        fno_percentage_occupation_number: Percentage of total occupation number.
+        fno_threshold: Threshold on NO occupation numbers.
+        fno_n_virtual_natural_orbitals: Number of virtual NOs to keep.
     """
-    mean_field_object.verbose = 4
 
-    # make sure wave function is stable before we proceed
-    mean_field_object = stability(mean_field_object)
+    app_data: ChemistryApplicationData
+    scf_info: ChemistryApplicationSCFInfo
+    active_space_info: ChemistryApplicationActiveSpaceInfo
 
-    # localize before automatically selecting active space with AVAS
-    mean_field_object = localize(
-        mean_field_object, loc_type="pm"
-    )  # default is loc_type ='pm' (Pipek-Mezey)
+    def __init__(
+        self,
+        geometry: List[Tuple[str, Tuple[float, float, float]]],
+        basis: str,
+        multiplicity: int,
+        charge: int,
+        avas_atomic_orbitals: Optional[Iterable[str]] = None,
+        avas_minao: Optional[str] = None,
+        occupied_indices: Optional[Iterable[int]] = None,
+        active_indices: Optional[Iterable[int]] = None,
+        freeze_core: Optional[bool] = None,
+        fno_percentage_occupation_number: Optional[float] = None,
+        fno_threshold: Optional[float] = None,
+        fno_n_virtual_natural_orbitals: Optional[int] = None,
+        scf_options: Optional[dict] = None,
+        mlflow_experiment_name: Optional[str] = None,
+    ):
+        self.app_data = ChemistryApplicationData(
+            geometry=geometry,
+            basis=basis,
+            multiplicity=multiplicity,
+            charge=charge,
+            avas_atomic_orbitals=avas_atomic_orbitals,
+            avas_minao=avas_minao,
+            occupied_indices=occupied_indices,
+            active_indices=active_indices,
+            freeze_core=freeze_core,
+            fno_percentage_occupation_number=fno_percentage_occupation_number,
+            fno_threshold=fno_threshold,
+            fno_n_virtual_natural_orbitals=fno_n_virtual_natural_orbitals,
+        )
+        self.scf_info = ChemistryApplicationSCFInfo(
+            scf_options=scf_options,
+            mlflow_experiment_name=mlflow_experiment_name,
+        )
+        self.active_space_info = ChemistryApplicationActiveSpaceInfo()
 
-    return avas_active_space(mean_field_object, ao_list=ao_list, minao=minao)
+    def get_pyscf_molecule(self) -> gto.Mole:
+        return self.scf_info.get_pyscf_molecule(self.app_data)
 
 
 def generate_hydrogen_chain_instance(
