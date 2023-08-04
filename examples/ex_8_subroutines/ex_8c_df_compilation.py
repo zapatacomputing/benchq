@@ -112,8 +112,13 @@ class OneElectronBlockEncoding(SubroutineModel):
         super().set_requirements(**args)
 
     def populate_requirements_for_subroutines(self):
-        # This subroutine doesn't consume any failure tolerance
-        remaining_failure_tolerance = self.requirements["failure_tolerance"]
+        # Allocate failure tolerance
+        allocation = 0.5
+        consumed_failure_tolerance = allocation * self.requirements["failure_tolerance"]
+        consumed_error_budget_allocation = [0.5, 0.5]
+        remaining_failure_tolerance = (
+            self.requirements["failure_tolerance"] - consumed_failure_tolerance
+        )
 
         # Set subroutine error budget allocation (TODO: un-hardcode this)
         subroutine_error_budget_allocation = [0.5, 0.5]
@@ -124,26 +129,53 @@ class OneElectronBlockEncoding(SubroutineModel):
         # Set number of phase rotations
         eigenvalues, _ = np.linalg.eigh(self.requirements["one_body_tensor"])
         number_of_eigenvectors = len(eigenvalues)
-        number_of_phase_rotations = number_of_eigenvectors
+
+        # Calculate bits of precision for angles
+        multiplex_angle_precision_error = (
+            consumed_error_budget_allocation[0] * consumed_failure_tolerance
+        )
+        bits_of_precision_for_angles = np.ceil(
+            5.152
+            + np.log2(np.pi * number_of_orbitals / (multiplex_angle_precision_error))
+        )
 
         self.multiplexed_phase_rotation.set_requirements(
-            N=number_of_orbitals,
-            number_of_phase_rotations=number_of_phase_rotations,
+            number_of_multiplexed_phase_rotations=number_of_orbitals,
+            number_of_used_phase_rotations=number_of_eigenvectors,
+            bits_of_precision_for_angles=bits_of_precision_for_angles,
             failure_tolerance=subroutine_error_budget_allocation[0]
-            * remaining_failure_tolerance,
+            * consumed_failure_tolerance,
         )
         self.multiplexed_phase_rotation.number_of_times_called = 1
 
+        # State preparation
+        # Calculate bits of precision for state preparation coefficients
+        state_prep_precision_error = (
+            consumed_error_budget_allocation[1] * consumed_failure_tolerance
+        )
+        state_prep_coefficients_bits_of_precision = np.ceil(
+            2.5 * np.log2(1 / state_prep_precision_error)
+        )
+
+        number_of_data_entries = number_of_used_phase_rotations
+        # Use optimal value suggested in paper
+        max_dirty_qubits = np.sqrt(
+            number_of_used_phase_rotations
+            / ((number_of_multiplexed_phase_rotations / 4) * number_of_bits)
+        )
+
         # Set number of data entries for state preparation
-        number_of_data_entries = number_of_eigenvectors
+        max_state_prep_dirty_qubits = (
+            max_multiplex_dirty_qubits
+            + num_orbitals * (2 + multiplex_bits_of_precision),
+        )
         self.state_preparation.set_requirements(
-            N=number_of_orbitals,
-            number_of_data_entries=number_of_data_entries,
+            number_of_coefficients=number_of_eigenvectors,
+            # Come back to this:
+            bits_of_precision=state_prep_coefficients_bits_of_precision,
+            max_dirty_qubits=max_state_prep_dirty_qubits,
             failure_tolerance=subroutine_error_budget_allocation[1]
             * remaining_failure_tolerance,
-            epsilon=epsilon,
-            lambda_value=lambda_value,
-            mu=mu,
         )
         self.state_preparation.number_of_times_called = 2
 
@@ -191,6 +223,7 @@ class MultiplexedPhaseRotations(SubroutineModel):
         self,
         number_of_multiplexed_phase_rotations,
         number_of_used_phase_rotations,
+        bits_of_precision_for_angles,
         failure_tolerance,
     ):
         args = locals()
@@ -215,53 +248,54 @@ class MultiplexedPhaseRotations(SubroutineModel):
         number_of_used_phase_rotations = self.requirements[
             "number_of_used_phase_rotations"
         ]
-
-        # Calculate bits of precision for angles
-        angle_precision_error = (
-            subroutine_error_budget_allocation[0] * consumed_failure_tolerance
-        )
-        bits_of_precision_for_angles = np.ceil(
-            5.152
-            + np.log2(
-                np.pi
-                * number_of_multiplexed_phase_rotations
-                / (angle_precision_error * 4)
-            )
-        )
+        bits_of_precision_for_angles = self.requirements["bits_of_precision_for_angles"]
 
         # Set requirements and number of times called for each subroutine
-        number_of_data_entries = number_of_used_phase_rotations
-        number_of_bits = bits_of_precision_for_angles
-        # Use optimal value suggested in paper
-        max_dirty_qubits = np.sqrt(
-            number_of_used_phase_rotations
-            / ((number_of_multiplexed_phase_rotations / 4) * number_of_bits)
-        )
 
+        # Data lookup
         data_lookup_failure_tolerance = (
             subroutine_error_budget_allocation[0] * remaining_failure_tolerance
         )
-        data_lookup_compute_failure_tolerance = 0.5 * data_lookup_failure_tolerance
-        data_lookup_uncompute_failure_tolerance = (
-            data_lookup_failure_tolerance - data_lookup_compute_failure_tolerance
+        # Data lookup compute
+        # Use optimal values suggested in paper
+        max_compute_dirty_qubits = np.sqrt(
+            number_of_used_phase_rotations
+            / (
+                (number_of_multiplexed_phase_rotations / 4)
+                * bits_of_precision_for_angles
+            )
         )
 
+        data_lookup_compute_failure_tolerance = 0.5 * data_lookup_failure_tolerance
+
         self.data_lookup.set_requirements(
-            number_of_data_entries=number_of_data_entries,
-            number_of_bits=number_of_bits,
-            max_dirty_qubits=max_dirty_qubits,
+            number_of_data_entries=number_of_used_phase_rotations,
+            number_of_bits=bits_of_precision_for_angles,
+            max_compute_dirty_qubits=max_compute_dirty_qubits,
             failure_tolerance=data_lookup_compute_failure_tolerance,
         )
         self.data_lookup.number_of_times_called = 1
 
+        # Data lookup uncompute
+
+        max_uncompute_dirty_qubits = (
+            max_compute_dirty_qubits
+            * (number_of_multiplexed_phase_rotations / 4)
+            * bits_of_precision_for_angles
+        )
+        data_lookup_uncompute_failure_tolerance = (
+            data_lookup_failure_tolerance - data_lookup_compute_failure_tolerance
+        )
+
         self.data_lookup_uncompute.set_requirements(
-            number_of_data_entries=number_of_data_entries,
-            number_of_bits=number_of_bits,
-            max_dirty_qubits=max_dirty_qubits,
+            number_of_data_entries=number_of_used_phase_rotations,
+            number_of_bits=bits_of_precision_for_angles,
+            max_uncompute_dirty_qubits=max_uncompute_dirty_qubits,
             failure_tolerance=data_lookup_uncompute_failure_tolerance,
         )
         self.data_lookup_uncompute.number_of_times_called = 1
 
+        # Rotation gate
         self.arbitrary_rotation_gate.set_requirements(
             failure_tolerance=subroutine_error_budget_allocation[1]
             * remaining_failure_tolerance
@@ -270,6 +304,7 @@ class MultiplexedPhaseRotations(SubroutineModel):
             number_of_multiplexed_phase_rotations * bits_of_precision_for_angles
         )
 
+        # Controlled swap
         self.controlled_swap.set_requirements(
             failure_tolerance=subroutine_error_budget_allocation[2]
             * remaining_failure_tolerance
@@ -545,7 +580,11 @@ class StatePreparationWithGarbage(SubroutineModel):
         )
 
     def set_requirements(
-        self, number_of_data_entries, number_of_bits, failure_tolerance
+        self,
+        number_of_coefficients,
+        bits_of_precision,
+        max_dirty_qubits,
+        failure_tolerance,
     ):
         args = locals()
         args.pop("self")
@@ -553,62 +592,54 @@ class StatePreparationWithGarbage(SubroutineModel):
         super().set_requirements(**args)
 
     def populate_requirements_for_subroutines(self):
-        # Allocate failure tolerance
-        allocation = 0.5
+        # Allocate failure tolerance: state preparation itself consumes no error budget
+        allocation = 0.0
         consumed_failure_tolerance = allocation * self.requirements["failure_tolerance"]
         remaining_failure_tolerance = (
             self.requirements["failure_tolerance"] - consumed_failure_tolerance
         )
 
-        subroutine_error_budget_allocation = [0.8, 0.1, 0.1]
+        subroutine_error_budget_allocation = [0.6, 0.2, 0.1, 0.1]
 
         number_of_coefficients = self.requirements["number_of_coefficients"]
         bits_of_precision = self.requirements["bits_of_precision"]
-        # Use optimal value suggested in paper
-        max_dirty_qubits = np.sqrt(
-            number_of_used_phase_rotations
-            / ((number_of_multiplexed_phase_rotations / 4) * number_of_bits)
-        )
-        # lambda_ = self.requirements["lambda"]
-
-        bits_of_precision = 2 + np.ceil(np.log2(1 / consumed_failure_tolerance))
+        max_dirty_qubits = self.requirements["max_dirty_qubits"]
 
         # Data lookup
         self.data_lookup.number_of_times_called = 1
         self.data_lookup.set_requirements(
-            d=number_of_coefficients,
-            l=np.ceil(np.log2(number_of_coefficients)) + bits_of_precision,
+            number_of_data_entries=number_of_coefficients,
+            number_of_bits=np.ceil(np.log2(number_of_coefficients)) + bits_of_precision,
             max_dirty_qubits=max_dirty_qubits,
-        )
-        self.data_lookup.set_requirements(
             failure_tolerance=subroutine_error_budget_allocation[0]
-            * remaining_failure_tolerance
+            * remaining_failure_tolerance,
         )
 
         # Toffoli gates
-        self.toffoli_gate.number_of_times_called = (
-            bits_of_precision
-            + np.ceil(np.log2(number_of_coefficients))
-            + bits_of_precision
-            + lambda_
-            + np.ceil(np.log2(number_of_coefficients))
+        number_of_toffoli_gates = bits_of_precision + np.ceil(
+            np.log2(number_of_coefficients)
         )
+        self.toffoli_gate.number_of_times_called = number_of_toffoli_gates
         self.toffoli_gate.set_requirements(
-            failure_tolerance=remaining_failure_tolerance
-        )
-        self.toffoli_gate.set_requirements(
-            failure_tolerance=self.requirements["failure_tolerance"] / toffoli_gate_cost
+            failure_tolerance=subroutine_error_budget_allocation[1]
+            * remaining_failure_tolerance
+            / number_of_toffoli_gates
         )
 
         # Arbitrary single-qubit rotations
         self.arbitrary_rotation_gate.number_of_times_called = 1
+        self.arbitrary_rotation_gate.set_requirements(
+            failure_tolerance=subroutine_error_budget_allocation[2]
+            * remaining_failure_tolerance
+        )
 
         # Clifford gates
         clifford_count = number_of_coefficients * bits_of_precision
         self.clifford_gate.number_of_times_called = clifford_count
-        self.clifford_gate.set_requirements(failure_tolerance=clifford_count)
         self.clifford_gate.set_requirements(
-            failure_tolerance=self.requirements["failure_tolerance"] / clifford_count
+            failure_tolerance=subroutine_error_budget_allocation[3]
+            * remaining_failure_tolerance
+            / clifford_count
         )
 
 
@@ -625,21 +656,31 @@ class StatePreparationWithGarbage(SubroutineModel):
 
 # one_electron_be.print_profile()
 
-gs = GridSynth()
-dl = DataLookup(rotation_gate=gs)
-dlu = DataLookupUncompute(rotation_gate=gs)
-cs = ControlledSwap()
-mpr = MultiplexedPhaseRotations(
-    data_lookup=dl,
-    data_lookup_uncompute=dlu,
-    arbitrary_rotation_gate=gs,
-    controlled_swap=cs,
-)
-mpr.set_requirements(
-    number_of_multiplexed_phase_rotations=10,
-    number_of_used_phase_rotations=8,
+# gs = GridSynth()
+# dl = DataLookup(rotation_gate=gs)
+# dlu = DataLookupUncompute(rotation_gate=gs)
+# cs = ControlledSwap()
+# mpr = MultiplexedPhaseRotations(
+#     data_lookup=dl,
+#     data_lookup_uncompute=dlu,
+#     arbitrary_rotation_gate=gs,
+#     controlled_swap=cs,
+# )
+# mpr.set_requirements(
+#     number_of_multiplexed_phase_rotations=10,
+#     number_of_used_phase_rotations=8,
+#     failure_tolerance=0.001,
+# )
+# mpr.run_profile()
+# mpr.print_profile()
+# print(mpr.count_subroutines())
+
+sp = StatePreparationWithGarbage()
+sp.set_requirements(
+    number_of_coefficients=10,
+    bits_of_precision=5,
+    max_dirty_qubits=3,
     failure_tolerance=0.001,
 )
-mpr.run_profile()
-mpr.print_profile()
-print(mpr.count_subroutines())
+sp.run_profile()
+sp.print_profile()
