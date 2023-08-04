@@ -21,7 +21,7 @@ from pyscf import gto, mp, scf
 from ..mlflow import create_mlflow_scf_callback, _flatten_dict
 
 import os
-from mlflow import 
+from mlflow import MlflowClient
 import urllib3
 
 
@@ -124,7 +124,7 @@ class ChemistryApplicationSCFInfo:
         if self.mlflow_experiment_name is not None:
             os.environ["MLFLOW_TRACKING_TOKEN"] = sdk.mlflow.get_tracking_token()
             urllib3.disable_warnings()
-            client = mlflow.MlflowClient(
+            client = MlflowClient(
                 tracking_uri=sdk.mlflow.get_tracking_uri(
                     workspace_id="mlflow-benchq-testing-dd0cb1"
                 )
@@ -140,7 +140,10 @@ class ChemistryApplicationSCFInfo:
             run = client.create_run(experiment.experiment_id)
 
             flat_dict = _flatten_dict(asdict(self.app_data))
+            print(flat_dict)
             for key, val in flat_dict.items():
+                print("loggin params")
+                print(run.info.run_id)
                 client.log_param(run.info.run_id, key, val)
 
             if self.scf_options is not None:
