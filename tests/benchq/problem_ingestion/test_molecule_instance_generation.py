@@ -2,8 +2,6 @@ import pytest
 
 from unittest.mock import patch, ANY
 
-from icecream import ic
-
 from benchq.problem_ingestion.molecule_instance_generation import (
     ChemistryApplicationInstance,
     SCFConvergenceError,
@@ -144,7 +142,7 @@ def test_get_active_space_meanfield_object_raises_scf_convergence_error(method):
 
 
 @patch(
-    "benchq.problem_ingestion.molecule_instance_generation.mlflow",
+    "benchq.problem_ingestion.molecule_instance_generation.mlflow.Mlflow",
     autospec=True,
 )
 @patch(

@@ -21,10 +21,8 @@ from pyscf import gto, mp, scf
 from ..mlflow import create_mlflow_scf_callback, _flatten_dict
 
 import os
-import mlflow
+from mlflow import 
 import urllib3
-
-from icecream import ic
 
 
 def truncate_with_avas(
@@ -122,8 +120,6 @@ class ChemistryApplicationSCFInfo:
         )
 
         run_id = ""
-
-        ic(self.mlflow_experiment_name)
 
         if self.mlflow_experiment_name is not None:
             os.environ["MLFLOW_TRACKING_TOKEN"] = sdk.mlflow.get_tracking_token()
@@ -232,7 +228,6 @@ class ChemistryApplicationActiveSpaceInfo:
             and not self.scf_info.app_data.occupied_indices
         ):
             mp2 = self._set_frozen_core_orbitals(molecular_data)
-            ic(mp2.frozen)
             n_frozen_core_orbitals = mp2.frozen
         elif (
             self.scf_info.app_data.occupied_indices
@@ -241,7 +236,6 @@ class ChemistryApplicationActiveSpaceInfo:
             mp2 = mp.MP2(mean_field_object).set(
                 frozen=self.scf_info.app_data.occupied_indices
             )
-            ic(list(self.scf_info.app_data.occupied_indices))
             n_frozen_core_orbitals = len(list(self.scf_info.app_data.occupied_indices))
         else:
             mp2 = mp.MP2(mean_field_object)
@@ -270,7 +264,6 @@ class ChemistryApplicationActiveSpaceInfo:
 
         all_orbital_indicies = list(range(molecular_data.n_orbitals))
         occupied_indices = list(range(n_frozen_core_orbitals))
-        ic(occupied_indices)
 
         if len(frozen_natural_orbitals) != 0:
             active_indicies = all_orbital_indicies[
