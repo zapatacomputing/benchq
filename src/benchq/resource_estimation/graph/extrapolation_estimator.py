@@ -1,6 +1,6 @@
 from dataclasses import replace
 from math import ceil
-from typing import List, Optional, Iterable
+from typing import Iterable, List, Optional
 
 import numpy as np
 from scipy.optimize import minimize
@@ -13,8 +13,8 @@ from ...data_structures import (
     ExtrapolatedGraphResourceInfo,
     QuantumProgram,
 )
-from .graph_estimator import GraphData, GraphResourceEstimator
 from ..magic_state_distillation import Widget
+from .graph_estimator import GraphData, GraphResourceEstimator
 
 
 class ExtrapolationResourceEstimator(GraphResourceEstimator):
