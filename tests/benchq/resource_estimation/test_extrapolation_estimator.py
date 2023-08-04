@@ -26,6 +26,7 @@ from benchq.resource_estimation.graph import (
 # plot_extrapolations(extrapolated_resource_estimates, steps_to_extrapolate_from, n_measurement_steps_fit_type, gsc_resource_estimates) # noqa: E501
 
 fast_ruby_slippers = get_algorithmic_graph_from_ruby_slippers_with_hyperparams(
+    teleportation_threshold=1e4,
     max_graph_size=1e5,
     decomposition_strategy=0,
 )
@@ -203,6 +204,7 @@ def test_get_resource_estimations_for_large_program_gives_correct_results(
             steps_to_extrapolate_from,
             n_measurement_steps_fit_type=n_measurement_steps_fit_type,
             optimization=optimization,
+            max_graph_degree_fit_type="linear",
         ),
         transformers=transformers,
     )

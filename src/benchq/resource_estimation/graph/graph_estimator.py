@@ -65,10 +65,6 @@ class GraphResourceEstimator:
             BASIC_ION_TRAP_ARCHITECTURE_MODEL.
         decoder_model (Optional[DecoderModel]): The decoder model used to estimate.
             If None, no estimates on the number of decoder are provided.
-        distillation_widget (str): The distillation widget to use for the estimate.
-            The widget is specified as a string of the form "(15-to-1)_7,3,3", where
-            the first part specifies the distillation ratio and the second part
-            specifies the size of the widget.
         optimization (str): The optimization to use for the estimate. Either estimate
             the resources needed to run the algorithm in the shortest time possible
             ("time") or the resources needed to run the algorithm with the smallest
