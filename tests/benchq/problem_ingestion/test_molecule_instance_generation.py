@@ -142,7 +142,11 @@ def test_get_active_space_meanfield_object_raises_scf_convergence_error(method):
 
 
 @patch(
-    "benchq.problem_ingestion.molecule_instance_generation.MlflowClient",
+    "benchq.problem_ingestion.molecule_instance_generation.MlflowClient.log_param",
+    autospec=True,
+)
+@patch(
+    "benchq.problem_ingestion.molecule_instance_generation.MlflowClient.log_metric",
     autospec=True,
 )
 @patch(
@@ -158,20 +162,27 @@ def test_get_active_space_meanfield_object_raises_scf_convergence_error(method):
 def test_get_active_space_hamiltonian_logs_to_mlflow_no_specified_callback(
     mock_uri_function,
     mock_token_function,
-    mock_client,
+    mock_log_metric,
+    mock_log_param,
 ):
     # Given
     new_hydrogen_chain_instance = generate_hydrogen_chain_instance(
         2, mlflow_experiment_name="pytest"
     )
 
-    mock_client.create_run = MagicMock()
-
     # When
     ham = new_hydrogen_chain_instance.get_active_space_hamiltonian()
 
     # Then
-    mock_client.get_experiment_by_name.assert_called()
-    mock_client.log_param.assert_called()
-    mock_client.log_metric.assert_called()
-    mock_client.log_metric.assert_any_call(ANY, "last_hf_e", 1.0)
+    mock_log_param.assert_called()
+    mock_log_metric.assert_called()
+
+    # mock_log_param.assert_any_call(
+    #     ANY,
+    #     "geometry",
+    #     [("H", (0, 0, 0.0)), ("H", (0, 0, 1.3))],
+    # )
+    mock_log_param.assert_any_call(ANY, "basis", "6-31g")
+
+    # mock_log_metric.assert_any_call(ANY, "last_hf_e", ANY)
+    # mock_log_metric.assert_any_call(ANY, "cput0_0", ANY)

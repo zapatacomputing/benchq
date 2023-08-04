@@ -38,7 +38,7 @@ def testing_get_active_space_meanfield_object(number_of_hydrogens):
 @sdk.workflow
 def scf_mlflow_workflow():
     results = []
-    for n in [2, 3, 4]:
+    for n in [2]:
         mean_field_object = testing_get_active_space_meanfield_object(n)
         results.append(mean_field_object)
     return results
