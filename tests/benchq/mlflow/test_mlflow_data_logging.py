@@ -3,7 +3,7 @@
 ################################################################################
 """Unit tests for benchq.mlflow.data_logging."""
 
-from unittest.mock import patch
+from unittest.mock import patch, ANY
 
 import pytest
 
@@ -15,6 +15,7 @@ from benchq.mlflow.data_logging import (
     _flatten_dict,
     log_input_objects_to_mlflow,
     log_resource_info_to_mlflow,
+    create_mlflow_scf_callback,
 )
 
 
@@ -128,3 +129,32 @@ def test_log_resource_info_to_mlflow(mock_mlflow):
 
     mock_mlflow.log_param.assert_any_call("decoder_info", "None")
     mock_mlflow.log_param.assert_any_call("widget_name", "tau")
+
+
+@patch("mlflow.MlflowClient", autospec=True)
+def test_create_mlflow_scf_callback(mock_client):
+    # Given
+    client = mock_client
+    experiment_name = client.create_experiment("pytest")
+    experiment = client.get_experiment_by_name(name=experiment_name)
+    run_id = client.create_run(experiment.experiment_id).info.run_id
+    vars = {
+        "last_hf_e": 1.0,
+        "norm_gorb": 0.001,
+        "norm_ddm": 0.01,
+        "cond": 100,
+        "cput0": (12.0, 13.0),
+    }
+
+    # When
+    scf_callback = create_mlflow_scf_callback(client, run_id)
+    scf_callback(vars)
+
+    print(vars.get("last_hf_e"))
+
+    # Then
+    mock_client.log_metric.assert_called()
+
+    mock_client.log_metric.assert_any_call(ANY, "last_hf_e", 1.0)
+    mock_client.log_metric.assert_any_call(ANY, "cput0_0", 12.0)
+    mock_client.log_metric.assert_any_call(ANY, "cput0_1", 13.0)
