@@ -64,13 +64,13 @@ Returns:
 """
 function run_ruby_slippers(
     circuit,
-    verbose = false,
-    max_graph_size = 1e7,
-    teleportation_threshold = 40,
-    teleportation_distance = 4,
-    min_neighbors = 6,
-    max_num_neighbors_to_search = 1e5,
-    decomposition_strategy = 0,
+    verbose=false,
+    max_graph_size=0,
+    teleportation_threshold=40,
+    teleportation_distance=4,
+    min_neighbors=6,
+    max_num_neighbors_to_search=1e5,
+    decomposition_strategy=0,
 )
     max_graph_size = pyconvert(UInt32, max_graph_size)
 
@@ -83,6 +83,9 @@ function run_ruby_slippers(
         decomposition_strategy,
     )
 
+    if max_graph_size == 0
+        max_graph_size = get_max_n_nodes(circuit, hyperparams.teleportation_distance)
+    end
 
     if verbose
         print("get_graph_state_data:\t")
@@ -93,6 +96,32 @@ function run_ruby_slippers(
     return pylist(lco), python_adjlist!(adj)
 end
 
+function get_max_n_nodes(circuit, teleportation_distance)
+    supported_ops = get_op_list()
+
+    n_magic_state_injection_teleports = 0
+    n_ruby_slippers_teleports = 0
+
+    for op in circuit.operations
+        if occursin("ResetOperation", pyconvert(String, op.__str__()))
+            n_magic_state_injection_teleports += 1
+            continue
+        else
+            op_index = get_op_index(supported_ops, op)
+            if double_qubit_op(op_index)
+                n_ruby_slippers_teleports += 2
+            elseif decompose_op(op_index)
+                n_magic_state_injection_teleports += 1
+                n_ruby_slippers_teleports += 1
+            end
+        end
+    end
+
+    return convert(UInt32, n_magic_state_injection_teleports +
+                           n_ruby_slippers_teleports * teleportation_distance +
+                           pyconvert(Int, circuit.n_qubits))
+
+end
 
 """
 Get the vertices of a graph state corresponding to enacting the given circuit
@@ -113,9 +142,9 @@ Returns:
 """
 function get_graph_state_data(
     circuit,
-    verbose::Bool = false,
-    max_graph_size::UInt32 = 1e8,
-    hyperparams::RubySlippersHyperparams = default_hyperparams,
+    verbose::Bool=false,
+    max_graph_size::UInt32=1e8,
+    hyperparams::RubySlippersHyperparams=default_hyperparams,
 )
     n_qubits = pyconvert(Int, circuit.n_qubits)
     ops = circuit.operations
@@ -143,7 +172,7 @@ function get_graph_state_data(
             counter += 1
             if (dispcnt += 1) >= 1000
                 percent = round(Int, 100 * counter / total_length)
-                elapsed = round(time() - start_time, digits = 2)
+                elapsed = round(time() - start_time, digits=2)
                 print("\r$(percent)% ($counter) completed in $erase$(elapsed)s")
                 dispcnt = 0
             end
@@ -198,7 +227,7 @@ function get_graph_state_data(
     end
 
     if verbose
-        elapsed = round(time() - start_time, digits = 2)
+        elapsed = round(time() - start_time, digits=2)
         println("\r100% ($counter) completed in $erase$(elapsed)s")
     end
 
@@ -380,7 +409,7 @@ function get_neighbor(adj, v, avoid, hyperparams)
         neighbors_to_search = sample(
             collect(neighbors_of_v),
             hyperparams.max_num_neighbors_to_search;
-            replace = false,
+            replace=false
         )
     end
     for neighbor in neighbors_to_search

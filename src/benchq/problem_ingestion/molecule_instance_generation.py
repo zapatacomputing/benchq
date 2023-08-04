@@ -107,7 +107,7 @@ class ChemistryApplicationInstance:
         """
         molecule = self.get_pyscf_molecule()
         mean_field_object = (scf.RHF if self.multiplicity == 1 else scf.ROHF)(molecule)
-        mean_field_object.max_memory = 400000  # set allowed memory high so tests pass
+        mean_field_object.max_memory = 1e6  # set allowed memory high so tests pass
 
         if self.scf_options is not None:
             mean_field_object.run(**self.scf_options)
