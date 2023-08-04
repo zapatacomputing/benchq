@@ -1,7 +1,8 @@
-from orquestra.quantum.circuits import Circuit
 import math
-from benchq.block_encodings.block_encoding_utils import controlled_clock
 
+from orquestra.quantum.circuits import Circuit
+
+from benchq.block_encodings.block_encoding_utils import controlled_clock
 
 
 def get_add_l(L) -> Circuit:
