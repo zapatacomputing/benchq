@@ -39,7 +39,7 @@ struct RubySlippersHyperparams
     decomposition_strategy::UInt8
 end
 
-default_hyperparams = RubySlippersHyperparams(40, 4, 6, 1e5, 0)
+default_hyperparams = RubySlippersHyperparams(40, 4, 6, 1e5, 1)
 
 
 """
@@ -70,7 +70,7 @@ function run_ruby_slippers(
     teleportation_distance=4,
     min_neighbors=6,
     max_num_neighbors_to_search=1e5,
-    decomposition_strategy=0,
+    decomposition_strategy=1,
 )
     max_graph_size = pyconvert(UInt32, max_graph_size)
 

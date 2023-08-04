@@ -25,12 +25,12 @@ def get_algorithmic_graph_from_ruby_slippers(circuit):
 
 def get_algorithmic_graph_from_ruby_slippers_with_hyperparams(
     verbose=True,
-    max_graph_size=9999999,
+    max_graph_size=1e7,
     teleportation_threshold=40,
     min_neighbors=6,
     oz_to_kansas_distance=4,
-    max_num_neighbors_to_search=99999,
-    decomposition_strategy=0,
+    max_num_neighbors_to_search=1e5,
+    decomposition_strategy=1,
 ):
     def _run_compiler(circuit):
         lco, adj = jl.run_ruby_slippers(

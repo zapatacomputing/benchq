@@ -23,7 +23,8 @@ from benchq.resource_estimation.graph import (
 )
 
 fast_ruby_slippers = get_algorithmic_graph_from_ruby_slippers_with_hyperparams(
-    max_graph_size=10
+    max_graph_size=10,
+    decomposition_strategy=0,
 )
 
 

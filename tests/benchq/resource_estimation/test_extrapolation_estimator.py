@@ -25,7 +25,10 @@ from benchq.resource_estimation.graph import (
 # from benchq.vizualization_tools import plot_extrapolations
 # plot_extrapolations(extrapolated_resource_estimates, steps_to_extrapolate_from, n_measurement_steps_fit_type, gsc_resource_estimates) # noqa: E501
 
-fast_ruby_slippers = get_algorithmic_graph_from_ruby_slippers_with_hyperparams()
+fast_ruby_slippers = get_algorithmic_graph_from_ruby_slippers_with_hyperparams(
+    max_graph_size=1e5,
+    decomposition_strategy=0,
+)
 
 
 @pytest.fixture(params=["time", "space"])
