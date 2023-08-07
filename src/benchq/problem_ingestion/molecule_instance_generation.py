@@ -106,7 +106,8 @@ class ChemistryApplicationInstance:
             SCFConvergenceError: If the SCF calculation does not converge.
         """
         molecule = self.get_pyscf_molecule()
-        mean_field_object = (scf.RHF if self.multiplicity == 1 else scf.ROHF)(molecule)
+        mean_field_object = (scf.RHF if self.multiplicity ==
+                             1 else scf.ROHF)(molecule)
 
         if self.scf_options is not None:
             mean_field_object.run(**self.scf_options)
@@ -131,6 +132,7 @@ class ChemistryApplicationInstance:
             molecule, mean_field_object = self._truncate_with_fno(
                 molecule, mean_field_object
             )
+            print("DBG.. _truncate_with_fno() completed")
         return molecule, mean_field_object
 
     def get_active_space_hamiltonian(self) -> openfermion.InteractionOperator:
@@ -154,7 +156,8 @@ class ChemistryApplicationInstance:
         molecular_data = self._get_molecular_data()
 
         if self.freeze_core:
-            n_frozen_core = self._set_frozen_core_orbitals(molecular_data).frozen
+            n_frozen_core = self._set_frozen_core_orbitals(
+                molecular_data).frozen
             if n_frozen_core > 0:
                 self.occupied_indices = list(range(n_frozen_core))
 
@@ -221,12 +224,16 @@ class ChemistryApplicationInstance:
         pyscf_data["mol"] = molecule
         pyscf_data["scf"] = mean_field_object
 
-        molecular_data.canonical_orbitals = mean_field_object.mo_coeff.astype(float)
-        molecular_data.orbital_energies = mean_field_object.mo_energy.astype(float)
+        molecular_data.canonical_orbitals = mean_field_object.mo_coeff.astype(
+            float)
+        molecular_data.orbital_energies = mean_field_object.mo_energy.astype(
+            float)
 
+        print("DBG... before compute_integrals()")
         one_body_integrals, two_body_integrals = compute_integrals(
             mean_field_object._eri, mean_field_object
         )
+        print("DBG... after compute_integrals()")
         molecular_data.one_body_integrals = one_body_integrals
         molecular_data.two_body_integrals = two_body_integrals
         molecular_data.overlap_integrals = mean_field_object.get_ovlp()
@@ -297,6 +304,7 @@ class ChemistryApplicationInstance:
             self.fno_n_virtual_natural_orbitals,
         )
 
+        print("DBG.. make_fno() completed")
         if len(frozen_natural_orbitals) != 0:
             mean_field_object.mo_coeff = natural_orbital_coefficients[
                 :, : -len(frozen_natural_orbitals)
@@ -349,7 +357,8 @@ def generate_hydrogen_chain_instance(
         bond_distance: The distance between the hydrogen atoms (Angstrom).
     """
     return ChemistryApplicationInstance(
-        geometry=[("H", (0, 0, i * bond_distance)) for i in range(number_of_hydrogens)],
+        geometry=[("H", (0, 0, i * bond_distance))
+                  for i in range(number_of_hydrogens)],
         basis=basis,
         charge=0,
         multiplicity=number_of_hydrogens % 2 + 1,
