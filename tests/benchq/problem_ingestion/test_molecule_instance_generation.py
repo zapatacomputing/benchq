@@ -150,12 +150,14 @@ def test_get_active_space_meanfield_object_raises_scf_convergence_error(method):
 def apply_sdk_patches(func):
     @wraps(func)
     @patch(
-        "benchq.problem_ingestion.molecule_instance_generation.sdk.mlflow.get_tracking_token",
+        "benchq.problem_ingestion.molecule_instance_generation"\
+        ".sdk.mlflow.get_tracking_token",
         autospec=True,
         return_value="fake",
     )
     @patch(
-        "benchq.problem_ingestion.molecule_instance_generation.sdk.mlflow.get_tracking_uri",
+        "benchq.problem_ingestion.molecule_instance_generation"\
+        ".sdk.mlflow.get_tracking_uri",
         autospec=True,
         return_value=None,
     )

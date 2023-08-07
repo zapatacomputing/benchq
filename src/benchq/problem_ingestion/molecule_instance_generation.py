@@ -148,11 +148,11 @@ class ChemistryApplicationSCFInfo:
 
             if self.scf_options is not None:
                 if "callback" in self.scf_options:
-                    # we want to log to mlflow, AND we've defined the 
+                    # we want to log to mlflow, AND we've defined the
                     # callback in scf_options
                     mean_field_object.run(**self.scf_options)
                 else:
-                    # we want to log to mlflow, BUT haven't defined the 
+                    # we want to log to mlflow, BUT haven't defined the
                     # callback in scf_options
                     client, run_id = _create_mlflow_setup(
                         self.mlflow_experiment_name, self.orq_workspace_id
