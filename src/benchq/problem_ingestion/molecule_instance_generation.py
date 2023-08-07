@@ -463,6 +463,9 @@ class ChemistryApplicationInstance:
         fno_percentage_occupation_number: Percentage of total occupation number.
         fno_threshold: Threshold on NO occupation numbers.
         fno_n_virtual_natural_orbitals: Number of virtual NOs to keep.
+        scf_options: dictionary with parameters for pySCF calculations
+        mlflow_experiment_name: if supplied, pySCF calculations will be logged to mlflow. See orq_workspace_id also
+        orq_workspace_id: orquestra workspace ID. Required to log mlflow info
     """
 
     app_data: ChemistryApplicationData
@@ -544,6 +547,14 @@ def generate_hydrogen_chain_instance(
         number_of_hydrogens: The number of hydrogen atoms in the chain.
         basis: The basis set to use for the calculation.
         bond_distance: The distance between the hydrogen atoms (Angstrom).
+        active_indices: A list of molecular orbitals to include in the active space.
+        occupied_indices: A list of molecular orbitals not in the active space that
+            should be assumed to be fully occupied.
+        avas_atomic_orbitals: A list of atomic orbitals to use for (AVAS).
+        avas_minao: The minimum active orbital to use for AVAS.
+        scf_options: dictionary with parameters for pySCF calculations
+        mlflow_experiment_name: if supplied, pySCF calculations will be logged to mlflow. See orq_workspace_id also
+        orq_workspace_id: orquestra workspace ID. Required to log mlflow info
     """
     return ChemistryApplicationInstance(
         geometry=[("H", (0, 0, i * bond_distance)) for i in range(number_of_hydrogens)],
