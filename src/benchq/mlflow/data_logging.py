@@ -60,7 +60,7 @@ def log_resource_info_to_mlflow(resource_info: ResourceInfo) -> None:
 def create_mlflow_scf_callback(
     mlflow_client: mlflow.client.MlflowClient,
     run_id: str,
-) -> Callable[Any, None]:
+) -> Callable[[Any], None]:
     """
     Callback function for pySCF calculations that also logs to mlflow
 
