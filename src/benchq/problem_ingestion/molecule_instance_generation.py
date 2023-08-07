@@ -50,6 +50,24 @@ def truncate_with_avas(
 
     return avas_active_space(mean_field_object, ao_list=ao_list, minao=minao)
 
+def _create_mlflow_setup(mlflow_experiment_name: str, orq_workspace_id: str) -> Tuple[MlflowClient, str]:
+    client = MlflowClient(
+        tracking_uri=sdk.mlflow.get_tracking_uri(
+            workspace_id=orq_workspace_id
+        )
+    )
+
+    experiment = client.get_experiment_by_name(name=mlflow_experiment_name)
+    if experiment is None:
+        client.create_experiment(mlflow_experiment_name)
+        experiment = client.get_experiment_by_name(
+            name=mlflow_experiment_name
+        )
+
+    run = client.create_run(experiment.experiment_id)
+
+    return client, run.info.run_id
+
 
 class SCFConvergenceError(Exception):
     pass
@@ -75,16 +93,19 @@ class ChemistryApplicationSCFInfo:
     app_data: ChemistryApplicationData
     scf_options: Optional[dict] = None
     mlflow_experiment_name: Optional[str] = None
+    orq_workspace_id: Optional[str] = None
 
     def __init__(
         self,
         app_data,
         scf_options=None,
         mlflow_experiment_name=None,
+        orq_workspace_id=None,
     ):
         self.app_data = app_data
         self.scf_options = scf_options
         self.mlflow_experiment_name = mlflow_experiment_name
+        self.orq_workspace_id = orq_workspace_id
 
     def get_pyscf_molecule(self) -> gto.Mole:
         "Generate the PySCF molecule object describing the system to be calculated."
@@ -124,43 +145,32 @@ class ChemistryApplicationSCFInfo:
         if self.mlflow_experiment_name is not None:
             os.environ["MLFLOW_TRACKING_TOKEN"] = sdk.mlflow.get_tracking_token()
             urllib3.disable_warnings()
-            client = MlflowClient(
-                tracking_uri=sdk.mlflow.get_tracking_uri(
-                    workspace_id="mlflow-benchq-testing-dd0cb1"
-                )
-            )
-
-            experiment = client.get_experiment_by_name(name=self.mlflow_experiment_name)
-            if experiment is None:
-                client.create_experiment(self.mlflow_experiment_name)
-                experiment = client.get_experiment_by_name(
-                    name=self.mlflow_experiment_name
-                )
-
-            run = client.create_run(experiment.experiment_id)
 
             flat_dict = _flatten_dict(asdict(self.app_data))
-            print(flat_dict)
-            for key, val in flat_dict.items():
-                print("loggin params")
-                print(run.info.run_id)
-                client.log_param(run.info.run_id, key, val)
 
             if self.scf_options is not None:
-                if self.scf_options["callback"] is not None:
+                if "callback" in self.scf_options:
                     # we want to log to mlflow, and we've defined the callback in scf_options
                     mean_field_object.run(**self.scf_options)
                 else:
                     # we want to log to mlflow, but haven't defined the callback in scf_options
+                    client, run_id = _create_mlflow_setup(self.mlflow_experiment_name, self.orq_workspace_id)
+
+                    for key, val in flat_dict.items():
+                        client.log_param(run_id, key, val)
                     temp_options = deepcopy(self.scf_options)
                     temp_options["callback"] = create_mlflow_scf_callback(
-                        client, run.info.run_id
+                        client, run_id
                     )
                     mean_field_object.run(**temp_options)
             else:
                 # we want to log to mlflow, but haven't defined scf_options
+                client, run_id = _create_mlflow_setup(self.mlflow_experiment_name, self.orq_workspace_id)
+
+                for key, val in flat_dict.items():
+                    client.log_param(run_id, key, val)
                 temp_options = {
-                    "callback": create_mlflow_scf_callback(client, run.info.run_id)
+                    "callback": create_mlflow_scf_callback(client, run_id)
                 }
                 mean_field_object.run(**temp_options)
         else:
@@ -475,6 +485,7 @@ class ChemistryApplicationInstance:
         fno_n_virtual_natural_orbitals: Optional[int] = None,
         scf_options: Optional[dict] = None,
         mlflow_experiment_name: Optional[str] = None,
+        orq_workspace_id: Optional[str] = None
     ):
         self.app_data = ChemistryApplicationData(
             geometry=geometry,
@@ -494,6 +505,7 @@ class ChemistryApplicationInstance:
             app_data=self.app_data,
             scf_options=scf_options,
             mlflow_experiment_name=mlflow_experiment_name,
+            orq_workspace_id=orq_workspace_id,
         )
         self.active_space_info = ChemistryApplicationActiveSpaceInfo(
             scf_info=self.scf_info
@@ -524,6 +536,7 @@ def generate_hydrogen_chain_instance(
     avas_minao: Optional[str] = None,
     scf_options: Optional[dict] = None,
     mlflow_experiment_name: Optional[str] = None,
+    orq_workspace_id: Optional[str] = None,
 ) -> ChemistryApplicationInstance:
     """Generate a hydrogen chain application instance.
 
@@ -543,6 +556,7 @@ def generate_hydrogen_chain_instance(
         avas_minao=avas_minao,
         scf_options=scf_options,
         mlflow_experiment_name=mlflow_experiment_name,
+        orq_workspace_id=orq_workspace_id,
     )
 
 

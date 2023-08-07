@@ -11,6 +11,8 @@ from benchq.mlflow import create_mlflow_scf_callback
 
 from mlflow import MlflowClient
 
+from functools import wraps
+
 
 def _generate_avas_hydrogen_chain_instance(n_hydrogens):
     avas_hydrogen_chain_instance = generate_hydrogen_chain_instance(
@@ -78,6 +80,9 @@ def test_mean_field_object_has_valid_default_scf_options():
 def _fno_water_instance(
     freeze_core: bool = None,
     fno_percentage_occupation_number: float = 0.9,
+    scf_options: dict = None,
+    mlflow_experiment_name: str = None,
+    orq_workspace_id: str = None,
 ):
     water_instance = ChemistryApplicationInstance(
         geometry=[
@@ -90,6 +95,9 @@ def _fno_water_instance(
         multiplicity=1,
         fno_percentage_occupation_number=fno_percentage_occupation_number,
         freeze_core=freeze_core,
+        scf_options=scf_options,
+        mlflow_experiment_name=mlflow_experiment_name,
+        orq_workspace_id=orq_workspace_id,
     )
 
     return water_instance
@@ -141,6 +149,24 @@ def test_get_active_space_meanfield_object_raises_scf_convergence_error(method):
         getattr(instance, method)()
 
 
+def apply_sdk_patches(func):
+    @wraps(func)
+    @patch(
+        "benchq.problem_ingestion.molecule_instance_generation.sdk.mlflow.get_tracking_token",
+        autospec=True,
+        return_value="fake",
+    )
+    @patch(
+        "benchq.problem_ingestion.molecule_instance_generation.sdk.mlflow.get_tracking_uri",
+        autospec=True,
+        return_value=None,
+    )
+    def _(*args, **kwargs):
+        return func(*args, **kwargs)
+
+    return _
+
+
 @patch(
     "benchq.problem_ingestion.molecule_instance_generation.MlflowClient.log_param",
     autospec=True,
@@ -149,16 +175,7 @@ def test_get_active_space_meanfield_object_raises_scf_convergence_error(method):
     "benchq.problem_ingestion.molecule_instance_generation.MlflowClient.log_metric",
     autospec=True,
 )
-@patch(
-    "benchq.problem_ingestion.molecule_instance_generation.sdk.mlflow.get_tracking_token",
-    autospec=True,
-    return_value="fake",
-)
-@patch(
-    "benchq.problem_ingestion.molecule_instance_generation.sdk.mlflow.get_tracking_uri",
-    autospec=True,
-    return_value="fake",
-)
+@apply_sdk_patches
 def test_get_active_space_hamiltonian_logs_to_mlflow_no_specified_callback(
     mock_uri_function,
     mock_token_function,
@@ -177,12 +194,329 @@ def test_get_active_space_hamiltonian_logs_to_mlflow_no_specified_callback(
     mock_log_param.assert_called()
     mock_log_metric.assert_called()
 
-    # mock_log_param.assert_any_call(
-    #     ANY,
-    #     "geometry",
-    #     [("H", (0, 0, 0.0)), ("H", (0, 0, 1.3))],
-    # )
-    mock_log_param.assert_any_call(ANY, "basis", "6-31g")
+    mock_log_param.assert_any_call(
+        ANY, # First param is "self" which in this case is MlflowClient object
+        ANY, # Second param is random run_id
+        "geometry", # key
+        [("H", (0, 0, 0.0)), ("H", (0, 0, 1.3))], #val
+    )
+    mock_log_param.assert_any_call(ANY, ANY, "basis", "6-31g")
 
-    # mock_log_metric.assert_any_call(ANY, "last_hf_e", ANY)
-    # mock_log_metric.assert_any_call(ANY, "cput0_0", ANY)
+    # last param (value) depends on optimization, so could be different run-to-run
+    mock_log_metric.assert_any_call(ANY, ANY, "last_hf_e", ANY)
+    mock_log_metric.assert_any_call(ANY, ANY, "cput0_0", ANY)
+
+
+@patch("mlflow.MlflowClient", autospec=True)
+@apply_sdk_patches
+def test_get_active_space_hamiltonian_logs_to_mlflow_with_specified_callback(
+    mock_uri_function,
+    mock_token_function,
+    mock_client,
+):
+    # Given
+    experiment_name = mock_client.create_experiment(
+        "test_get_active_space_hamiltonian_logs_to_mlflow_with_specified_callback",
+    )
+    experiment = mock_client.get_experiment_by_name(name=experiment_name)
+    run_id = mock_client.create_run(experiment.experiment_id).info.run_id
+    scf_callback = create_mlflow_scf_callback(mock_client, run_id)
+    scf_options = {"callback": scf_callback}
+    new_hydrogen_chain_instance = generate_hydrogen_chain_instance(
+        2, 
+        mlflow_experiment_name="pytest", 
+        scf_options=scf_options, 
+        orq_workspace_id="mlflow-benchq-testing-dd0cb1",
+    )
+
+    # When
+    ham = new_hydrogen_chain_instance.get_active_space_hamiltonian()
+
+    # Then
+    mock_client.log_metric.assert_called()
+
+    # last param (value) depends on optimization, so could be different run-to-run
+    mock_client.log_metric.assert_any_call(ANY, "last_hf_e", ANY)
+    mock_client.log_metric.assert_any_call(ANY, "cput0_0", ANY)
+
+
+@patch(
+    "benchq.problem_ingestion.molecule_instance_generation.MlflowClient.log_param",
+    autospec=True,
+)
+@patch(
+    "benchq.problem_ingestion.molecule_instance_generation.MlflowClient.log_metric",
+    autospec=True,
+)
+@apply_sdk_patches
+def test_get_active_space_hamiltonian_logs_to_mlflow_with_scf_options_no_callback(
+    mock_uri_function,
+    mock_token_function,
+    mock_log_metric,
+    mock_log_param,
+):
+    # Given
+    new_hydrogen_chain_instance = generate_hydrogen_chain_instance(
+        2, mlflow_experiment_name="pytest", scf_options={"max_cycle": 100},
+    )
+
+    # When
+    ham = new_hydrogen_chain_instance.get_active_space_hamiltonian()
+
+    # Then
+    mock_log_param.assert_called()
+    mock_log_metric.assert_called()
+
+    mock_log_param.assert_any_call(
+        ANY, # First param is "self" which in this case is MlflowClient object
+        ANY, # Second param is random run_id
+        "geometry", # key
+        [("H", (0, 0, 0.0)), ("H", (0, 0, 1.3))], #val
+    )
+    mock_log_param.assert_any_call(ANY, ANY, "basis", "6-31g")
+
+    # last param (value) depends on optimization, so could be different run-to-run
+    mock_log_metric.assert_any_call(ANY, ANY, "last_hf_e", ANY)
+    mock_log_metric.assert_any_call(ANY, ANY, "cput0_0", ANY)
+
+
+
+
+
+
+
+
+@patch(
+    "benchq.problem_ingestion.molecule_instance_generation.MlflowClient.log_param",
+    autospec=True,
+)
+@patch(
+    "benchq.problem_ingestion.molecule_instance_generation.MlflowClient.log_metric",
+    autospec=True,
+)
+@apply_sdk_patches
+def test_get_occupied_and_active_indicies_with_FNO_logs_to_mlflow_no_specified_callback(
+    mock_uri_function,
+    mock_token_function,
+    mock_log_metric,
+    mock_log_param,
+):
+    # Given
+    fno_water_instance_frozen_core = _fno_water_instance(freeze_core=True, mlflow_experiment_name="pytest")
+
+    # When
+    (
+        molecular_data,
+        occupied_indices,
+        active_indicies,
+    ) = fno_water_instance_frozen_core.get_occupied_and_active_indicies_with_FNO()
+
+    # Then
+    mock_log_param.assert_called()
+    mock_log_metric.assert_called()
+
+    mock_log_param.assert_any_call(
+        ANY, # First param is "self" which in this case is MlflowClient object
+        ANY, # Second param is random run_id
+        "geometry", # key
+        [('O', (0.0, -0.075791844, 0.0)), ('H', (0.866811829, 0.601435779, 0.0)), ('H', (-0.866811829, 0.601435779, 0.0))], #val
+    )
+    mock_log_param.assert_any_call(ANY, ANY, "basis", "6-31g")
+
+    # last param (value) depends on optimization, so could be different run-to-run
+    mock_log_metric.assert_any_call(ANY, ANY, "last_hf_e", ANY)
+    mock_log_metric.assert_any_call(ANY, ANY, "cput0_0", ANY)
+
+
+@patch("mlflow.MlflowClient", autospec=True)
+@apply_sdk_patches
+def test_get_occupied_and_active_indicies_with_FNO_logs_to_mlflow_with_specified_callback(
+    mock_uri_function,
+    mock_token_function,
+    mock_client,
+):
+    # Given
+    experiment_name = mock_client.create_experiment(
+        "test_get_occupied_and_active_indicies_with_FNO_logs_to_mlflow_with_specified_callback",
+    )
+    experiment = mock_client.get_experiment_by_name(name=experiment_name)
+    run_id = mock_client.create_run(experiment.experiment_id).info.run_id
+    scf_callback = create_mlflow_scf_callback(mock_client, run_id)
+    scf_options = {"callback": scf_callback}
+    fno_water_instance_frozen_core = _fno_water_instance(freeze_core=True, scf_options=scf_options, 
+        orq_workspace_id="mlflow-benchq-testing-dd0cb1",)
+
+    # When
+    (
+        molecular_data,
+        occupied_indices,
+        active_indicies,
+    ) = fno_water_instance_frozen_core.get_occupied_and_active_indicies_with_FNO()
+
+    # Then
+    mock_client.log_metric.assert_called()
+
+    # last param (value) depends on optimization, so could be different run-to-run
+    mock_client.log_metric.assert_any_call(ANY, "last_hf_e", ANY)
+    mock_client.log_metric.assert_any_call(ANY, "cput0_0", ANY)
+
+
+@patch(
+    "benchq.problem_ingestion.molecule_instance_generation.MlflowClient.log_param",
+    autospec=True,
+)
+@patch(
+    "benchq.problem_ingestion.molecule_instance_generation.MlflowClient.log_metric",
+    autospec=True,
+)
+@apply_sdk_patches
+def test_get_occupied_and_active_indicies_with_FNO_logs_to_mlflow_with_scf_options_no_callback(
+    mock_uri_function,
+    mock_token_function,
+    mock_log_metric,
+    mock_log_param,
+):
+    # Given
+    fno_water_instance_frozen_core = _fno_water_instance(freeze_core=True, mlflow_experiment_name="pytest", scf_options={"max_cycle": 100},)
+
+    # When
+    (
+        molecular_data,
+        occupied_indices,
+        active_indicies,
+    ) = fno_water_instance_frozen_core.get_occupied_and_active_indicies_with_FNO()
+
+    # Then
+    mock_log_param.assert_called()
+    mock_log_metric.assert_called()
+
+    
+
+    mock_log_param.assert_any_call(
+        ANY, # First param is "self" which in this case is MlflowClient object
+        ANY, # Second param is random run_id
+        "geometry", # key
+        [('O', (0.0, -0.075791844, 0.0)), ('H', (0.866811829, 0.601435779, 0.0)), ('H', (-0.866811829, 0.601435779, 0.0))], #val
+    )
+    mock_log_param.assert_any_call(ANY, ANY, "basis", "6-31g")
+
+    # last param (value) depends on optimization, so could be different run-to-run
+    mock_log_metric.assert_any_call(ANY, ANY, "last_hf_e", ANY)
+    mock_log_metric.assert_any_call(ANY, ANY, "cput0_0", ANY)
+
+
+
+
+
+
+@patch(
+    "benchq.problem_ingestion.molecule_instance_generation.MlflowClient.log_param",
+    autospec=True,
+)
+@patch(
+    "benchq.problem_ingestion.molecule_instance_generation.MlflowClient.log_metric",
+    autospec=True,
+)
+@apply_sdk_patches
+def test_get_active_space_meanfield_object_logs_to_mlflow_no_specified_callback(
+    mock_uri_function,
+    mock_token_function,
+    mock_log_metric,
+    mock_log_param,
+):
+    # Given
+    new_hydrogen_chain_instance = generate_hydrogen_chain_instance(
+        2, mlflow_experiment_name="pytest"
+    )
+
+    # When
+    ham = new_hydrogen_chain_instance.get_active_space_meanfield_object()
+
+    # Then
+    mock_log_param.assert_called()
+    mock_log_metric.assert_called()
+
+    mock_log_param.assert_any_call(
+        ANY, # First param is "self" which in this case is MlflowClient object
+        ANY, # Second param is random run_id
+        "geometry", # key
+        [("H", (0, 0, 0.0)), ("H", (0, 0, 1.3))], #val
+    )
+    mock_log_param.assert_any_call(ANY, ANY, "basis", "6-31g")
+
+    # last param (value) depends on optimization, so could be different run-to-run
+    mock_log_metric.assert_any_call(ANY, ANY, "last_hf_e", ANY)
+    mock_log_metric.assert_any_call(ANY, ANY, "cput0_0", ANY)
+
+
+@patch("mlflow.MlflowClient", autospec=True)
+@apply_sdk_patches
+def test_get_active_space_meanfield_object_logs_to_mlflow_with_specified_callback(
+    mock_uri_function,
+    mock_token_function,
+    mock_client,
+):
+    # Given
+    experiment_name = mock_client.create_experiment(
+        "test_get_active_space_hamiltonian_logs_to_mlflow_with_specified_callback",
+    )
+    experiment = mock_client.get_experiment_by_name(name=experiment_name)
+    run_id = mock_client.create_run(experiment.experiment_id).info.run_id
+    scf_callback = create_mlflow_scf_callback(mock_client, run_id)
+    scf_options = {"callback": scf_callback}
+    new_hydrogen_chain_instance = generate_hydrogen_chain_instance(
+        2, 
+        mlflow_experiment_name="pytest", 
+        scf_options=scf_options, 
+        orq_workspace_id="mlflow-benchq-testing-dd0cb1",
+    )
+
+    # When
+    ham = new_hydrogen_chain_instance.get_active_space_meanfield_object()
+
+    # Then
+    mock_client.log_metric.assert_called()
+
+    # last param (value) depends on optimization, so could be different run-to-run
+    mock_client.log_metric.assert_any_call(ANY, "last_hf_e", ANY)
+    mock_client.log_metric.assert_any_call(ANY, "cput0_0", ANY)
+
+
+@patch(
+    "benchq.problem_ingestion.molecule_instance_generation.MlflowClient.log_param",
+    autospec=True,
+)
+@patch(
+    "benchq.problem_ingestion.molecule_instance_generation.MlflowClient.log_metric",
+    autospec=True,
+)
+@apply_sdk_patches
+def test_get_active_space_meanfield_object_logs_to_mlflow_with_scf_options_no_callback(
+    mock_uri_function,
+    mock_token_function,
+    mock_log_metric,
+    mock_log_param,
+):
+    # Given
+    new_hydrogen_chain_instance = generate_hydrogen_chain_instance(
+        2, mlflow_experiment_name="pytest", scf_options={"max_cycle": 100},
+    )
+
+    # When
+    ham = new_hydrogen_chain_instance.get_active_space_meanfield_object()
+
+    # Then
+    mock_log_param.assert_called()
+    mock_log_metric.assert_called()
+
+    mock_log_param.assert_any_call(
+        ANY, # First param is "self" which in this case is MlflowClient object
+        ANY, # Second param is random run_id
+        "geometry", # key
+        [("H", (0, 0, 0.0)), ("H", (0, 0, 1.3))], #val
+    )
+    mock_log_param.assert_any_call(ANY, ANY, "basis", "6-31g")
+
+    # last param (value) depends on optimization, so could be different run-to-run
+    mock_log_metric.assert_any_call(ANY, ANY, "last_hf_e", ANY)
+    mock_log_metric.assert_any_call(ANY, ANY, "cput0_0", ANY)

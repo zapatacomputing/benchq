@@ -150,8 +150,6 @@ def test_create_mlflow_scf_callback(mock_client):
     scf_callback = create_mlflow_scf_callback(client, run_id)
     scf_callback(vars)
 
-    print(vars.get("last_hf_e"))
-
     # Then
     mock_client.log_metric.assert_called()
 

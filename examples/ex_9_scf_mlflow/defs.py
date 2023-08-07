@@ -28,6 +28,7 @@ def testing_get_active_space_meanfield_object(number_of_hydrogens):
     instance = generate_hydrogen_chain_instance(
         number_of_hydrogens=number_of_hydrogens,
         mlflow_experiment_name=f"chain of {number_of_hydrogens} hydrogens",
+        orq_workspace_id="mlflow-benchq-testing-dd0cb1",
         avas_atomic_orbitals=["H 1s", "H 2s"],
         avas_minao="sto-3g",
     )
