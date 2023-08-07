@@ -79,9 +79,9 @@ def test_mean_field_object_has_valid_default_scf_options():
 def _fno_water_instance(
     freeze_core: bool = None,
     fno_percentage_occupation_number: float = 0.9,
-    scf_options = None,
-    mlflow_experiment_name = None,
-    orq_workspace_id = None,
+    scf_options=None,
+    mlflow_experiment_name=None,
+    orq_workspace_id=None,
 ):
     water_instance = ChemistryApplicationInstance(
         geometry=[

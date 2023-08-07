@@ -54,8 +54,10 @@ def _create_mlflow_setup(
     mlflow_experiment_name: str, orq_workspace_id: str
 ) -> Tuple[MlflowClient, str]:
     if not isinstance(orq_workspace_id, str):
-        raise TypeError(f"orq_workspace_id is not a str, it is {type(orq_workspace_id)}."
-            "Did you remember to pass that in to the ChemistryApplicationInstance?")
+        raise TypeError(
+            f"orq_workspace_id is not a str, it is {type(orq_workspace_id)}."
+            "Did you remember to pass that in to the ChemistryApplicationInstance?"
+        )
     client = MlflowClient(
         tracking_uri=sdk.mlflow.get_tracking_uri(workspace_id=orq_workspace_id)
     )
