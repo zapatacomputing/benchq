@@ -311,7 +311,9 @@ class ChemistryApplicationInstance:
             mp2 = mp.MP2(mean_field_object)
 
         mp2.verbose = 4
-        mp2.run()
+        print("DBG.. Before running MP2...")
+        mp2 = mp2.density_fit().run()
+        print("DBG.. Before running MP2 completed")
 
         frozen_natural_orbitals, natural_orbital_coefficients = mp2.make_fno(
             self.fno_threshold,
