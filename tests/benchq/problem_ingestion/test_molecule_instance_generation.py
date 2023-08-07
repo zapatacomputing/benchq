@@ -1,17 +1,15 @@
+from functools import wraps
+from unittest.mock import ANY, MagicMock, patch
+
 import pytest
+from mlflow import MlflowClient
 
-from unittest.mock import patch, ANY, MagicMock
-
+from benchq.mlflow import create_mlflow_scf_callback
 from benchq.problem_ingestion.molecule_instance_generation import (
     ChemistryApplicationInstance,
     SCFConvergenceError,
     generate_hydrogen_chain_instance,
 )
-from benchq.mlflow import create_mlflow_scf_callback
-
-from mlflow import MlflowClient
-
-from functools import wraps
 
 
 def _generate_avas_hydrogen_chain_instance(n_hydrogens):
@@ -195,10 +193,10 @@ def test_get_active_space_hamiltonian_logs_to_mlflow_no_specified_callback(
     mock_log_metric.assert_called()
 
     mock_log_param.assert_any_call(
-        ANY, # First param is "self" which in this case is MlflowClient object
-        ANY, # Second param is random run_id
-        "geometry", # key
-        [("H", (0, 0, 0.0)), ("H", (0, 0, 1.3))], #val
+        ANY,  # First param is "self" which in this case is MlflowClient object
+        ANY,  # Second param is random run_id
+        "geometry",  # key
+        [("H", (0, 0, 0.0)), ("H", (0, 0, 1.3))],  # val
     )
     mock_log_param.assert_any_call(ANY, ANY, "basis", "6-31g")
 
@@ -223,9 +221,9 @@ def test_get_active_space_hamiltonian_logs_to_mlflow_with_specified_callback(
     scf_callback = create_mlflow_scf_callback(mock_client, run_id)
     scf_options = {"callback": scf_callback}
     new_hydrogen_chain_instance = generate_hydrogen_chain_instance(
-        2, 
-        mlflow_experiment_name="pytest", 
-        scf_options=scf_options, 
+        2,
+        mlflow_experiment_name="pytest",
+        scf_options=scf_options,
         orq_workspace_id="mlflow-benchq-testing-dd0cb1",
     )
 
@@ -257,7 +255,9 @@ def test_get_active_space_hamiltonian_logs_to_mlflow_with_scf_options_no_callbac
 ):
     # Given
     new_hydrogen_chain_instance = generate_hydrogen_chain_instance(
-        2, mlflow_experiment_name="pytest", scf_options={"max_cycle": 100},
+        2,
+        mlflow_experiment_name="pytest",
+        scf_options={"max_cycle": 100},
     )
 
     # When
@@ -268,22 +268,16 @@ def test_get_active_space_hamiltonian_logs_to_mlflow_with_scf_options_no_callbac
     mock_log_metric.assert_called()
 
     mock_log_param.assert_any_call(
-        ANY, # First param is "self" which in this case is MlflowClient object
-        ANY, # Second param is random run_id
-        "geometry", # key
-        [("H", (0, 0, 0.0)), ("H", (0, 0, 1.3))], #val
+        ANY,  # First param is "self" which in this case is MlflowClient object
+        ANY,  # Second param is random run_id
+        "geometry",  # key
+        [("H", (0, 0, 0.0)), ("H", (0, 0, 1.3))],  # val
     )
     mock_log_param.assert_any_call(ANY, ANY, "basis", "6-31g")
 
     # last param (value) depends on optimization, so could be different run-to-run
     mock_log_metric.assert_any_call(ANY, ANY, "last_hf_e", ANY)
     mock_log_metric.assert_any_call(ANY, ANY, "cput0_0", ANY)
-
-
-
-
-
-
 
 
 @patch(
@@ -302,7 +296,9 @@ def test_get_occupied_and_active_indicies_with_FNO_logs_to_mlflow_no_specified_c
     mock_log_param,
 ):
     # Given
-    fno_water_instance_frozen_core = _fno_water_instance(freeze_core=True, mlflow_experiment_name="pytest")
+    fno_water_instance_frozen_core = _fno_water_instance(
+        freeze_core=True, mlflow_experiment_name="pytest"
+    )
 
     # When
     (
@@ -316,10 +312,14 @@ def test_get_occupied_and_active_indicies_with_FNO_logs_to_mlflow_no_specified_c
     mock_log_metric.assert_called()
 
     mock_log_param.assert_any_call(
-        ANY, # First param is "self" which in this case is MlflowClient object
-        ANY, # Second param is random run_id
-        "geometry", # key
-        [('O', (0.0, -0.075791844, 0.0)), ('H', (0.866811829, 0.601435779, 0.0)), ('H', (-0.866811829, 0.601435779, 0.0))], #val
+        ANY,  # First param is "self" which in this case is MlflowClient object
+        ANY,  # Second param is random run_id
+        "geometry",  # key
+        [
+            ("O", (0.0, -0.075791844, 0.0)),
+            ("H", (0.866811829, 0.601435779, 0.0)),
+            ("H", (-0.866811829, 0.601435779, 0.0)),
+        ],  # val
     )
     mock_log_param.assert_any_call(ANY, ANY, "basis", "6-31g")
 
@@ -343,8 +343,11 @@ def test_get_occupied_and_active_indicies_with_FNO_logs_to_mlflow_with_specified
     run_id = mock_client.create_run(experiment.experiment_id).info.run_id
     scf_callback = create_mlflow_scf_callback(mock_client, run_id)
     scf_options = {"callback": scf_callback}
-    fno_water_instance_frozen_core = _fno_water_instance(freeze_core=True, scf_options=scf_options, 
-        orq_workspace_id="mlflow-benchq-testing-dd0cb1",)
+    fno_water_instance_frozen_core = _fno_water_instance(
+        freeze_core=True,
+        scf_options=scf_options,
+        orq_workspace_id="mlflow-benchq-testing-dd0cb1",
+    )
 
     # When
     (
@@ -377,7 +380,11 @@ def test_get_occupied_and_active_indicies_with_FNO_logs_to_mlflow_with_scf_optio
     mock_log_param,
 ):
     # Given
-    fno_water_instance_frozen_core = _fno_water_instance(freeze_core=True, mlflow_experiment_name="pytest", scf_options={"max_cycle": 100},)
+    fno_water_instance_frozen_core = _fno_water_instance(
+        freeze_core=True,
+        mlflow_experiment_name="pytest",
+        scf_options={"max_cycle": 100},
+    )
 
     # When
     (
@@ -390,23 +397,21 @@ def test_get_occupied_and_active_indicies_with_FNO_logs_to_mlflow_with_scf_optio
     mock_log_param.assert_called()
     mock_log_metric.assert_called()
 
-    
-
     mock_log_param.assert_any_call(
-        ANY, # First param is "self" which in this case is MlflowClient object
-        ANY, # Second param is random run_id
-        "geometry", # key
-        [('O', (0.0, -0.075791844, 0.0)), ('H', (0.866811829, 0.601435779, 0.0)), ('H', (-0.866811829, 0.601435779, 0.0))], #val
+        ANY,  # First param is "self" which in this case is MlflowClient object
+        ANY,  # Second param is random run_id
+        "geometry",  # key
+        [
+            ("O", (0.0, -0.075791844, 0.0)),
+            ("H", (0.866811829, 0.601435779, 0.0)),
+            ("H", (-0.866811829, 0.601435779, 0.0)),
+        ],  # val
     )
     mock_log_param.assert_any_call(ANY, ANY, "basis", "6-31g")
 
     # last param (value) depends on optimization, so could be different run-to-run
     mock_log_metric.assert_any_call(ANY, ANY, "last_hf_e", ANY)
     mock_log_metric.assert_any_call(ANY, ANY, "cput0_0", ANY)
-
-
-
-
 
 
 @patch(
@@ -437,10 +442,10 @@ def test_get_active_space_meanfield_object_logs_to_mlflow_no_specified_callback(
     mock_log_metric.assert_called()
 
     mock_log_param.assert_any_call(
-        ANY, # First param is "self" which in this case is MlflowClient object
-        ANY, # Second param is random run_id
-        "geometry", # key
-        [("H", (0, 0, 0.0)), ("H", (0, 0, 1.3))], #val
+        ANY,  # First param is "self" which in this case is MlflowClient object
+        ANY,  # Second param is random run_id
+        "geometry",  # key
+        [("H", (0, 0, 0.0)), ("H", (0, 0, 1.3))],  # val
     )
     mock_log_param.assert_any_call(ANY, ANY, "basis", "6-31g")
 
@@ -465,9 +470,9 @@ def test_get_active_space_meanfield_object_logs_to_mlflow_with_specified_callbac
     scf_callback = create_mlflow_scf_callback(mock_client, run_id)
     scf_options = {"callback": scf_callback}
     new_hydrogen_chain_instance = generate_hydrogen_chain_instance(
-        2, 
-        mlflow_experiment_name="pytest", 
-        scf_options=scf_options, 
+        2,
+        mlflow_experiment_name="pytest",
+        scf_options=scf_options,
         orq_workspace_id="mlflow-benchq-testing-dd0cb1",
     )
 
@@ -499,7 +504,9 @@ def test_get_active_space_meanfield_object_logs_to_mlflow_with_scf_options_no_ca
 ):
     # Given
     new_hydrogen_chain_instance = generate_hydrogen_chain_instance(
-        2, mlflow_experiment_name="pytest", scf_options={"max_cycle": 100},
+        2,
+        mlflow_experiment_name="pytest",
+        scf_options={"max_cycle": 100},
     )
 
     # When
@@ -510,10 +517,10 @@ def test_get_active_space_meanfield_object_logs_to_mlflow_with_scf_options_no_ca
     mock_log_metric.assert_called()
 
     mock_log_param.assert_any_call(
-        ANY, # First param is "self" which in this case is MlflowClient object
-        ANY, # Second param is random run_id
-        "geometry", # key
-        [("H", (0, 0, 0.0)), ("H", (0, 0, 1.3))], #val
+        ANY,  # First param is "self" which in this case is MlflowClient object
+        ANY,  # Second param is random run_id
+        "geometry",  # key
+        [("H", (0, 0, 0.0)), ("H", (0, 0, 1.3))],  # val
     )
     mock_log_param.assert_any_call(ANY, ANY, "basis", "6-31g")
 

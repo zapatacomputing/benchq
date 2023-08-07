@@ -1,12 +1,15 @@
 ################################################################################
 # © Copyright 2022 Zapata Computing Inc.
 ################################################################################
+import os
 from copy import deepcopy
-from dataclasses import dataclass, asdict
+from dataclasses import asdict, dataclass
 from typing import Iterable, List, Optional, Tuple
 
 import numpy as np
 import openfermion
+import urllib3
+from mlflow import MlflowClient
 from openfermion import MolecularData
 from openfermion.resource_estimates.molecule import (
     avas_active_space,
@@ -18,11 +21,7 @@ from openfermionpyscf._run_pyscf import compute_integrals
 from orquestra import sdk
 from pyscf import gto, mp, scf
 
-from ..mlflow import create_mlflow_scf_callback, _flatten_dict
-
-import os
-from mlflow import MlflowClient
-import urllib3
+from ..mlflow import _flatten_dict, create_mlflow_scf_callback
 
 
 def truncate_with_avas(
@@ -50,19 +49,18 @@ def truncate_with_avas(
 
     return avas_active_space(mean_field_object, ao_list=ao_list, minao=minao)
 
-def _create_mlflow_setup(mlflow_experiment_name: str, orq_workspace_id: str) -> Tuple[MlflowClient, str]:
+
+def _create_mlflow_setup(
+    mlflow_experiment_name: str, orq_workspace_id: str
+) -> Tuple[MlflowClient, str]:
     client = MlflowClient(
-        tracking_uri=sdk.mlflow.get_tracking_uri(
-            workspace_id=orq_workspace_id
-        )
+        tracking_uri=sdk.mlflow.get_tracking_uri(workspace_id=orq_workspace_id)
     )
 
     experiment = client.get_experiment_by_name(name=mlflow_experiment_name)
     if experiment is None:
         client.create_experiment(mlflow_experiment_name)
-        experiment = client.get_experiment_by_name(
-            name=mlflow_experiment_name
-        )
+        experiment = client.get_experiment_by_name(name=mlflow_experiment_name)
 
     run = client.create_run(experiment.experiment_id)
 
@@ -154,7 +152,9 @@ class ChemistryApplicationSCFInfo:
                     mean_field_object.run(**self.scf_options)
                 else:
                     # we want to log to mlflow, but haven't defined the callback in scf_options
-                    client, run_id = _create_mlflow_setup(self.mlflow_experiment_name, self.orq_workspace_id)
+                    client, run_id = _create_mlflow_setup(
+                        self.mlflow_experiment_name, self.orq_workspace_id
+                    )
 
                     for key, val in flat_dict.items():
                         client.log_param(run_id, key, val)
@@ -165,13 +165,13 @@ class ChemistryApplicationSCFInfo:
                     mean_field_object.run(**temp_options)
             else:
                 # we want to log to mlflow, but haven't defined scf_options
-                client, run_id = _create_mlflow_setup(self.mlflow_experiment_name, self.orq_workspace_id)
+                client, run_id = _create_mlflow_setup(
+                    self.mlflow_experiment_name, self.orq_workspace_id
+                )
 
                 for key, val in flat_dict.items():
                     client.log_param(run_id, key, val)
-                temp_options = {
-                    "callback": create_mlflow_scf_callback(client, run_id)
-                }
+                temp_options = {"callback": create_mlflow_scf_callback(client, run_id)}
                 mean_field_object.run(**temp_options)
         else:
             if self.scf_options is not None:
@@ -488,7 +488,7 @@ class ChemistryApplicationInstance:
         fno_n_virtual_natural_orbitals: Optional[int] = None,
         scf_options: Optional[dict] = None,
         mlflow_experiment_name: Optional[str] = None,
-        orq_workspace_id: Optional[str] = None
+        orq_workspace_id: Optional[str] = None,
     ):
         self.app_data = ChemistryApplicationData(
             geometry=geometry,

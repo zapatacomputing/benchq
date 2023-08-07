@@ -3,7 +3,7 @@
 ################################################################################
 """Unit tests for benchq.mlflow.data_logging."""
 
-from unittest.mock import patch, ANY
+from unittest.mock import ANY, patch
 
 import pytest
 
@@ -13,9 +13,9 @@ from benchq.data_structures.hardware_architecture_models import IONTrapModel
 from benchq.data_structures.resource_info import ResourceInfo
 from benchq.mlflow.data_logging import (
     _flatten_dict,
+    create_mlflow_scf_callback,
     log_input_objects_to_mlflow,
     log_resource_info_to_mlflow,
-    create_mlflow_scf_callback,
 )
 
 

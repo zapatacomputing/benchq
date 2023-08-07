@@ -3,11 +3,11 @@
 ################################################################################
 """ Tools for using mlflow to log benchq data """
 from dataclasses import asdict
+from logging import getLogger
 from numbers import Number
-from typing import Any, Dict, Optional, Callable
+from typing import Any, Callable, Dict, Optional
 
 import mlflow  # type: ignore
-from logging import getLogger
 
 from ..data_structures import (
     AlgorithmImplementation,
@@ -60,7 +60,7 @@ def log_resource_info_to_mlflow(resource_info: ResourceInfo) -> None:
 def create_mlflow_scf_callback(
     mlflow_client: mlflow.client.MlflowClient,
     run_id: str,
-    ) -> Callable[[Dict, str], None]:
+) -> Callable[[Dict, str], None]:
     """
     Callback function for pySCF calculations that also logs to mlflow
 
@@ -69,6 +69,7 @@ def create_mlflow_scf_callback(
     that can be passed in.
     For an example of creating the mlflow_client and run_id, see _run_pyscf() in ChemistryApplicationInstance
     """
+
     def scf_callback(vars):
         logger = getLogger(__name__)
         data = {
@@ -82,6 +83,7 @@ def create_mlflow_scf_callback(
         logger.info(str(data))
         for key, val in data.items():
             mlflow_client.log_metric(run_id, key, val)
+
     return scf_callback
 
 
