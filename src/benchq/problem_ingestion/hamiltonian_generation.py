@@ -212,3 +212,5 @@ def generate_cubic_hamiltonian(lattice_size, longitudinal_weight_prob=0.5, trans
     H_cubic = pyH(H_transverse + H_longitudinal)
     H_cubic = from_openfermion(pyliqtr_to_openfermion(H_cubic))
     return H_cubic
+
+
