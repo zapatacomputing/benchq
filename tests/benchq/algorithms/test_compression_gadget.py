@@ -1,7 +1,9 @@
 import math
+
 import numpy as np
-from orquestra.quantum.circuits import Circuit
 import pytest
+from orquestra.quantum.circuits import Circuit
+
 from benchq.algorithms.utils.compression_gadget import get_add_dagger, get_add_l
 from benchq.block_encodings.block_encoding_utils import controlled_clock
 
