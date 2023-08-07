@@ -1,4 +1,5 @@
 from functools import wraps
+from typing import Optional
 from unittest.mock import ANY, MagicMock, patch
 
 import pytest
@@ -78,9 +79,9 @@ def test_mean_field_object_has_valid_default_scf_options():
 def _fno_water_instance(
     freeze_core: bool = None,
     fno_percentage_occupation_number: float = 0.9,
-    scf_options: dict = None,
-    mlflow_experiment_name: str = None,
-    orq_workspace_id: str = None,
+    scf_options = None,
+    mlflow_experiment_name = None,
+    orq_workspace_id = None,
 ):
     water_instance = ChemistryApplicationInstance(
         geometry=[

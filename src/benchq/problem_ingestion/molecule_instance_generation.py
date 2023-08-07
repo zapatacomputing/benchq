@@ -8,8 +8,8 @@ from typing import Iterable, List, Optional, Tuple
 
 import numpy as np
 import openfermion
-import urllib3
-from mlflow import MlflowClient
+import urllib3  # type: ignore
+from mlflow import MlflowClient  # type: ignore
 from openfermion import MolecularData
 from openfermion.resource_estimates.molecule import (
     avas_active_space,
@@ -53,6 +53,9 @@ def truncate_with_avas(
 def _create_mlflow_setup(
     mlflow_experiment_name: str, orq_workspace_id: str
 ) -> Tuple[MlflowClient, str]:
+    if not isinstance(orq_workspace_id, str):
+        raise TypeError(f"orq_workspace_id is not a str, it is {type(orq_workspace_id)}."
+            "Did you remember to pass that in to the ChemistryApplicationInstance?")
     client = MlflowClient(
         tracking_uri=sdk.mlflow.get_tracking_uri(workspace_id=orq_workspace_id)
     )
@@ -534,8 +537,8 @@ class ChemistryApplicationInstance:
 
 def generate_hydrogen_chain_instance(
     number_of_hydrogens: int,
-    basis: Optional[str] = "6-31g",
-    bond_distance: Optional[float] = 1.3,
+    basis: str = "6-31g",
+    bond_distance: float = 1.3,
     active_indices: Optional[List[int]] = None,
     occupied_indices: Optional[List[int]] = None,
     avas_atomic_orbitals: Optional[List[str]] = None,

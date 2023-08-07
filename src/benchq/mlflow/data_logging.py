@@ -71,7 +71,7 @@ def create_mlflow_scf_callback(
     in ChemistryApplicationInstance
     """
 
-    def scf_callback(vars):
+    def scf_callback(vars) -> Callable[[Dict, str], None]:
         logger = getLogger(__name__)
         data = {
             "last_hf_e": vars.get("last_hf_e"),
