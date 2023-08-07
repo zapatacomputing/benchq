@@ -33,13 +33,15 @@ def testing_get_active_space_meanfield_object(number_of_hydrogens):
         avas_minao="sto-3g",
     )
     mean_field_object = instance.get_active_space_meanfield_object()
-    return mean_field_object.converged
+    hamiltonian = instance.get_active_space_hamiltonian()
+    return (mean_field_object.converged, hamiltonian)
 
 
 @sdk.workflow
 def scf_mlflow_workflow():
     results = []
-    for n in [2]:
-        mean_field_object = testing_get_active_space_meanfield_object(n)
-        results.append(mean_field_object)
+    for n in [2, 3, 4]:
+        mfo, ham = testing_get_active_space_meanfield_object(n)
+        results.append(mfo)
+        print(ham)
     return results
