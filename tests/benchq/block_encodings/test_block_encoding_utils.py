@@ -7,21 +7,21 @@ from benchq.block_encodings.block_encoding_utils import controlled_clock
 @pytest.mark.parametrize(
     "size, direction, target_unitary",
     [
-        (1, "forward", np.array([[0, 1], [1, 0]])),
         (1, "backward", np.array([[0, 1], [1, 0]])),
+        (1, "forward", np.array([[0, 1], [1, 0]])),
         (
             2,
-            "forward",
+            "backward",
             np.array([[0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1], [1, 0, 0, 0]]),
         ),
         (
             2,
-            "backward",
+            "forward",
             np.array([[0, 0, 0, 1], [1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0]]),
         ),
         (
             3,
-            "forward",
+            "backward",
             np.array(
                 [
                     [0, 1, 0, 0, 0, 0, 0, 0],
@@ -115,7 +115,9 @@ def test_bare_clock_produces_correct_output(size, direction, target_unitary):
 def test_clock_with_controls_produces_correct_output(
     size, targets, controls, target_unitary
 ):
-    circuit = controlled_clock(size, targets=targets, controls=controls)
+    circuit = controlled_clock(
+        size, targets=targets, controls=controls, direction="backward"
+    )
     test_unitary = circuit.to_unitary()
 
     assert np.allclose(test_unitary, target_unitary)
