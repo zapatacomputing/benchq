@@ -1,9 +1,8 @@
 from functools import wraps
 from typing import Optional
-from unittest.mock import ANY, MagicMock, patch
+from unittest.mock import ANY, patch
 
 import pytest
-from mlflow import MlflowClient
 
 from benchq.mlflow import create_mlflow_scf_callback
 from benchq.problem_ingestion.molecule_instance_generation import (
@@ -77,8 +76,8 @@ def test_mean_field_object_has_valid_default_scf_options():
 
 
 def _fno_water_instance(
-    freeze_core: bool = None,
-    fno_percentage_occupation_number: float = 0.9,
+    freeze_core: Optional[bool] = None,
+    fno_percentage_occupation_number=0.9,
     scf_options=None,
     mlflow_experiment_name=None,
     orq_workspace_id=None,

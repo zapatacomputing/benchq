@@ -53,11 +53,6 @@ def truncate_with_avas(
 def _create_mlflow_setup(
     mlflow_experiment_name: str, orq_workspace_id: str
 ) -> Tuple[MlflowClient, str]:
-    if not isinstance(orq_workspace_id, str):
-        raise TypeError(
-            f"orq_workspace_id is not a str, it is {type(orq_workspace_id)}."
-            "Did you remember to pass that in to the ChemistryApplicationInstance?"
-        )
     client = MlflowClient(
         tracking_uri=sdk.mlflow.get_tracking_uri(workspace_id=orq_workspace_id)
     )
@@ -159,6 +154,13 @@ class ChemistryApplicationSCFInfo:
                 else:
                     # we want to log to mlflow, BUT haven't defined the
                     # callback in scf_options
+                    if not isinstance(self.orq_workspace_id, str):
+                        raise TypeError(
+                            "orq_workspace_id is not a str, it is "
+                            + str(type(self.orq_workspace_id))
+                            + " Did you remember to pass that in "
+                            "to the ChemistryApplicationInstance?"
+                        )
                     client, run_id = _create_mlflow_setup(
                         self.mlflow_experiment_name, self.orq_workspace_id
                     )
@@ -172,6 +174,13 @@ class ChemistryApplicationSCFInfo:
                     mean_field_object.run(**temp_options)
             else:
                 # we want to log to mlflow, but haven't defined scf_options
+                if not isinstance(self.orq_workspace_id, str):
+                    raise TypeError(
+                        "orq_workspace_id is not a str, it is "
+                        + str(type(self.orq_workspace_id))
+                        + " Did you remember to pass that in "
+                        "to the ChemistryApplicationInstance?"
+                    )
                 client, run_id = _create_mlflow_setup(
                     self.mlflow_experiment_name, self.orq_workspace_id
                 )
