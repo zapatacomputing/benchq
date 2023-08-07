@@ -184,7 +184,9 @@ def test_get_active_space_hamiltonian_logs_to_mlflow_no_specified_callback(
 ):
     # Given
     new_hydrogen_chain_instance = generate_hydrogen_chain_instance(
-        2, mlflow_experiment_name="pytest"
+        2,
+        mlflow_experiment_name="pytest",
+        orq_workspace_id="testing",
     )
 
     # When
@@ -226,7 +228,7 @@ def test_get_active_space_hamiltonian_logs_to_mlflow_with_specified_callback(
         2,
         mlflow_experiment_name="pytest",
         scf_options=scf_options,
-        orq_workspace_id="mlflow-benchq-testing-dd0cb1",
+        orq_workspace_id="testing",
     )
 
     # When
@@ -259,6 +261,7 @@ def test_get_active_space_hamiltonian_logs_to_mlflow_with_scf_options_no_callbac
     new_hydrogen_chain_instance = generate_hydrogen_chain_instance(
         2,
         mlflow_experiment_name="pytest",
+        orq_workspace_id="testing",
         scf_options={"max_cycle": 100},
     )
 
@@ -299,7 +302,9 @@ def test_get_occupied_and_active_indicies_with_FNO_logs_to_mlflow_no_specified_c
 ):
     # Given
     fno_water_instance_frozen_core = _fno_water_instance(
-        freeze_core=True, mlflow_experiment_name="pytest"
+        freeze_core=True,
+        mlflow_experiment_name="pytest",
+        orq_workspace_id="testing",
     )
 
     # When
@@ -348,7 +353,7 @@ def test_get_occupied_and_active_indicies_w_FNO_log_to_mlflow_w_given_callback(
     fno_water_instance_frozen_core = _fno_water_instance(
         freeze_core=True,
         scf_options=scf_options,
-        orq_workspace_id="mlflow-benchq-testing-dd0cb1",
+        orq_workspace_id="testing",
     )
 
     # When
@@ -385,6 +390,7 @@ def test_get_occupied_and_active_indicies_with_FNO_log_mlflow_w_scf_opt_no_callb
     fno_water_instance_frozen_core = _fno_water_instance(
         freeze_core=True,
         mlflow_experiment_name="pytest",
+        orq_workspace_id="testing",
         scf_options={"max_cycle": 100},
     )
 
@@ -433,7 +439,9 @@ def test_get_active_space_meanfield_object_logs_to_mlflow_no_specified_callback(
 ):
     # Given
     new_hydrogen_chain_instance = generate_hydrogen_chain_instance(
-        2, mlflow_experiment_name="pytest"
+        2,
+        mlflow_experiment_name="pytest",
+        orq_workspace_id="testing",
     )
 
     # When
@@ -474,8 +482,8 @@ def test_get_active_space_meanfield_object_logs_to_mlflow_with_specified_callbac
     new_hydrogen_chain_instance = generate_hydrogen_chain_instance(
         2,
         mlflow_experiment_name="pytest",
+        orq_workspace_id="testing",
         scf_options=scf_options,
-        orq_workspace_id="mlflow-benchq-testing-dd0cb1",
     )
 
     # When
@@ -508,6 +516,7 @@ def test_get_active_space_meanfield_object_logs_to_mlflow_with_scf_options_no_ca
     new_hydrogen_chain_instance = generate_hydrogen_chain_instance(
         2,
         mlflow_experiment_name="pytest",
+        orq_workspace_id="testing",
         scf_options={"max_cycle": 100},
     )
 
