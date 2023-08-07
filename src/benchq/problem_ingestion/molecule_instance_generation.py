@@ -3,6 +3,7 @@
 ################################################################################
 from dataclasses import dataclass
 from typing import Iterable, List, Optional, Tuple
+from functools import reduce
 
 import numpy as np
 import openfermion
@@ -13,8 +14,8 @@ from openfermion.resource_estimates.molecule import (
     stability,
 )
 from openfermionpyscf import PyscfMolecularData
-from openfermionpyscf._run_pyscf import compute_integrals
-from pyscf import gto, mp, scf
+from pyscf import gto, mp, scf, ao2mo
+import psutil
 
 
 class SCFConvergenceError(Exception):
@@ -133,6 +134,13 @@ class ChemistryApplicationInstance:
                 molecule, mean_field_object
             )
             print("DBG.. _truncate_with_fno() completed")
+
+            # Get memory usage in bytes
+            memory_usage = psutil.Process().memory_info().rss
+            # Convert memory usage to megabytes
+            memory_usage_mb = memory_usage / (1024 * 1024)
+            print(f"Memory Usage: {memory_usage_mb:.2f} MB")
+
         return molecule, mean_field_object
 
     def get_active_space_hamiltonian(self) -> openfermion.InteractionOperator:
@@ -230,6 +238,13 @@ class ChemistryApplicationInstance:
             float)
 
         print("DBG... before compute_integrals()")
+
+        # Get memory usage in bytes
+        memory_usage = psutil.Process().memory_info().rss
+        # Convert memory usage to megabytes
+        memory_usage_mb = memory_usage / (1024 * 1024)
+        print(f"Memory Usage: {memory_usage_mb:.2f} MB")
+
         one_body_integrals, two_body_integrals = compute_integrals(
             mean_field_object._eri, mean_field_object
         )
@@ -315,6 +330,9 @@ class ChemistryApplicationInstance:
         # Calculate the number of orbitals after truncation with fno
         molecule._nao = mean_field_object.mo_coeff.shape[1]
 
+        print("FNO threshold: ", self.fno_threshold)
+        print("Number of orbitals:", molecule._nao)
+
         return molecule, mean_field_object
 
 
@@ -342,6 +360,78 @@ def truncate_with_avas(
     )  # default is loc_type ='pm' (Pipek-Mezey)
 
     return avas_active_space(mean_field_object, ao_list=ao_list, minao=minao)
+
+
+def compute_integrals(pyscf_molecule, pyscf_scf):
+    """
+    Compute the 1-electron and 2-electron integrals.
+
+    Args:
+        pyscf_molecule: A pyscf molecule instance.
+        pyscf_scf: A PySCF "SCF" calculation object.
+
+    Returns:
+        one_electron_integrals: An N by N array storing h_{pq}
+        two_electron_integrals: An N by N by N by N array storing h_{pqrs}.
+    """
+    # Get one electrons integrals.
+    print("GBD.. Inside compute_integrals ")
+    # Get memory usage in bytes
+    memory_usage = psutil.Process().memory_info().rss
+    # Convert memory usage to megabytes
+    memory_usage_mb = memory_usage / (1024 * 1024)
+    print(f"Memory Usage: {memory_usage_mb:.2f} MB")
+
+    n_orbitals = pyscf_scf.mo_coeff.shape[1]
+    one_electron_compressed = reduce(np.dot, (pyscf_scf.mo_coeff.T,
+                                              pyscf_scf.get_hcore(),
+                                              pyscf_scf.mo_coeff))
+    one_electron_integrals = one_electron_compressed.reshape(
+        n_orbitals, n_orbitals).astype(float)
+
+    print("GBD.. One electron integrals completed... ")
+    # Get memory usage in bytes
+    memory_usage = psutil.Process().memory_info().rss
+    # Convert memory usage to megabytes
+    memory_usage_mb = memory_usage / (1024 * 1024)
+    print(f"Memory Usage: {memory_usage_mb:.2f} MB")
+
+    # Get two electron integrals in compressed format.
+    two_electron_integrals = ao2mo.kernel(pyscf_molecule,
+                                          pyscf_scf.mo_coeff)
+
+    print("GBD.. Two electron integrals completed... p1")
+    # Get memory usage in bytes
+    memory_usage = psutil.Process().memory_info().rss
+    # Convert memory usage to megabytes
+    memory_usage_mb = memory_usage / (1024 * 1024)
+    print(f"Memory Usage: {memory_usage_mb:.2f} MB")
+
+    two_electron_integrals = ao2mo.restore(
+        1,  # no permutation symmetry
+        two_electron_integrals, n_orbitals)
+    # See PQRS convention in OpenFermion.hamiltonians._molecular_data
+    # h[p,q,r,s] = (ps|qr)
+
+    print("GBD.. Two electron integrals completed... p2")
+    # Get memory usage in bytes
+    memory_usage = psutil.Process().memory_info().rss
+    # Convert memory usage to megabytes
+    memory_usage_mb = memory_usage / (1024 * 1024)
+    print(f"Memory Usage: {memory_usage_mb:.2f} MB")
+
+    two_electron_integrals = np.asarray(
+        two_electron_integrals.transpose(0, 2, 3, 1), order='C')
+
+    print("GBD.. Two electron integrals completed... p3")
+    # Get memory usage in bytes
+    memory_usage = psutil.Process().memory_info().rss
+    # Convert memory usage to megabytes
+    memory_usage_mb = memory_usage / (1024 * 1024)
+    print(f"Memory Usage: {memory_usage_mb:.2f} MB")
+
+    # Return.
+    return one_electron_integrals, two_electron_integrals
 
 
 def generate_hydrogen_chain_instance(
