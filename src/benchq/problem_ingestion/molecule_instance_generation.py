@@ -148,10 +148,12 @@ class ChemistryApplicationSCFInfo:
 
             if self.scf_options is not None:
                 if "callback" in self.scf_options:
-                    # we want to log to mlflow, and we've defined the callback in scf_options
+                    # we want to log to mlflow, AND we've defined the 
+                    # callback in scf_options
                     mean_field_object.run(**self.scf_options)
                 else:
-                    # we want to log to mlflow, but haven't defined the callback in scf_options
+                    # we want to log to mlflow, BUT haven't defined the 
+                    # callback in scf_options
                     client, run_id = _create_mlflow_setup(
                         self.mlflow_experiment_name, self.orq_workspace_id
                     )
@@ -464,7 +466,8 @@ class ChemistryApplicationInstance:
         fno_threshold: Threshold on NO occupation numbers.
         fno_n_virtual_natural_orbitals: Number of virtual NOs to keep.
         scf_options: dictionary with parameters for pySCF calculations
-        mlflow_experiment_name: if supplied, pySCF calculations will be logged to mlflow. See orq_workspace_id also
+        mlflow_experiment_name: if supplied, pySCF calculations will be logged to
+            mlflow. See orq_workspace_id also
         orq_workspace_id: orquestra workspace ID. Required to log mlflow info
     """
 
@@ -553,7 +556,8 @@ def generate_hydrogen_chain_instance(
         avas_atomic_orbitals: A list of atomic orbitals to use for (AVAS).
         avas_minao: The minimum active orbital to use for AVAS.
         scf_options: dictionary with parameters for pySCF calculations
-        mlflow_experiment_name: if supplied, pySCF calculations will be logged to mlflow. See orq_workspace_id also
+        mlflow_experiment_name: if supplied, pySCF calculations will be logged to
+            mlflow. See orq_workspace_id also
         orq_workspace_id: orquestra workspace ID. Required to log mlflow info
     """
     return ChemistryApplicationInstance(

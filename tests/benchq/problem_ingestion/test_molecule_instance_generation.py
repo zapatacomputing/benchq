@@ -186,7 +186,7 @@ def test_get_active_space_hamiltonian_logs_to_mlflow_no_specified_callback(
     )
 
     # When
-    ham = new_hydrogen_chain_instance.get_active_space_hamiltonian()
+    _ = new_hydrogen_chain_instance.get_active_space_hamiltonian()
 
     # Then
     mock_log_param.assert_called()
@@ -228,7 +228,7 @@ def test_get_active_space_hamiltonian_logs_to_mlflow_with_specified_callback(
     )
 
     # When
-    ham = new_hydrogen_chain_instance.get_active_space_hamiltonian()
+    _ = new_hydrogen_chain_instance.get_active_space_hamiltonian()
 
     # Then
     mock_client.log_metric.assert_called()
@@ -261,7 +261,7 @@ def test_get_active_space_hamiltonian_logs_to_mlflow_with_scf_options_no_callbac
     )
 
     # When
-    ham = new_hydrogen_chain_instance.get_active_space_hamiltonian()
+    _ = new_hydrogen_chain_instance.get_active_space_hamiltonian()
 
     # Then
     mock_log_param.assert_called()
@@ -330,14 +330,14 @@ def test_get_occupied_and_active_indicies_with_FNO_logs_to_mlflow_no_specified_c
 
 @patch("mlflow.MlflowClient", autospec=True)
 @apply_sdk_patches
-def test_get_occupied_and_active_indicies_with_FNO_logs_to_mlflow_with_specified_callback(
+def test_get_occupied_and_active_indicies_w_FNO_log_to_mlflow_w_given_callback(
     mock_uri_function,
     mock_token_function,
     mock_client,
 ):
     # Given
     experiment_name = mock_client.create_experiment(
-        "test_get_occupied_and_active_indicies_with_FNO_logs_to_mlflow_with_specified_callback",
+        "test_get_occupied_and_active_indicies_w_FNO_log_to_mlflow_w_given_callback",
     )
     experiment = mock_client.get_experiment_by_name(name=experiment_name)
     run_id = mock_client.create_run(experiment.experiment_id).info.run_id
@@ -373,7 +373,7 @@ def test_get_occupied_and_active_indicies_with_FNO_logs_to_mlflow_with_specified
     autospec=True,
 )
 @apply_sdk_patches
-def test_get_occupied_and_active_indicies_with_FNO_logs_to_mlflow_with_scf_options_no_callback(
+def test_get_occupied_and_active_indicies_with_FNO_log_mlflow_w_scf_opt_no_callback(
     mock_uri_function,
     mock_token_function,
     mock_log_metric,
@@ -435,7 +435,7 @@ def test_get_active_space_meanfield_object_logs_to_mlflow_no_specified_callback(
     )
 
     # When
-    ham = new_hydrogen_chain_instance.get_active_space_meanfield_object()
+    _ = new_hydrogen_chain_instance.get_active_space_meanfield_object()
 
     # Then
     mock_log_param.assert_called()
@@ -477,7 +477,7 @@ def test_get_active_space_meanfield_object_logs_to_mlflow_with_specified_callbac
     )
 
     # When
-    ham = new_hydrogen_chain_instance.get_active_space_meanfield_object()
+    _ = new_hydrogen_chain_instance.get_active_space_meanfield_object()
 
     # Then
     mock_client.log_metric.assert_called()
@@ -510,7 +510,7 @@ def test_get_active_space_meanfield_object_logs_to_mlflow_with_scf_options_no_ca
     )
 
     # When
-    ham = new_hydrogen_chain_instance.get_active_space_meanfield_object()
+    _ = new_hydrogen_chain_instance.get_active_space_meanfield_object()
 
     # Then
     mock_log_param.assert_called()
