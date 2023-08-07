@@ -56,24 +56,22 @@ Returns:
     adj::Vector{AdjList}              adjacency list describing the graph state
     lco::Vector{LCO}                  local clifford operations on each node
     teleportation_threshold::Int      max node degree allowed before state is teleported
+    teleportation_distance::Int       number of teleportations to do when state is teleported
     min_neighbors::Int                stop searching for neighbor with low degree if
                                         neighbor has at least this many neighbors
-    teleportation_distance::Int        number of teleportations to do when state is teleported
     max_num_neighbors_to_search::Int  max number of neighbors to search through when finding
                                         a neighbor with low degree
 """
 function run_ruby_slippers(
     circuit,
     verbose=false,
-    max_graph_size=0,
+    max_graph_size=nothing,
     teleportation_threshold=40,
     teleportation_distance=4,
     min_neighbors=6,
     max_num_neighbors_to_search=1e5,
     decomposition_strategy=1,
 )
-    max_graph_size = pyconvert(UInt32, max_graph_size)
-
     # params which can be optimized to speed up computation
     hyperparams = RubySlippersHyperparams(
         teleportation_threshold,
@@ -83,8 +81,10 @@ function run_ruby_slippers(
         decomposition_strategy,
     )
 
-    if max_graph_size == 0
+    if max_graph_size === nothing
         max_graph_size = get_max_n_nodes(circuit, hyperparams.teleportation_distance)
+    else
+        max_graph_size = pyconvert(UInt32, max_graph_size)
     end
 
     if verbose

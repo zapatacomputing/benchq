@@ -144,13 +144,13 @@ def test_stabilizer_states_are_the_same_for_circuits_with_decomposed_rotations(
 
 
 @pytest.mark.parametrize(
-    "circuit, teleportation_threshold, oz_to_kansas_distance, num_teleportations",
+    "circuit, teleportation_threshold, teleportation_distance, num_teleportations",
     [
         # tests that a circuit with no teleportations does not teleport
         (Circuit([H(0), *[CNOT(0, i) for i in range(1, 5)]]), 4, 4, 0),
         # tests changing threshold
         (Circuit([H(0), *[CNOT(0, i) for i in range(1, 5)]]), 3, 4, 1),
-        # test that oz_to_kansas_distance is respected
+        # test that teleportation_distance is respected
         (Circuit([H(0), *[CNOT(0, i) for i in range(1, 6)]]), 4, 6, 1),
         # creates a node of degree 4 which will be teleported. Requires 5 CNOTS
         # 4 to make the node of degree 4 and 1 to activate the teleport
@@ -176,14 +176,21 @@ def test_stabilizer_states_are_the_same_for_circuits_with_decomposed_rotations(
     ],
 )
 def test_teleportation_produces_correct_number_of_nodes_for_small_circuits(
-    circuit, teleportation_threshold, oz_to_kansas_distance, num_teleportations
+    circuit, teleportation_threshold, teleportation_distance, num_teleportations
 ):
     quantum_program = QuantumProgram.from_circuit(circuit)
     n_t_gates = quantum_program.n_t_gates
     n_rotations = quantum_program.n_rotation_gates
 
     loc, adj = jl.run_ruby_slippers(
-        circuit, True, 9999, teleportation_threshold, oz_to_kansas_distance, 6, 99999, 1
+        circuit,
+        True,
+        9999,
+        teleportation_threshold,
+        teleportation_distance,
+        6,
+        99999,
+        1,
     )
 
     n_nodes = len(loc)
@@ -192,7 +199,7 @@ def test_teleportation_produces_correct_number_of_nodes_for_small_circuits(
         n_nodes
         == circuit.n_qubits
         + (n_t_gates + n_rotations)
-        + oz_to_kansas_distance * num_teleportations
+        + teleportation_distance * num_teleportations
     )
 
 

@@ -28,7 +28,7 @@ def get_algorithmic_graph_from_ruby_slippers_with_hyperparams(
     max_graph_size=1e7,
     teleportation_threshold=40,
     min_neighbors=6,
-    oz_to_kansas_distance=4,
+    teleportation_distance=4,
     max_num_neighbors_to_search=1e5,
     decomposition_strategy=1,
 ):
@@ -38,7 +38,7 @@ def get_algorithmic_graph_from_ruby_slippers_with_hyperparams(
             verbose,
             max_graph_size,
             teleportation_threshold,
-            oz_to_kansas_distance,
+            teleportation_distance,
             min_neighbors,
             max_num_neighbors_to_search,
             decomposition_strategy,
