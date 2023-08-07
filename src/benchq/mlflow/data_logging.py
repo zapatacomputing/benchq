@@ -60,7 +60,7 @@ def log_resource_info_to_mlflow(resource_info: ResourceInfo) -> None:
 def create_mlflow_scf_callback(
     mlflow_client: mlflow.client.MlflowClient,
     run_id: str,
-) -> Callable[[Dict, str], None]:
+) -> Callable[Any, None]:
     """
     Callback function for pySCF calculations that also logs to mlflow
 
@@ -71,7 +71,7 @@ def create_mlflow_scf_callback(
     in ChemistryApplicationInstance
     """
 
-    def scf_callback(vars) -> Callable[[Dict, str], None]:
+    def scf_callback(vars):
         logger = getLogger(__name__)
         data = {
             "last_hf_e": vars.get("last_hf_e"),
