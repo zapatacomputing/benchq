@@ -14,11 +14,11 @@ def controlled_clock(
     given in the controls input. The result is the following matrix
     M when direction is "forward":
 
-        [ 0  1          ]
-        [    0  1       ]
-    M = [       .  .    ]
-        [          .  1 ]
-        [ 1           0 ]
+        [ 0            1]
+        [ 1  0          ]
+    M = [ 0  1   .   .  ]
+        [ 0  0   1   .  ]
+        [ 0  0   0   1 0]
 
     "backward" will return the inverse of the matrix given above.
 
@@ -58,7 +58,7 @@ def controlled_clock(
     for i in range(1, len(targets)):
         ctrl = controls + targets[i:]
         targ = targets[i - 1]
-        if direction == "forward":
+        if direction == "backward":
             ctrl_states += targets[i:]
         circuit += x_conj_gate(ctrl_states, X.controlled(len(ctrl))(*ctrl, targ))
         # reset ctrl_states
