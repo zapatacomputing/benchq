@@ -231,7 +231,7 @@ function get_graph_state_data(
         println("\r100% ($counter) completed in $erase$(elapsed)s")
     end
 
-    # get rid of eccess space in the data structures
+    # get rid of excess space in the data structures
     resize!(lco, curr_qubits[1])
     resize!(adj, curr_qubits[1])
 
