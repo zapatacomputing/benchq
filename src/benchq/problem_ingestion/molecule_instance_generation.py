@@ -89,7 +89,6 @@ class ChemistryApplicationInstance:
         pyscf_molecule.spin = self.multiplicity - 1
         pyscf_molecule.charge = self.charge
         pyscf_molecule.symmetry = False
-        pyscf_molecule.incore_anyway = True
         pyscf_molecule.build()
         return pyscf_molecule
 
@@ -118,6 +117,8 @@ class ChemistryApplicationInstance:
 
         if not mean_field_object.converged:
             raise SCFConvergenceError()
+
+        print("Number of orbitals before truncating with FNO:", molecule.nao)
 
         if self.avas_atomic_orbitals or self.avas_minao:
             molecule, mean_field_object = truncate_with_avas(
@@ -320,6 +321,9 @@ class ChemistryApplicationInstance:
         )
 
         print("DBG.. make_fno() completed")
+        print("Number of frozen natural orbitals: ",
+              len(frozen_natural_orbitals))
+
         if len(frozen_natural_orbitals) != 0:
             mean_field_object.mo_coeff = natural_orbital_coefficients[
                 :, : -len(frozen_natural_orbitals)
@@ -331,7 +335,7 @@ class ChemistryApplicationInstance:
         molecule._nao = mean_field_object.mo_coeff.shape[1]
 
         print("FNO threshold: ", self.fno_percentage_occupation_number)
-        print("Number of orbitals:", molecule._nao)
+        print("Number of orbitals after truncation with FNO:", molecule._nao)
 
         return molecule, mean_field_object
 
