@@ -89,6 +89,7 @@ class ChemistryApplicationInstance:
         pyscf_molecule.spin = self.multiplicity - 1
         pyscf_molecule.charge = self.charge
         pyscf_molecule.symmetry = False
+        pyscf_molecule.incore_anyway = True
         pyscf_molecule.build()
         return pyscf_molecule
 
