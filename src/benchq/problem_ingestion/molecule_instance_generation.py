@@ -88,17 +88,12 @@ class ChemistryApplicationData:
 
 
 class ChemistryApplicationSCFInfo:
-    app_data: ChemistryApplicationData
-    scf_options: Optional[dict] = None
-    mlflow_experiment_name: Optional[str] = None
-    orq_workspace_id: Optional[str] = None
-
     def __init__(
         self,
-        app_data,
-        scf_options=None,
-        mlflow_experiment_name=None,
-        orq_workspace_id=None,
+        app_data: ChemistryApplicationData,
+        scf_options: Optional[dict] = None,
+        mlflow_experiment_name: Optional[str] = None,
+        orq_workspace_id: Optional[str] = None,
     ):
         self.app_data = app_data
         self.scf_options = scf_options
@@ -138,7 +133,7 @@ class ChemistryApplicationSCFInfo:
             molecule
         )
 
-        run_id = ""
+        run_id = None
 
         if self.mlflow_experiment_name is not None:
             os.environ["MLFLOW_TRACKING_TOKEN"] = sdk.mlflow.get_tracking_token()
@@ -197,7 +192,6 @@ class ChemistryApplicationSCFInfo:
                 # we don't want to run on mlflow, and haven't specified scf_options
                 mean_field_object.run()
 
-        print(f"converged: {mean_field_object.converged}")
         if not mean_field_object.converged:
             raise SCFConvergenceError()
 
@@ -211,8 +205,6 @@ class ChemistryApplicationSCFInfo:
 
 
 class ChemistryApplicationActiveSpaceInfo:
-    scf_info: ChemistryApplicationSCFInfo
-
     def __init__(
         self,
         scf_info: ChemistryApplicationSCFInfo,
