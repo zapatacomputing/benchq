@@ -37,5 +37,5 @@ from benchq.compilation import jl, pyliqtr_transpile_to_clifford_t
         ),
     ],
 )
-def test_graph_sim_mini(benchmark, circuit):
-    benchmark(jl.run_graph_sim_mini, circuit)
+def test_ruby_slippers(benchmark, circuit):
+    benchmark(jl.run_ruby_slippers, circuit)

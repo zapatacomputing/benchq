@@ -34,7 +34,7 @@ To run resource estimation using Azure Quantum Resource Estimation (QRE) tool, o
 
 ## Usage
 
-Please take a look at the `examples` directory. 
+Please take a look at the `examples` directory.
 We have multiple examples there:
 - `h_chain_trotter.py` shows how to use graph state compilation on a simple hydrogen chain example. (Requires `pyscf` install extra.)
 - `resource_estimate_from_qasm.py` shows how to use graph state compilation when the circuit is loaded from QASM.
@@ -42,7 +42,7 @@ We have multiple examples there:
 
 ## Running benchmarks
 
-To run the benchmarks run 
+To run the benchmarks run
 
 ``` bash
 pytest benchmarks/
@@ -55,8 +55,7 @@ those too, set environmental variable `SLOW_BENCHMARKS` to any value, e.g.:
 SLOW_BENCHMARKS=1 pytest benchmarks/
 ```
 
-`
-`
+Our benchmarks are run automatically on each release. You can see the performance of benchq over time on [benchq's benchmark page](https://zapatacomputing.github.io/benchq/dev/bench/).
 
 ## Development and Contribution
 
