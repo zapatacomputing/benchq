@@ -7,7 +7,7 @@ from unittest.mock import ANY, patch
 
 import pytest
 
-from benchq.data_structures.algorithm_implemenation import AlgorithmImplementation
+from benchq.data_structures.algorithm_implementation import AlgorithmImplementation
 from benchq.data_structures.decoder import DecoderModel
 from benchq.data_structures.hardware_architecture_models import IONTrapModel
 from benchq.data_structures.resource_info import ResourceInfo

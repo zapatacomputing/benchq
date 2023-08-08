@@ -132,6 +132,7 @@ class ChemistryApplicationSCFInfo:
         mean_field_object = (scf.RHF if self.app_data.multiplicity == 1 else scf.ROHF)(
             molecule
         )
+        mean_field_object.max_memory = 1e6  # set allowed memory high so tests pass
 
         run_id = None
 

@@ -18,7 +18,7 @@ from ..data_structures import (
 
 
 def log_input_objects_to_mlflow(
-    algorithm_description: AlgorithmImplementation,
+    algorithm_implementation: AlgorithmImplementation,
     algorithm_name: str,
     hardware_model: BasicArchitectureModel,
     decoder_model: Optional[DecoderModel] = None,
@@ -26,9 +26,9 @@ def log_input_objects_to_mlflow(
     """Ingests objects used to define a resource estimation
     and logs their parameters to mlflow
     """
-    # Sometimes the algorithm description has a None as a value,
+    # Sometimes the algorithm implementation has a None as a value,
     #   which causes problem if we try to log it
-    for algo_key, algo_value in _flatten_dict(asdict(algorithm_description)).items():
+    for algo_key, algo_value in _flatten_dict(asdict(algorithm_implementation)).items():
         if algo_value is not None:
             mlflow.log_param(algo_key, algo_value)
         else:

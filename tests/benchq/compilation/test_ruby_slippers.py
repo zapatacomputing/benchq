@@ -3,12 +3,13 @@
 ################################################################################
 import os
 
+import networkx as nx
 import numpy as np
 import pytest
 import stim
 from numba import njit
 from orquestra.integrations.qiskit.conversions import import_from_qiskit
-from orquestra.quantum.circuits import CNOT, CZ, Circuit, H, S, X
+from orquestra.quantum.circuits import CNOT, CZ, Circuit, H, S, T, X
 from qiskit import QuantumCircuit
 
 from benchq.compilation import (
@@ -16,6 +17,7 @@ from benchq.compilation import (
     pyliqtr_transpile_to_clifford_t,
     transpile_to_native_gates,
 )
+from benchq.data_structures import QuantumProgram
 
 
 @pytest.mark.parametrize(
@@ -59,8 +61,11 @@ from benchq.compilation import (
 )
 def test_stabilizer_states_are_the_same_for_simple_circuits(circuit):
     target_tableau = get_target_tableau(circuit)
-    loc, adj = jl.run_graph_sim_mini(circuit)
+
+    loc, adj = jl.run_ruby_slippers(circuit, False, 999)
+
     vertices = list(zip(loc, adj))
+
     graph_tableau = get_stabilizer_tableau_from_vertices(vertices)
 
     assert_tableaus_correspond_to_the_same_stabilizer_state(
@@ -89,7 +94,7 @@ def test_stabilizer_states_are_the_same_for_circuits(filename):
 
     target_tableau = get_target_tableau(test_circuit)
 
-    loc, adj = jl.run_graph_sim_mini(test_circuit)
+    loc, adj = jl.run_ruby_slippers(test_circuit, False, 999)
     vertices = list(zip(loc, adj))
     graph_tableau = get_stabilizer_tableau_from_vertices(vertices)
 
@@ -117,6 +122,8 @@ def test_stabilizer_states_are_the_same_for_circuits_with_decomposed_rotations(
             QuantumCircuit.from_qasm_file(os.path.join("examples", "data", filename))
         )
 
+    # pyliqtr_transpile_to_clifford_t is random and cannot be seeded
+    # so multiple trials are needed
     for i in range(1, 10):
         clifford_t = pyliqtr_transpile_to_clifford_t(
             qiskit_circuit, circuit_precision=10**-2
@@ -125,8 +132,10 @@ def test_stabilizer_states_are_the_same_for_circuits_with_decomposed_rotations(
 
         target_tableau = get_target_tableau(test_circuit)
 
-        loc, adj = jl.run_graph_sim_mini(test_circuit)
+        # ensure state does not teleport
+        loc, adj = jl.run_ruby_slippers(test_circuit, True, 9999, 9999)
         vertices = list(zip(loc, adj))
+
         graph_tableau = get_stabilizer_tableau_from_vertices(vertices)
 
         assert_tableaus_correspond_to_the_same_stabilizer_state(
@@ -134,7 +143,107 @@ def test_stabilizer_states_are_the_same_for_circuits_with_decomposed_rotations(
         )
 
 
+@pytest.mark.parametrize(
+    "circuit, teleportation_threshold, teleportation_distance, num_teleportations",
+    [
+        # tests that a circuit with no teleportations does not teleport
+        (Circuit([H(0), *[CNOT(0, i) for i in range(1, 5)]]), 4, 4, 0),
+        # tests changing threshold
+        (Circuit([H(0), *[CNOT(0, i) for i in range(1, 5)]]), 3, 4, 1),
+        # test that teleportation_distance is respected
+        (Circuit([H(0), *[CNOT(0, i) for i in range(1, 6)]]), 4, 6, 1),
+        # creates a node of degree 4 which will be teleported. Requires 5 CNOTS
+        # 4 to make the node of degree 4 and 1 to activate the teleport
+        (Circuit([H(0), *[CNOT(0, i) for i in range(1, 6)]]), 4, 4, 1),
+        (Circuit([H(0), *[CNOT(0, i) for i in range(1, 8)]]), 4, 4, 1),
+        # test multiple teleportations:
+        (Circuit([H(0), *[CNOT(0, i) for i in range(1, 9)]]), 4, 4, 2),
+        (Circuit([H(0), *[CNOT(0, i) for i in range(1, 11)]]), 4, 4, 2),
+        (Circuit([H(0), *[CNOT(0, i) for i in range(1, 12)]]), 4, 4, 3),
+        (Circuit([H(0), *[CNOT(0, i) for i in range(1, 14)]]), 4, 4, 3),
+        (Circuit([H(0), *[CNOT(0, i) for i in range(1, 15)]]), 4, 4, 4),
+        # test gates that must be decomposed
+        (Circuit([H(0), *[T(0) for _ in range(1, 5)]]), 4, 4, 0),
+        # test single teleporatation
+        (Circuit([H(0), *[T(0) for _ in range(1, 6)]]), 4, 4, 1),
+        (Circuit([H(0), *[T(0) for _ in range(1, 8)]]), 4, 4, 1),
+        # test multiple teleportations:
+        (Circuit([H(0), *[T(0) for _ in range(1, 9)]]), 4, 4, 2),
+        (Circuit([H(0), *[T(0) for _ in range(1, 11)]]), 4, 4, 2),
+        (Circuit([H(0), *[T(0) for _ in range(1, 12)]]), 4, 4, 3),
+        (Circuit([H(0), *[T(0) for _ in range(1, 14)]]), 4, 4, 3),
+        (Circuit([H(0), *[T(0) for _ in range(1, 15)]]), 4, 4, 4),
+    ],
+)
+def test_teleportation_produces_correct_number_of_nodes_for_small_circuits(
+    circuit, teleportation_threshold, teleportation_distance, num_teleportations
+):
+    quantum_program = QuantumProgram.from_circuit(circuit)
+    n_t_gates = quantum_program.n_t_gates
+    n_rotations = quantum_program.n_rotation_gates
+
+    loc, adj = jl.run_ruby_slippers(
+        circuit,
+        True,
+        9999,
+        teleportation_threshold,
+        teleportation_distance,
+        6,
+        99999,
+        1,
+    )
+
+    n_nodes = len(loc)
+
+    assert (
+        n_nodes
+        == circuit.n_qubits
+        + (n_t_gates + n_rotations)
+        + teleportation_distance * num_teleportations
+    )
+
+
+@pytest.mark.parametrize(
+    "filename",
+    [
+        "single_rotation.qasm",
+        "example_circuit.qasm",
+    ],
+)
+def test_teleportation_produces_correct_node_parity_for_large_circuits(
+    filename,
+):
+    # we want to repeat the experiment here since pyliqtr_transpile_to_clifford_t
+    # is a random process.
+    try:
+        qiskit_circuit = import_from_qiskit(QuantumCircuit.from_qasm_file(filename))
+    except FileNotFoundError:
+        qiskit_circuit = import_from_qiskit(
+            QuantumCircuit.from_qasm_file(os.path.join("examples", "data", filename))
+        )
+
+    # pyliqtr_transpile_to_clifford_t is random and cannot be seeded
+    # so multiple trials are needed
+    for i in range(1, 10):
+        clifford_t = pyliqtr_transpile_to_clifford_t(
+            qiskit_circuit, circuit_precision=10**-2
+        )
+
+        quantum_program = QuantumProgram.from_circuit(clifford_t)
+        n_t_gates = quantum_program.n_t_gates
+
+        loc, adj = jl.run_ruby_slippers(clifford_t, False, 9999)
+
+        n_nodes = len(loc)
+
+        assert n_nodes >= n_t_gates
+        # teleportation only adds 2 nodes at a time.
+        assert (n_nodes - n_t_gates) % 2 == 0
+
+
+########################################################################################
 # Everything below here is testing utils
+########################################################################################
 
 
 def get_icm(circuit: Circuit, gates_to_decompose=["T", "T_Dagger", "RZ"]) -> Circuit:
@@ -223,7 +332,7 @@ def get_stabilizer_tableau_from_vertices(vertices):
         paulis = paulis + [stim.PauliString.from_numpy(xs=xs, zs=zs)]
 
     sim = stim.TableauSimulator()
-    tableau = stim.Tableau.from_stabilizers(paulis)
+    tableau = stim.Tableau.from_stabilizers(paulis)  # performance bottleneck is here
     sim.set_inverse_tableau(tableau.inverse())
 
     cliffords = []
@@ -317,3 +426,32 @@ def _bool_dot(x, y):
     for i in array_and[1:]:
         ans = np.logical_xor(ans, i)
     return ans
+
+
+def adjacency_list_to_graph(adjacency_list):
+    """Converts an adjacency list to an adjacency matrix.
+
+    Args:
+      adjacency_list: The adjacency list to convert.
+
+    Returns:
+      The adjacency matrix.
+    """
+
+    # Create the adjacency matrix.
+    adjacency_matrix = [
+        [0 for _ in range(len(adjacency_list))] for _ in range(len(adjacency_list))
+    ]
+
+    # Iterate over the adjacency list and fill in the adjacency matrix.
+    for node, neighbors in enumerate(adjacency_list):
+        for neighbor in neighbors:
+            adjacency_matrix[node][neighbor] = 1
+
+    return nx.from_numpy_matrix(np.array(adjacency_matrix))
+
+
+# Take this code to plot a graph
+# import matplotlib.pyplot as plt
+# nx.draw(adjacency_list_to_graph(adj))
+# plt.show()
