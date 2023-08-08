@@ -136,11 +136,8 @@ class ChemistryApplicationInstance:
             )
             print("DBG.. _truncate_with_fno() completed")
 
-            # Get memory usage in bytes
-            memory_usage = psutil.Process().memory_info().rss
-            # Convert memory usage to megabytes
-            memory_usage_mb = memory_usage / (1024 * 1024)
-            print(f"Memory Usage: {memory_usage_mb:.2f} MB")
+            memory_info = get_memory_usage()
+            print(f"Used Memory: {memory_info['Used Memory (MB)']:.2f} MB")
 
         return molecule, mean_field_object
 
@@ -239,12 +236,12 @@ class ChemistryApplicationInstance:
             float)
 
         print("DBG... before compute_integrals()")
+        eri_tensor_size = mean_field_object._eri.size * \
+            mean_field_object._eri.itemsize * 1e-6
+        print("ERI tenosr size: in MB", eri_tensor_size)
 
-        # Get memory usage in bytes
-        memory_usage = psutil.Process().memory_info().rss
-        # Convert memory usage to megabytes
-        memory_usage_mb = memory_usage / (1024 * 1024)
-        print(f"Memory Usage: {memory_usage_mb:.2f} MB")
+        memory_info = get_memory_usage()
+        print(f"Used Memory: {memory_info['Used Memory (MB)']:.2f} MB")
 
         one_body_integrals, two_body_integrals = compute_integrals(
             mean_field_object._eri, mean_field_object
@@ -380,10 +377,8 @@ def compute_integrals(pyscf_molecule, pyscf_scf):
     # Get one electrons integrals.
     print("GBD.. Inside compute_integrals ")
     # Get memory usage in bytes
-    memory_usage = psutil.Process().memory_info().rss
-    # Convert memory usage to megabytes
-    memory_usage_mb = memory_usage / (1024 * 1024)
-    print(f"Memory Usage: {memory_usage_mb:.2f} MB")
+    memory_info = get_memory_usage()
+    print(f"Used Memory: {memory_info['Used Memory (MB)']:.2f} MB")
 
     n_orbitals = pyscf_scf.mo_coeff.shape[1]
     one_electron_compressed = reduce(np.dot, (pyscf_scf.mo_coeff.T,
@@ -394,10 +389,8 @@ def compute_integrals(pyscf_molecule, pyscf_scf):
 
     print("GBD.. One electron integrals completed... ")
     # Get memory usage in bytes
-    memory_usage = psutil.Process().memory_info().rss
-    # Convert memory usage to megabytes
-    memory_usage_mb = memory_usage / (1024 * 1024)
-    print(f"Memory Usage: {memory_usage_mb:.2f} MB")
+    memory_info = get_memory_usage()
+    print(f"Used Memory: {memory_info['Used Memory (MB)']:.2f} MB")
 
     # Get two electron integrals in compressed format.
     two_electron_integrals = ao2mo.kernel(pyscf_molecule,
@@ -405,10 +398,8 @@ def compute_integrals(pyscf_molecule, pyscf_scf):
 
     print("GBD.. Two electron integrals completed... p1")
     # Get memory usage in bytes
-    memory_usage = psutil.Process().memory_info().rss
-    # Convert memory usage to megabytes
-    memory_usage_mb = memory_usage / (1024 * 1024)
-    print(f"Memory Usage: {memory_usage_mb:.2f} MB")
+    memory_info = get_memory_usage()
+    print(f"Used Memory: {memory_info['Used Memory (MB)']:.2f} MB")
 
     two_electron_integrals = ao2mo.restore(
         1,  # no permutation symmetry
@@ -417,24 +408,31 @@ def compute_integrals(pyscf_molecule, pyscf_scf):
     # h[p,q,r,s] = (ps|qr)
 
     print("GBD.. Two electron integrals completed... p2")
-    # Get memory usage in bytes
-    memory_usage = psutil.Process().memory_info().rss
-    # Convert memory usage to megabytes
-    memory_usage_mb = memory_usage / (1024 * 1024)
-    print(f"Memory Usage: {memory_usage_mb:.2f} MB")
+    memory_info = get_memory_usage()
+    print(f"Used Memory: {memory_info['Used Memory (MB)']:.2f} MB")
 
     two_electron_integrals = np.asarray(
         two_electron_integrals.transpose(0, 2, 3, 1), order='C')
 
     print("GBD.. Two electron integrals completed... p3")
     # Get memory usage in bytes
-    memory_usage = psutil.Process().memory_info().rss
-    # Convert memory usage to megabytes
-    memory_usage_mb = memory_usage / (1024 * 1024)
-    print(f"Memory Usage: {memory_usage_mb:.2f} MB")
+    memory_info = get_memory_usage()
+    print(f"Used Memory: {memory_info['Used Memory (MB)']:.2f} MB")
 
-    # Return.
     return one_electron_integrals, two_electron_integrals
+
+
+def get_memory_usage():
+    # Get memory information for the current process
+    process = psutil.Process()
+    memory_info = process.memory_info()
+
+    # Get RSS (Resident Set Size) memory usage in MB
+    used_memory = memory_info.rss / (1024 ** 2)  # Convert to MB
+
+    return {
+        'Used Memory (MB)': used_memory
+    }
 
 
 def generate_hydrogen_chain_instance(
