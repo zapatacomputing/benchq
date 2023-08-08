@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 from orquestra.quantum.circuits import CNOT, RX, RY, RZ, Circuit, H, T
 
-from benchq.compilation import get_algorithmic_graph_from_ruby_slippers_with_hyperparams
+from benchq.compilation import get_ruby_slippers_compiler
 from benchq.data_structures import (
     BASIC_SC_ARCHITECTURE_MODEL,
     AlgorithmImplementation,
@@ -22,7 +22,7 @@ from benchq.resource_estimation.graph import (
     transpile_to_native_gates,
 )
 
-fast_ruby_slippers = get_algorithmic_graph_from_ruby_slippers_with_hyperparams(
+fast_ruby_slippers = get_ruby_slippers_compiler(
     max_graph_size=10,
     decomposition_strategy=0,
 )

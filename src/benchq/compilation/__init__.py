@@ -10,7 +10,7 @@ from .julia_utils import (
     get_algorithmic_graph_and_icm_output,
     get_algorithmic_graph_from_Jabalizer,
     get_algorithmic_graph_from_ruby_slippers,
-    get_algorithmic_graph_from_ruby_slippers_with_hyperparams,
+    get_ruby_slippers_compiler,
 )
 from .pyliqtr_transpilation import pyliqtr_transpile_to_clifford_t
 from .transpile_to_native_gates import transpile_to_native_gates

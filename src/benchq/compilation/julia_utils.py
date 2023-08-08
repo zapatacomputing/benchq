@@ -23,7 +23,7 @@ def get_algorithmic_graph_from_ruby_slippers(circuit):
     return graph
 
 
-def get_algorithmic_graph_from_ruby_slippers_with_hyperparams(
+def get_ruby_slippers_compiler(
     verbose=True,
     max_graph_size=1e7,
     teleportation_threshold=40,
