@@ -23,7 +23,7 @@ const AdjList = Set{Int32}
 const Qubit = UInt32
 
 struct ICMOp
-    code::LCO
+    code::UInt8
     qubit1::Qubit
     qubit2::Qubit
 
@@ -50,17 +50,21 @@ teleportation_threshold, min_neighbors, teleportation_distance, and  max_num_nei
 are metaparameters which can be optimized to speed up the simulation.
 
 Args:
-    circuit::Circuit  circuit to be simulated
-
-Returns:
-    adj::Vector{AdjList}              adjacency list describing the graph state
-    lco::Vector{LCO}                  local clifford operations on each node
+    circuit::Circuit                  circuit to be simulated
+    max_graph_size::Int               maximum number of nodes in the graph state
     teleportation_threshold::Int      max node degree allowed before state is teleported
     teleportation_distance::Int       number of teleportations to do when state is teleported
     min_neighbors::Int                stop searching for neighbor with low degree if
                                         neighbor has at least this many neighbors
     max_num_neighbors_to_search::Int  max number of neighbors to search through when finding
                                         a neighbor with low degree
+    decomposition_strategy::Int       strategy for decomposing non-clifford gate
+                                        0: keep current qubit as data qubit
+                                        1: teleport data to new qubit which becomes data qubit
+
+Returns:
+    adj::Vector{AdjList}              adjacency list describing the graph state
+    lco::Vector{UInt8}                  local clifford operations on each node
 """
 function run_ruby_slippers(
     circuit,
@@ -120,7 +124,6 @@ function get_max_n_nodes(circuit, teleportation_distance)
     return convert(UInt32, n_magic_state_injection_teleports +
                            n_ruby_slippers_teleports * teleportation_distance +
                            pyconvert(Int, circuit.n_qubits))
-
 end
 
 """
@@ -137,7 +140,7 @@ Raises:
     ValueError: if an unsupported gate is encountered
 
 Returns:
-    Vector{LCO}: the list of local clifford operations on each node
+    Vector{UInt8}: the list of local clifford operations on each node
     Vector{AdjList}:   the adjacency list describing the graph corresponding to the graph state
 """
 function get_graph_state_data(
@@ -270,7 +273,7 @@ end
 Apply a CZ gate to the graph on the given vertices.
 
 Args:
-    lco::Vector{LCO}      local clifford operation on each node
+    lco::Vector{UInt8}      local clifford operation on each node
     adj::Vector{AdjList}  adjacency list describing the graph state
     vertex_1::Int         vertex to enact the CZ gate on
     vertex_2::Int         vertex to enact the CZ gate on
@@ -389,7 +392,7 @@ end
 
 
 """
-Select a neighbor to use when removing an LCO
+Select a neighbor to use when removing a local clifford operation.
 
 The return value be set to avoid if there are no neighbors or avoid is the only neighbor,
 otherwise it returns the neighbor with the fewest neighbors (or the first one that
@@ -433,7 +436,7 @@ with CZ. Needs use of a neighbor of v, but if we wish to avoid using
 a particular neighbor, we can specify it.
 
 Args:
-    lco::Vector{LCO}      local clifford operations on each node
+    lco::Vector{UInt8}      local clifford operations on each node
     adj::Vector{AdjList}  adjacency list describing the graph state
     v::Int                index of the vertex to remove local clifford operations from
     avoid::Int            index of a neighbor of v to avoid using
@@ -483,7 +486,7 @@ end
 Take the local complement of a vertex v.
 
 Args:
-    lco::Vector{LCO}      local clifford operations on each node
+    lco::Vector{UInt8}      local clifford operations on each node
     adj::Vector{AdjList}  adjacency list describing the graph state
     v::Int                index node to take the local complement of
 """
@@ -556,7 +559,7 @@ Teleport your "oz qubit" with high degree to a "kansas qubit" with degree 1.
 Speeds up computation by avoiding performing local complements on high degree nodes.
 
 Args:
-    lco::Vector{LCO}      local clifford operations on each node
+    lco::Vector{UInt8}      local clifford operations on each node
     adj::Vector{AdjList}  adjacency list describing the graph state
     oz_qubit::Int         index of the qubit to teleport
     data_qubits::Dict       map from qubit indices to vertex indices

@@ -7,27 +7,25 @@ These tables are used to speed up the graph simulation algorithm by memoizing
 the results of certain small calculations which are performed repeatedly.
 =#
 
-const LCO = UInt8 # code for local Clifford operation
-
-# numbers which correspond to each of the gates in multiply_lco
-const Pauli_code = LCO(1)
-const S_code = LCO(2)
-const S_Dagger_code = LCO(2) # S and S_Dagger are equal up to a pauli
-const H_code = LCO(3)
-const SQRT_X_code = LCO(4)
-const SH_code = LCO(5)
-const HS_code = LCO(6)
+# numbers which correspond to each of the gates in multiply_UInt8
+const Pauli_code = UInt8(1)
+const S_code = UInt8(2)
+const S_Dagger_code = UInt8(2) # S and S_Dagger are equal up to a pauli
+const H_code = UInt8(3)
+const SQRT_X_code = UInt8(4)
+const SH_code = UInt8(5)
+const HS_code = UInt8(6)
 
 # Two qubit gates
-const CZ_code = LCO(7)
-const CNOT_code = LCO(8)
+const CZ_code = UInt8(7)
+const CNOT_code = UInt8(8)
 
 # Gates that get decomposed
-const T_code = LCO(9)
-const T_Dagger_code = LCO(10)
-const RX_code = LCO(11)
-const RY_code = LCO(12)
-const RZ_code = LCO(13)
+const T_code = UInt8(9)
+const T_Dagger_code = UInt8(10)
+const RX_code = UInt8(11)
+const RY_code = UInt8(12)
+const RZ_code = UInt8(13)
 
 const MEASURE_OFFSET = (RZ_code - T_code + 0x1)
 
@@ -60,7 +58,7 @@ const op_list = [
 ]
 
 # convert indices of supported gates to the corresponding code
-const code_list = LCO[
+const code_list = UInt8[
     0,
     0,
     0,
@@ -90,7 +88,7 @@ value of the table corresponds to the second local clifford operation. The value
 of the table is the local clifford operation that is the product of the two
 local clifford operations.
 """
-const multiply_lco = LCO[
+const multiply_UInt8 = UInt8[
     1 2 3 4 5 6
     2 1 6 5 4 3
     3 5 1 6 2 4
@@ -99,19 +97,19 @@ const multiply_lco = LCO[
     6 4 2 3 1 5
 ]
 
-const _multiply_h = multiply_lco[H_code, :]
-const _multiply_s = multiply_lco[S_code, :]
-const _multiply_d = multiply_lco[S_Dagger_code, :]
+const _multiply_h = multiply_UInt8[H_code, :]
+const _multiply_s = multiply_UInt8[S_code, :]
+const _multiply_d = multiply_UInt8[S_Dagger_code, :]
 
-const _multiply_by_s = multiply_lco[:, S_code]
-const _multiply_by_sqrt_x = multiply_lco[:, SQRT_X_code]
+const _multiply_by_s = multiply_UInt8[:, S_code]
+const _multiply_by_sqrt_x = multiply_UInt8[:, SQRT_X_code]
 =#
 
 #=
 Product of two local clifford operations:
    multiply_h & multiply_s store the results of multiplying h or s by the given value
    multiply_by_* store the results of multiplying the value by s (sqrt_z) or sqrt_x
-   This is done by packing the row or column from the multiply_lco table into a 32-bit
+   This is done by packing the row or column from the multiply_UInt8 table into a 32-bit
    unsigned integer, where each nibble is one of the values (all shifted up by 4 to avoid
    a shift at runtime.
 =#
