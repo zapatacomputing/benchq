@@ -75,6 +75,7 @@ function run_ruby_slippers(
     min_neighbors=6,
     max_num_neighbors_to_search=1e5,
     decomposition_strategy=1,
+    max_time=4000000000
 )
     # params which can be optimized to speed up computation
     hyperparams = RubySlippersHyperparams(
@@ -93,11 +94,11 @@ function run_ruby_slippers(
 
     if verbose
         print("get_graph_state_data:\t")
-        (lco, adj) = @time get_graph_state_data(circuit, true, max_graph_size, hyperparams)
+        (lco, adj, i) = @time get_graph_state_data(circuit, true, max_graph_size, hyperparams, max_time)
     else
-        (lco, adj) = get_graph_state_data(circuit, false, max_graph_size, hyperparams)
+        (lco, adj, i) = get_graph_state_data(circuit, false, max_graph_size, hyperparams, max_time)
     end
-    return pylist(lco), python_adjlist!(adj)
+    return pylist(lco), python_adjlist!(adj), i
 end
 
 function get_max_n_nodes(circuit, teleportation_distance)
@@ -148,7 +149,10 @@ function get_graph_state_data(
     verbose::Bool=false,
     max_graph_size::UInt32=1e8,
     hyperparams::RubySlippersHyperparams=default_hyperparams,
+    max_time::Int64=4000000000,
 )
+    start_time = time()
+
     n_qubits = pyconvert(Int, circuit.n_qubits)
     ops = circuit.operations
 
@@ -166,9 +170,10 @@ function get_graph_state_data(
     if verbose
         total_length = length(ops)
         counter = dispcnt = 0
-        start_time = time()
         erase = "        \b\b\b\b\b\b\b\b"
     end
+
+    i = 0
 
     for (i, op) in enumerate(ops)
         if verbose
@@ -227,6 +232,22 @@ function get_graph_state_data(
         elseif !pauli_op(op_code)
             error("Unrecognized gate code $op_code encountered")
         end
+
+        elapsed = time() - start_time
+        println(elapsed)
+        println(i)
+        if elapsed >= max_time
+            if verbose
+                elapsed = round(time() - start_time, digits=2)
+                println("\r100% ($counter) completed in $erase$(elapsed)s")
+            end
+
+            # get rid of excess space in the data structures
+            resize!(lco, curr_qubits[1])
+            resize!(adj, curr_qubits[1])
+
+            return lco, adj, i
+        end
     end
 
     if verbose
@@ -238,7 +259,7 @@ function get_graph_state_data(
     resize!(lco, curr_qubits[1])
     resize!(adj, curr_qubits[1])
 
-    return lco, adj
+    return lco, adj, i
 end
 
 """Unpacks the values in the cz table and updates the lco values)"""
