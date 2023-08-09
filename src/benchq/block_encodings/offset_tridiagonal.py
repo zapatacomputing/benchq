@@ -51,8 +51,8 @@ def get_offset_tridagonal_block_encoding(
     )
 
     OC = Circuit()
-    OC += controlled_clock(n, list(range(3, n + 3)), [2], direction="backward")
-    OC += controlled_clock(n, list(range(3, n + 3)), [1], direction="forward")
+    OC += controlled_clock(n, list(range(3, n + 3)), [2], direction="forward")
+    OC += controlled_clock(n, list(range(3, n + 3)), [1], direction="backward")
 
     circuit = Circuit()
     circuit += D

@@ -25,7 +25,7 @@ DEFAULT_STEPS_TO_EXTRAPOLATE_FROM = [1, 2, 3]
 
 
 def automatic_resource_estimator(
-    algorithm_description: AlgorithmImplementation,
+    algorithm_implementation: AlgorithmImplementation,
     hardware_model: BasicArchitectureModel,
     decoder_model: Optional[DecoderModel] = None,
 ) -> ResourceInfo:
@@ -53,32 +53,42 @@ def automatic_resource_estimator(
         GraphResourceEstimator: an appropriate resource estimator for the problem
     """
     pipeline: Any = None
-    assert isinstance(algorithm_description.program, QuantumProgram)
+    assert isinstance(algorithm_implementation.program, QuantumProgram)
 
-    prev_steps = algorithm_description.program.steps
-    algorithm_description.program.steps = max(DEFAULT_STEPS_TO_EXTRAPOLATE_FROM)
-    if estimate_full_graph_size(algorithm_description, True) < LARGEST_GRAPH_TOLERANCE:
+    prev_steps = algorithm_implementation.program.steps
+    algorithm_implementation.program.steps = max(DEFAULT_STEPS_TO_EXTRAPOLATE_FROM)
+    if (
+        estimate_full_graph_size(algorithm_implementation, True)
+        < LARGEST_GRAPH_TOLERANCE
+    ):
         pipeline = partial(
             run_fast_extrapolation_estimate,
             steps_to_extrapolate_from=DEFAULT_STEPS_TO_EXTRAPOLATE_FROM,
         )
     elif (
-        estimate_full_graph_size(algorithm_description, False) < LARGEST_GRAPH_TOLERANCE
+        estimate_full_graph_size(algorithm_implementation, False)
+        < LARGEST_GRAPH_TOLERANCE
     ):
         pipeline = partial(
             run_precise_extrapolation_estimate,
             steps_to_extrapolate_from=DEFAULT_STEPS_TO_EXTRAPOLATE_FROM,
         )
 
-    algorithm_description.program.steps = prev_steps
-    if estimate_full_graph_size(algorithm_description, True) < LARGEST_GRAPH_TOLERANCE:
+    algorithm_implementation.program.steps = prev_steps
+    if (
+        estimate_full_graph_size(algorithm_implementation, True)
+        < LARGEST_GRAPH_TOLERANCE
+    ):
         pipeline = run_fast_graph_estimate
-    if estimate_full_graph_size(algorithm_description, False) < LARGEST_GRAPH_TOLERANCE:
+    if (
+        estimate_full_graph_size(algorithm_implementation, False)
+        < LARGEST_GRAPH_TOLERANCE
+    ):
         pipeline = run_precise_graph_estimate
 
     if pipeline is not None:
         return pipeline(
-            algorithm_description,
+            algorithm_implementation,
             hardware_model,
             decoder_model=decoder_model,
         )
@@ -92,19 +102,20 @@ def automatic_resource_estimator(
 
 
 def estimate_full_graph_size(
-    algorithm_description: AlgorithmImplementation, delayed_gate_synthesis=False
+    algorithm_implementation: AlgorithmImplementation, delayed_gate_synthesis=False
 ) -> int:
-    full_graph_size = algorithm_description.program.n_t_gates
+    full_graph_size = algorithm_implementation.program.n_t_gates
 
     if not delayed_gate_synthesis:
         full_graph_size += (
-            algorithm_description.program.n_rotation_gates
+            algorithm_implementation.program.n_rotation_gates
             * GraphResourceEstimator.SYNTHESIS_SCALING
             * np.log2(
-                1 / algorithm_description.error_budget.transpilation_failure_tolerance
+                1
+                / algorithm_implementation.error_budget.transpilation_failure_tolerance
             )
         )
     else:
-        full_graph_size += algorithm_description.program.n_rotation_gates
+        full_graph_size += algorithm_implementation.program.n_rotation_gates
 
     return full_graph_size

@@ -3,7 +3,7 @@ import warnings
 from dataclasses import replace
 from decimal import Decimal, getcontext
 from math import ceil
-from typing import Callable, Iterable, Optional
+from typing import Iterable, Optional
 
 import networkx as nx
 from graph_state_generation.optimizers import (
@@ -66,10 +66,6 @@ class GraphResourceEstimator:
             BASIC_ION_TRAP_ARCHITECTURE_MODEL.
         decoder_model (Optional[DecoderModel]): The decoder model used to estimate.
             If None, no estimates on the number of decoder are provided.
-        distillation_widget (str): The distillation widget to use for the estimate.
-            The widget is specified as a string of the form "(15-to-1)_7,3,3", where
-            the first part specifies the distillation ratio and the second part
-            specifies the size of the widget.
         optimization (str): The optimization to use for the estimate. Either estimate
             the resources needed to run the algorithm in the shortest time possible
             ("time") or the resources needed to run the algorithm with the smallest
@@ -111,7 +107,7 @@ class GraphResourceEstimator:
         n_measurement_steps = self._get_n_measurement_steps(graph)
         return GraphData(
             max_graph_degree=max_graph_degree,
-            n_nodes=problem.n_nodes,
+            n_nodes=graph.number_of_nodes(),
             n_t_gates=problem.n_t_gates,
             n_rotation_gates=problem.n_rotation_gates,
             n_measurement_steps=n_measurement_steps,
@@ -139,7 +135,7 @@ class GraphResourceEstimator:
     def _get_total_logical_failure_rate(
         self, code_distance: int, n_total_t_gates: int, graph_data: GraphData, widget
     ) -> float:
-        precise_logical_failure_rate = Decimal(
+        precise_logical_cell_failure_rate = Decimal(
             self._logical_cell_error_rate(code_distance)
         )
         precise_logical_st_volume = Decimal(
@@ -148,7 +144,7 @@ class GraphResourceEstimator:
             )
         )
         return float(
-            1 - (1 - precise_logical_failure_rate) ** precise_logical_st_volume
+            1 - (1 - precise_logical_cell_failure_rate) ** precise_logical_st_volume
         )
 
     def _logical_cell_error_rate(self, distance: int) -> float:
@@ -351,7 +347,7 @@ class GraphResourceEstimator:
             if not widget_found:
                 raise ValueError("No viable widget found!")
             if this_transpilation_failure_tolerance < _logical_cell_error_rate:
-                if graph_data.n_t_gates != 0:
+                if graph_data.n_t_gates < 0.01 * graph_data.n_nodes:
                     # re-run estimates with new synthesis failure tolerance
                     raise RuntimeError(
                         "Run estimate again with lower synthesis failure tolerance."

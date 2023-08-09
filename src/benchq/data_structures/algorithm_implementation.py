@@ -15,6 +15,6 @@ class AlgorithmImplementation(Generic[T]):
     n_calls: int
 
 
-def get_algorithm_description_from_circuit(circuit, error_budget, n_calls=1):
+def get_algorithm_implementation_from_circuit(circuit, error_budget, n_calls=1):
     quantum_program = get_program_from_circuit(circuit)
     return AlgorithmImplementation(quantum_program, error_budget, n_calls)
