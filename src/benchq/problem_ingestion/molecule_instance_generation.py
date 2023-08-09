@@ -106,8 +106,7 @@ class ChemistryApplicationInstance:
             SCFConvergenceError: If the SCF calculation does not converge.
         """
         molecule = self.get_pyscf_molecule()
-        mean_field_object = (scf.RHF if self.multiplicity ==
-                             1 else scf.ROHF)(molecule)
+        mean_field_object = (scf.RHF if self.multiplicity == 1 else scf.ROHF)(molecule)
 
         if self.scf_options is not None:
             mean_field_object.run(**self.scf_options)
@@ -224,10 +223,8 @@ class ChemistryApplicationInstance:
         pyscf_data["mol"] = molecule
         pyscf_data["scf"] = mean_field_object
 
-        molecular_data.canonical_orbitals = mean_field_object.mo_coeff.astype(
-            float)
-        molecular_data.orbital_energies = mean_field_object.mo_energy.astype(
-            float)
+        molecular_data.canonical_orbitals = mean_field_object.mo_coeff.astype(float)
+        molecular_data.orbital_energies = mean_field_object.mo_energy.astype(float)
 
         one_body_integrals, two_body_integrals = compute_integrals(
             mean_field_object._eri, mean_field_object
@@ -340,8 +337,7 @@ def generate_hydrogen_chain_instance(
         bond_distance: The distance between the hydrogen atoms (Angstrom).
     """
     return ChemistryApplicationInstance(
-        geometry=[("H", (0, 0, i * bond_distance))
-                  for i in range(number_of_hydrogens)],
+        geometry=[("H", (0, 0, i * bond_distance)) for i in range(number_of_hydrogens)],
         basis=basis,
         charge=0,
         multiplicity=number_of_hydrogens % 2 + 1,
