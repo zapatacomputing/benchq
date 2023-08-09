@@ -1,9 +1,11 @@
 """
 Prerequisites:
-1. Log in to the remote Orquestra cluster with ``orq login -s https://prod-d.orquestra.io``
+1. Log in to the remote Orquestra cluster with
+    ``orq login -s https://darpa-benchmarking.orquestra.io``
 
 Running:
-1. Comment/uncomment "in_process"/"prod-d" lines to select the runtime to use.
+1. Comment/uncomment "in_process"/"darpa-benchmarking" lines to select
+    the runtime to use.
 2. ``cd`` to the repo root.
 3. Run ``python -m examples.ex_9_scf_mlflow.run``. This ensures that relative
    imports work correctly.

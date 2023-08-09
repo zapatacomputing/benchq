@@ -20,11 +20,10 @@ from benchq.problem_ingestion.molecule_instance_generation import (
         ),
         sdk.GithubImport(
             "zapatacomputing/benchq",
-            git_ref="ZQS-1365-Create-user-accessible-mlflow-for-scf-tooling",
         ),
     ],
 )
-def testing_get_active_space_meanfield_object(number_of_hydrogens):
+def hydrogen_get_active_space_meanfield_object(number_of_hydrogens):
     instance = generate_hydrogen_chain_instance(
         number_of_hydrogens=number_of_hydrogens,
         mlflow_experiment_name=f"chain of {number_of_hydrogens} hydrogens",
@@ -32,6 +31,7 @@ def testing_get_active_space_meanfield_object(number_of_hydrogens):
         avas_atomic_orbitals=["H 1s", "H 2s"],
         avas_minao="sto-3g",
     )
+    # Both of the following methods use pyscf and so log to mlflow
     mean_field_object = instance.get_active_space_meanfield_object()
     hamiltonian = instance.get_active_space_hamiltonian()
     return (mean_field_object.converged, hamiltonian)
@@ -41,7 +41,6 @@ def testing_get_active_space_meanfield_object(number_of_hydrogens):
 def scf_mlflow_workflow():
     results = []
     for n in [2, 3, 4]:
-        mfo, ham = testing_get_active_space_meanfield_object(n)
+        mfo, _ = hydrogen_get_active_space_meanfield_object(n)
         results.append(mfo)
-        print(ham)
     return results
