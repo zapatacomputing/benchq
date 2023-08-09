@@ -295,9 +295,9 @@ class ChemistryApplicationInstance:
         # Calculate the number of orbitals after truncation with fno
         molecule.nao = mean_field_object.mo_coeff.shape[1]
 
-        print("FNO threshold: ", self.fno_percentage_occupation_number)
         print("Number of FNOs: ", len(frozen_natural_orbitals))
-        print("Number of orbitals after truncation with FNO:", molecule._nao)
+        print("Number of orbitals after truncation with FNO:", molecule.nao)
+
         return molecule, mean_field_object
 
 
