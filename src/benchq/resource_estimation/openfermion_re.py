@@ -268,6 +268,7 @@ def _openfermion_result_to_resource_info(
         code_distance=algorithm_parameters.logical_data_qubit_distance,
         logical_error_rate=cost.algorithm_failure_probability,
         decoder_info=None,
+        routing_to_measurement_volume_ratio=algorithm_parameters.routing_overhead_proportion,  # noqa
         widget_name=algorithm_parameters.magic_state_factory.details,
         extra=OpenFermionExtra(
             fail_rate_msFactory=algorithm_parameters.magic_state_factory.failure_rate,

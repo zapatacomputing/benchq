@@ -108,6 +108,7 @@ def test_log_resource_info_to_mlflow(mock_mlflow):
         logical_error_rate=0.1,
         n_logical_qubits=1,
         n_physical_qubits=1,
+        routing_to_measurement_volume_ratio=1,
         total_time_in_seconds=0.01,
         decoder_info=None,
         widget_name="tau",
