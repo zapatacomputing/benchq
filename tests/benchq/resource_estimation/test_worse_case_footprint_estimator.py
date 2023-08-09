@@ -19,8 +19,8 @@ from benchq.resource_estimation.graph import (
     synthesize_clifford_t,
     transpile_to_native_gates,
 )
-from benchq.resource_estimation.graph.footprint_estimator import (
-    FootprintResourceEstimator,
+from benchq.resource_estimation.graph.worstcase_footprint_estimator import (
+    WorstCaseFootprintResourceEstimator,
 )
 
 
@@ -88,13 +88,13 @@ def test_get_resource_estimations_for_program_gives_correct_results(
     architecture_model = BASIC_SC_ARCHITECTURE_MODEL
     # set circuit generation weight to 0
     error_budget = ErrorBudget.from_weights(1e-3, 0, 1, 1)
-    algorithm_description = AlgorithmImplementation(quantum_program, error_budget, 1)
+    algorithm_implementation = AlgorithmImplementation(quantum_program, error_budget, 1)
 
     transformers = _get_transformers(use_delayed_gate_synthesis, error_budget)
     footprint_resource_estimates = asdict(
         run_custom_resource_estimation_pipeline(
-            algorithm_description,
-            estimator=FootprintResourceEstimator(
+            algorithm_implementation,
+            estimator=WorstCaseFootprintResourceEstimator(
                 architecture_model, optimization=optimization
             ),
             transformers=transformers,
@@ -133,18 +133,18 @@ def test_better_architecture_does_not_require_more_resources(
     quantum_program = get_program_from_circuit(
         Circuit([H(0), RZ(np.pi / 4)(0), CNOT(0, 1)])
     )
-    algorithm_description = AlgorithmImplementation(quantum_program, error_budget, 1)
+    algorithm_implementation = AlgorithmImplementation(quantum_program, error_budget, 1)
     low_noise_resource_estimates = run_custom_resource_estimation_pipeline(
-        algorithm_description,
-        estimator=FootprintResourceEstimator(
+        algorithm_implementation,
+        estimator=WorstCaseFootprintResourceEstimator(
             low_noise_architecture_model, optimization=optimization
         ),
         transformers=transformers,
     )
 
     high_noise_resource_estimates = run_custom_resource_estimation_pipeline(
-        algorithm_description,
-        estimator=FootprintResourceEstimator(
+        algorithm_implementation,
+        estimator=WorstCaseFootprintResourceEstimator(
             high_noise_architecture_model, optimization=optimization
         ),
         transformers=transformers,
@@ -186,24 +186,24 @@ def test_higher_error_budget_does_not_require_more_resources(
     quantum_program = get_program_from_circuit(
         Circuit([H(0), RZ(np.pi / 4)(0), CNOT(0, 1)])
     )
-    algorithm_description_low_error_budget = AlgorithmImplementation(
+    algorithm_implementation_low_error_budget = AlgorithmImplementation(
         quantum_program, low_error_budget, 1
     )
-    algorithm_description_high_error_budget = AlgorithmImplementation(
+    algorithm_implementation_high_error_budget = AlgorithmImplementation(
         quantum_program, high_error_budget, 1
     )
 
     low_error_resource_estimates = run_custom_resource_estimation_pipeline(
-        algorithm_description_low_error_budget,
-        estimator=FootprintResourceEstimator(
+        algorithm_implementation_low_error_budget,
+        estimator=WorstCaseFootprintResourceEstimator(
             architecture_model, optimization=optimization
         ),
         transformers=low_error_transformers,
     )
 
     high_error_resource_estimates = run_custom_resource_estimation_pipeline(
-        algorithm_description_high_error_budget,
-        estimator=FootprintResourceEstimator(
+        algorithm_implementation_high_error_budget,
+        estimator=WorstCaseFootprintResourceEstimator(
             architecture_model, optimization=optimization
         ),
         transformers=high_error_transformers,
@@ -230,12 +230,12 @@ def test_get_resource_estimations_for_program_accounts_for_decoder(optimization)
     quantum_program = get_program_from_circuit(
         Circuit([H(0), RZ(np.pi / 4)(0), CNOT(0, 1)])
     )
-    algorithm_description = AlgorithmImplementation(quantum_program, error_budget, 1)
+    algorithm_implementation = AlgorithmImplementation(quantum_program, error_budget, 1)
 
     transformers = _get_transformers(True, error_budget)
     gsc_resource_estimates_no_decoder = run_custom_resource_estimation_pipeline(
-        algorithm_description,
-        estimator=FootprintResourceEstimator(
+        algorithm_implementation,
+        estimator=WorstCaseFootprintResourceEstimator(
             architecture_model, decoder_model=None, optimization=optimization
         ),
         transformers=transformers,
@@ -248,8 +248,8 @@ def test_get_resource_estimations_for_program_accounts_for_decoder(optimization)
 
     decoder = DecoderModel.from_csv(file_path)
     gsc_resource_estimates_with_decoder = run_custom_resource_estimation_pipeline(
-        algorithm_description,
-        estimator=FootprintResourceEstimator(
+        algorithm_implementation,
+        estimator=WorstCaseFootprintResourceEstimator(
             architecture_model, decoder_model=decoder, optimization=optimization
         ),
         transformers=transformers,

@@ -1,9 +1,9 @@
 ################################################################################
 # © Copyright 2022-2023 Zapata Computing Inc.
 ################################################################################
-from .algorithm_implemenation import (
+from .algorithm_implementation import (
     AlgorithmImplementation,
-    get_algorithm_description_from_circuit,
+    get_algorithm_implementation_from_circuit,
 )
 from .decoder import DecoderModel
 from .error_budget import ErrorBudget
@@ -22,12 +22,14 @@ from .resource_info import (
     ExtrapolatedGraphResourceInfo,
     GraphData,
     GraphResourceInfo,
+    OpenFermionExtra,
+    OpenFermionResourceInfo,
     ResourceInfo,
 )
 
 __all__ = [
     "AlgorithmImplementation",
-    "get_algorithm_description_from_circuit",
+    "get_algorithm_implementation_from_circuit",
     "DecoderModel",
     "ErrorBudget",
     "GraphPartition",
@@ -44,4 +46,6 @@ __all__ = [
     "ExtrapolatedGraphResourceInfo",
     "AzureResourceInfo",
     "AzureExtra",
+    "OpenFermionExtra",
+    "OpenFermionResourceInfo",
 ]

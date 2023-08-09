@@ -1,7 +1,7 @@
 from typing import Callable, Sequence
 
 from ...compilation import (
-    get_algorithmic_graph_from_graph_sim_mini,
+    get_algorithmic_graph_from_ruby_slippers,
     pyliqtr_transpile_to_clifford_t,
 )
 from ...compilation import transpile_to_native_gates as _transpile_to_native_gates
@@ -63,7 +63,7 @@ def transpile_to_native_gates(program: QuantumProgram) -> QuantumProgram:
 
 
 def create_graphs_for_subcircuits(
-    graph_production_method=get_algorithmic_graph_from_graph_sim_mini,
+    graph_production_method=get_algorithmic_graph_from_ruby_slippers,
 ) -> Callable[[QuantumProgram], GraphPartition]:
     def _transformer(program: QuantumProgram) -> GraphPartition:
         graphs_list = [
@@ -75,7 +75,7 @@ def create_graphs_for_subcircuits(
 
 
 def create_big_graph_from_subcircuits(
-    graph_production_method=get_algorithmic_graph_from_graph_sim_mini,
+    graph_production_method=get_algorithmic_graph_from_ruby_slippers,
 ) -> Callable[[QuantumProgram], GraphPartition]:
     def _transformer(program: QuantumProgram) -> GraphPartition:
         big_circuit = program.full_circuit

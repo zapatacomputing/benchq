@@ -5,7 +5,7 @@ from .data_structures import (
     AlgorithmImplementation,
     BasicArchitectureModel,
     QuantumProgram,
-    get_algorithm_description_from_circuit,
+    get_algorithm_implementation_from_circuit,
     get_program_from_circuit,
 )
 from .data_structures.hardware_architecture_models import (

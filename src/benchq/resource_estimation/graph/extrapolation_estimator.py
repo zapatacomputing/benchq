@@ -1,6 +1,6 @@
 from dataclasses import replace
 from math import ceil
-from typing import List, Optional
+from typing import Iterable, List, Optional
 
 import numpy as np
 from scipy.optimize import minimize
@@ -13,10 +13,25 @@ from ...data_structures import (
     ExtrapolatedGraphResourceInfo,
     QuantumProgram,
 )
+from ..magic_state_distillation import Widget
 from .graph_estimator import GraphData, GraphResourceEstimator
 
 
 class ExtrapolationResourceEstimator(GraphResourceEstimator):
+    """Estimates resources needed to run an algorithm using graph state compilation
+    via extrapolating on the number of steps in the algorithm.
+
+    ATTRIBUTES:
+        steps_to_extrapolate_from (List[int]): The number of steps to extrapolate from.
+        n_measurement_steps_fit_type (str): The type of fit to use for the number of
+            measurement steps. Either "logarithmic" or "linear". This heavily depends
+            on the circuit being analyzed. Defaults to "logarithmic".
+        max_graph_degree_fit_type (str): The type of fit to use for the maximum graph
+            degree. Either "logarithmic" or "linear". "logarithmic" is usually better
+            for larger circuits that hit the teleportation threshold for the ruby
+            slippers compiler. Defaults to "logarithmic".
+    """
+
     def __init__(
         self,
         hw_model: BasicArchitectureModel,
@@ -24,13 +39,16 @@ class ExtrapolationResourceEstimator(GraphResourceEstimator):
         decoder_model: Optional[DecoderModel] = None,
         optimization: str = "space",
         substrate_scheduler_preset: str = "fast",
+        widgets: Optional[Iterable[Widget]] = None,
         n_measurement_steps_fit_type: str = "logarithmic",
+        max_graph_degree_fit_type: str = "logarithmic",
     ):
         super().__init__(
-            hw_model, decoder_model, optimization, substrate_scheduler_preset
+            hw_model, decoder_model, optimization, substrate_scheduler_preset, widgets
         )
         self.steps_to_extrapolate_from = steps_to_extrapolate_from
         self.n_measurement_steps_fit_type = n_measurement_steps_fit_type
+        self.max_graph_degree_fit_type = max_graph_degree_fit_type
 
     def get_extrapolated_graph_data(
         self,
@@ -39,11 +57,35 @@ class ExtrapolationResourceEstimator(GraphResourceEstimator):
     ) -> ExtrapolatedGraphData:
         steps_to_extrapolate_to = program.steps
 
-        max_graph_degree, max_graph_degree_r_squared = _get_linear_extrapolation(
+        # sometimes the n_measurement_steps is logarithmic, sometimes it's linear.
+        # we need to check which one is better by inspecting the fit
+        if self.max_graph_degree_fit_type == "logarithmic":
+            (
+                max_graph_degree,
+                max_graph_degree_r_squared,
+            ) = _get_logarithmic_extrapolation(
+                self.steps_to_extrapolate_from,
+                np.array([d.max_graph_degree for d in data]),
+                steps_to_extrapolate_to,
+            )
+        elif self.max_graph_degree_fit_type == "linear":
+            max_graph_degree, max_graph_degree_r_squared = _get_linear_extrapolation(
+                self.steps_to_extrapolate_from,
+                np.array([d.max_graph_degree for d in data]),
+                steps_to_extrapolate_to,
+            )
+        else:
+            raise ValueError(
+                "max_graph_degree_fit_type must be either 'logarithmic' or 'linear'"
+                f", not {self.max_graph_degree_fit_type}"
+            )
+
+        n_nodes, n_nodes_r_squared = _get_linear_extrapolation(
             self.steps_to_extrapolate_from,
-            np.array([d.max_graph_degree for d in data]),
+            np.array([d.n_nodes for d in data]),
             steps_to_extrapolate_to,
         )
+
         # sometimes the n_measurement_steps is logarithmic, sometimes it's linear.
         # we need to check which one is better by inspecting the fit
         if self.n_measurement_steps_fit_type == "logarithmic":
@@ -73,23 +115,24 @@ class ExtrapolationResourceEstimator(GraphResourceEstimator):
         return ExtrapolatedGraphData(
             max_graph_degree=max_graph_degree,
             n_measurement_steps=n_measurement_steps,
-            n_nodes=program.n_t_gates + program.n_rotation_gates,
+            n_nodes=n_nodes,
             n_t_gates=program.n_t_gates,
             n_rotation_gates=program.n_rotation_gates,
             n_logical_qubits_r_squared=max_graph_degree_r_squared,
             n_measurement_steps_r_squared=n_measurement_steps_r_squared,
+            n_nodes_r_squared=n_nodes_r_squared,
             data_used_to_extrapolate=data,
             steps_to_extrapolate_to=steps_to_extrapolate_to,
         )
 
     def estimate_given_extrapolation_data(
         self,
-        algorithm_description: AlgorithmImplementation,
+        algorithm_implementation: AlgorithmImplementation,
         extrapolated_info: ExtrapolatedGraphData,
     ):
-        assert isinstance(algorithm_description.program, QuantumProgram)
+        assert isinstance(algorithm_implementation.program, QuantumProgram)
         resource_info = self.estimate_resources_from_graph_data(
-            extrapolated_info, algorithm_description
+            extrapolated_info, algorithm_implementation
         )
         info = ExtrapolatedGraphResourceInfo(
             n_logical_qubits=resource_info.n_logical_qubits,

@@ -14,7 +14,6 @@
 #   limitations under the License.
 
 import dataclasses
-import datetime
 import math
 from typing import Iterator, Tuple
 
@@ -24,26 +23,27 @@ class MagicStateFactory:
     details: str
     physical_qubit_footprint: int
     rounds: int
-    failure_rate: int
+    failure_rate: float
 
 
 @dataclasses.dataclass(frozen=True, unsafe_hash=True)
 class CostEstimate:
     physical_qubit_count: int
-    duration: datetime.timedelta
+    duration: float
     algorithm_failure_probability: float
 
 
 @dataclasses.dataclass(frozen=True, unsafe_hash=True)
 class AlgorithmParameters:
     physical_error_rate: float
-    surface_code_cycle_time: datetime.timedelta
+    surface_code_cycle_time: float
     logical_data_qubit_distance: int
     magic_state_factory: MagicStateFactory
-    toffoli_count: int
     max_allocated_logical_qubits: int
     factory_count: int
     routing_overhead_proportion: float
+    toffoli_count: int = 0
+    t_count: int = 0
     proportion_of_bounding_box: float = 1
 
     def estimate_cost(self) -> CostEstimate:
@@ -66,11 +66,18 @@ class AlgorithmParameters:
         distillation_area = (
             self.factory_count * self.magic_state_factory.physical_qubit_footprint
         )
+        if self.t_count == 0 and self.toffoli_count == 0:
+            raise ValueError(
+                "Cannot accommodate circuits having no T gates and Toffoli gates."
+            )
+
         rounds = int(
-            self.toffoli_count / self.factory_count * self.magic_state_factory.rounds
+            (self.toffoli_count + math.ceil(self.t_count / 2))
+            / self.factory_count
+            * self.magic_state_factory.rounds
         )
-        distillation_failure = (
-            self.magic_state_factory.failure_rate * self.toffoli_count
+        distillation_failure = self.magic_state_factory.failure_rate * (
+            math.ceil(self.t_count / 2) + self.toffoli_count
         )
         data_failure = (
             self.proportion_of_bounding_box
@@ -98,17 +105,27 @@ def _total_topological_error(
     return unit_cells * _topological_error_per_unit_cell(code_distance, gate_err)
 
 
-def iter_known_factories(physical_error_rate: float) -> Iterator[MagicStateFactory]:
-    if physical_error_rate == 0.001:
+def iter_known_factories(
+    physical_error_rate: float, num_toffoli: int, num_t: int
+) -> Iterator[MagicStateFactory]:
+    error_msg = "Cannot accommodate circuits having no T gates and Toffoli gates."
+
+    if physical_error_rate == 0.001 and num_t == 0 and num_toffoli == 0:
+        raise ValueError(error_msg)
+
+    elif physical_error_rate == 0.001:
         yield _two_level_t_state_factory_1p1000(physical_error_rate=physical_error_rate)
-    yield from iter_auto_ccz_factories(physical_error_rate)
+    else:
+        if num_t == 0 and num_toffoli == 0:
+            raise ValueError(error_msg)
+        yield from iter_auto_ccz_factories(physical_error_rate)
 
 
 def _two_level_t_state_factory_1p1000(physical_error_rate: float) -> MagicStateFactory:
     assert physical_error_rate == 0.001
     return MagicStateFactory(
         details="https://arxiv.org/abs/1808.06709",
-        failure_rate=int(4 * 9 * 10**-17),
+        failure_rate=float(4 * 9 * 10**-17),
         physical_qubit_footprint=(12 * 8)
         * (4)
         * _physical_qubits_per_logical_qubit(31),
@@ -116,7 +133,7 @@ def _two_level_t_state_factory_1p1000(physical_error_rate: float) -> MagicStateF
     )
 
 
-def _autoccz_factory_dimensions(
+def _autoccz_or_t_factory_dimensions(
     l1_distance: int, l2_distance: int
 ) -> Tuple[int, int, float]:
     """Determine the width, height, depth of the magic state factory."""
@@ -144,10 +161,10 @@ def _autoccz_factory_dimensions(
 def iter_auto_ccz_factories(physical_error_rate: float) -> Iterator[MagicStateFactory]:
     for l1_distance in range(5, 25, 2):
         for l2_distance in range(l1_distance + 2, 41, 2):
-            w, h, d = _autoccz_factory_dimensions(
+            w, h, d = _autoccz_or_t_factory_dimensions(
                 l1_distance=l1_distance, l2_distance=l2_distance
             )
-            f = _compute_autoccz_distillation_error(
+            f_ccz = _compute_autoccz_distillation_error(
                 l1_distance=l1_distance,
                 l2_distance=l2_distance,
                 physical_error_rate=physical_error_rate,
@@ -159,7 +176,7 @@ def iter_auto_ccz_factories(physical_error_rate: float) -> Iterator[MagicStateFa
                 * h
                 * _physical_qubits_per_logical_qubit(l2_distance),
                 rounds=int(d * l2_distance),
-                failure_rate=int(f),
+                failure_rate=float(f_ccz),
             )
 
 
@@ -203,10 +220,12 @@ def _physical_qubits_per_logical_qubit(code_distance: int) -> int:
 
 def cost_estimator(
     num_logical_qubits,
-    num_toffoli,
-    surface_code_cycle_time=datetime.timedelta(microseconds=1),
+    num_toffoli=0,
+    num_t=0,
+    surface_code_cycle_time=1e-6,
     physical_error_rate=1.0e-3,
     portion_of_bounding_box=1.0,
+    routing_overhead_proportion=0.5,
 ):
     """
     Produce best cost in terms of physical qubits and real run time based on
@@ -216,7 +235,9 @@ def cost_estimator(
 
     best_cost = None
     best_params = None
-    for factory in iter_known_factories(physical_error_rate=physical_error_rate):
+    for factory in iter_known_factories(
+        physical_error_rate=physical_error_rate, num_toffoli=num_toffoli, num_t=num_t
+    ):
         for logical_data_qubit_distance in range(7, 35, 2):
             params = AlgorithmParameters(
                 physical_error_rate=physical_error_rate,
@@ -224,9 +245,10 @@ def cost_estimator(
                 logical_data_qubit_distance=logical_data_qubit_distance,
                 magic_state_factory=factory,
                 toffoli_count=num_toffoli,
+                t_count=num_t,
                 max_allocated_logical_qubits=num_logical_qubits,
                 factory_count=4,
-                routing_overhead_proportion=0.5,
+                routing_overhead_proportion=routing_overhead_proportion,
                 proportion_of_bounding_box=portion_of_bounding_box,
             )
             cost = params.estimate_cost()
