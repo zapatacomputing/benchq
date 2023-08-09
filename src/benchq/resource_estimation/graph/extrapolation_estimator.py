@@ -144,7 +144,7 @@ class ExtrapolationResourceEstimator(GraphResourceEstimator):
             n_physical_qubits=resource_info.n_physical_qubits,
             decoder_info=resource_info.decoder_info,
             widget_name=resource_info.widget_name,
-            routing_to_measurement_volume_ratio=resource_info.routing_to_measurement_volume_ratio,
+            routing_to_measurement_volume_ratio=resource_info.routing_to_measurement_volume_ratio,  # noqa
         )
         return info
 
