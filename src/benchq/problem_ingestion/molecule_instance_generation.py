@@ -155,8 +155,9 @@ class ChemistryApplicationInstance:
         molecular_data = self._get_molecular_data()
 
         if self.freeze_core:
-            n_frozen_core = self._set_frozen_core_orbitals(
-                molecular_data).frozen
+            n_frozen_core = (
+                mp.MP2(molecular_data._pyscf_data["scf"]).set_frozen().frozen
+            )
             if n_frozen_core > 0:
                 self.occupied_indices = list(range(n_frozen_core))
 
@@ -240,19 +241,6 @@ class ChemistryApplicationInstance:
 
         return molecular_data
 
-    def _set_frozen_core_orbitals(self, mean_field_object) -> mp.mp2.MP2:
-        """
-        Set auto-generated chemical core orbitals.
-
-        Args:
-            mean_field_object: The PySCF meanfield object.
-
-        Returns
-            The mp2 object.
-        """
-        mp2 = mp.MP2(mean_field_object).set_frozen()
-        return mp2
-
     def _truncate_with_fno(
         self,
         molecule: gto.Mole,
@@ -273,8 +261,6 @@ class ChemistryApplicationInstance:
         if molecule.multiplicity != 1:
             raise ValueError("RO-MP2 is not available.")
 
-        n_frozen_core_orbitals = 0
-
         if self.freeze_core and self.occupied_indices:
             raise ValueError(
                 "Both freeze core and occupied_indices were set!"
@@ -282,12 +268,10 @@ class ChemistryApplicationInstance:
             )
 
         elif self.freeze_core and not self.occupied_indices:
-            mp2 = self._set_frozen_core_orbitals(mean_field_object)
-            n_frozen_core_orbitals = mp2.frozen
+            mp2 = mp.MP2(mean_field_object).set_frozen()
 
         elif self.occupied_indices and not self.freeze_core:
             mp2 = mp.MP2(mean_field_object).set(frozen=self.occupied_indices)
-            n_frozen_core_orbitals = len(list(self.occupied_indices))
 
         else:
             mp2 = mp.MP2(mean_field_object)
