@@ -2,7 +2,7 @@
 # © Copyright 2022-2023 Zapata Computing Inc.
 ################################################################################
 """Data structures describing estimated resources and related info."""
-import dataclasses
+
 from dataclasses import dataclass, field
 from typing import Generic, List, Optional, TypeVar
 
