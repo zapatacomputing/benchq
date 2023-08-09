@@ -423,10 +423,6 @@ class GraphResourceEstimator:
                 warnings.warn("Code distance is too high to be decoded.")
             decoder_info = None
 
-        graph_data_resource_info = graph_data.return_as_resource_estimate(
-            graph_measure_ratio
-        )
-
         return GraphResourceInfo(
             code_distance=code_distance,
             logical_error_rate=total_logical_error_rate,
@@ -436,7 +432,8 @@ class GraphResourceEstimator:
             n_physical_qubits=n_physical_qubits,
             widget_name=widget.name,
             decoder_info=decoder_info,
-            extra=graph_data_resource_info,
+            routing_to_measurement_volume_ratio=graph_measure_ratio,
+            extra=graph_data,
         )
 
     def estimate(

@@ -39,6 +39,7 @@ class ResourceInfo(Generic[TExtra]):
     total_time_in_seconds: float
     decoder_info: Optional[DecoderInfo]
     widget_name: str
+    routing_to_measurement_volume_ratio: float
     extra: TExtra
 
 
@@ -52,19 +53,9 @@ class GraphData:
     n_rotation_gates: int
     n_measurement_steps: int
 
-    def return_as_resource_estimate(self, graph_measure_ratio):
-        return GraphDataResource(
-            **dataclasses.asdict(self), graph_measure_ratio=graph_measure_ratio
-        )
-
-
-@dataclass
-class GraphDataResource(GraphData):
-    graph_measure_ratio: float
-
 
 # Alias for type of resource info returned by GraphResourceEstimator
-GraphResourceInfo = ResourceInfo[GraphDataResource]
+GraphResourceInfo = ResourceInfo[GraphData]
 
 
 @dataclass
@@ -80,19 +71,9 @@ class ExtrapolatedGraphData(GraphData):
     def max_graph_degree_r_squared(self) -> float:
         return self.n_logical_qubits_r_squared
 
-    def return_as_resource_estimate(self, graph_measure_ratio):
-        return ExtrapolatedGraphDataResource(
-            **dataclasses.asdict(self), graph_measure_ratio=graph_measure_ratio
-        )
-
-
-@dataclass
-class ExtrapolatedGraphDataResource(ExtrapolatedGraphData):
-    graph_measure_ratio: float
-
 
 # Alias for type of resource info returned by ExtrapolationResourceEstimator
-ExtrapolatedGraphResourceInfo = ResourceInfo[ExtrapolatedGraphDataResource]
+ExtrapolatedGraphResourceInfo = ResourceInfo[ExtrapolatedGraphData]
 
 
 @dataclass

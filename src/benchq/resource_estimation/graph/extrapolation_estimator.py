@@ -91,18 +91,17 @@ class ExtrapolationResourceEstimator(GraphResourceEstimator):
         resource_info = self.estimate_resources_from_graph_data(
             extrapolated_info, algorithm_description
         )
-        extrapolated_extra = extrapolated_info.return_as_resource_estimate(
-            resource_info.extra.graph_measure_ratio
-        )
+
         info = ExtrapolatedGraphResourceInfo(
             n_logical_qubits=resource_info.n_logical_qubits,
-            extra=replace(extrapolated_extra, n_nodes=resource_info.extra.n_nodes),
+            extra=replace(extrapolated_info, n_nodes=resource_info.extra.n_nodes),
             code_distance=resource_info.code_distance,
             logical_error_rate=resource_info.logical_error_rate,
             total_time_in_seconds=resource_info.total_time_in_seconds,
             n_physical_qubits=resource_info.n_physical_qubits,
             decoder_info=resource_info.decoder_info,
             widget_name=resource_info.widget_name,
+            routing_to_measurement_volume_ratio=resource_info.routing_to_measurement_volume_ratio,
         )
         return info
 
