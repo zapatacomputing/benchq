@@ -72,11 +72,15 @@ class SCFConvergenceError(Exception):
 
 
 @dataclass(frozen=True)
-class ChemistryApplicationData:
+class MoleculeSpecification:
     geometry: List[Tuple[str, Tuple[float, float, float]]]
     basis: str
     multiplicity: int
     charge: int
+
+
+@dataclass(frozen=True)
+class ActiveSpaceSpecification:
     avas_atomic_orbitals: Optional[Iterable[str]] = None
     avas_minao: Optional[str] = None
     occupied_indices: Optional[Iterable[int]] = None
@@ -90,12 +94,14 @@ class ChemistryApplicationData:
 class ChemistryApplicationSCFInfo:
     def __init__(
         self,
-        app_data: ChemistryApplicationData,
+        mol_spec: MoleculeSpecification,
+        active_space_spec: ActiveSpaceSpecification,
         scf_options: Optional[dict] = None,
         mlflow_experiment_name: Optional[str] = None,
         orq_workspace_id: Optional[str] = None,
     ):
-        self.app_data = app_data
+        self.mol_spec = mol_spec
+        self.active_space_spec = active_space_spec
         self.scf_options = scf_options
         self.mlflow_experiment_name = mlflow_experiment_name
         self.orq_workspace_id = orq_workspace_id
@@ -103,10 +109,10 @@ class ChemistryApplicationSCFInfo:
     def get_pyscf_molecule(self) -> gto.Mole:
         "Generate the PySCF molecule object describing the system to be calculated."
         pyscf_molecule = gto.Mole()
-        pyscf_molecule.atom = self.app_data.geometry
-        pyscf_molecule.basis = self.app_data.basis
-        pyscf_molecule.spin = self.app_data.multiplicity - 1
-        pyscf_molecule.charge = self.app_data.charge
+        pyscf_molecule.atom = self.mol_spec.geometry
+        pyscf_molecule.basis = self.mol_spec.basis
+        pyscf_molecule.spin = self.mol_spec.multiplicity - 1
+        pyscf_molecule.charge = self.mol_spec.charge
         pyscf_molecule.symmetry = False
         pyscf_molecule.build()
         return pyscf_molecule
@@ -129,7 +135,7 @@ class ChemistryApplicationSCFInfo:
             SCFConvergenceError: If the SCF calculation does not converge.
         """
         molecule = self.get_pyscf_molecule()
-        mean_field_object = (scf.RHF if self.app_data.multiplicity == 1 else scf.ROHF)(
+        mean_field_object = (scf.RHF if self.mol_spec.multiplicity == 1 else scf.ROHF)(
             molecule
         )
         mean_field_object.max_memory = 1e6  # set allowed memory high so tests pass
@@ -140,7 +146,8 @@ class ChemistryApplicationSCFInfo:
             os.environ["MLFLOW_TRACKING_TOKEN"] = sdk.mlflow.get_tracking_token()
             urllib3.disable_warnings()
 
-            flat_dict = _flatten_dict(asdict(self.app_data))
+            flat_mol_dict = _flatten_dict(asdict(self.mol_spec))
+            flat_active_dict = _flatten_dict(asdict(self.active_space_spec))
 
             if self.scf_options is not None:
                 if "callback" in self.scf_options:
@@ -161,7 +168,9 @@ class ChemistryApplicationSCFInfo:
                         self.mlflow_experiment_name, self.orq_workspace_id
                     )
 
-                    for key, val in flat_dict.items():
+                    for key, val in flat_mol_dict.items():
+                        client.log_param(run_id, key, val)
+                    for key, val in flat_active_dict.items():
                         client.log_param(run_id, key, val)
                     temp_options = deepcopy(self.scf_options)
                     temp_options["callback"] = create_mlflow_scf_callback(
@@ -181,7 +190,9 @@ class ChemistryApplicationSCFInfo:
                     self.mlflow_experiment_name, self.orq_workspace_id
                 )
 
-                for key, val in flat_dict.items():
+                for key, val in flat_mol_dict.items():
+                    client.log_param(run_id, key, val)
+                for key, val in flat_active_dict.items():
                     client.log_param(run_id, key, val)
                 temp_options = {"callback": create_mlflow_scf_callback(client, run_id)}
                 mean_field_object.run(**temp_options)
@@ -196,11 +207,14 @@ class ChemistryApplicationSCFInfo:
         if not mean_field_object.converged:
             raise SCFConvergenceError()
 
-        if self.app_data.avas_atomic_orbitals or self.app_data.avas_minao:
+        if (
+            self.active_space_spec.avas_atomic_orbitals
+            or self.active_space_spec.avas_minao
+        ):
             molecule, mean_field_object = truncate_with_avas(
                 mean_field_object,
-                self.app_data.avas_atomic_orbitals,
-                self.app_data.avas_minao,
+                self.active_space_spec.avas_atomic_orbitals,
+                self.active_space_spec.avas_minao,
             )
         return molecule, mean_field_object
 
@@ -238,27 +252,29 @@ class ChemistryApplicationActiveSpaceInfo:
         n_frozen_core_orbitals = 0
 
         if (
-            self.scf_info.app_data.freeze_core
-            and self.scf_info.app_data.occupied_indices
+            self.scf_info.active_space_spec.freeze_core
+            and self.scf_info.active_space_spec.occupied_indices
         ):
             raise ValueError(
                 "Both freeze core and occupied_indices were set!"
                 "Those options are exclusive. Please select either one."
             )
         elif (
-            self.scf_info.app_data.freeze_core
-            and not self.scf_info.app_data.occupied_indices
+            self.scf_info.active_space_spec.freeze_core
+            and not self.scf_info.active_space_spec.occupied_indices
         ):
             mp2 = self._set_frozen_core_orbitals(molecular_data)
             n_frozen_core_orbitals = mp2.frozen
         elif (
-            self.scf_info.app_data.occupied_indices
-            and not self.scf_info.app_data.freeze_core
+            self.scf_info.active_space_spec.occupied_indices
+            and not self.scf_info.active_space_spec.freeze_core
         ):
             mp2 = mp.MP2(mean_field_object).set(
-                frozen=self.scf_info.app_data.occupied_indices
+                frozen=self.scf_info.active_space_spec.occupied_indices
             )
-            n_frozen_core_orbitals = len(list(self.scf_info.app_data.occupied_indices))
+            n_frozen_core_orbitals = len(
+                list(self.scf_info.active_space_spec.occupied_indices)
+            )
         else:
             mp2 = mp.MP2(mean_field_object)
 
@@ -268,9 +284,9 @@ class ChemistryApplicationActiveSpaceInfo:
         molecular_data._pyscf_data["mp2"] = mp2_energy
 
         frozen_natural_orbitals, natural_orbital_coefficients = mp2.make_fno(
-            self.scf_info.app_data.fno_threshold,
-            self.scf_info.app_data.fno_percentage_occupation_number,
-            self.scf_info.app_data.fno_n_virtual_natural_orbitals,
+            self.scf_info.active_space_spec.fno_threshold,
+            self.scf_info.active_space_spec.fno_percentage_occupation_number,
+            self.scf_info.active_space_spec.fno_n_virtual_natural_orbitals,
         )
 
         molecular_data.canonical_orbitals = natural_orbital_coefficients
@@ -314,9 +330,9 @@ class ChemistryApplicationActiveSpaceInfo:
             SCFConvergenceError: If the SCF calculation does not converge.
         """
         if (
-            self.scf_info.app_data.fno_percentage_occupation_number
-            or self.scf_info.app_data.fno_threshold
-            or self.scf_info.app_data.fno_n_virtual_natural_orbitals
+            self.scf_info.active_space_spec.fno_percentage_occupation_number
+            or self.scf_info.active_space_spec.fno_threshold
+            or self.scf_info.active_space_spec.fno_n_virtual_natural_orbitals
         ):
             (
                 molecular_data,
@@ -331,14 +347,14 @@ class ChemistryApplicationActiveSpaceInfo:
         else:
             molecular_data = self._get_molecular_data()
 
-            if self.scf_info.app_data.freeze_core:
+            if self.scf_info.active_space_spec.freeze_core:
                 n_frozen_core = self._set_frozen_core_orbitals(molecular_data).frozen
                 if n_frozen_core > 0:
                     self.occupied_indices = list(range(n_frozen_core))
 
             return molecular_data.get_molecular_hamiltonian(
-                occupied_indices=self.scf_info.app_data.occupied_indices,
-                active_indices=self.scf_info.app_data.active_indices,
+                occupied_indices=self.scf_info.active_space_spec.occupied_indices,
+                active_indices=self.scf_info.active_space_spec.active_indices,
             )
 
     def get_active_space_meanfield_object(
@@ -359,11 +375,11 @@ class ChemistryApplicationActiveSpaceInfo:
             SCFConvergenceError: If the SCF calculation does not converge.
         """
         if (
-            self.scf_info.app_data.active_indices
-            or self.scf_info.app_data.occupied_indices
-            or self.scf_info.app_data.fno_percentage_occupation_number
-            or self.scf_info.app_data.fno_threshold
-            or self.scf_info.app_data.fno_n_virtual_natural_orbitals
+            self.scf_info.active_space_spec.active_indices
+            or self.scf_info.active_space_spec.occupied_indices
+            or self.scf_info.active_space_spec.fno_percentage_occupation_number
+            or self.scf_info.active_space_spec.fno_threshold
+            or self.scf_info.active_space_spec.fno_n_virtual_natural_orbitals
         ):
             raise ValueError(
                 "Generating the meanfield object for application instances with "
@@ -384,10 +400,10 @@ class ChemistryApplicationActiveSpaceInfo:
             SCFConvergenceError: If the SCF calculation does not converge.
         """
         molecular_data = MolecularData(
-            geometry=self.scf_info.app_data.geometry,
-            basis=self.scf_info.app_data.basis,
-            multiplicity=self.scf_info.app_data.multiplicity,
-            charge=self.scf_info.app_data.charge,
+            geometry=self.scf_info.mol_spec.geometry,
+            basis=self.scf_info.mol_spec.basis,
+            multiplicity=self.scf_info.mol_spec.multiplicity,
+            charge=self.scf_info.mol_spec.charge,
         )
 
         molecule, mean_field_object = self.scf_info._run_pyscf()
@@ -478,7 +494,8 @@ class ChemistryApplicationInstance:
         orq_workspace_id: orquestra workspace ID. Required to log mlflow info
     """
 
-    app_data: ChemistryApplicationData
+    mol_spec: MoleculeSpecification
+    active_space_spec: ActiveSpaceSpecification
     scf_info: ChemistryApplicationSCFInfo
     active_space_info: ChemistryApplicationActiveSpaceInfo
 
@@ -500,11 +517,13 @@ class ChemistryApplicationInstance:
         mlflow_experiment_name: Optional[str] = None,
         orq_workspace_id: Optional[str] = None,
     ):
-        self.app_data = ChemistryApplicationData(
+        self.mol_spec = MoleculeSpecification(
             geometry=geometry,
             basis=basis,
             multiplicity=multiplicity,
             charge=charge,
+        )
+        self.active_space_spec = ActiveSpaceSpecification(
             avas_atomic_orbitals=avas_atomic_orbitals,
             avas_minao=avas_minao,
             occupied_indices=occupied_indices,
@@ -515,7 +534,8 @@ class ChemistryApplicationInstance:
             fno_n_virtual_natural_orbitals=fno_n_virtual_natural_orbitals,
         )
         self.scf_info = ChemistryApplicationSCFInfo(
-            app_data=self.app_data,
+            mol_spec=self.mol_spec,
+            active_space_spec=self.active_space_spec,
             scf_options=scf_options,
             mlflow_experiment_name=mlflow_experiment_name,
             orq_workspace_id=orq_workspace_id,
