@@ -18,7 +18,10 @@ class GraphPartition:
 
     @property
     def n_nodes(self) -> int:
-        return self.program.n_nodes
+        n_nodes = 0
+        for subgraph in self.subgraphs:
+            n_nodes += subgraph.number_of_nodes()
+        return n_nodes
 
     @property
     def n_t_gates(self) -> int:

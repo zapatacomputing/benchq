@@ -7,7 +7,7 @@ from unittest.mock import patch
 
 import pytest
 
-from benchq.data_structures.algorithm_implemenation import AlgorithmImplementation
+from benchq.data_structures.algorithm_implementation import AlgorithmImplementation
 from benchq.data_structures.decoder import DecoderModel
 from benchq.data_structures.hardware_architecture_models import IONTrapModel
 from benchq.data_structures.resource_info import ResourceInfo
@@ -108,6 +108,7 @@ def test_log_resource_info_to_mlflow(mock_mlflow):
         logical_error_rate=0.1,
         n_logical_qubits=1,
         n_physical_qubits=1,
+        routing_to_measurement_volume_ratio=1,
         total_time_in_seconds=0.01,
         decoder_info=None,
         widget_name="tau",
