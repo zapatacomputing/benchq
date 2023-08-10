@@ -94,11 +94,11 @@ function run_ruby_slippers(
 
     if verbose
         print("get_graph_state_data:\t")
-        (lco, adj, i) = @time get_graph_state_data(circuit, true, max_graph_size, hyperparams, max_time)
+        (lco, adj, proportion) = @time get_graph_state_data(circuit, true, max_graph_size, hyperparams, max_time)
     else
-        (lco, adj, i) = get_graph_state_data(circuit, false, max_graph_size, hyperparams, max_time)
+        (lco, adj, proportion) = get_graph_state_data(circuit, false, max_graph_size, hyperparams, max_time)
     end
-    return pylist(lco), python_adjlist!(adj), i
+    return pylist(lco), python_adjlist!(adj), proportion
 end
 
 function get_max_n_nodes(circuit, teleportation_distance)
@@ -173,15 +173,22 @@ function get_graph_state_data(
         erase = "        \b\b\b\b\b\b\b\b"
     end
 
-    i = 0
-
     for (i, op) in enumerate(ops)
+        elapsed = time() - start_time
+        if elapsed >= max_time
+            # get rid of excess space in the data structures
+            resize!(lco, curr_qubits[1])
+            resize!(adj, curr_qubits[1])
+
+            proportion = i / total_length
+
+            return lco, adj, proportion
+        end
+        counter += 1
         if verbose
-            counter += 1
             if (dispcnt += 1) >= 1000
-                percent = round(Int, 100 * counter / total_length)
-                elapsed = round(time() - start_time, digits=2)
-                print("\r$(percent)% ($counter) completed in $erase$(elapsed)s")
+                display_elapsed = round(elapsed, digits=2)
+                print("\r$(percent)% ($counter) completed in $erase$(display_elapsed)s")
                 dispcnt = 0
             end
         end
@@ -232,22 +239,6 @@ function get_graph_state_data(
         elseif !pauli_op(op_code)
             error("Unrecognized gate code $op_code encountered")
         end
-
-        elapsed = time() - start_time
-        println(elapsed)
-        println(i)
-        if elapsed >= max_time
-            if verbose
-                elapsed = round(time() - start_time, digits=2)
-                println("\r100% ($counter) completed in $erase$(elapsed)s")
-            end
-
-            # get rid of excess space in the data structures
-            resize!(lco, curr_qubits[1])
-            resize!(adj, curr_qubits[1])
-
-            return lco, adj, i
-        end
     end
 
     if verbose
@@ -259,7 +250,7 @@ function get_graph_state_data(
     resize!(lco, curr_qubits[1])
     resize!(adj, curr_qubits[1])
 
-    return lco, adj, i
+    return lco, adj, 1
 end
 
 """Unpacks the values in the cz table and updates the lco values)"""
