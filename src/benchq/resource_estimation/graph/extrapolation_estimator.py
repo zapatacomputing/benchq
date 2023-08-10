@@ -134,6 +134,7 @@ class ExtrapolationResourceEstimator(GraphResourceEstimator):
         resource_info = self.estimate_resources_from_graph_data(
             extrapolated_info, algorithm_implementation
         )
+
         info = ExtrapolatedGraphResourceInfo(
             n_logical_qubits=resource_info.n_logical_qubits,
             extra=replace(extrapolated_info, n_nodes=resource_info.extra.n_nodes),
@@ -143,6 +144,7 @@ class ExtrapolationResourceEstimator(GraphResourceEstimator):
             n_physical_qubits=resource_info.n_physical_qubits,
             decoder_info=resource_info.decoder_info,
             widget_name=resource_info.widget_name,
+            routing_to_measurement_volume_ratio=resource_info.routing_to_measurement_volume_ratio,  # noqa
         )
         return info
 
