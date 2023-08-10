@@ -75,7 +75,7 @@ function run_ruby_slippers(
     min_neighbors=6,
     max_num_neighbors_to_search=1e5,
     decomposition_strategy=1,
-    max_time=4000000000
+    max_time=1e8
 )
     # params which can be optimized to speed up computation
     hyperparams = RubySlippersHyperparams(
@@ -149,7 +149,7 @@ function get_graph_state_data(
     verbose::Bool=false,
     max_graph_size::UInt32=1e8,
     hyperparams::RubySlippersHyperparams=default_hyperparams,
-    max_time::Int64=4000000000,
+    max_time::Float64=1e8,
 )
     start_time = time()
 
@@ -167,11 +167,9 @@ function get_graph_state_data(
     curr_qubits = [n_qubits] # make this a list so it can be modified in place
     supported_ops = get_op_list()
 
-    if verbose
-        total_length = length(ops)
-        counter = dispcnt = 0
-        erase = "        \b\b\b\b\b\b\b\b"
-    end
+    total_length = length(ops)
+    counter = dispcnt = 0
+    erase = "        \b\b\b\b\b\b\b\b"
 
     for (i, op) in enumerate(ops)
         elapsed = time() - start_time
@@ -187,6 +185,7 @@ function get_graph_state_data(
         counter += 1
         if verbose
             if (dispcnt += 1) >= 1000
+                percent = round(Int, 100 * counter / total_length)
                 display_elapsed = round(elapsed, digits=2)
                 print("\r$(percent)% ($counter) completed in $erase$(display_elapsed)s")
                 dispcnt = 0

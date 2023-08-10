@@ -8,15 +8,21 @@ import networkx as nx
 from . import jl
 
 
+def get_nx_graph_from_rbs_adj_list(adj: list) -> nx.Graph:
+    graph = nx.empty_graph(len(adj))
+    for vertex_id, neighbors in enumerate(adj):
+        for neighbor in neighbors:
+            graph.add_edge(vertex_id, neighbor)
+
+    return graph
+
+
 def get_algorithmic_graph_from_ruby_slippers(circuit):
     lco, adj = jl.run_ruby_slippers(circuit, True)
 
     print("getting networkx graph from vertices")
     start = time.time()
-    graph = nx.empty_graph(len(adj))
-    for vertex_id, neighbors in enumerate(adj):
-        for neighbor in neighbors:
-            graph.add_edge(vertex_id, neighbor)
+    graph = get_nx_graph_from_rbs_adj_list(adj)
     end = time.time()
     print("time: ", end - start)
 
