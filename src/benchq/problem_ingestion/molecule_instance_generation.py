@@ -99,8 +99,9 @@ class ChemistryApplicationInstance:
         and active_indices.
 
         Returns:
-            Tuple whose first element is the PySCF molecule object after AVAS reduction
-                and whose second is the meanfield object containing the SCF solution.
+            Tuple whose first element is the PySCF molecule object after AVAS or FNO
+              reduction and whose second is the meanfield object containing the SCF
+              solution.
 
         Raises:
             SCFConvergenceError: If the SCF calculation does not converge.
@@ -123,83 +124,16 @@ class ChemistryApplicationInstance:
                 self.avas_atomic_orbitals,
                 self.avas_minao,
             )
-        return molecule, mean_field_object
 
-    def get_occupied_and_active_indicies_with_FNO(
-        self,
-    ) -> Tuple[openfermion.MolecularData, List[int], List[int]]:
-        """
-        Reduce the virtual space with the frozen natural orbital (FNO)
-        approach and get occupied and active orbital indicies needed for
-        computing the fermionic Hamiltonian.
-
-        Returns:
-            molecular data: A PyscfMolecularData object.
-            occupied_indices: A list of molecular orbitals not in the active space.
-                              They need to be consecutive values.
-            active_indicies: A list of molecular orbitals to include in the active space. # noqa:E501
-
-        Raises:
-            SCFConvergenceError: If the SCF calculation does not converge.
-        """
-        molecular_data = self._get_molecular_data()
-        mean_field_object = molecular_data._pyscf_data["scf"]
-
-        if molecular_data.multiplicity != 1:
-            raise ValueError("RO-MP2 is not available.")
-
-        n_frozen_core_orbitals = 0
-
-        if self.freeze_core and self.occupied_indices:
-            raise ValueError(
-                "Both freeze core and occupied_indices were set!"
-                "Those options are exclusive. Please select either one."
+        if (
+            self.fno_percentage_occupation_number
+            or self.fno_threshold
+            or self.fno_n_virtual_natural_orbitals
+        ):
+            molecule, mean_field_object = self._truncate_with_fno(
+                molecule, mean_field_object
             )
-
-        elif self.freeze_core and not self.occupied_indices:
-            mp2 = self._set_frozen_core_orbitals(molecular_data)
-            n_frozen_core_orbitals = mp2.frozen
-
-        elif self.occupied_indices and not self.freeze_core:
-            mp2 = mp.MP2(mean_field_object).set(frozen=self.occupied_indices)
-            n_frozen_core_orbitals = len(list(self.occupied_indices))
-
-        else:
-            mp2 = mp.MP2(mean_field_object)
-
-        mp2.verbose = 4
-        mp2.run()
-        mp2_energy = mean_field_object.e_tot + mp2.e_corr
-        molecular_data._pyscf_data["mp2"] = mp2_energy
-
-        frozen_natural_orbitals, natural_orbital_coefficients = mp2.make_fno(
-            self.fno_threshold,
-            self.fno_percentage_occupation_number,
-            self.fno_n_virtual_natural_orbitals,
-        )
-
-        molecular_data.canonical_orbitals = natural_orbital_coefficients
-        mean_field_object.mo_coeff = molecular_data.canonical_orbitals
-
-        one_body_integrals, two_body_integrals = compute_integrals(
-            mean_field_object._eri, mean_field_object
-        )
-
-        molecular_data.one_body_integrals = one_body_integrals
-        molecular_data.two_body_integrals = two_body_integrals
-        molecular_data.overlap_integrals = mean_field_object.get_ovlp()
-
-        all_orbital_indicies = list(range(molecular_data.n_orbitals))
-        occupied_indices = list(range(n_frozen_core_orbitals))
-
-        if len(frozen_natural_orbitals) != 0:
-            active_indicies = all_orbital_indicies[
-                len(occupied_indices) : -len(frozen_natural_orbitals)
-            ]
-        else:
-            active_indicies = all_orbital_indicies[len(occupied_indices) :]
-
-        return molecular_data, occupied_indices, active_indicies
+        return molecule, mean_field_object
 
     def get_active_space_hamiltonian(self) -> openfermion.InteractionOperator:
         """Generate the fermionic Hamiltonian corresponding to the instance's
@@ -218,33 +152,20 @@ class ChemistryApplicationInstance:
         Raises:
             SCFConvergenceError: If the SCF calculation does not converge.
         """
-        if (
-            self.fno_percentage_occupation_number
-            or self.fno_threshold
-            or self.fno_n_virtual_natural_orbitals
-        ):
-            (
-                molecular_data,
-                occupied_indices,
-                active_indices,
-            ) = self.get_occupied_and_active_indicies_with_FNO()
 
-            return molecular_data.get_molecular_hamiltonian(
-                occupied_indices=occupied_indices, active_indices=active_indices
+        molecular_data = self._get_molecular_data()
+
+        if self.freeze_core:
+            n_frozen_core = (
+                mp.MP2(molecular_data._pyscf_data["scf"]).set_frozen().frozen
             )
+            if n_frozen_core > 0:
+                self.occupied_indices = list(range(n_frozen_core))
 
-        else:
-            molecular_data = self._get_molecular_data()
-
-            if self.freeze_core:
-                n_frozen_core = self._set_frozen_core_orbitals(molecular_data).frozen
-                if n_frozen_core > 0:
-                    self.occupied_indices = list(range(n_frozen_core))
-
-            return molecular_data.get_molecular_hamiltonian(
-                occupied_indices=self.occupied_indices,
-                active_indices=self.active_indices,
-            )
+        return molecular_data.get_molecular_hamiltonian(
+            occupied_indices=self.occupied_indices,
+            active_indices=self.active_indices,
+        )
 
     def get_active_space_meanfield_object(self) -> scf.hf.SCF:
         """Run an SCF calculation using PySCF and return the results as a meanfield
@@ -294,7 +215,7 @@ class ChemistryApplicationInstance:
         )
 
         molecule, mean_field_object = self._run_pyscf()
-        molecular_data.n_orbitals = int(molecule.nao_nr())
+        molecular_data.n_orbitals = int(molecule.nao)
         molecular_data.n_qubits = 2 * molecular_data.n_orbitals
         molecular_data.nuclear_repulsion = float(molecule.energy_nuc())
 
@@ -319,18 +240,65 @@ class ChemistryApplicationInstance:
 
         return molecular_data
 
-    def _set_frozen_core_orbitals(self, molecular_data) -> mp.mp2.MP2:
-        """
-        Set auto-generated chemical core orbitals.
+    def _truncate_with_fno(
+        self,
+        molecule: gto.Mole,
+        mean_field_object: scf.hf.SCF,
+    ) -> Tuple[gto.Mole, scf.hf.SCF]:
+        """Truncates a meanfield object by reducing the virtual space using
+        the frozen natural orbital (FNO) method.
 
         Args:
-            molecular_data: PyscfMolecularData object.
-        Returns
-            The mp2 object.
+            molecule: The PySCF molecule object.
+            mean_field_object: The meanfield object to be truncated.
 
+        Returns:
+            Tuple whose first element is the PySCF molecule object after FNO
+            vertual space reduction and whose second is the meanfield object
+            containing the SCF solution.
         """
-        mp2 = mp.MP2(molecular_data._pyscf_data["scf"]).set_frozen()
-        return mp2
+
+        if molecule.multiplicity != 1:
+            raise ValueError("RO-MP2 is not available.")
+
+        if self.freeze_core and self.occupied_indices:
+            raise ValueError(
+                "Both freeze core and occupied_indices were set!"
+                "Those options are exclusive. Please select either one."
+            )
+
+        elif self.freeze_core and not self.occupied_indices:
+            mp2 = mp.MP2(mean_field_object).set_frozen()
+
+        elif self.occupied_indices and not self.freeze_core:
+            mp2 = mp.MP2(mean_field_object).set(frozen=self.occupied_indices)
+
+        else:
+            mp2 = mp.MP2(mean_field_object)
+
+        mp2.verbose = 4
+        mp2.density_fit().run()
+
+        frozen_natural_orbitals, natural_orbital_coefficients = mp2.make_fno(
+            self.fno_threshold,
+            self.fno_percentage_occupation_number,
+            self.fno_n_virtual_natural_orbitals,
+        )
+
+        if len(frozen_natural_orbitals) != 0:
+            mean_field_object.mo_coeff = natural_orbital_coefficients[
+                :, : -len(frozen_natural_orbitals)
+            ]
+        else:
+            mean_field_object.mo_coeff = natural_orbital_coefficients
+
+        # Calculate the number of orbitals after truncation with fno
+        molecule.nao = mean_field_object.mo_coeff.shape[1]
+
+        print("Number of FNOs: ", len(frozen_natural_orbitals))
+        print("Number of orbitals after truncation with FNO:", molecule.nao)
+
+        return molecule, mean_field_object
 
 
 def truncate_with_avas(
