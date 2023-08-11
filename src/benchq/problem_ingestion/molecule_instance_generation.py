@@ -100,7 +100,8 @@ class ChemistryApplicationInstance:
 
         Returns:
             Tuple whose first element is the PySCF molecule object after AVAS or FNO
-              reduction and whose second is the meanfield object containing the SCF solution.
+              reduction and whose second is the meanfield object containing the SCF
+              solution.
 
         Raises:
             SCFConvergenceError: If the SCF calculation does not converge.
@@ -252,8 +253,9 @@ class ChemistryApplicationInstance:
             mean_field_object: The meanfield object to be truncated.
 
         Returns:
-            Tuple whose first element is the PySCF molecule object after FNO vertual space
-              reduction and whose second is the meanfield object containing the SCF solution.
+            Tuple whose first element is the PySCF molecule object after FNO
+            vertual space reduction and whose second is the meanfield object
+            containing the SCF solution.
         """
 
         if molecule.multiplicity != 1:
