@@ -3,7 +3,7 @@
 ################################################################################
 from typing import Callable, Sequence
 
-from orquestra.quantum.circuits import Circuit
+from orquestra.quantum.circuits import Circuit, GateOperation, ResetOperation
 
 
 class QuantumProgram:
@@ -59,11 +59,50 @@ class QuantumProgram:
             recreated_circuit += self.subroutines[i]
         return recreated_circuit
 
+    @property
+    def n_rotation_gates(self) -> int:
+        return self.count_operations_in_program(["RX", "RY", "RZ"])
+
+    @property
+    def n_t_gates(self) -> int:
+        return self.count_operations_in_program(["T", "Tdag"])
+
+    @property
+    def min_n_nodes(self) -> int:
+        return self.n_t_gates + self.n_rotation_gates + self.subroutines[0].n_qubits
+
+    def count_operations_in_subroutine(self, step: int, gates: Sequence[str]) -> int:
+        n_gates = 0
+        for op in self.subroutines[step].operations:
+            if isinstance(op, GateOperation) and op.gate.name in gates:
+                n_gates += 1
+            if isinstance(op, ResetOperation) and "ResetOperation" in gates:
+                n_gates += 1
+        return n_gates
+
+    def count_operations_in_program(self, gates: Sequence[str]) -> int:
+        n_gates_per_subroutine = [
+            self.count_operations_in_subroutine(subroutine, gates)
+            for subroutine in range(len(self.subroutines))
+        ]
+
+        total_gates = 0
+        for step in self.calculate_subroutine_sequence(self.steps):
+            total_gates += n_gates_per_subroutine[step]
+
+        return total_gates
+
     def replace_circuits(self, new_circuits: Sequence[Circuit]) -> "QuantumProgram":
         return QuantumProgram(
             subroutines=new_circuits,
             steps=self.steps,
             calculate_subroutine_sequence=self.calculate_subroutine_sequence,
+        )
+
+    @staticmethod
+    def from_circuit(circuit: Circuit) -> "QuantumProgram":
+        return QuantumProgram(
+            [circuit], steps=1, calculate_subroutine_sequence=lambda x: [0]
         )
 
 

@@ -1,4 +1,8 @@
 ################################################################################
 # © Copyright 2022 Zapata Computing Inc.
 ################################################################################
-from .openfermion import get_qpe_resource_estimates_from_mean_field_object
+from ._footprint_analysis import cost_estimator
+from .openfermion_re import (
+    get_double_factorized_qpe_toffoli_and_qubit_cost,
+    get_single_factorized_qpe_toffoli_and_qubit_cost,
+)

@@ -1,32 +1,60 @@
-from typing import Callable
+from typing import Callable, Sequence
 
 from ...compilation import (
-    get_algorithmic_graph_from_graph_sim_mini,
+    get_algorithmic_graph_from_ruby_slippers,
     pyliqtr_transpile_to_clifford_t,
 )
-from ...compilation import simplify_rotations as _simplify_rotations
-from ...data_structures import QuantumProgram, get_program_from_circuit
-from .structs import GraphPartition
+from ...compilation import transpile_to_native_gates as _transpile_to_native_gates
+from ...data_structures import (
+    ErrorBudget,
+    GraphPartition,
+    QuantumProgram,
+    get_program_from_circuit,
+)
 
 
-def synthesize_clifford_t(error_budget) -> Callable[[QuantumProgram], QuantumProgram]:
+def _distribute_transpilation_failure_tolerance(
+    program: QuantumProgram, total_transpilation_failure_tolerance: float
+) -> Sequence[float]:
+    n_rots_per_subroutine = [
+        program.count_operations_in_subroutine(i, ["RX", "RY", "RZ"])
+        for i in range(len(program.subroutines))
+    ]
+    # Not using program n_rotation_gates because we already computed partial
+    # counts for subroutines.
+    n_total_rots = sum(
+        n_rotations * multi
+        for n_rotations, multi in zip(n_rots_per_subroutine, program.multiplicities)
+    )
+
+    return (
+        [0 for _ in program.subroutines]
+        if n_total_rots == 0
+        else [
+            total_transpilation_failure_tolerance * count / n_total_rots
+            for count in n_rots_per_subroutine
+        ]
+    )
+
+
+def synthesize_clifford_t(
+    error_budget: ErrorBudget,
+) -> Callable[[QuantumProgram], QuantumProgram]:
     def _transformer(program: QuantumProgram) -> QuantumProgram:
-        synthesis_error_budget = (
-            error_budget["synthesis_error_rate"] * error_budget["total_error"]
+        tolerances = _distribute_transpilation_failure_tolerance(
+            program, error_budget.transpilation_failure_tolerance
         )
         circuits = [
-            pyliqtr_transpile_to_clifford_t(
-                circuit, circuit_precision=synthesis_error_budget
-            )
-            for circuit in program.subroutines
+            pyliqtr_transpile_to_clifford_t(circuit, circuit_precision=tolerance)
+            for circuit, tolerance in zip(program.subroutines, tolerances)
         ]
         return program.replace_circuits(circuits)
 
     return _transformer
 
 
-def simplify_rotations(program: QuantumProgram) -> QuantumProgram:
-    circuits = [_simplify_rotations(circuit) for circuit in program.subroutines]
+def transpile_to_native_gates(program: QuantumProgram) -> QuantumProgram:
+    circuits = [_transpile_to_native_gates(circuit) for circuit in program.subroutines]
     return QuantumProgram(
         circuits,
         steps=program.steps,
@@ -35,30 +63,24 @@ def simplify_rotations(program: QuantumProgram) -> QuantumProgram:
 
 
 def create_graphs_for_subcircuits(
-    delayed_gate_synthesis: bool,
-    graph_production_method=get_algorithmic_graph_from_graph_sim_mini,
+    graph_production_method=get_algorithmic_graph_from_ruby_slippers,
 ) -> Callable[[QuantumProgram], GraphPartition]:
     def _transformer(program: QuantumProgram) -> GraphPartition:
         graphs_list = [
             graph_production_method(circuit) for circuit in program.subroutines
         ]
-        return GraphPartition(
-            program, graphs_list, delayed_gate_synthesis=delayed_gate_synthesis
-        )
+        return GraphPartition(program, graphs_list)
 
     return _transformer
 
 
 def create_big_graph_from_subcircuits(
-    delayed_gate_synthesis: bool,
-    graph_production_method=get_algorithmic_graph_from_graph_sim_mini,
+    graph_production_method=get_algorithmic_graph_from_ruby_slippers,
 ) -> Callable[[QuantumProgram], GraphPartition]:
     def _transformer(program: QuantumProgram) -> GraphPartition:
         big_circuit = program.full_circuit
         new_program = get_program_from_circuit(big_circuit)
         graph = graph_production_method(big_circuit)
-        return GraphPartition(
-            new_program, [graph], delayed_gate_synthesis=delayed_gate_synthesis
-        )
+        return GraphPartition(new_program, [graph])
 
     return _transformer

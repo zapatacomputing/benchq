@@ -15,7 +15,7 @@ namespace_packages = true
 # names. Note that this also requires setting `mypy_path`.
 explicit_package_bases = true
 # We usually keep our source code under `src/<namespace>/<library>/...`.
-# This option tells mypy to look under that directory path. 
+# This option tells mypy to look under that directory path.
 # If your repo has a different layout you can add the appropriate paths
 # by setting MYPYPATH env variable.
 mypy_path = "src"
@@ -40,6 +40,8 @@ module = [
     'graph_state_generation.*',
     'matplotlib.*',
     'stim.*',
+    'h5py.*',
+    'numba.*',
 ]
 ignore_missing_imports = true
 

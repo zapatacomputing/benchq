@@ -1,0 +1,5 @@
+Hello! I'm a hamitonian that isn't properly formatted! I'm used for testing
+that improperly formatted files are either ignored or raise an error.
+
+I tried asking chat gpt to tell me a joke to fill the space in this file,
+but it sucked... so now you get this instead.

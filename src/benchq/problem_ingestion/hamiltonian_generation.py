@@ -1,15 +1,11 @@
 ################################################################################
 # © Copyright 2022 Zapata Computing Inc.
 ################################################################################
-import json
-
 import numpy as np
 import openfermion as of
 import pyLIQTR.sim_methods.quantum_ops as qops
-from openfermion import QubitOperator
 from orquestra.integrations.cirq.conversions import from_openfermion
 from orquestra.quantum.operators import PauliSum
-from orquestra.quantum.utils import ensure_open
 
 # At this stage of development we are aware that there are some issues with methods
 # 2 and 3 and they do not necessarily yield correct results.
@@ -17,7 +13,6 @@ from pyLIQTR.QSP.Hamiltonian import Hamiltonian as pyH
 
 from benchq.conversions import pyliqtr_to_openfermion
 
-# TODO: export openfermion to cirq
 ### General generators
 
 
@@ -44,10 +39,8 @@ def generate_fermi_hubbard_jw_qubit_hamiltonian(
     return from_openfermion(hamiltonian_jw)
 
 
-def generate_jw_qubit_hamiltonian_from_mol_data(
-    molecular_data, occupied_indices=None, active_indices=None
-) -> PauliSum:
-    hamiltonian = molecular_data.get_active_space_hamiltonian()
+def generate_jw_qubit_hamiltonian_from_mol_data(chemistry_instance) -> PauliSum:
+    hamiltonian = chemistry_instance.get_active_space_hamiltonian()
 
     # # Convert to a FermionOperator
     # hamiltonian_ferm_op = of.get_fermion_operator(hamiltonian)
@@ -90,20 +83,3 @@ def generate_1d_heisenberg_hamiltonian(N):
     for term in pauli_sum.terms:
         term.coefficient = term.coefficient.real
     return pauli_sum
-
-
-def fast_load_qubit_op(file):
-    with ensure_open(file, "r") as f:
-        data = json.load(f)
-
-    full_operator = QubitOperator()
-    for term_dict in data["terms"]:
-        operator = []
-        for pauli_op in term_dict["pauli_ops"]:
-            operator.append((pauli_op["qubit"], pauli_op["op"]))
-        coefficient = term_dict["coefficient"]["real"]
-        if term_dict["coefficient"].get("imag"):
-            coefficient += 1j * term_dict["coefficient"]["imag"]
-        full_operator += QubitOperator(operator, coefficient)
-
-    return from_openfermion(full_operator)

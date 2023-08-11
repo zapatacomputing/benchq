@@ -1,0 +1,41 @@
+name: Build and Push Python Wheel by triggering cicd-actions workflow via Github API Call
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  trigger-build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger cicd-actions repository workflow over Github API
+        run: |
+          curl -L \
+          "https://api.github.com/repos/zapatacomputing/cicd-actions/actions/workflows/30157612/dispatches" \
+          -H "Authorization: token "$USER_TOKEN \
+          -H 'Accept: application/vnd.github+json' \
+          --fail-with-body \
+          --data-raw '
+          {
+            "ref": "main",
+            "inputs":
+              {
+                "repository": "'"$repository"'",
+                "ref": "'"$ref"'",
+                "package_directory": "'"$package_directory"'",
+                "pypi": "true",
+                "pypitest": "false",
+                "nexus": "false"
+              }
+            }
+          '
+        env:
+          USER_TOKEN: ${{ secrets.PAGES_TOKEN }}
+          repository: ${{github.repository}}
+          ref: ${{ github.ref_name }}
+          package_directory: "."
+          github_sha: ${{ github.sha }}
+          build_number: ${{ github.run_number }}
+          push_pypi: ${{ github.event.inputs.pypi }}
+          push_pypitest: ${{ github.event.inputs.pypitest }}
+          push_nexus: ${{ github.event.inputs.nexus }}

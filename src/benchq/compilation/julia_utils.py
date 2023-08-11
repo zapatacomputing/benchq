@@ -8,8 +8,8 @@ import networkx as nx
 from . import jl
 
 
-def get_algorithmic_graph_from_graph_sim_mini(circuit):
-    lco, adj = jl.run_graph_sim_mini(circuit)
+def get_algorithmic_graph_from_ruby_slippers(circuit):
+    lco, adj = jl.run_ruby_slippers(circuit, True)
 
     print("getting networkx graph from vertices")
     start = time.time()
@@ -21,6 +21,41 @@ def get_algorithmic_graph_from_graph_sim_mini(circuit):
     print("time: ", end - start)
 
     return graph
+
+
+def get_ruby_slippers_compiler(
+    verbose=True,
+    max_graph_size=1e7,
+    teleportation_threshold=40,
+    min_neighbors=6,
+    teleportation_distance=4,
+    max_num_neighbors_to_search=1e5,
+    decomposition_strategy=1,
+):
+    def _run_compiler(circuit):
+        lco, adj = jl.run_ruby_slippers(
+            circuit,
+            verbose,
+            max_graph_size,
+            teleportation_threshold,
+            teleportation_distance,
+            min_neighbors,
+            max_num_neighbors_to_search,
+            decomposition_strategy,
+        )
+
+        print("getting networkx graph from vertices")
+        start = time.time()
+        graph = nx.empty_graph(len(adj))
+        for vertex_id, neighbors in enumerate(adj):
+            for neighbor in neighbors:
+                graph.add_edge(vertex_id, neighbor)
+        end = time.time()
+        print("time: ", end - start)
+
+        return graph
+
+    return _run_compiler
 
 
 def get_algorithmic_graph_from_Jabalizer(circuit):

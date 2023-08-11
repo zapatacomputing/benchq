@@ -41,9 +41,9 @@ jobs:
         with:
           version: '1.8'
 
-      - name: Install Julia deps 
+      - name: Install Julia deps
         shell: bash
-        run: julia -e 'using Pkg; Pkg.add("JSON"); Pkg.add("Jabalizer")'
+        run: julia -e 'using Pkg; Pkg.add("JSON"); Pkg.add("Jabalizer"); Pkg.add("StatsBase")'
 
       - name: Install deps
         shell: bash
@@ -52,7 +52,7 @@ jobs:
       - name: Run tests and gather coverage stats
         shell: bash
         run: make coverage
-      
+
       - name: Comment with code coverage
         uses: zapatacomputing/command-pr-comment@baca4fb9246eaaee3e47f35f296764acc394fae7
         with:

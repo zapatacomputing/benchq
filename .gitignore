@@ -140,3 +140,9 @@ small_molecules/
 
 # ignore decoder data
 decoder_data.csv
+
+# ignore julia config files
+juliapkg.json
+
+# igonore mlflow run files
+*mlruns*

@@ -17,6 +17,10 @@ from openfermionpyscf._run_pyscf import compute_integrals
 from pyscf import gto, mp, scf, dft
 
 
+class SCFConvergenceError(Exception):
+    pass
+
+
 @dataclass
 class ChemistryApplicationInstance:
     """Class for representing chemistry application instances.
@@ -97,12 +101,14 @@ class ChemistryApplicationInstance:
         Returns:
             Tuple whose first element is the PySCF molecule object after AVAS reduction
                 and whose second is the meanfield object containing the SCF solution.
+
+        Raises:
+            SCFConvergenceError: If the SCF calculation does not converge.
         """
         molecule = self.get_pyscf_molecule()
-        mean_field_object = (scf.RHF if self.multiplicity ==
-                             1 else scf.ROHF)(molecule)
-        mean_field_object = mean_field_object.apply(
-            scf.addons.remove_linear_dep_)
+        mean_field_object = (scf.RHF if self.multiplicity == 1 else scf.ROHF)(molecule)
+        mean_field_object = mean_field_object.apply(scf.addons.remove_linear_dep_)
+        mean_field_object.max_memory = 1e6  # set allowed memory high so tests pass
 
         """
         mean_field_object = dft.RKS(molecule)
@@ -132,6 +138,9 @@ class ChemistryApplicationInstance:
         else:
             mean_field_object.run()
 
+        if not mean_field_object.converged:
+            raise SCFConvergenceError()
+
         if self.avas_atomic_orbitals or self.avas_minao:
             molecule, mean_field_object = truncate_with_avas(
                 mean_field_object,
@@ -153,6 +162,9 @@ class ChemistryApplicationInstance:
             occupied_indices: A list of molecular orbitals not in the active space.
                               They need to be consecutive values.
             active_indicies: A list of molecular orbitals to include in the active space. # noqa:E501
+
+        Raises:
+            SCFConvergenceError: If the SCF calculation does not converge.
         """
         molecular_data = self._get_molecular_data()
         mean_field_object = molecular_data._pyscf_data["scf"]
@@ -206,10 +218,10 @@ class ChemistryApplicationInstance:
 
         if len(frozen_natural_orbitals) != 0:
             active_indicies = all_orbital_indicies[
-                len(occupied_indices): -len(frozen_natural_orbitals)
+                len(occupied_indices) : -len(frozen_natural_orbitals)
             ]
         else:
-            active_indicies = all_orbital_indicies[len(occupied_indices):]
+            active_indicies = all_orbital_indicies[len(occupied_indices) :]
 
         return molecular_data, occupied_indices, active_indicies
 
@@ -226,6 +238,9 @@ class ChemistryApplicationInstance:
             The fermionic Hamiltonian corresponding to the instance's active space. Note
                 that the active space will account for both AVAS and the
                 occupied_indices/active_indices attributes.
+
+        Raises:
+            SCFConvergenceError: If the SCF calculation does not converge.
         """
         if (
             self.fno_percentage_occupation_number
@@ -246,8 +261,7 @@ class ChemistryApplicationInstance:
             molecular_data = self._get_molecular_data()
 
             if self.freeze_core:
-                n_frozen_core = self._set_frozen_core_orbitals(
-                    molecular_data).frozen
+                n_frozen_core = self._set_frozen_core_orbitals(molecular_data).frozen
                 if n_frozen_core > 0:
                     self.occupied_indices = list(range(n_frozen_core))
 
@@ -267,6 +281,9 @@ class ChemistryApplicationInstance:
         Returns:
             A meanfield object corresponding to the instance's active space, accounting
                 for AVAS.
+
+        Raises:
+            SCFConvergenceError: If the SCF calculation does not converge.
         """
         if (
             self.active_indices
@@ -289,6 +306,9 @@ class ChemistryApplicationInstance:
         Returns:
             A PyscfMolecularData object corresponding to the meanfield object and
                 molecule.
+
+        Raises:
+            SCFConvergenceError: If the SCF calculation does not converge.
         """
         molecular_data = MolecularData(
             geometry=self.geometry,
@@ -308,10 +328,8 @@ class ChemistryApplicationInstance:
         pyscf_data["mol"] = molecule
         pyscf_data["scf"] = mean_field_object
 
-        molecular_data.canonical_orbitals = mean_field_object.mo_coeff.astype(
-            float)
-        molecular_data.orbital_energies = mean_field_object.mo_energy.astype(
-            float)
+        molecular_data.canonical_orbitals = mean_field_object.mo_coeff.astype(float)
+        molecular_data.orbital_energies = mean_field_object.mo_energy.astype(float)
 
         one_body_integrals, two_body_integrals = compute_integrals(
             mean_field_object._eri, mean_field_object
@@ -378,8 +396,7 @@ def generate_hydrogen_chain_instance(
         bond_distance: The distance between the hydrogen atoms (Angstrom).
     """
     return ChemistryApplicationInstance(
-        geometry=[("H", (0, 0, i * bond_distance))
-                  for i in range(number_of_hydrogens)],
+        geometry=[("H", (0, 0, i * bond_distance)) for i in range(number_of_hydrogens)],
         basis=basis,
         charge=0,
         multiplicity=number_of_hydrogens % 2 + 1,
