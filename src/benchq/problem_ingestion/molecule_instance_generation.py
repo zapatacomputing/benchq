@@ -91,138 +91,131 @@ class ActiveSpaceSpecification:
     fno_n_virtual_natural_orbitals: Optional[int] = None
 
 
-class SCFCalculator:
-    def __init__(
-        self,
-        mol_spec: MoleculeSpecification,
-        active_space_spec: ActiveSpaceSpecification,
-        scf_options: Optional[dict] = None,
-        mlflow_experiment_name: Optional[str] = None,
-        orq_workspace_id: Optional[str] = None,
-    ):
-        self.mol_spec = mol_spec
-        self.active_space_spec = active_space_spec
-        self.scf_options = scf_options
-        self.mlflow_experiment_name = mlflow_experiment_name
-        self.orq_workspace_id = orq_workspace_id
+@dataclass(frozen=True)
+class SCFInfo:
+    mol_spec: MoleculeSpecification
+    active_space_spec: ActiveSpaceSpecification
+    scf_options: Optional[dict] = None
+    mlflow_experiment_name: Optional[str] = None
+    orq_workspace_id: Optional[str] = None
 
-    def get_pyscf_molecule(self) -> gto.Mole:
-        "Generate the PySCF molecule object describing the system to be calculated."
-        pyscf_molecule = gto.Mole()
-        pyscf_molecule.atom = self.mol_spec.geometry
-        pyscf_molecule.basis = self.mol_spec.basis
-        pyscf_molecule.spin = self.mol_spec.multiplicity - 1
-        pyscf_molecule.charge = self.mol_spec.charge
-        pyscf_molecule.symmetry = False
-        pyscf_molecule.build()
-        return pyscf_molecule
 
-    def _run_pyscf(self) -> Tuple[gto.Mole, scf.hf.SCF]:
-        """Run an SCF calculation using PySCF and return the results as a meanfield
-        object.
+def _get_pyscf_molecule(mol_spec: MoleculeSpecification) -> gto.Mole:
+    "Generate the PySCF molecule object describing the system to be calculated."
+    pyscf_molecule = gto.Mole()
+    pyscf_molecule.atom = mol_spec.geometry
+    pyscf_molecule.basis = mol_spec.basis
+    pyscf_molecule.spin = mol_spec.multiplicity - 1
+    pyscf_molecule.charge = mol_spec.charge
+    pyscf_molecule.symmetry = False
+    pyscf_molecule.build()
+    return pyscf_molecule
 
-        Note that this method will apply AVAS but does not account for occupied_indices
-        and active_indices.
 
-        Args:
-            log_to_mlflow: if supplied, will log metrics from SCF calculation to mlflow
+def _run_pyscf(scf_info: SCFInfo) -> Tuple[gto.Mole, scf.hf.SCF]:
+    """Run an SCF calculation using PySCF and return the results as a meanfield
+    object.
 
-        Returns:
-            Tuple whose first element is the PySCF molecule object after AVAS reduction
-                and whose second is the meanfield object containing the SCF solution.
+    Note that this method will apply AVAS but does not account for occupied_indices
+    and active_indices.
 
-        Raises:
-            SCFConvergenceError: If the SCF calculation does not converge.
-        """
-        molecule = self.get_pyscf_molecule()
-        mean_field_object = (scf.RHF if self.mol_spec.multiplicity == 1 else scf.ROHF)(
-            molecule
-        )
-        mean_field_object.max_memory = 1e6  # set allowed memory high so tests pass
+    Args:
+        log_to_mlflow: if supplied, will log metrics from SCF calculation to mlflow
 
-        run_id = None
+    Returns:
+        Tuple whose first element is the PySCF molecule object after AVAS reduction
+            and whose second is the meanfield object containing the SCF solution.
 
-        if self.mlflow_experiment_name is not None:
-            os.environ["MLFLOW_TRACKING_TOKEN"] = sdk.mlflow.get_tracking_token()
-            urllib3.disable_warnings()
+    Raises:
+        SCFConvergenceError: If the SCF calculation does not converge.
+    """
+    molecule = _get_pyscf_molecule(scf_info.mol_spec)
+    mean_field_object = (scf.RHF if scf_info.mol_spec.multiplicity == 1 else scf.ROHF)(
+        molecule
+    )
+    mean_field_object.max_memory = 1e6  # set allowed memory high so tests pass
 
-            flat_mol_dict = _flatten_dict(asdict(self.mol_spec))
-            flat_active_dict = _flatten_dict(asdict(self.active_space_spec))
+    run_id = None
 
-            if self.scf_options is not None:
-                if "callback" in self.scf_options:
-                    # we want to log to mlflow, AND we've defined the
-                    # callback in scf_options
-                    mean_field_object.run(**self.scf_options)
-                else:
-                    # we want to log to mlflow, BUT haven't defined the
-                    # callback in scf_options
-                    if not isinstance(self.orq_workspace_id, str):
-                        raise TypeError(
-                            "orq_workspace_id is not a str, it is "
-                            + str(type(self.orq_workspace_id))
-                            + " Did you remember to pass that in "
-                            "to the ChemistryApplicationInstance?"
-                        )
-                    client, run_id = _create_mlflow_setup(
-                        self.mlflow_experiment_name, self.orq_workspace_id
-                    )
+    if scf_info.mlflow_experiment_name is not None:
+        os.environ["MLFLOW_TRACKING_TOKEN"] = sdk.mlflow.get_tracking_token()
+        urllib3.disable_warnings()
 
-                    for key, val in flat_mol_dict.items():
-                        client.log_param(run_id, key, val)
-                    for key, val in flat_active_dict.items():
-                        client.log_param(run_id, key, val)
-                    temp_options = deepcopy(self.scf_options)
-                    temp_options["callback"] = create_mlflow_scf_callback(
-                        client, run_id
-                    )
-                    mean_field_object.run(**temp_options)
+        flat_mol_dict = _flatten_dict(asdict(scf_info.mol_spec))
+        flat_active_dict = _flatten_dict(asdict(scf_info.active_space_spec))
+
+        if scf_info.scf_options is not None:
+            if "callback" in scf_info.scf_options:
+                # we want to log to mlflow, AND we've defined the
+                # callback in scf_options
+                mean_field_object.run(**scf_info.scf_options)
             else:
-                # we want to log to mlflow, but haven't defined scf_options
-                if not isinstance(self.orq_workspace_id, str):
+                # we want to log to mlflow, BUT haven't defined the
+                # callback in scf_options
+                if not isinstance(scf_info.orq_workspace_id, str):
                     raise TypeError(
                         "orq_workspace_id is not a str, it is "
-                        + str(type(self.orq_workspace_id))
+                        + str(type(scf_info.orq_workspace_id))
                         + " Did you remember to pass that in "
                         "to the ChemistryApplicationInstance?"
                     )
                 client, run_id = _create_mlflow_setup(
-                    self.mlflow_experiment_name, self.orq_workspace_id
+                    scf_info.mlflow_experiment_name, scf_info.orq_workspace_id
                 )
 
                 for key, val in flat_mol_dict.items():
                     client.log_param(run_id, key, val)
                 for key, val in flat_active_dict.items():
                     client.log_param(run_id, key, val)
-                temp_options = {"callback": create_mlflow_scf_callback(client, run_id)}
+                temp_options = deepcopy(scf_info.scf_options)
+                temp_options["callback"] = create_mlflow_scf_callback(client, run_id)
                 mean_field_object.run(**temp_options)
         else:
-            if self.scf_options is not None:
-                # we don't want to run on mlflow, but we've specified scf_options
-                mean_field_object.run(**self.scf_options)
-            else:
-                # we don't want to run on mlflow, and haven't specified scf_options
-                mean_field_object.run()
-
-        if not mean_field_object.converged:
-            raise SCFConvergenceError()
-
-        if (
-            self.active_space_spec.avas_atomic_orbitals
-            or self.active_space_spec.avas_minao
-        ):
-            molecule, mean_field_object = truncate_with_avas(
-                mean_field_object,
-                self.active_space_spec.avas_atomic_orbitals,
-                self.active_space_spec.avas_minao,
+            # we want to log to mlflow, but haven't defined scf_options
+            if not isinstance(scf_info.orq_workspace_id, str):
+                raise TypeError(
+                    "orq_workspace_id is not a str, it is "
+                    + str(type(scf_info.orq_workspace_id))
+                    + " Did you remember to pass that in "
+                    "to the ChemistryApplicationInstance?"
+                )
+            client, run_id = _create_mlflow_setup(
+                scf_info.mlflow_experiment_name, scf_info.orq_workspace_id
             )
-        return molecule, mean_field_object
+
+            for key, val in flat_mol_dict.items():
+                client.log_param(run_id, key, val)
+            for key, val in flat_active_dict.items():
+                client.log_param(run_id, key, val)
+            temp_options = {"callback": create_mlflow_scf_callback(client, run_id)}
+            mean_field_object.run(**temp_options)
+    else:
+        if scf_info.scf_options is not None:
+            # we don't want to run on mlflow, but we've specified scf_options
+            mean_field_object.run(**scf_info.scf_options)
+        else:
+            # we don't want to run on mlflow, and haven't specified scf_options
+            mean_field_object.run()
+
+    if not mean_field_object.converged:
+        raise SCFConvergenceError()
+
+    if (
+        scf_info.active_space_spec.avas_atomic_orbitals
+        or scf_info.active_space_spec.avas_minao
+    ):
+        molecule, mean_field_object = truncate_with_avas(
+            mean_field_object,
+            scf_info.active_space_spec.avas_atomic_orbitals,
+            scf_info.active_space_spec.avas_minao,
+        )
+    return molecule, mean_field_object
 
 
 class ActiveSpaceGenerator:
     def __init__(
         self,
-        scf_info: SCFCalculator,
+        scf_info: SCFInfo,
     ):
         self.scf_info = scf_info
 
@@ -386,7 +379,7 @@ class ActiveSpaceGenerator:
                 "active and occupied indices, as well as with the FNO approach  "
                 " is not currently supported."
             )
-        return self.scf_info._run_pyscf()[1]
+        return _run_pyscf(self.scf_info)[1]
 
     def _get_molecular_data(self, mlflow_experiment_name: Optional[str] = ""):
         """Given a PySCF meanfield object and molecule, return a PyscfMolecularData
@@ -406,7 +399,7 @@ class ActiveSpaceGenerator:
             charge=self.scf_info.mol_spec.charge,
         )
 
-        molecule, mean_field_object = self.scf_info._run_pyscf()
+        molecule, mean_field_object = _run_pyscf(self.scf_info)
         molecular_data.n_orbitals = int(molecule.nao_nr())
         molecular_data.n_qubits = 2 * molecular_data.n_orbitals
         molecular_data.nuclear_repulsion = float(molecule.energy_nuc())
@@ -496,7 +489,7 @@ class ChemistryApplicationInstance:
 
     mol_spec: MoleculeSpecification
     active_space_spec: ActiveSpaceSpecification
-    scf_info: SCFCalculator
+    scf_info: SCFInfo
     active_space_info: ActiveSpaceGenerator
 
     def __init__(
@@ -533,7 +526,7 @@ class ChemistryApplicationInstance:
             fno_threshold=fno_threshold,
             fno_n_virtual_natural_orbitals=fno_n_virtual_natural_orbitals,
         )
-        self.scf_info = SCFCalculator(
+        self.scf_info = SCFInfo(
             mol_spec=self.mol_spec,
             active_space_spec=self.active_space_spec,
             scf_options=scf_options,
@@ -543,7 +536,7 @@ class ChemistryApplicationInstance:
         self.active_space_info = ActiveSpaceGenerator(scf_info=self.scf_info)
 
     def get_pyscf_molecule(self) -> gto.Mole:
-        return self.scf_info.get_pyscf_molecule()
+        return _get_pyscf_molecule(self.mol_spec)
 
     def get_occupied_and_active_indicies_with_FNO(
         self,
