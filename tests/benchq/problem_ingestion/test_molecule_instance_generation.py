@@ -8,8 +8,7 @@ from benchq.problem_ingestion.molecule_instance_generation import (
 
 
 def _generate_avas_hydrogen_chain_instance(n_hydrogens):
-    avas_hydrogen_chain_instance = generate_hydrogen_chain_instance(
-        n_hydrogens)
+    avas_hydrogen_chain_instance = generate_hydrogen_chain_instance(n_hydrogens)
     avas_hydrogen_chain_instance.avas_atomic_orbitals = ["H 1s"]
     avas_hydrogen_chain_instance.avas_minao = "sto-3g"
     return avas_hydrogen_chain_instance
@@ -32,8 +31,7 @@ def test_hamiltonian_has_correct_number_of_qubits(
 
 def test_active_space_mean_field_object_has_valid_number_of_orbitals_with_avas_():
     number_of_hydrogens = 2
-    instance = generate_hydrogen_chain_instance(
-        number_of_hydrogens=number_of_hydrogens)
+    instance = generate_hydrogen_chain_instance(number_of_hydrogens=number_of_hydrogens)
     instance.avas_atomic_orbitals = ["H 1s", "H 2s"]
     instance.avas_minao = "sto-3g"
     total_number_of_orbitals = 2 * number_of_hydrogens
@@ -117,8 +115,7 @@ def test_get_molecular_data_with_fno_no_frozen_core(water_instance, fno_water_in
 
 
 @pytest.mark.parametrize(
-    "method", ["get_active_space_meanfield_object",
-               "get_active_space_hamiltonian"]
+    "method", ["get_active_space_meanfield_object", "get_active_space_hamiltonian"]
 )
 def test_get_active_space_meanfield_object_raises_scf_convergence_error(method):
     instance = generate_hydrogen_chain_instance(2)
