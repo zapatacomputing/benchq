@@ -540,9 +540,7 @@ class ChemistryApplicationInstance:
             mlflow_experiment_name=mlflow_experiment_name,
             orq_workspace_id=orq_workspace_id,
         )
-        self.active_space_info = ActiveSpaceGenerator(
-            scf_info=self.scf_info
-        )
+        self.active_space_info = ActiveSpaceGenerator(scf_info=self.scf_info)
 
     def get_pyscf_molecule(self) -> gto.Mole:
         return self.scf_info.get_pyscf_molecule()
