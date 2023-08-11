@@ -52,10 +52,7 @@ def get_ruby_slippers_compiler(
 
         print("getting networkx graph from vertices")
         start = time.time()
-        graph = nx.empty_graph(len(adj))
-        for vertex_id, neighbors in enumerate(adj):
-            for neighbor in neighbors:
-                graph.add_edge(vertex_id, neighbor)
+        graph = get_nx_graph_from_rbs_adj_list(adj)
         end = time.time()
         print("time: ", end - start)
 
