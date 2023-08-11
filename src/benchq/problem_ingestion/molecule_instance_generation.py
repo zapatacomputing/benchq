@@ -91,7 +91,7 @@ class ActiveSpaceSpecification:
     fno_n_virtual_natural_orbitals: Optional[int] = None
 
 
-class ChemistryApplicationSCFInfo:
+class SCFCalculator:
     def __init__(
         self,
         mol_spec: MoleculeSpecification,
@@ -219,10 +219,10 @@ class ChemistryApplicationSCFInfo:
         return molecule, mean_field_object
 
 
-class ChemistryApplicationActiveSpaceInfo:
+class ActiveSpaceGenerator:
     def __init__(
         self,
-        scf_info: ChemistryApplicationSCFInfo,
+        scf_info: SCFCalculator,
     ):
         self.scf_info = scf_info
 
@@ -496,8 +496,8 @@ class ChemistryApplicationInstance:
 
     mol_spec: MoleculeSpecification
     active_space_spec: ActiveSpaceSpecification
-    scf_info: ChemistryApplicationSCFInfo
-    active_space_info: ChemistryApplicationActiveSpaceInfo
+    scf_info: SCFCalculator
+    active_space_info: ActiveSpaceGenerator
 
     def __init__(
         self,
@@ -533,14 +533,14 @@ class ChemistryApplicationInstance:
             fno_threshold=fno_threshold,
             fno_n_virtual_natural_orbitals=fno_n_virtual_natural_orbitals,
         )
-        self.scf_info = ChemistryApplicationSCFInfo(
+        self.scf_info = SCFCalculator(
             mol_spec=self.mol_spec,
             active_space_spec=self.active_space_spec,
             scf_options=scf_options,
             mlflow_experiment_name=mlflow_experiment_name,
             orq_workspace_id=orq_workspace_id,
         )
-        self.active_space_info = ChemistryApplicationActiveSpaceInfo(
+        self.active_space_info = ActiveSpaceGenerator(
             scf_info=self.scf_info
         )
 
