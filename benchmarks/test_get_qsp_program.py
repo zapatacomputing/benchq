@@ -60,7 +60,6 @@ def jw_test_case():
 
 
 def fast_load_test_cases():
-
     evolution_time = 5
     failure_tolerance = 1e-3
     base_location = "./examples/data/"
