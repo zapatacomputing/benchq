@@ -75,9 +75,9 @@ def test_mean_field_object_has_valid_default_scf_options():
     assert mean_field_object.level_shift == 0
 
 
-def _fno_water_instance(
+def _water_instance(
     freeze_core: Optional[bool] = None,
-    fno_percentage_occupation_number=0.9,
+    fno_percentage_occupation_number=None,
     scf_options=None,
     mlflow_experiment_name=None,
     orq_workspace_id=None,
@@ -101,41 +101,30 @@ def _fno_water_instance(
     return water_instance
 
 
-def test_get_occupied_and_active_indicies_with_FNO_frozen_core():
-    fno_water_instance_frozen_core = _fno_water_instance(freeze_core=True)
-    (
-        molecular_data,
-        occupied_indices,
-        active_indicies,
-    ) = fno_water_instance_frozen_core.get_occupied_and_active_indicies_with_FNO()
+def test_get_molecular_data_with_FNO_frozen_core():
+    standard_water_instance = _water_instance()
+    n_orbitals_no_fno_no_fzc = (
+        standard_water_instance.active_space_gen._get_molecular_data().n_orbitals
+    )
 
-    assert len(occupied_indices) == 1
-    assert len(active_indicies) < molecular_data.n_orbitals
+    fno_water_instance = _water_instance(fno_percentage_occupation_number=0.9)
+    fno_water_instance.freeze_core = True
 
+    molecular_data = fno_water_instance.active_space_gen._get_molecular_data()
 
-def test_get_occupied_and_active_indicies_with_FNO_no_freeze_core():
-    fno_water_instance_thawed_core = _fno_water_instance(freeze_core=False)
-    (
-        molecular_data,
-        occupied_indices,
-        active_indicies,
-    ) = fno_water_instance_thawed_core.get_occupied_and_active_indicies_with_FNO()
-
-    assert len(occupied_indices) == 0
-    assert len(active_indicies) < molecular_data.n_orbitals
+    assert molecular_data.n_orbitals < n_orbitals_no_fno_no_fzc
 
 
-def test_get_occupied_and_active_indicies_with_FNO_no_virtual_frozen_orbitals():
-    fno_water_instance = _fno_water_instance(fno_percentage_occupation_number=0.0)
+def test_get_molecular_data_with_fno_no_frozen_core():
+    standard_water_instance = _water_instance()
+    n_orbitals_no_fno_no_fzc = (
+        standard_water_instance.active_space_gen._get_molecular_data().n_orbitals
+    )
 
-    (
-        molecular_data,
-        occupied_indices,
-        active_indicies,
-    ) = fno_water_instance.get_occupied_and_active_indicies_with_FNO()
+    fno_water_instance = _water_instance(fno_percentage_occupation_number=0.9)
+    molecular_data = fno_water_instance.active_space_gen._get_molecular_data()
 
-    assert len(occupied_indices) == 0
-    assert len(active_indicies) < molecular_data.n_orbitals
+    assert molecular_data.n_orbitals < n_orbitals_no_fno_no_fzc
 
 
 @pytest.mark.parametrize(
@@ -288,123 +277,6 @@ def test_get_active_space_hamiltonian_logs_to_mlflow_with_scf_options_no_callbac
         ANY,  # Second param is random run_id
         "geometry",  # key
         [("H", (0, 0, 0.0)), ("H", (0, 0, 1.3))],  # val
-    )
-    patch_log_param.assert_any_call(ANY, ANY, "basis", "6-31g")
-
-    # last param (value) depends on optimization, so could be different run-to-run
-    patch_log_metric.assert_any_call(ANY, ANY, "last_hf_e", ANY)
-    patch_log_metric.assert_any_call(ANY, ANY, "cput0_0", ANY)
-
-
-def test_get_occupied_and_active_indicies_with_FNO_logs_to_mlflow_no_specified_callback(
-    patch_log_metric,
-    patch_log_param,
-    patch_sdk_token,
-    patch_sdk_uri,
-):
-    # Given
-    fno_water_instance_frozen_core = _fno_water_instance(
-        freeze_core=True,
-        mlflow_experiment_name="pytest",
-        orq_workspace_id="testing",
-    )
-
-    # When
-    (
-        molecular_data,
-        occupied_indices,
-        active_indicies,
-    ) = fno_water_instance_frozen_core.get_occupied_and_active_indicies_with_FNO()
-
-    # Then
-    patch_log_param.assert_called()
-    patch_log_metric.assert_called()
-
-    patch_log_param.assert_any_call(
-        ANY,  # First param is "self" which in this case is MlflowClient object
-        ANY,  # Second param is random run_id
-        "geometry",  # key
-        [
-            ("O", (0.0, -0.075791844, 0.0)),
-            ("H", (0.866811829, 0.601435779, 0.0)),
-            ("H", (-0.866811829, 0.601435779, 0.0)),
-        ],  # val
-    )
-    patch_log_param.assert_any_call(ANY, ANY, "basis", "6-31g")
-
-    # last param (value) depends on optimization, so could be different run-to-run
-    patch_log_metric.assert_any_call(ANY, ANY, "last_hf_e", ANY)
-    patch_log_metric.assert_any_call(ANY, ANY, "cput0_0", ANY)
-
-
-def test_get_occupied_and_active_indicies_w_FNO_log_to_mlflow_w_given_callback(
-    patch_sdk_token,
-    patch_sdk_uri,
-    patch_local_client,
-):
-    # Given
-    experiment_name = patch_local_client.create_experiment(
-        "test_get_occupied_and_active_indicies_w_FNO_log_to_mlflow_w_given_callback",
-    )
-    experiment = patch_local_client.get_experiment_by_name(name=experiment_name)
-    run_id = patch_local_client.create_run(experiment.experiment_id).info.run_id
-    scf_callback = create_mlflow_scf_callback(patch_local_client, run_id)
-    scf_options = {"callback": scf_callback}
-    fno_water_instance_frozen_core = _fno_water_instance(
-        freeze_core=True,
-        scf_options=scf_options,
-        orq_workspace_id="testing",
-    )
-
-    # When
-    (
-        molecular_data,
-        occupied_indices,
-        active_indicies,
-    ) = fno_water_instance_frozen_core.get_occupied_and_active_indicies_with_FNO()
-
-    # Then
-    patch_local_client.log_metric.assert_called()
-
-    # last param (value) depends on optimization, so could be different run-to-run
-    patch_local_client.log_metric.assert_any_call(ANY, "last_hf_e", ANY)
-    patch_local_client.log_metric.assert_any_call(ANY, "cput0_0", ANY)
-
-
-def test_get_occupied_and_active_indicies_with_FNO_log_mlflow_w_scf_opt_no_callback(
-    patch_log_metric,
-    patch_log_param,
-    patch_sdk_token,
-    patch_sdk_uri,
-):
-    # Given
-    fno_water_instance_frozen_core = _fno_water_instance(
-        freeze_core=True,
-        mlflow_experiment_name="pytest",
-        orq_workspace_id="testing",
-        scf_options={"max_cycle": 100},
-    )
-
-    # When
-    (
-        molecular_data,
-        occupied_indices,
-        active_indicies,
-    ) = fno_water_instance_frozen_core.get_occupied_and_active_indicies_with_FNO()
-
-    # Then
-    patch_log_param.assert_called()
-    patch_log_metric.assert_called()
-
-    patch_log_param.assert_any_call(
-        ANY,  # First param is "self" which in this case is MlflowClient object
-        ANY,  # Second param is random run_id
-        "geometry",  # key
-        [
-            ("O", (0.0, -0.075791844, 0.0)),
-            ("H", (0.866811829, 0.601435779, 0.0)),
-            ("H", (-0.866811829, 0.601435779, 0.0)),
-        ],  # val
     )
     patch_log_param.assert_any_call(ANY, ANY, "basis", "6-31g")
 
