@@ -308,18 +308,17 @@ class ActiveSpaceGenerator:
         """
 
         molecular_data = self._get_molecular_data()
+        occupied_idx = self.scf_info.active_space_spec.occupied_indices
 
         if self.scf_info.active_space_spec.freeze_core:
             n_frozen_core = (
                 mp.MP2(molecular_data._pyscf_data["scf"]).set_frozen().frozen
             )
             if n_frozen_core > 0:
-                self.scf_info.active_space_spec.occupied_indices = list(
-                    range(n_frozen_core)
-                )
+                occupied_idx = list(range(n_frozen_core))
 
         return molecular_data.get_molecular_hamiltonian(
-            occupied_indices=self.scf_info.active_space_spec.occupied_indices,
+            occupied_indices=occupied_idx,
             active_indices=self.scf_info.active_space_spec.active_indices,
         )
 
