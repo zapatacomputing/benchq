@@ -151,7 +151,6 @@ function get_graph_state_data(
     hyperparams::RubySlippersHyperparams=default_hyperparams,
     max_time::Float64=1e8,
 )
-    start_time = time()
 
     n_qubits = pyconvert(Int, circuit.n_qubits)
     ops = circuit.operations
@@ -162,7 +161,6 @@ function get_graph_state_data(
         println("Memory for data structures allocated")
     end
 
-
     data_qubits = [Qubit(i) for i = 1:n_qubits]
     curr_qubits = [n_qubits] # make this a list so it can be modified in place
     supported_ops = get_op_list()
@@ -170,6 +168,8 @@ function get_graph_state_data(
     total_length = length(ops)
     counter = dispcnt = 0
     erase = "        \b\b\b\b\b\b\b\b"
+
+    start_time = time()
 
     for (i, op) in enumerate(ops)
         elapsed = time() - start_time
