@@ -10,6 +10,10 @@ from graph_state_generation.optimizers import (
     greedy_stabilizer_measurement_scheduler,
 )
 from graph_state_generation.substrate_scheduler import TwoRowSubstrateScheduler
+from graph_state_generation.optimizers import (
+    fast_maximal_independent_set_stabilizer_reduction,
+)
+
 
 from ...data_structures import (
     AlgorithmImplementation,
@@ -21,6 +25,7 @@ from ...data_structures import (
     GraphResourceInfo,
 )
 from ..magic_state_distillation import Widget, default_widget_list
+import time
 
 INITIAL_SYNTHESIS_ACCURACY = 0.0001
 
@@ -38,12 +43,11 @@ def substrate_scheduler(graph: nx.Graph, preset: str) -> TwoRowSubstrateSchedule
         TwoRowSubstrateScheduler: A substrate scheduler object with the schedule
             already created.
     """
-    connected_graph = graph.copy()
-    connected_graph.remove_nodes_from(list(nx.isolates(graph)))  # remove isolated nodes
-    connected_graph = nx.convert_node_labels_to_integers(connected_graph)
+    print("starting substrate scheduler")
+    start = time.time()
     if preset == "fast":
         compiler = TwoRowSubstrateScheduler(
-            connected_graph,
+            graph,
             stabilizer_scheduler=greedy_stabilizer_measurement_scheduler,
         )
     if preset == "optimized":
@@ -53,6 +57,8 @@ def substrate_scheduler(graph: nx.Graph, preset: str) -> TwoRowSubstrateSchedule
             stabilizer_scheduler=greedy_stabilizer_measurement_scheduler,
         )
     compiler.run()
+    end = time.time()
+    print("substrate scheduler took", end - start, "seconds")
     return compiler
 
 
@@ -97,8 +103,8 @@ class GraphResourceEstimator:
 
     def _get_n_measurement_steps(self, graph) -> int:
         compiler = substrate_scheduler(graph, self.substrate_scheduler_preset)
-        n_steps = len(compiler.measurement_steps)
-        return n_steps
+        n_measurement_steps = len(compiler.measurement_steps)
+        return n_measurement_steps
 
     def _get_graph_data_for_single_graph(self, problem: GraphPartition) -> GraphData:
         graph = problem.subgraphs[0]
