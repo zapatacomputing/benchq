@@ -98,8 +98,6 @@ function run_ruby_slippers(
         (lco, adj) = get_graph_state_data(circuit, false, max_graph_size, hyperparams)
     end
 
-    format_for_return!(lco, adj)
-
     return pylist(lco), python_adjlist!(adj)
 end
 
@@ -623,29 +621,6 @@ function teleportation!(
     end
 
     return kansas_qubit
-end
-
-
-function format_for_return!(lco, adj)
-    # remove a random maximal independent set
-    mis = []
-    remaining_nodes = [1:length(lco);]
-    while length(remaining_nodes) > 0
-        node = sample(remaining_nodes, 1)[1]
-        append!(mis, node)
-        remaining_nodes = setdiff(remaining_nodes, adj[node])
-        remaining_nodes = setdiff(remaining_nodes, [node])
-    end
-    remove_vertices!(lco, adj, mis)
-end
-
-function remove_vertices!(lco, adj, verticies_to_remove)
-    for i = 1:length(adj)
-        setdiff!(adj[i], verticies_to_remove)
-    end
-
-    deleteat!(adj, verticies_to_remove)
-    deleteat!(lco, verticies_to_remove)
 end
 
 
