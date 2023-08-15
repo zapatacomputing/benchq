@@ -1,3 +1,4 @@
+import time
 import warnings
 from dataclasses import replace
 from decimal import Decimal, getcontext
@@ -21,7 +22,6 @@ from ...data_structures import (
     GraphResourceInfo,
 )
 from ..magic_state_distillation import Widget, default_widget_list
-import time
 
 INITIAL_SYNTHESIS_ACCURACY = 0.0001
 
