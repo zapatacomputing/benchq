@@ -11,7 +11,6 @@ from graph_state_generation.optimizers import (
 )
 from graph_state_generation.substrate_scheduler import TwoRowSubstrateScheduler
 
-
 from ...data_structures import (
     AlgorithmImplementation,
     BasicArchitectureModel,

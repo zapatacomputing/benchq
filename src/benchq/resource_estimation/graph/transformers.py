@@ -11,7 +11,6 @@ from ...data_structures import (
     QuantumProgram,
     get_program_from_circuit,
 )
-import networkx as nx
 
 
 def _distribute_transpilation_failure_tolerance(
