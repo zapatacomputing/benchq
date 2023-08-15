@@ -28,7 +28,9 @@ INITIAL_SYNTHESIS_ACCURACY = 0.0001
 
 def substrate_scheduler(graph: nx.Graph, preset: str) -> TwoRowSubstrateScheduler:
     """A simple interface for running the substrate scheduler. Can be run quickly or
-    optimized for smaller runtime.
+    optimized for smaller runtime. Using the "optimized" preset can halve the number
+    of measurement steps, but takes about 100x longer to run. It's probably only
+    suitable for graphs with less than 10^5 nodes.
 
     Args:
         graph (nx.Graph): Graph to create substrate schedule for.
