@@ -13,10 +13,17 @@ def get_algorithmic_graph_from_ruby_slippers(circuit):
 
     print("getting networkx graph from vertices")
     start = time.time()
+    # create graph from vertices
     graph = nx.empty_graph(len(adj))
     for vertex_id, neighbors in enumerate(adj):
         for neighbor in neighbors:
             graph.add_edge(vertex_id, neighbor)
+
+    # remove isolated nodes
+    isolated_nodes = list(nx.isolates(graph))
+    graph.remove_nodes_from(isolated_nodes)
+    graph = nx.convert_node_labels_to_integers(graph)
+
     end = time.time()
     print("time: ", end - start)
 

@@ -10,9 +10,6 @@ from graph_state_generation.optimizers import (
     greedy_stabilizer_measurement_scheduler,
 )
 from graph_state_generation.substrate_scheduler import TwoRowSubstrateScheduler
-from graph_state_generation.optimizers import (
-    fast_maximal_independent_set_stabilizer_reduction,
-)
 
 
 from ...data_structures import (

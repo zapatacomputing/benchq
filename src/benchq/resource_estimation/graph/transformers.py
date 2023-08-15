@@ -79,16 +79,9 @@ def create_big_graph_from_subcircuits(
     graph_production_method=get_algorithmic_graph_from_ruby_slippers,
 ) -> Callable[[QuantumProgram], GraphPartition]:
     def _transformer(program: QuantumProgram) -> GraphPartition:
-        # get graph
         big_circuit = program.full_circuit
         new_program = get_program_from_circuit(big_circuit)
         graph = graph_production_method(big_circuit)
-
-        # remove isolated nodes
-        isolated_nodes = list(nx.isolates(graph))
-        graph.remove_nodes_from(isolated_nodes)
-        graph = nx.convert_node_labels_to_integers(graph)
-
         return GraphPartition(new_program, [graph])
 
     return _transformer
