@@ -24,6 +24,7 @@ def _azure_result_to_resource_info(job_results: dict) -> AzureResourceInfo:
         logical_error_rate=job_results["errorBudget"]["logical"],
         decoder_info=None,
         widget_name="default",
+        routing_to_measurement_volume_ratio=0,
         extra=AzureExtra(
             cycle_time=job_results["logicalQubit"]["logicalCycleTime"],
             depth=job_results["physicalCounts"]["breakdown"]["algorithmicLogicalDepth"],
