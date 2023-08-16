@@ -1,3 +1,4 @@
+import os
 import random
 import string
 
@@ -33,6 +34,12 @@ def large_circuit():
 def small_circuit():
     circ = Circuit([H(0), CNOT(0, 1)])
     return transpile_to_native_gates(circ)
+
+
+SKIP_SLOW = pytest.mark.skipif(
+    os.getenv("SLOW_BENCHMARKS") is None,
+    reason="Slow benchmarks can only run if SLOW_BENCHMARKS env variable is defined",
+)
 
 
 @pytest.mark.parametrize("space_or_time", ["space", "time"])
@@ -185,6 +192,7 @@ def test_create_estimated_rbs_time_objective_fn_sanity_check(small_circuit):
     assert callable(objective)
 
 
+@SKIP_SLOW
 def test_get_optimal_hyperparams_for_space(large_circuit):
     # when
     optimal_params = get_optimal_hyperparams_for_space(
@@ -209,6 +217,7 @@ def test_get_optimal_hyperparams_for_space(large_circuit):
     )
 
 
+@SKIP_SLOW
 def test_get_optimal_hyperparams_for_time(large_circuit):
     # when
     optimal_params = get_optimal_hyperparams_for_time(
@@ -233,6 +242,7 @@ def test_get_optimal_hyperparams_for_time(large_circuit):
     )
 
 
+@SKIP_SLOW
 def test_get_optimal_hyperparams_for_space_and_time(large_circuit):
     # given/when
     optimal_params = get_optimal_hyperparams_for_space_and_time(
@@ -257,6 +267,7 @@ def test_get_optimal_hyperparams_for_space_and_time(large_circuit):
     )
 
 
+@SKIP_SLOW
 def test_get_optimal_hyperparams_for_estimated_rbs_time(large_circuit):
     # when
     optimal_params = get_optimal_hyperparams_for_estimated_rbs_time(
