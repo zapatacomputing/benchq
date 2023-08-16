@@ -1,6 +1,10 @@
 ###############################################################################
 # © Copyright 2022-2023 Zapata Computing Inc.
 ###############################################################################
+# Implementation of an algorithm for LDE solver based on the research paper
+# "Time-marching based quantum solvers for time-dependent linear differential equations"
+# (https://arxiv.org/abs/2208.06941)
+
 from math import ceil
 from typing import Tuple
 
@@ -10,6 +14,7 @@ from orquestra.integrations.qiskit.conversions import (
     import_from_qiskit,
 )
 from orquestra.quantum.circuits import PHASE, RZ, SX, Circuit, X
+from qiskit import QuantumCircuit, transpile
 
 from .lin_and_dong_qsp import build_qsp_circuit
 
@@ -31,15 +36,15 @@ def get_kappa(matrix_norm: float, time_interval: float) -> float:
 
 def get_degree(kappa: float, epsilon: float) -> int:
     """Calculates an estimation of the degree of an approximating polynomial
-    such that the polynomial is epsilon-close to the desired function.
-    For the matrix inversion problem, the function to be approximated is 1/x.
+    such that the polynomial is epsilon-close to the desired function f(x) = 1/x
+    (matrix inversion problems).
 
     The formula is given by the equations (35)-(36) as described in the paper
     by Y. Dong, X. Meng, K. B. Whaley, and L. Lin.
     "Efficient Phase Factor Evaluation in Quantum Signal Processing".
     https://arxiv.org/pdf/2002.11649.pdf
 
-    Note that in this implementation the degree of polynomial is devided
+    Note that in this implementation the degree of polynomial is divided
     by the factor of 3 to reflect a result of a possible improvements
     by Remez algorithm: https://en.wikipedia.org/wiki/Remez_algorithm
 
@@ -169,20 +174,22 @@ def control_prep(k: int, beta: float) -> Tuple[Circuit, Circuit]:
 def inverse_blockencoding(
     be_matrix: Circuit, matrix_norm: float, time: float, beta: float, epsilon: float
 ) -> Circuit:
-    """Construct SEL_inv, an inverse of block encoding, utilizing the QSP.
+    """Constructs SEL_inv, an inverse of the block encoding, utilizing the QSP.
+    SEL_inv represents the inverse of a single time step evolution of the LDE,
+    and is described by 1/(z-z0) as given in the Cauchy's formula for contour integral.
 
     Args:
         be_matrix (Circuit): the block encoding of a matrix.
-        matrix_norm (float): the norm of the matrix that is
+        matrix_norm (float): Frobenius norm of the matrix that is
             to be block encoded.
         time (float): the time interval one seeks solution
             for a differntial equation.
         beta (float): a bounding parameter of the matrix.
         epsilon (float): an accuracy for the polynomial approximation.
 
-        Returns:
-            sel_inverse (Circuit): an instance of oqquestra quantum circuit
-                representing the inverse of block encoding.
+    Returns:
+        sel_inverse (Circuit): an Orquestra quantum circuit representing
+            the inverse of block encoding.
     """
 
     # number of grid points
@@ -194,7 +201,7 @@ def inverse_blockencoding(
 
     prep, prep_prime = control_prep(k=k, beta=beta)
     prep_prime_dag = prep_prime.inverse()
-    grid_qubits = ceil(np.log2(k)) + 1
+    grid_qubits = ceil(np.log2(k))
 
     # contruct the circuit representing SEL
     sel = Circuit()
@@ -215,3 +222,46 @@ def inverse_blockencoding(
     sel_inverse = build_qsp_circuit(qsp_qubits, qiskit_sel, phi_seq, realpart=True)
 
     return import_from_qiskit(sel_inverse)
+
+
+def get_prep_int(
+    matrix_norm: float, beta: float, epsilon: float
+) -> Tuple[Circuit, Circuit]:
+    """Constructs unitaries that prepare states COEF_int and COEF_int_prime
+        to encode the amplitude coefficients. COEF_int_prime is complex conjugate
+        of COEF_int.
+
+    Args:
+        matrix_norm (float): Frobenius norm of the matrix that is
+            to be block encoded.
+        beta (float): bounding parameter of the matrix.
+        epsilon (float): an accuracy for the polynomial approximation.
+
+    Returns:
+        prep_int, prep__int_prime (Circuit): unitaries corresponding to
+            PREP_int and PREP_int_prime.
+    """
+
+    k = get_num_of_grid_points(matrix_norm, epsilon, beta)
+    num_qubits = ceil(np.log2(k))
+
+    z_k = [beta * np.exp(2 * np.pi * 1.0j * i / k) for i in range(k)]
+    # construct COEF_int and PRIME_int
+    unnorm_state = np.sqrt(z_k * np.exp(z_k))
+    norm_state = unnorm_state / np.linalg.norm(unnorm_state)
+    coef_int = np.pad(norm_state, (0, 2**num_qubits - k))  # pad with 0's
+
+    prep_int = QuantumCircuit(num_qubits)
+    prep_int.initialize(coef_int, prep_int.qubits)
+    prep_int = transpile(prep_int, basis_gates=["rz", "h", "cx"])
+
+    # construct COEF_int_prime and PRIME_int_prime
+    unnorm_state_prime = np.conjugate(unnorm_state)
+    norm_state_prime = unnorm_state_prime / np.linalg.norm(unnorm_state_prime)
+    coef_int_prime = np.pad(norm_state_prime, (0, 2**num_qubits - k))
+
+    prep_int_prime = QuantumCircuit(num_qubits)
+    prep_int_prime.initialize(coef_int_prime, prep_int_prime.qubits)
+    prep_int_prime = transpile(prep_int_prime, basis_gates=["rz", "h", "cx"])
+
+    return import_from_qiskit(prep_int), import_from_qiskit(prep_int_prime)

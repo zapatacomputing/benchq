@@ -39,6 +39,7 @@ class ResourceInfo(Generic[TExtra]):
     total_time_in_seconds: float
     decoder_info: Optional[DecoderInfo]
     widget_name: str
+    routing_to_measurement_volume_ratio: float
     extra: TExtra
 
 
