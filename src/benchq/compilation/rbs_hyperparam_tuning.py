@@ -1,7 +1,7 @@
 import optuna
 import networkx as nx
-from icecream import ic
-from orquestra.quantum.circuits import Circuit
+from orquestra.quantum.circuits import Circuit, H
+from math import ceil
 
 from ..data_structures import (
     BASIC_SC_ARCHITECTURE_MODEL,
@@ -26,9 +26,15 @@ def space_time_cost_from_rbs(
     min_neighbors=6,
     max_num_neighbors_to_search=1e5,
     decomposition_strategy=1,
+    circuit_prop_estimate=1.0,
 ):
+    new_circuit = circuit
+    if circuit_prop_estimate != 1.0:
+        num_op = ceil(len(circuit.operations) * circuit_prop_estimate)
+        new_circuit = Circuit(circuit.operations[:num_op])
+
     _, adj, iteration_prop = jl.run_ruby_slippers(
-        circuit,
+        new_circuit,
         verbose,
         max_graph_size,
         teleportation_threshold,
@@ -39,15 +45,14 @@ def space_time_cost_from_rbs(
         rbs_iteration_time,
     )
 
-    # ic(adj)
-    # print(adj)
-
-    ic(iteration_prop)
-    print(iteration_prop)
+    if iteration_prop == 1.0 and circuit_prop_estimate != 1.0:
+        raise RuntimeError(
+            "Reached the end of rbs iteration with reduced circuit size. "
+            "Either increase circuit_prop_estimate, decrease rbs_iteration_time, or both."
+        )
 
     estimated_time = rbs_iteration_time / iteration_prop
     time_overrun = estimated_time - max_allowed_time
-    ic(time_overrun)
     # max value for float is approx 10^308, avoid going past that
     if time_overrun > 300:
         time_overrun = 300
@@ -59,8 +64,10 @@ def space_time_cost_from_rbs(
     nx_graph.remove_nodes_from(isolated_nodes)
     nx_graph = nx.convert_node_labels_to_integers(nx_graph)
 
+    dummy_circuit = Circuit([H(0)])
+
     quantum_program = QuantumProgram(
-        [circuit],
+        [dummy_circuit],
         1,
         lambda x: [0] * x,
     )
@@ -70,10 +77,8 @@ def space_time_cost_from_rbs(
     graph_data = empty_graph_re._get_graph_data_for_single_graph(graph_partition)
 
     if space_or_time == "space":
-        ic(graph_data.max_graph_degree)
         return (10**time_overrun) + graph_data.max_graph_degree - 1
     elif space_or_time == "time":
-        ic(graph_data.n_measurement_steps)
         return (10**time_overrun) + graph_data.n_measurement_steps - 1
     elif space_or_time == "space&time":
         return (
@@ -97,9 +102,16 @@ def estimated_time_cost_from_rbs(
     min_neighbors=6,
     max_num_neighbors_to_search=1e5,
     decomposition_strategy=1,
+    circuit_prop_estimate=1.0,
 ):
+
+    new_circuit = circuit
+    if circuit_prop_estimate != 1.0:
+        num_op = ceil(len(circuit.operations) * circuit_prop_estimate)
+        new_circuit = Circuit(circuit.operations[:num_op])
+
     _, adj, iteration_prop = jl.run_ruby_slippers(
-        circuit,
+        new_circuit,
         verbose,
         max_graph_size,
         teleportation_threshold,
@@ -118,6 +130,7 @@ def create_space_time_objective_fn(
     max_allowed_time: float,
     space_or_time: str,
     circuit: Circuit,
+    circuit_prop_estimate: float = 1.0,
 ):
     def objective(trial):
         teleportation_threshold = trial.suggest_int("teleportation_threshold", 10, 70)
@@ -142,12 +155,17 @@ def create_space_time_objective_fn(
             min_neighbors=min_neighbors,
             max_num_neighbors_to_search=max_num_neighbors_to_search,
             decomposition_strategy=decomposition_strategy,
+            circuit_prop_estimate=circuit_prop_estimate,
         )
 
     return objective
 
 
-def create_estimated_rbs_time_objective_fn(rbs_iteration_time: float, circuit: Circuit):
+def create_estimated_rbs_time_objective_fn(
+    rbs_iteration_time: float,
+    circuit: Circuit,
+    circuit_prop_estimate: float = 1.0,
+):
     def objective(trial):
         teleportation_threshold = trial.suggest_int("teleportation_threshold", 10, 70)
         teleportation_distance = trial.suggest_int("teleportation_distance", 1, 7)
@@ -169,6 +187,7 @@ def create_estimated_rbs_time_objective_fn(rbs_iteration_time: float, circuit: C
             min_neighbors=min_neighbors,
             max_num_neighbors_to_search=max_num_neighbors_to_search,
             decomposition_strategy=decomposition_strategy,
+            circuit_prop_estimate=circuit_prop_estimate,
         )
 
     return objective
@@ -179,12 +198,14 @@ def get_optimal_hyperparams_for_space(
     max_allowed_time: float,
     circuit: Circuit,
     n_trials: int,
+    circuit_prop_estimate: float = 1.0,
 ):
     objective = create_space_time_objective_fn(
         rbs_iteration_time,
         max_allowed_time,
         "space",
         circuit,
+        circuit_prop_estimate,
     )
     study = optuna.create_study()
     study.optimize(objective, n_trials=n_trials, catch=(ValueError,))
@@ -198,14 +219,15 @@ def get_optimal_hyperparams_for_time(
     max_allowed_time: float,
     circuit: Circuit,
     n_trials: int,
+    circuit_prop_estimate: float = 1.0,
 ):
     transpiled_circ = transpile_to_native_gates(circuit)
-    # ic(transpiled_circ.operations[:100])
     objective = create_space_time_objective_fn(
         rbs_iteration_time,
         max_allowed_time,
         "time",
         transpiled_circ,
+        circuit_prop_estimate,
     )
     study = optuna.create_study()
     study.optimize(objective, n_trials=n_trials, catch=(IndexError,))
@@ -219,7 +241,8 @@ def get_optimal_hyperparams_for_space_and_time(
     max_allowed_time: float,
     circuit: Circuit,
     n_trials: int,
-    space_weight: float,
+    space_weight: float = 0.5,
+    circuit_prop_estimate: float = 1.0,
 ):
     transpiled_circ = transpile_to_native_gates(circuit)
     objective = create_space_time_objective_fn(
@@ -227,6 +250,7 @@ def get_optimal_hyperparams_for_space_and_time(
         max_allowed_time,
         "space&time",
         transpiled_circ,
+        circuit_prop_estimate,
     )
     study = optuna.create_study(directions=["minimize", "minimize"])
     study.optimize(objective, n_trials=n_trials, catch=(IndexError,))
@@ -236,7 +260,11 @@ def get_optimal_hyperparams_for_space_and_time(
     best_score = 100000000
 
     for trial in study.best_trials:
-        new_score = trial.values[0] * space_weight + trial.values[1] * (
+        # That 5 is based on some observations that (generally) as the best space
+        # score decreased by 1, the best time score increases by 5. That is, to make
+        # it closer to an even trade-off, space should be weighted 5x more by
+        # default and the user can of course adjust using the space_weight param
+        new_score = trial.values[0] * space_weight * 5 + trial.values[1] * (
             1 - space_weight
         )
         if new_score < best_score:
@@ -250,10 +278,11 @@ def get_optimal_hyperparams_for_estimated_rbs_time(
     rbs_iteration_time: float,
     circuit: Circuit,
     n_trials: int,
+    circuit_prop_estimate: float = 1.0,
 ):
     transpiled_circ = transpile_to_native_gates(circuit)
     objective = create_estimated_rbs_time_objective_fn(
-        rbs_iteration_time, transpiled_circ
+        rbs_iteration_time, transpiled_circ, circuit_prop_estimate
     )
     study = optuna.create_study()
     study.optimize(objective, n_trials=n_trials, catch=(IndexError,))
