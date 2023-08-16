@@ -11,22 +11,11 @@ import random
 # At this stage of development we are aware that there are some issues with methods
 # 2 and 3 and they do not necessarily yield correct results.
 from pyLIQTR.QSP.Hamiltonian import Hamiltonian as pyH
-
+import matplotlib.pyplot as plt
 from benchq.conversions import pyliqtr_to_openfermion
 
 ### General generators
 
-def flatten_nx_graph(g):
-    new_ids = {}
-    count = 0
-    for node in g.nodes:
-        if node in new_ids:
-            pass
-        else:
-            new_ids[node] = count
-            count = count + 1
-    new_g = nx.relabel_nodes(g, new_ids)
-    return new_g
 
 def nx_triangle_lattice(lattice_size):
     g = nx.generators.lattice.grid_2d_graph(lattice_size,lattice_size)
@@ -98,7 +87,6 @@ def generate_jw_qubit_hamiltonian_from_mol_data(chemistry_instance) -> PauliSum:
 
     return from_openfermion(hamiltonian_jw)
 
-
 def generate_1d_heisenberg_hamiltonian(N):
 
     # Setting J/h's
@@ -131,14 +119,7 @@ def generate_1d_heisenberg_hamiltonian(N):
         term.coefficient = term.coefficient.real
     return pauli_sum
 
-
-def generate_kitaev_hamiltonian(lattice_size, weight_prob=1):
-    """
-    \sum_{Z edges} j_{Z edge} \sigma_z \sigma_z + \sum_{x edges} j_{X edge} \sigma_x \sigma_x +
-    \sum_{Y edges} j_{Y edge} \sigma_y \sigma_y
-    """
-
-    def assign_hexagon_labels(g):
+def assign_hexagon_labels(g):
         for n1, n2 in g.edges:
             #start by making sure that the edges are ordered correctly
             r1,c1 = n1
@@ -162,24 +143,30 @@ def generate_kitaev_hamiltonian(lattice_size, weight_prob=1):
             
             g[n1][n2]['label'] = label
 
-    def nx_kitaev_terms(g, p):
-        H = []
-        n = len(g.nodes)
-        for (n1,n2,d) in g.edges(data=True):
-            label = d['label']
-            weight = 1 if random.random() < p else -1
-            string = n*'I' 
-            for i in range(len(g)):
-                if i == n1 or i == n2:
-                    string = string[:i] + label + string[i+1:]
-                else:
-                    pass
-            H.append((string,weight))
-        return H
+def nx_kitaev_terms(g, p):
+    H = []
+    n = len(g.nodes)
+    for (n1,n2,d) in g.edges(data=True):
+        label = d['label']
+        weight = 1 if random.random() < p else -1
+        string = n*'I' 
+        for i in range(len(g)):
+            if i == n1 or i == n2:
+                string = string[:i] + label + string[i+1:]
+            else:
+                pass
+        H.append((string,weight))
+    return H
+
+def generate_kitaev_hamiltonian(lattice_size, weight_prob=1):
+    """
+    \sum_{Z edges} j_{Z edge} \sigma_z \sigma_z + \sum_{x edges} j_{X edge} \sigma_x \sigma_x +
+    \sum_{Y edges} j_{Y edge} \sigma_y \sigma_y
+    """
 
     g = nx.generators.lattice.hexagonal_lattice_graph(lattice_size,lattice_size)
     assign_hexagon_labels(g)
-    g = flatten_nx_graph(g)
+    g = nx.convert_node_labels_to_integers(g)
     H = nx_kitaev_terms(g, weight_prob)
 
     H_kitaev = pyH(H)
@@ -192,7 +179,7 @@ def generate_triangular_hamiltonian(lattice_size, longitudinal_weight_prob=1, tr
      on a triangular lattice
     """
     g = nx_triangle_lattice(lattice_size)
-    g = flatten_nx_graph(g)
+    g = nx.convert_node_labels_to_integers(g)
     H_transverse = nx_transverse_ising_terms(g, transverse_weight_prob)
     H_longitudinal = nx_longitudinal_ising_terms(g, longitudinal_weight_prob)
     H_triangle = pyH(H_transverse + H_longitudinal)
@@ -205,12 +192,10 @@ def generate_cubic_hamiltonian(lattice_size, longitudinal_weight_prob=0.5, trans
      on a cubic lattice
     """
     g = nx.grid_graph(dim=(lattice_size,lattice_size,lattice_size))
-    g = flatten_nx_graph(g)
+    g = nx.convert_node_labels_to_integers(g)
     H_transverse = nx_transverse_ising_terms(g, transverse_weight_prob)
     H_longitudinal = nx_longitudinal_ising_terms(g, longitudinal_weight_prob)
 
     H_cubic = pyH(H_transverse + H_longitudinal)
     H_cubic = from_openfermion(pyliqtr_to_openfermion(H_cubic))
     return H_cubic
-
-
