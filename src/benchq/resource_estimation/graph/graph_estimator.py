@@ -1,8 +1,9 @@
+import dataclasses
 import warnings
 from dataclasses import replace
 from decimal import Decimal, getcontext
 from math import ceil
-from typing import Callable, Iterable, Optional
+from typing import Iterable, Optional
 
 import networkx as nx
 from graph_state_generation.optimizers import (
@@ -65,10 +66,6 @@ class GraphResourceEstimator:
             BASIC_ION_TRAP_ARCHITECTURE_MODEL.
         decoder_model (Optional[DecoderModel]): The decoder model used to estimate.
             If None, no estimates on the number of decoder are provided.
-        distillation_widget (str): The distillation widget to use for the estimate.
-            The widget is specified as a string of the form "(15-to-1)_7,3,3", where
-            the first part specifies the distillation ratio and the second part
-            specifies the size of the widget.
         optimization (str): The optimization to use for the estimate. Either estimate
             the resources needed to run the algorithm in the shortest time possible
             ("time") or the resources needed to run the algorithm with the smallest
@@ -110,7 +107,7 @@ class GraphResourceEstimator:
         n_measurement_steps = self._get_n_measurement_steps(graph)
         return GraphData(
             max_graph_degree=max_graph_degree,
-            n_nodes=problem.n_nodes,
+            n_nodes=graph.number_of_nodes(),
             n_t_gates=problem.n_t_gates,
             n_rotation_gates=problem.n_rotation_gates,
             n_measurement_steps=n_measurement_steps,
@@ -138,7 +135,7 @@ class GraphResourceEstimator:
     def _get_total_logical_failure_rate(
         self, code_distance: int, n_total_t_gates: int, graph_data: GraphData, widget
     ) -> float:
-        precise_logical_failure_rate = Decimal(
+        precise_logical_cell_failure_rate = Decimal(
             self._logical_cell_error_rate(code_distance)
         )
         precise_logical_st_volume = Decimal(
@@ -147,7 +144,7 @@ class GraphResourceEstimator:
             )
         )
         return float(
-            1 - (1 - precise_logical_failure_rate) ** precise_logical_st_volume
+            1 - (1 - precise_logical_cell_failure_rate) ** precise_logical_st_volume
         )
 
     def _logical_cell_error_rate(self, distance: int) -> float:
@@ -167,15 +164,11 @@ class GraphResourceEstimator:
             ** precise_distance
         )
 
-    def get_logical_st_volume(
+    def _get_v_graph(
         self,
-        n_total_t_gates: int,
         graph_data: GraphData,
         code_distance: int,
-        widget: Widget,
     ):
-        # For example, check that we are properly including/excluding
-        # the distillation spacetime volume
         if self.optimization == "space":
             V_graph = (
                 2
@@ -183,6 +176,25 @@ class GraphResourceEstimator:
                 * graph_data.n_measurement_steps
                 * code_distance
             )
+        elif self.optimization == "time":
+            V_graph = (
+                2 * graph_data.n_nodes * graph_data.n_measurement_steps * code_distance
+            )
+        else:
+            raise ValueError(
+                f"Unknown optimization: {self.optimization}. "
+                "Should be either 'time' or 'space'."
+            )
+        return V_graph
+
+    def _get_v_measure(
+        self,
+        n_total_t_gates: int,
+        graph_data: GraphData,
+        code_distance: int,
+        widget: Widget,
+    ):
+        if self.optimization == "space":
             V_measure = (
                 2
                 * graph_data.max_graph_degree
@@ -190,9 +202,6 @@ class GraphResourceEstimator:
                 * (widget.time_in_tocks + code_distance)
             )
         elif self.optimization == "time":
-            V_graph = (
-                2 * graph_data.n_nodes * graph_data.n_measurement_steps * code_distance
-            )
             V_measure = (
                 n_total_t_gates
                 * widget.space[1]
@@ -204,7 +213,18 @@ class GraphResourceEstimator:
                 f"Unknown optimization: {self.optimization}. "
                 "Should be either 'time' or 'space'."
             )
-        return V_graph + V_measure
+        return V_measure
+
+    def get_logical_st_volume(
+        self,
+        n_total_t_gates: int,
+        graph_data: GraphData,
+        code_distance: int,
+        widget: Widget,
+    ):
+        return self._get_v_graph(graph_data, code_distance) + self._get_v_measure(
+            n_total_t_gates, graph_data, code_distance, widget
+        )
 
     def find_max_decodable_distance(self, min_d=4, max_d=100):
         max_distance = 0
@@ -327,7 +347,7 @@ class GraphResourceEstimator:
             if not widget_found:
                 raise ValueError("No viable widget found!")
             if this_transpilation_failure_tolerance < _logical_cell_error_rate:
-                if graph_data.n_t_gates != 0:
+                if graph_data.n_t_gates < 0.01 * graph_data.n_nodes:
                     # re-run estimates with new synthesis failure tolerance
                     raise RuntimeError(
                         "Run estimate again with lower synthesis failure tolerance."
@@ -338,6 +358,10 @@ class GraphResourceEstimator:
         # get error rate after correction
         space_time_volume = self.get_logical_st_volume(
             n_total_t_gates, graph_data, code_distance, widget
+        )
+
+        graph_measure_ratio = (
+            self._get_v_graph(graph_data, code_distance) / space_time_volume
         )
 
         total_logical_error_rate = self._get_total_logical_failure_rate(
@@ -404,6 +428,7 @@ class GraphResourceEstimator:
             n_physical_qubits=n_physical_qubits,
             widget_name=widget.name,
             decoder_info=decoder_info,
+            routing_to_measurement_volume_ratio=graph_measure_ratio,
             extra=graph_data,
         )
 

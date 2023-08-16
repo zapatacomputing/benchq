@@ -3,16 +3,17 @@
 ################################################################################
 """Unit tests for benchq.mlflow.data_logging."""
 
-from unittest.mock import patch
+from unittest.mock import ANY, patch
 
 import pytest
 
-from benchq.data_structures.algorithm_implemenation import AlgorithmImplementation
+from benchq.data_structures.algorithm_implementation import AlgorithmImplementation
 from benchq.data_structures.decoder import DecoderModel
 from benchq.data_structures.hardware_architecture_models import IONTrapModel
 from benchq.data_structures.resource_info import ResourceInfo
 from benchq.mlflow.data_logging import (
     _flatten_dict,
+    create_mlflow_scf_callback,
     log_input_objects_to_mlflow,
     log_resource_info_to_mlflow,
 )
@@ -108,6 +109,7 @@ def test_log_resource_info_to_mlflow(mock_mlflow):
         logical_error_rate=0.1,
         n_logical_qubits=1,
         n_physical_qubits=1,
+        routing_to_measurement_volume_ratio=1,
         total_time_in_seconds=0.01,
         decoder_info=None,
         widget_name="tau",
@@ -128,3 +130,30 @@ def test_log_resource_info_to_mlflow(mock_mlflow):
 
     mock_mlflow.log_param.assert_any_call("decoder_info", "None")
     mock_mlflow.log_param.assert_any_call("widget_name", "tau")
+
+
+@patch("mlflow.MlflowClient", autospec=True)
+def test_create_mlflow_scf_callback(mock_client):
+    # Given
+    client = mock_client
+    experiment_name = client.create_experiment("pytest")
+    experiment = client.get_experiment_by_name(name=experiment_name)
+    run_id = client.create_run(experiment.experiment_id).info.run_id
+    vars = {
+        "last_hf_e": 1.0,
+        "norm_gorb": 0.001,
+        "norm_ddm": 0.01,
+        "cond": 100,
+        "cput0": (12.0, 13.0),
+    }
+
+    # When
+    scf_callback = create_mlflow_scf_callback(client, run_id)
+    scf_callback(vars)
+
+    # Then
+    mock_client.log_metric.assert_called()
+
+    mock_client.log_metric.assert_any_call(ANY, "last_hf_e", 1.0)
+    mock_client.log_metric.assert_any_call(ANY, "cput0_0", 12.0)
+    mock_client.log_metric.assert_any_call(ANY, "cput0_1", 13.0)

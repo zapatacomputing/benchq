@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 from orquestra.quantum.circuits import (
     CNOT,
+    CZ,
     RX,
     RY,
     RZ,
@@ -31,6 +32,22 @@ TOFFOLI_DECOMPOSITION = [
     T(1),
     T(2),
     H(2),
+    CNOT(0, 1),
+    T.dagger(1),
+    T(0),
+    CNOT(0, 1),
+]
+
+CCZ_DECOMPOSITION = [
+    CNOT(1, 2),
+    T.dagger(2),
+    CNOT(0, 2),
+    T(2),
+    CNOT(1, 2),
+    T.dagger(2),
+    CNOT(0, 2),
+    T(1),
+    T(2),
     CNOT(0, 1),
     T.dagger(1),
     T(0),
@@ -73,6 +90,14 @@ TOFFOLI_DECOMPOSITION = [
         (
             Circuit([CNOT.controlled(1)(0, 1, 2)]),
             Circuit(TOFFOLI_DECOMPOSITION),
+        ),
+        (
+            Circuit([Z.controlled(2)(0, 1, 2)]),
+            Circuit(CCZ_DECOMPOSITION),
+        ),
+        (
+            Circuit([CZ.controlled(1)(0, 1, 2)]),
+            Circuit(CCZ_DECOMPOSITION),
         ),
     ],
 )
