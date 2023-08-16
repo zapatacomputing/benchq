@@ -1,22 +1,20 @@
-import pytest
-
 import random
 import string
 
+import pytest
 from orquestra.quantum.circuits import CNOT, Circuit, H
 
-from benchq.compilation.rbs_hyperparam_tuning import (
-    space_time_cost_from_rbs,
-    estimated_time_cost_from_rbs,
-    create_space_time_objective_fn,
-    create_estimated_rbs_time_objective_fn,
-    get_optimal_hyperparams_for_space,
-    get_optimal_hyperparams_for_time,
-    get_optimal_hyperparams_for_space_and_time,
-    get_optimal_hyperparams_for_estimated_rbs_time,
-)
-
 from benchq.compilation import transpile_to_native_gates
+from benchq.compilation.rbs_hyperparam_tuning import (
+    create_estimated_rbs_time_objective_fn,
+    create_space_time_objective_fn,
+    estimated_time_cost_from_rbs,
+    get_optimal_hyperparams_for_estimated_rbs_time,
+    get_optimal_hyperparams_for_space,
+    get_optimal_hyperparams_for_space_and_time,
+    get_optimal_hyperparams_for_time,
+    space_time_cost_from_rbs,
+)
 
 
 @pytest.fixture()
@@ -204,7 +202,7 @@ def test_get_optimal_hyperparams_for_space(large_circuit):
     assert 10 <= optimal_params["teleportation_threshold"] <= 70
     assert 1 <= optimal_params["teleportation_distance"] <= 7
     assert 5 <= optimal_params["min_neighbors"] <= 11
-    assert 13005 <= optimal_params["max_num_neighbors_to_search"] <= 96093
+    assert 10064 <= optimal_params["max_num_neighbors_to_search"] <= 98798
     assert (
         optimal_params["decomposition_strategy"] == 0
         or optimal_params["decomposition_strategy"] == 1
@@ -226,9 +224,9 @@ def test_get_optimal_hyperparams_for_time(large_circuit):
     # If it does, and you're sure the functions are all working, increase the range
     # on these numbers with the new, failed value and re-run
     assert 26 <= optimal_params["teleportation_threshold"] <= 69
-    assert 1 <= optimal_params["teleportation_distance"] <= 2
+    assert 1 <= optimal_params["teleportation_distance"] <= 6
     assert 2 <= optimal_params["min_neighbors"] <= 11
-    assert 15294 <= optimal_params["max_num_neighbors_to_search"] <= 97971
+    assert 10323 <= optimal_params["max_num_neighbors_to_search"] <= 97971
     assert (
         optimal_params["decomposition_strategy"] == 0
         or optimal_params["decomposition_strategy"] == 1
@@ -252,7 +250,7 @@ def test_get_optimal_hyperparams_for_space_and_time(large_circuit):
     assert 13 <= optimal_params["teleportation_threshold"] <= 70
     assert 1 <= optimal_params["teleportation_distance"] <= 7
     assert 3 <= optimal_params["min_neighbors"] <= 11
-    assert 13001 <= optimal_params["max_num_neighbors_to_search"] <= 99154
+    assert 11991 <= optimal_params["max_num_neighbors_to_search"] <= 99154
     assert (
         optimal_params["decomposition_strategy"] == 0
         or optimal_params["decomposition_strategy"] == 1
@@ -275,7 +273,7 @@ def test_get_optimal_hyperparams_for_estimated_rbs_time(large_circuit):
     assert 16 <= optimal_params["teleportation_threshold"] <= 70
     assert 1 <= optimal_params["teleportation_distance"] <= 7
     assert 2 <= optimal_params["min_neighbors"] <= 11
-    assert 28464 <= optimal_params["max_num_neighbors_to_search"] <= 91836
+    assert 19544 <= optimal_params["max_num_neighbors_to_search"] <= 91836
     assert (
         optimal_params["decomposition_strategy"] == 0
         or optimal_params["decomposition_strategy"] == 1

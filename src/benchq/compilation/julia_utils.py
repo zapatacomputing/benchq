@@ -18,7 +18,7 @@ def get_nx_graph_from_rbs_adj_list(adj: list) -> nx.Graph:
 
 
 def get_algorithmic_graph_from_ruby_slippers(circuit):
-    lco, adj = jl.run_ruby_slippers(circuit, True)
+    lco, adj, _ = jl.run_ruby_slippers(circuit, True)
 
     print("getting networkx graph from vertices")
     start = time.time()
@@ -39,7 +39,7 @@ def get_ruby_slippers_compiler(
     decomposition_strategy=1,
 ):
     def _run_compiler(circuit):
-        lco, adj = jl.run_ruby_slippers(
+        lco, adj, _ = jl.run_ruby_slippers(
             circuit,
             verbose,
             max_graph_size,

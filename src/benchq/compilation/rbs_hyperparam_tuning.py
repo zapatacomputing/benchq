@@ -1,7 +1,8 @@
-import optuna
-import networkx as nx
-from orquestra.quantum.circuits import Circuit, H
 from math import ceil
+
+import networkx as nx
+import optuna
+from orquestra.quantum.circuits import Circuit, H
 
 from ..data_structures import (
     BASIC_SC_ARCHITECTURE_MODEL,
@@ -9,9 +10,8 @@ from ..data_structures import (
     QuantumProgram,
 )
 from ..resource_estimation.graph import GraphResourceEstimator
-from . import jl
+from . import jl, transpile_to_native_gates
 from .julia_utils import get_nx_graph_from_rbs_adj_list
-from . import transpile_to_native_gates
 
 
 def space_time_cost_from_rbs(
@@ -47,8 +47,8 @@ def space_time_cost_from_rbs(
 
     if iteration_prop == 1.0 and circuit_prop_estimate != 1.0:
         raise RuntimeError(
-            "Reached the end of rbs iteration with reduced circuit size. "
-            "Either increase circuit_prop_estimate, decrease rbs_iteration_time, or both."
+            "Reached the end of rbs iteration with reduced circuit size. Either "
+            "increase circuit_prop_estimate, decrease rbs_iteration_time, or both."
         )
 
     estimated_time = rbs_iteration_time / iteration_prop
@@ -104,7 +104,6 @@ def estimated_time_cost_from_rbs(
     decomposition_strategy=1,
     circuit_prop_estimate=1.0,
 ):
-
     new_circuit = circuit
     if circuit_prop_estimate != 1.0:
         num_op = ceil(len(circuit.operations) * circuit_prop_estimate)
