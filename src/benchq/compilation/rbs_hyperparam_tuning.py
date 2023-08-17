@@ -28,6 +28,35 @@ def space_time_cost_from_rbs(
     decomposition_strategy=1,
     circuit_prop_estimate=1.0,
 ):
+    """
+    Runs Ruby Slippers (RBS) and uses the resulting graph to get estimates
+    of circuit cost complexity in terms of time, space, or both. This is a
+    low-level function. Unless you mean to use it, recommended to
+    use one of the functions beginning with "get_optimal_hyperparams_for_"
+
+    Args:
+        rbs_iteration_time (float): amount of time to let RBS run for
+        max_allowed_time (float): maximum time you want RBS to run when you
+            eventually find the whole graph
+        space_or_time (str): "space" returns the cost for space, "time" for
+            time, and "space&time" for both
+        circuit (Circuit): the circuit to run RBS on
+        verbose (bool): true for verbose, false for quiet
+        max_graph_size (int): maximum number of nodes in the graph state
+        teleportation_threshold (int): RBS hyperparam, see ruby_slippers.jl
+        teleportation_distance (int): RBS hyperparam, see ruby_slippers.jl
+        min_neighbors (int): RBS hyperparam, see ruby_slippers.jl
+        max_num_neighbors_to_search (int): RBS hyperparam, see ruby_slippers.jl
+        decomposition_strategy (int): RBS hyperparam, see ruby_slippers.jl
+        circuit_prop_estimate (float): copying a large circuit to julia can take
+            a long time due to turning it into a string and back, so estimate how
+            much of the circuit RBS will get through before rbs_iteration_time
+            runs out, and supply that here to speed up optimization
+
+    Returns:
+        space_cost (float) OR time_cost (float) when space_or_time == "space" or "time"
+        (space_cost, time_cost) (float, float) when space_or_time == "space&time"
+    """
     new_circuit = circuit
     if circuit_prop_estimate != 1.0:
         num_op = ceil(len(circuit.operations) * circuit_prop_estimate)
@@ -104,6 +133,30 @@ def estimated_time_cost_from_rbs(
     decomposition_strategy=1,
     circuit_prop_estimate=1.0,
 ):
+    """
+    Runs Ruby Slippers (RBS) and uses the resulting graph to get estimate
+    of how long RBS would take to compile the whole circuit. This is a
+    low-level function. Unless you mean to use it, recommended to
+    use one of the functions beginning with "get_optimal_hyperparams_for_"
+
+    Args:
+        rbs_iteration_time (float): amount of time to let RBS run for
+        circuit (Circuit): the circuit to run RBS on
+        verbose (bool): true for verbose, false for quiet
+        max_graph_size (int): maximum number of nodes in the graph state
+        teleportation_threshold (int): RBS hyperparam, see ruby_slippers.jl
+        teleportation_distance (int): RBS hyperparam, see ruby_slippers.jl
+        min_neighbors (int): RBS hyperparam, see ruby_slippers.jl
+        max_num_neighbors_to_search (int): RBS hyperparam, see ruby_slippers.jl
+        decomposition_strategy (int): RBS hyperparam, see ruby_slippers.jl
+        circuit_prop_estimate (float): copying a large circuit to julia can take
+            a long time due to turning it into a string and back, so estimate how
+            much of the circuit RBS will get through before rbs_iteration_time
+            runs out, and supply that here to speed up optimization
+
+    Returns:
+        total estimated time to perform RBS on the whole circuit (float)
+    """
     new_circuit = circuit
     if circuit_prop_estimate != 1.0:
         num_op = ceil(len(circuit.operations) * circuit_prop_estimate)
@@ -121,7 +174,7 @@ def estimated_time_cost_from_rbs(
         rbs_iteration_time,
     )
 
-    return rbs_iteration_time / iteration_prop
+    return rbs_iteration_time / (iteration_prop * circuit_prop_estimate)
 
 
 def create_space_time_objective_fn(
@@ -131,6 +184,26 @@ def create_space_time_objective_fn(
     circuit: Circuit,
     circuit_prop_estimate: float = 1.0,
 ):
+    """
+    Creates objective function for optuna to use in optimizing for either
+    space or time. Mid-level function, unless you mean to, recommended to
+    use one of the functions beginning with "get_optimal_hyperparams_for_"
+
+    Args:
+        rbs_iteration_time (float): amount of time to let RBS run for
+        max_allowed_time (float): maximum time you want RBS to run when you
+            eventually find the whole graph
+        space_or_time (str): "space" returns the cost for space, "time" for
+            time, and "space&time" for both
+        circuit (Circuit): the circuit to run RBS on
+        circuit_prop_estimate (float): copying a large circuit to julia can take
+            a long time due to turning it into a string and back, so estimate how
+            much of the circuit RBS will get through before rbs_iteration_time
+            runs out, and supply that here to speed up optimization
+
+    Returns:
+        callable function which accepts an optuna "trial" and returns the cost
+    """
     def objective(trial):
         teleportation_threshold = trial.suggest_int("teleportation_threshold", 10, 70)
         teleportation_distance = trial.suggest_int("teleportation_distance", 1, 7)
@@ -165,6 +238,22 @@ def create_estimated_rbs_time_objective_fn(
     circuit: Circuit,
     circuit_prop_estimate: float = 1.0,
 ):
+    """
+    Creates objective function for optuna to use in optimizing for estimated
+    total RBS time. Mid-level function, unless you mean to, recommended to
+    use one of the functions beginning with "get_optimal_hyperparams_for_"
+
+    Args:
+        rbs_iteration_time (float): amount of time to let RBS run for
+        circuit (Circuit): the circuit to run RBS on
+        circuit_prop_estimate (float): copying a large circuit to julia can take
+            a long time due to turning it into a string and back, so estimate how
+            much of the circuit RBS will get through before rbs_iteration_time
+            runs out, and supply that here to speed up optimization
+
+    Returns:
+        callable function which accepts an optuna "trial" and returns the cost
+    """
     def objective(trial):
         teleportation_threshold = trial.suggest_int("teleportation_threshold", 10, 70)
         teleportation_distance = trial.suggest_int("teleportation_distance", 1, 7)
@@ -199,6 +288,24 @@ def get_optimal_hyperparams_for_space(
     n_trials: int,
     circuit_prop_estimate: float = 1.0,
 ):
+    """
+    Function to get optimal hyperparameters for space complexity after running
+    RBS.
+
+    Args:
+        rbs_iteration_time (float): amount of time to let RBS run for in each trial
+        max_allowed_time (float): maximum time you want RBS to run when you
+            eventually find the whole graph
+        circuit (Circuit): the circuit to run RBS on
+        n_trials (int): total number of trials to run when optimizing
+        circuit_prop_estimate (float): copying a large circuit to julia can take
+            a long time due to turning it into a string and back, so estimate how
+            much of the circuit RBS will get through before rbs_iteration_time
+            runs out, and supply that here to speed up optimization
+
+    Returns:
+        the best hyperparameters found during optimization
+    """
     objective = create_space_time_objective_fn(
         rbs_iteration_time,
         max_allowed_time,
@@ -220,6 +327,24 @@ def get_optimal_hyperparams_for_time(
     n_trials: int,
     circuit_prop_estimate: float = 1.0,
 ):
+    """
+    Function to get optimal hyperparameters for time complexity after running
+    RBS.
+
+    Args:
+        rbs_iteration_time (float): amount of time to let RBS run for in each trial
+        max_allowed_time (float): maximum time you want RBS to run when you
+            eventually find the whole graph
+        circuit (Circuit): the circuit to run RBS on
+        n_trials (int): total number of trials to run when optimizing
+        circuit_prop_estimate (float): copying a large circuit to julia can take
+            a long time due to turning it into a string and back, so estimate how
+            much of the circuit RBS will get through before rbs_iteration_time
+            runs out, and supply that here to speed up optimization
+
+    Returns:
+        the best hyperparameters found during optimization
+    """
     transpiled_circ = transpile_to_native_gates(circuit)
     objective = create_space_time_objective_fn(
         rbs_iteration_time,
@@ -243,6 +368,26 @@ def get_optimal_hyperparams_for_space_and_time(
     space_weight: float = 0.5,
     circuit_prop_estimate: float = 1.0,
 ):
+    """
+    Function to get optimal hyperparameters for both space and time complexity
+    after running RBS.
+
+    Args:
+        rbs_iteration_time (float): amount of time to let RBS run for in each trial
+        max_allowed_time (float): maximum time you want RBS to run when you
+            eventually find the whole graph
+        circuit (Circuit): the circuit to run RBS on
+        n_trials (int): total number of trials to run when optimizing
+        space_weight (float): between 0 and 1. The closer to 1, the more weight on
+            the space cost, the closer to 0, the more weight on the time cost
+        circuit_prop_estimate (float): copying a large circuit to julia can take
+            a long time due to turning it into a string and back, so estimate how
+            much of the circuit RBS will get through before rbs_iteration_time
+            runs out, and supply that here to speed up optimization
+
+    Returns:
+        the best hyperparameters (based on space_weight) found during optimization
+    """
     transpiled_circ = transpile_to_native_gates(circuit)
     objective = create_space_time_objective_fn(
         rbs_iteration_time,
@@ -279,6 +424,21 @@ def get_optimal_hyperparams_for_estimated_rbs_time(
     n_trials: int,
     circuit_prop_estimate: float = 1.0,
 ):
+    """
+    Function to get optimal hyperparameters for estimated total time to run RBS
+
+    Args:
+        rbs_iteration_time (float): amount of time to let RBS run for in each trial
+        circuit (Circuit): the circuit to run RBS on
+        n_trials (int): total number of trials to run when optimizing
+        circuit_prop_estimate (float): copying a large circuit to julia can take
+            a long time due to turning it into a string and back, so estimate how
+            much of the circuit RBS will get through before rbs_iteration_time
+            runs out, and supply that here to speed up optimization
+
+    Returns:
+        the best hyperparameters found during optimization
+    """
     transpiled_circ = transpile_to_native_gates(circuit)
     objective = create_estimated_rbs_time_objective_fn(
         rbs_iteration_time, transpiled_circ, circuit_prop_estimate
