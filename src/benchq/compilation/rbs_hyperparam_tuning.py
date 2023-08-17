@@ -162,7 +162,7 @@ def estimated_time_cost_from_rbs(
         num_op = ceil(len(circuit.operations) * circuit_prop_estimate)
         new_circuit = Circuit(circuit.operations[:num_op])
 
-    _, adj, iteration_prop = jl.run_ruby_slippers(
+    _, _, iteration_prop = jl.run_ruby_slippers(
         new_circuit,
         verbose,
         max_graph_size,
@@ -316,8 +316,7 @@ def get_optimal_hyperparams_for_space(
         circuit_prop_estimate,
     )
     study = optuna.create_study()
-    study.optimize(objective, n_trials=n_trials, catch=(ValueError,))
-    # study.optimize(objective, n_trials=n_trials)
+    study.optimize(objective, n_trials=n_trials)
 
     return study.best_params
 
@@ -356,8 +355,7 @@ def get_optimal_hyperparams_for_time(
         circuit_prop_estimate,
     )
     study = optuna.create_study()
-    study.optimize(objective, n_trials=n_trials, catch=(IndexError,))
-    # study.optimize(objective, n_trials=n_trials)
+    study.optimize(objective, n_trials=n_trials)
 
     return study.best_params
 
@@ -399,8 +397,7 @@ def get_optimal_hyperparams_for_space_and_time(
         circuit_prop_estimate,
     )
     study = optuna.create_study(directions=["minimize", "minimize"])
-    study.optimize(objective, n_trials=n_trials, catch=(IndexError,))
-    # study.optimize(objective, n_trials=n_trials)
+    study.optimize(objective, n_trials=n_trials)
 
     best_params = {}
     best_score = 100000000
