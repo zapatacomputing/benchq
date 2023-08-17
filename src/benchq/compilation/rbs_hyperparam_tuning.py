@@ -204,6 +204,7 @@ def create_space_time_objective_fn(
     Returns:
         callable function which accepts an optuna "trial" and returns the cost
     """
+
     def objective(trial):
         teleportation_threshold = trial.suggest_int("teleportation_threshold", 10, 70)
         teleportation_distance = trial.suggest_int("teleportation_distance", 1, 7)
@@ -254,6 +255,7 @@ def create_estimated_rbs_time_objective_fn(
     Returns:
         callable function which accepts an optuna "trial" and returns the cost
     """
+
     def objective(trial):
         teleportation_threshold = trial.suggest_int("teleportation_threshold", 10, 70)
         teleportation_distance = trial.suggest_int("teleportation_distance", 1, 7)
