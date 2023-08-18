@@ -62,7 +62,7 @@ from benchq.data_structures import QuantumProgram
 def test_stabilizer_states_are_the_same_for_simple_circuits(circuit):
     target_tableau = get_target_tableau(circuit)
 
-    loc, adj = jl.run_ruby_slippers(circuit, False, 999)
+    loc, adj, _ = jl.run_ruby_slippers(circuit, False, 999)
 
     vertices = list(zip(loc, adj))
 
@@ -94,7 +94,7 @@ def test_stabilizer_states_are_the_same_for_circuits(filename):
 
     target_tableau = get_target_tableau(test_circuit)
 
-    loc, adj = jl.run_ruby_slippers(test_circuit, False, 999)
+    loc, adj, _ = jl.run_ruby_slippers(test_circuit, False, 999)
     vertices = list(zip(loc, adj))
     graph_tableau = get_stabilizer_tableau_from_vertices(vertices)
 
@@ -133,7 +133,7 @@ def test_stabilizer_states_are_the_same_for_circuits_with_decomposed_rotations(
         target_tableau = get_target_tableau(test_circuit)
 
         # ensure state does not teleport
-        loc, adj = jl.run_ruby_slippers(test_circuit, True, 9999, 9999)
+        loc, adj, _ = jl.run_ruby_slippers(test_circuit, True, 9999, 9999)
         vertices = list(zip(loc, adj))
 
         graph_tableau = get_stabilizer_tableau_from_vertices(vertices)
@@ -182,7 +182,7 @@ def test_teleportation_produces_correct_number_of_nodes_for_small_circuits(
     n_t_gates = quantum_program.n_t_gates
     n_rotations = quantum_program.n_rotation_gates
 
-    loc, adj = jl.run_ruby_slippers(
+    loc, adj, _ = jl.run_ruby_slippers(
         circuit,
         True,
         9999,
@@ -232,13 +232,36 @@ def test_teleportation_produces_correct_node_parity_for_large_circuits(
         quantum_program = QuantumProgram.from_circuit(clifford_t)
         n_t_gates = quantum_program.n_t_gates
 
-        loc, adj = jl.run_ruby_slippers(clifford_t, False, 9999)
+        loc, adj, _ = jl.run_ruby_slippers(clifford_t, False, 9999)
 
         n_nodes = len(loc)
 
         assert n_nodes >= n_t_gates
         # teleportation only adds 2 nodes at a time.
         assert (n_nodes - n_t_gates) % 2 == 0
+
+
+@pytest.mark.parametrize(
+    "circuit, rbs_iteration_time, expected_prop_range",
+    [
+        (Circuit([H(0), CNOT(0, 1)]), 1.0, [0.9, 1.0]),
+        (
+            Circuit(
+                [H(0), *[CNOT(j, i) for i in range(1, 300) for j in range(2, 300)]]
+            ),
+            0.1,
+            [0.0, 0.5],
+        ),
+    ],
+)
+def test_rbs_gives_reasonable_prop(circuit, rbs_iteration_time, expected_prop_range):
+    # when
+    _, _, prop = jl.run_ruby_slippers(
+        circuit, True, 9999, 40, 4, 6, 99999, 1, rbs_iteration_time
+    )
+
+    # then
+    assert prop >= expected_prop_range[0] and prop <= expected_prop_range[1]
 
 
 ########################################################################################
