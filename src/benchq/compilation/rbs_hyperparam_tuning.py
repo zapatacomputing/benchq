@@ -62,7 +62,7 @@ def space_time_cost_from_rbs(
         num_op = ceil(len(circuit.operations) * circuit_prop_estimate)
         new_circuit = Circuit(circuit.operations[:num_op])
 
-    _, adj, iteration_prop = jl.run_ruby_slippers(
+    _, adj, proportion_of_circuit_completed = jl.run_ruby_slippers(
         new_circuit,
         verbose,
         max_graph_size,
@@ -74,13 +74,13 @@ def space_time_cost_from_rbs(
         rbs_iteration_time,
     )
 
-    if iteration_prop == 1.0 and circuit_prop_estimate != 1.0:
+    if proportion_of_circuit_completed == 1.0 and circuit_prop_estimate != 1.0:
         raise RuntimeError(
             "Reached the end of rbs iteration with reduced circuit size. Either "
             "increase circuit_prop_estimate, decrease rbs_iteration_time, or both."
         )
 
-    estimated_time = rbs_iteration_time / iteration_prop
+    estimated_time = rbs_iteration_time / proportion_of_circuit_completed
     time_overrun = estimated_time - max_allowed_time
     # max value for float is approx 10^308, avoid going past that
     if time_overrun > 300:
@@ -162,7 +162,7 @@ def estimated_time_cost_from_rbs(
         num_op = ceil(len(circuit.operations) * circuit_prop_estimate)
         new_circuit = Circuit(circuit.operations[:num_op])
 
-    _, _, iteration_prop = jl.run_ruby_slippers(
+    _, _, proportion_of_circuit_completed = jl.run_ruby_slippers(
         new_circuit,
         verbose,
         max_graph_size,
@@ -174,7 +174,9 @@ def estimated_time_cost_from_rbs(
         rbs_iteration_time,
     )
 
-    return rbs_iteration_time / (iteration_prop * circuit_prop_estimate)
+    return rbs_iteration_time / (
+        proportion_of_circuit_completed * circuit_prop_estimate
+    )
 
 
 def create_space_time_objective_fn(
