@@ -11,6 +11,7 @@ from ...data_structures import (
     QuantumProgram,
     get_program_from_circuit,
 )
+import networkx as nx
 
 
 def _distribute_transpilation_failure_tolerance(
@@ -82,5 +83,19 @@ def create_big_graph_from_subcircuits(
         new_program = get_program_from_circuit(big_circuit)
         graph = graph_production_method(big_circuit)
         return GraphPartition(new_program, [graph])
+
+    return _transformer
+
+
+def remove_isolated_nodes() -> Callable[[GraphPartition], GraphPartition]:
+    def _transformer(graph_partition: GraphPartition) -> GraphPartition:
+        new_graphs = []
+        for graph in graph_partition.graphs:
+            isolated_nodes = list(nx.isolates(graph))
+            graph.remove_nodes_from(isolated_nodes)
+            graph = nx.convert_node_labels_to_integers(graph)
+            new_graphs.append(graph)
+
+        return GraphPartition(graph_partition.program, new_graphs)
 
     return _transformer

@@ -19,11 +19,6 @@ def get_algorithmic_graph_from_ruby_slippers(circuit):
         for neighbor in neighbors:
             graph.add_edge(vertex_id, neighbor)
 
-    # remove isolated nodes
-    isolated_nodes = list(nx.isolates(graph))
-    graph.remove_nodes_from(isolated_nodes)
-    graph = nx.convert_node_labels_to_integers(graph)
-
     end = time.time()
     print("time: ", end - start)
 
