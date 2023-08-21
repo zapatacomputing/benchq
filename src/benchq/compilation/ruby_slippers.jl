@@ -75,6 +75,7 @@ function run_ruby_slippers(
     min_neighbors=6,
     max_num_neighbors_to_search=1e5,
     decomposition_strategy=1,
+    max_time=1e8
 )
     # params which can be optimized to speed up computation
     hyperparams = RubySlippersHyperparams(
@@ -93,11 +94,11 @@ function run_ruby_slippers(
 
     if verbose
         print("get_graph_state_data:\t")
-        (lco, adj) = @time get_graph_state_data(circuit, true, max_graph_size, hyperparams)
+        (lco, adj, proportion) = @time get_graph_state_data(circuit, true, max_graph_size, hyperparams, max_time)
     else
-        (lco, adj) = get_graph_state_data(circuit, false, max_graph_size, hyperparams)
+        (lco, adj, proportion) = get_graph_state_data(circuit, false, max_graph_size, hyperparams, max_time)
     end
-    return pylist(lco), python_adjlist!(adj)
+    return pylist(lco), python_adjlist!(adj), proportion
 end
 
 function get_max_n_nodes(circuit, teleportation_distance)
@@ -148,7 +149,9 @@ function get_graph_state_data(
     verbose::Bool=false,
     max_graph_size::UInt32=1e8,
     hyperparams::RubySlippersHyperparams=default_hyperparams,
+    max_time::Float64=1e8,
 )
+
     n_qubits = pyconvert(Int, circuit.n_qubits)
     ops = circuit.operations
 
@@ -158,25 +161,33 @@ function get_graph_state_data(
         println("Memory for data structures allocated")
     end
 
-
     data_qubits = [Qubit(i) for i = 1:n_qubits]
     curr_qubits = [n_qubits] # make this a list so it can be modified in place
     supported_ops = get_op_list()
 
-    if verbose
-        total_length = length(ops)
-        counter = dispcnt = 0
-        start_time = time()
-        erase = "        \b\b\b\b\b\b\b\b"
-    end
+    total_length = length(ops)
+    counter = dispcnt = 0
+    erase = "        \b\b\b\b\b\b\b\b"
+
+    start_time = time()
 
     for (i, op) in enumerate(ops)
+        elapsed = time() - start_time
+        if elapsed >= max_time
+            # get rid of excess space in the data structures
+            resize!(lco, curr_qubits[1])
+            resize!(adj, curr_qubits[1])
+
+            proportion = i / total_length
+
+            return lco, adj, proportion
+        end
+        counter += 1
         if verbose
-            counter += 1
             if (dispcnt += 1) >= 1000
                 percent = round(Int, 100 * counter / total_length)
-                elapsed = round(time() - start_time, digits=2)
-                print("\r$(percent)% ($counter) completed in $erase$(elapsed)s")
+                display_elapsed = round(elapsed, digits=2)
+                print("\r$(percent)% ($counter) completed in $erase$(display_elapsed)s")
                 dispcnt = 0
             end
         end
@@ -238,7 +249,7 @@ function get_graph_state_data(
     resize!(lco, curr_qubits[1])
     resize!(adj, curr_qubits[1])
 
-    return lco, adj
+    return lco, adj, 1
 end
 
 """Unpacks the values in the cz table and updates the lco values)"""
