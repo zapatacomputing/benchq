@@ -240,8 +240,8 @@ def cost_estimator(
                 best_cost is None
                 # or cost.physical_qubit_count * Decimal(cost.duration.total_seconds())
                 # < best_cost.physical_qubit_count * Decimal(best_cost.duration.total_seconds())
-                or cost.physical_qubit_count * cost.duration.total_seconds()
-                < best_cost.physical_qubit_count * best_cost.duration.total_seconds()
+                or cost.physical_qubit_count * cost.duration
+                < best_cost.physical_qubit_count * best_cost.duration
             ):
                 best_cost = cost
                 best_params = params
