@@ -17,6 +17,8 @@ import dataclasses
 import datetime
 import math
 from typing import Iterator, Tuple
+from decimal import Decimal, getcontext
+
 
 
 @dataclasses.dataclass(frozen=True, unsafe_hash=True)
@@ -216,6 +218,8 @@ def cost_estimator(
 
     best_cost = None
     best_params = None
+    #getcontext().prec = 1000
+
     for factory in iter_known_factories(physical_error_rate=physical_error_rate):
         for logical_data_qubit_distance in range(7, 35, 2):
             params = AlgorithmParameters(
@@ -234,9 +238,13 @@ def cost_estimator(
                 continue
             if (
                 best_cost is None
-                or cost.physical_qubit_count * cost.duration
-                < best_cost.physical_qubit_count * best_cost.duration
+                # or cost.physical_qubit_count * Decimal(cost.duration.total_seconds())
+                # < best_cost.physical_qubit_count * Decimal(best_cost.duration.total_seconds())
+                or cost.physical_qubit_count * cost.duration.total_seconds()
+                < best_cost.physical_qubit_count * best_cost.duration.total_seconds()
             ):
                 best_cost = cost
                 best_params = params
+    print("debug 1: best_cost", best_cost)
+    print("debug 1: best_params", best_params)
     return best_cost, best_params

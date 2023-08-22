@@ -247,13 +247,16 @@ def get_physical_cost(
         physical_error_rate=1.0e-3,
         portion_of_bounding_box=1.0,
     )
-
+    print("debug 2: best_cost", best_cost)
+    print("debug 2: best_params", best_params)
     return _openfermion_result_to_resource_info(best_cost, best_params)
 
 
 def _openfermion_result_to_resource_info(
     cost: CostEstimate, algorithm_parameters: AlgorithmParameters
 ) -> OpenFermionResourceInfo:
+    print("debug 3: cost", cost)
+    print("debug 3: algorithm_parameters", algorithm_parameters)
     return OpenFermionResourceInfo(
         n_physical_qubits=cost.physical_qubit_count,
         n_logical_qubits=algorithm_parameters.max_allocated_logical_qubits,
