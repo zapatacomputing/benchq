@@ -218,7 +218,7 @@ def cost_estimator(
 
     best_cost = None
     best_params = None
-    getcontext().prec = 1000
+    getcontext().prec = 10
 
     for factory in iter_known_factories(physical_error_rate=physical_error_rate):
         for logical_data_qubit_distance in range(7, 35, 2):
