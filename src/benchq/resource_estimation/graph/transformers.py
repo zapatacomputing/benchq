@@ -87,15 +87,13 @@ def create_big_graph_from_subcircuits(
     return _transformer
 
 
-def remove_isolated_nodes() -> Callable[[GraphPartition], GraphPartition]:
-    def _transformer(graph_partition: GraphPartition) -> GraphPartition:
-        new_graphs = []
-        for graph in graph_partition.graphs:
-            isolated_nodes = list(nx.isolates(graph))
-            graph.remove_nodes_from(isolated_nodes)
-            graph = nx.convert_node_labels_to_integers(graph)
-            new_graphs.append(graph)
+def remove_isolated_nodes(graph_partition: GraphPartition) -> GraphPartition:
+    new_graphs = []
+    for graph in graph_partition.subgraphs:
+        isolated_nodes = list(nx.isolates(graph))
+        print(isolated_nodes)
+        graph.remove_nodes_from(isolated_nodes)
+        graph = nx.convert_node_labels_to_integers(graph)
+        new_graphs.append(graph)
 
-        return GraphPartition(graph_partition.program, new_graphs)
-
-    return _transformer
+    return GraphPartition(graph_partition.program, new_graphs)

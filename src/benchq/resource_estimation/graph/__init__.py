@@ -11,6 +11,7 @@ from .transformers import (
     create_graphs_for_subcircuits,
     synthesize_clifford_t,
     transpile_to_native_gates,
+    remove_isolated_nodes,
 )
 from .worstcase_footprint_estimator import WorstCaseFootprintResourceEstimator
 
