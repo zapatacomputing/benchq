@@ -16,6 +16,7 @@ from benchq.algorithms.lde_solver import (
     get_num_of_grid_points,
     get_prep_int,
     inverse_blockencoding,
+    matrix_exponentiation,
 )
 
 
@@ -125,3 +126,24 @@ def test_inverse_blockencoding(beta, epsilon, time):
     assert isinstance(sel_inv, Circuit)
     assert sel_inv.n_qubits == total_qubits
     assert expected_num_of_custom_gates == actual_num_of_custom_gates
+
+
+beta = 1.3
+time = 0.1
+matrix_norm, dummy_circuit = construct_dummy_cir()
+matrix_exp_test = matrix_exponentiation(dummy_circuit, matrix_norm, time, beta, 1e-1)
+
+
+@pytest.mark.parametrize(
+    "epsilon",
+    [(1e-3), (1e-2), (1e-4)],
+)
+def test_matrix_exponentiation(epsilon):
+
+    sel_inv = inverse_blockencoding(dummy_circuit, matrix_norm, time, beta, epsilon)
+    total_qubits = sel_inv.n_qubits
+    matrix_exp = matrix_exponentiation(dummy_circuit, matrix_norm, time, beta, epsilon)
+
+    assert isinstance(matrix_exp, Circuit)
+    assert matrix_exp.n_qubits == total_qubits
+    assert len(matrix_exp.operations) >= len(matrix_exp_test.operations)
