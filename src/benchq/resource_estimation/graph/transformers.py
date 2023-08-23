@@ -1,5 +1,7 @@
 from typing import Callable, Sequence
 
+import networkx as nx
+
 from ...compilation import (
     get_algorithmic_graph_from_ruby_slippers,
     pyliqtr_transpile_to_clifford_t,
@@ -11,7 +13,6 @@ from ...data_structures import (
     QuantumProgram,
     get_program_from_circuit,
 )
-import networkx as nx
 
 
 def _distribute_transpilation_failure_tolerance(
@@ -88,12 +89,30 @@ def create_big_graph_from_subcircuits(
 
 
 def remove_isolated_nodes(graph_partition: GraphPartition) -> GraphPartition:
+    """Sometimes our circuits can generate a lot of extra nodes because of how
+    RESET adds nodes to the graph. This transformer removes these nodes from the
+    graph to prevent them from influencing the costing. There are 3 known sources
+    of isolated nodes:
+        1. Unneeded resets at the beginning of the circuit.
+        2. Decomposing rotations into gates sometimes gives bare nodes if a
+             T gate is placed after a reset. (most concerning)
+        3. Consecutive reset gates happening later on in the circuit.
+
+    Args:
+        graph_partition (GraphPartition): graph partition to remove the isoated
+            nodes of.
+
+    Returns:
+        GraphPartition: input graph partition with isolated nodes removed.
+    """
     new_graphs = []
+    total_nodes_removed = 0
     for graph in graph_partition.subgraphs:
         isolated_nodes = list(nx.isolates(graph))
-        print(isolated_nodes)
+        total_nodes_removed += len(isolated_nodes)
         graph.remove_nodes_from(isolated_nodes)
         graph = nx.convert_node_labels_to_integers(graph)
         new_graphs.append(graph)
+    print(f"Removed {total_nodes_removed} isolated nodes from graph partitions.")
 
     return GraphPartition(graph_partition.program, new_graphs)

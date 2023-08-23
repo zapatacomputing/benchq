@@ -48,7 +48,6 @@ def test_get_degree(kappa, epsilon, expected_result):
     ],
 )
 def test_get_prep_int_circuit(matrix_norm, beta, epsilon, expected_result):
-
     circuit, circuit_prime = get_prep_int(matrix_norm, beta, epsilon)
     gate_names = [gate_op.gate.name for gate_op in circuit.operations]
     gate_names_prime = [gate_op.gate.name for gate_op in circuit_prime.operations]

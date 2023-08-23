@@ -25,7 +25,6 @@ from benchq.resource_estimation.graph import (
     run_custom_resource_estimation_pipeline,
     synthesize_clifford_t,
     transpile_to_native_gates,
-    remove_isolated_nodes,
 )
 from benchq.timing import measure_time
 
@@ -68,7 +67,6 @@ def main():
             transformers=[
                 synthesize_clifford_t(algorithm.error_budget),
                 create_big_graph_from_subcircuits(),
-                remove_isolated_nodes,
             ],
         )
 
@@ -82,7 +80,6 @@ def main():
             transformers=[
                 transpile_to_native_gates,
                 create_big_graph_from_subcircuits(),
-                remove_isolated_nodes,
             ],
         )
 
