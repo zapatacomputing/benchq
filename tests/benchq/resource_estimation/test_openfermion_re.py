@@ -380,3 +380,10 @@ def test_default_scc_time():
     )
     assert cost.extra.physical_qubit_error_rate == 1e-3
     assert cost.extra.scc_time == 0.1e-6
+
+
+def test_get_physical_cost_supports_large_circuits():
+    n_logical_qubits = 4e3
+    n_toffoli = 1e12
+    resource_estimate = get_physical_cost(n_logical_qubits, n_toffoli)
+    assert resource_estimate.n_physical_qubits > n_logical_qubits
