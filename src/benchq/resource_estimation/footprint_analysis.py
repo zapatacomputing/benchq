@@ -221,7 +221,7 @@ def cost_estimator(
     getcontext().prec = 10
 
     for factory in iter_known_factories(physical_error_rate=physical_error_rate):
-        for logical_data_qubit_distance in range(7, 35, 2):
+        for logical_data_qubit_distance in range(7, 100, 2):
             params = AlgorithmParameters(
                 physical_error_rate=physical_error_rate,
                 surface_code_cycle_time=surface_code_cycle_time,
