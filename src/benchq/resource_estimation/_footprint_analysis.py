@@ -238,7 +238,7 @@ def cost_estimator(
     for factory in iter_known_factories(
         physical_error_rate=physical_error_rate, num_toffoli=num_toffoli, num_t=num_t
     ):
-        for logical_data_qubit_distance in range(7, 35, 2):
+        for logical_data_qubit_distance in range(7, 101, 2):
             params = AlgorithmParameters(
                 physical_error_rate=physical_error_rate,
                 surface_code_cycle_time=surface_code_cycle_time,
@@ -261,4 +261,10 @@ def cost_estimator(
             ):
                 best_cost = cost
                 best_params = params
+
+    if best_cost is None:
+        raise RuntimeError(
+            "Failed to find parameters that yield an acceptable failure probability."
+        )
+
     return best_cost, best_params
