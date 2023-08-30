@@ -265,3 +265,54 @@ def get_prep_int(
     prep_int_prime = transpile(prep_int_prime, basis_gates=["rz", "h", "cx"])
 
     return import_from_qiskit(prep_int), import_from_qiskit(prep_int_prime)
+
+
+def matrix_exponentiation(
+    be_matrix: Circuit, matrix_norm: float, time: float, beta: float, epsilon: float
+) -> Circuit:
+    """Constructs the quantum circuit for a single time step in the
+    time-marching algorithm - construct the approximation f_K(A)=exp(A).
+
+    The PREP_int unitary acts on ceil(log2(K)) qubits starting from the second qubit.
+    The SEL_inv unitary acts on all qubits.
+    The PREP_int_prime_dag unitary acts on ceil(log2(K)) qubits starting from
+    the second qubit.
+
+    The unitaries are appended in the following order
+    PREP_int * SEL_inv * PREP_int_prime_dag.
+
+    Args:
+        be_matrix (Circuit): the block encoding of a matrix.
+        matrix_norm (float): the norm of the matrix that is
+            to be block encoded.
+        time (float): the time interval one seeks solution
+            for a differntial equation.
+        beta (float): an upper bound for the largest eigenvalue of the block encoding.
+        epsilon (float): an accuracy for the polynomial approximation.
+
+    Returns:
+        matrix_exp (Circuit): a quantum circuit corresponding to
+            the approximation exp(A)=f(A).
+    """
+    prep_int, prep_int_prime = get_prep_int(matrix_norm, beta, epsilon)
+    sel_inverse = inverse_blockencoding(be_matrix, matrix_norm, time, beta, epsilon)
+    # shifting indices
+    shifted_prep_int = Circuit(
+        [
+            op.gate(*[qubit + 1 for qubit in op.qubit_indices])
+            for op in prep_int.operations
+        ]
+    )
+    shifted_prep_dag = Circuit(
+        [
+            op.gate(*[qubit + 1 for qubit in op.qubit_indices])
+            for op in prep_int_prime.inverse().operations
+        ]
+    )
+    # appending quantum circuits in the order: PREP_int * SEL_inv * PREP_int_prime_dag.
+    matrix_exp = Circuit()
+    matrix_exp += shifted_prep_int
+    matrix_exp += sel_inverse
+    matrix_exp += shifted_prep_dag
+
+    return matrix_exp
