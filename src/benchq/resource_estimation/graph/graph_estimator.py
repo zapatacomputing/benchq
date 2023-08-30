@@ -22,7 +22,7 @@ from ...data_structures import (
     GraphResourceInfo,
 )
 from ..magic_state_distillation import Widget, default_widget_list
-from .transformers import remove_isolated_nodes
+from .transformers import remove_isolated_nodes_from_graph
 
 INITIAL_SYNTHESIS_ACCURACY = 0.0001
 
@@ -42,21 +42,18 @@ def substrate_scheduler(graph: nx.Graph, preset: str) -> TwoRowSubstrateSchedule
         TwoRowSubstrateScheduler: A substrate scheduler object with the schedule
             already created.
     """
-    # remove isolated nodes
-    isolated_nodes = list(nx.isolates(graph))
-    graph.remove_nodes_from(isolated_nodes)
-    graph = nx.convert_node_labels_to_integers(graph)
+    cleaned_graph = remove_isolated_nodes_from_graph(graph)[1]
 
     print("starting substrate scheduler")
     start = time.time()
     if preset == "fast":
         compiler = TwoRowSubstrateScheduler(
-            graph,
+            cleaned_graph,
             stabilizer_scheduler=greedy_stabilizer_measurement_scheduler,
         )
     if preset == "optimized":
         compiler = TwoRowSubstrateScheduler(
-            graph,
+            cleaned_graph,
             pre_mapping_optimizer=fast_maximal_independent_set_stabilizer_reduction,
             stabilizer_scheduler=greedy_stabilizer_measurement_scheduler,
         )
