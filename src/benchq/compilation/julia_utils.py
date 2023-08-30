@@ -8,17 +8,21 @@ import networkx as nx
 from . import jl
 
 
-def get_algorithmic_graph_from_ruby_slippers(circuit):
-    lco, adj = jl.run_ruby_slippers(circuit, True)
-
-    print("getting networkx graph from vertices")
-    start = time.time()
-    # create graph from vertices
+def get_nx_graph_from_rbs_adj_list(adj: list) -> nx.Graph:
     graph = nx.empty_graph(len(adj))
     for vertex_id, neighbors in enumerate(adj):
         for neighbor in neighbors:
             graph.add_edge(vertex_id, neighbor)
 
+    return graph
+
+
+def get_algorithmic_graph_from_ruby_slippers(circuit):
+    lco, adj, _ = jl.run_ruby_slippers(circuit, True)
+
+    print("getting networkx graph from vertices")
+    start = time.time()
+    graph = get_nx_graph_from_rbs_adj_list(adj)
     end = time.time()
     print("time: ", end - start)
 
@@ -35,7 +39,7 @@ def get_ruby_slippers_compiler(
     decomposition_strategy=1,
 ):
     def _run_compiler(circuit):
-        lco, adj = jl.run_ruby_slippers(
+        lco, adj, _ = jl.run_ruby_slippers(
             circuit,
             verbose,
             max_graph_size,
@@ -48,10 +52,7 @@ def get_ruby_slippers_compiler(
 
         print("getting networkx graph from vertices")
         start = time.time()
-        graph = nx.empty_graph(len(adj))
-        for vertex_id, neighbors in enumerate(adj):
-            for neighbor in neighbors:
-                graph.add_edge(vertex_id, neighbor)
+        graph = get_nx_graph_from_rbs_adj_list(adj)
         end = time.time()
         print("time: ", end - start)
 
