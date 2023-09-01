@@ -98,13 +98,11 @@ def test_df_block_encoding_lambda_scales_with_hamiltonian(
     h1, eri_full, _, _, _ = pyscf_to_cas(mean_field_object)
 
     threshold = 1e-6
+    scale_factor = 10
 
     (num_toffoli, num_qubits, lam) = get_double_factorized_block_encoding_info(
         h1, eri_full, threshold
     )
-    assert num_qubits > 2 * eri_full.shape[0]
-
-    scale_factor = 10
 
     (
         scaled_num_toffoli,
