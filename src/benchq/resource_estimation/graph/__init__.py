@@ -9,6 +9,7 @@ from .graph_estimator import GraphResourceEstimator, substrate_scheduler
 from .transformers import (
     create_big_graph_from_subcircuits,
     create_graphs_for_subcircuits,
+    remove_isolated_nodes,
     synthesize_clifford_t,
     transpile_to_native_gates,
 )

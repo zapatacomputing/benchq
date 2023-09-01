@@ -1,4 +1,4 @@
-import dataclasses
+import time
 import warnings
 from dataclasses import replace
 from decimal import Decimal, getcontext
@@ -22,13 +22,16 @@ from ...data_structures import (
     GraphResourceInfo,
 )
 from ..magic_state_distillation import Widget, default_widget_list
+from .transformers import remove_isolated_nodes_from_graph
 
 INITIAL_SYNTHESIS_ACCURACY = 0.0001
 
 
 def substrate_scheduler(graph: nx.Graph, preset: str) -> TwoRowSubstrateScheduler:
     """A simple interface for running the substrate scheduler. Can be run quickly or
-    optimized for smaller runtime.
+    optimized for smaller runtime. Using the "optimized" preset can halve the number
+    of measurement steps, but takes about 100x longer to run. It's probably only
+    suitable for graphs with less than 10^5 nodes.
 
     Args:
         graph (nx.Graph): Graph to create substrate schedule for.
@@ -39,21 +42,24 @@ def substrate_scheduler(graph: nx.Graph, preset: str) -> TwoRowSubstrateSchedule
         TwoRowSubstrateScheduler: A substrate scheduler object with the schedule
             already created.
     """
-    connected_graph = graph.copy()
-    connected_graph.remove_nodes_from(list(nx.isolates(graph)))  # remove isolated nodes
-    connected_graph = nx.convert_node_labels_to_integers(connected_graph)
+    cleaned_graph = remove_isolated_nodes_from_graph(graph)[1]
+
+    print("starting substrate scheduler")
+    start = time.time()
     if preset == "fast":
         compiler = TwoRowSubstrateScheduler(
-            connected_graph,
+            cleaned_graph,
             stabilizer_scheduler=greedy_stabilizer_measurement_scheduler,
         )
     if preset == "optimized":
         compiler = TwoRowSubstrateScheduler(
-            graph,
+            cleaned_graph,
             pre_mapping_optimizer=fast_maximal_independent_set_stabilizer_reduction,
             stabilizer_scheduler=greedy_stabilizer_measurement_scheduler,
         )
     compiler.run()
+    end = time.time()
+    print("substrate scheduler took", end - start, "seconds")
     return compiler
 
 
@@ -98,8 +104,8 @@ class GraphResourceEstimator:
 
     def _get_n_measurement_steps(self, graph) -> int:
         compiler = substrate_scheduler(graph, self.substrate_scheduler_preset)
-        n_steps = len(compiler.measurement_steps)
-        return n_steps
+        n_measurement_steps = len(compiler.measurement_steps)
+        return n_measurement_steps
 
     def _get_graph_data_for_single_graph(self, problem: GraphPartition) -> GraphData:
         graph = problem.subgraphs[0]
