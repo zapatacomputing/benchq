@@ -179,7 +179,7 @@ def get_double_factorized_block_encoding_info(
     threshold: float,
     bits_precision_state_prep: int = 10,
     bits_precision_rotation: int = 20,
-) -> Tuple[int, int]:
+) -> Tuple[int, int, float]:
     """Get the Toffoli and qubit cost for the double factorized block encoding as
     described in PRX Quantum 2, 030305.
 
