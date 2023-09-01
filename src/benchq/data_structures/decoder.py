@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from typing import Dict
 
 import numpy as np
+from .resource_info import DecoderInfo
 
 
 @dataclass
@@ -52,6 +53,17 @@ class DecoderModel:
             distance: surface code distance.
         """
         return self.delay_table.get(distance, invalid_code_distance())
+
+    def find_max_decodable_distance(self, hw_model, min_d=4, max_d=100):
+        max_distance = 0
+        for distance in range(min_d, max_d):
+            time_for_logical_operation = (
+                6 * hw_model.surface_code_cycle_time_in_seconds * distance
+            )
+            if self.delay(distance) < time_for_logical_operation:
+                max_distance = distance
+
+        return max_distance
 
     @classmethod
     def from_csv(cls, file_path):
@@ -120,3 +132,34 @@ def invalid_code_distance():
     """Returns the delay for invalid code distance."""
     warnings.warn("Code distance is too high to be decoded.")
     return np.infty
+
+
+def get_decoder_info(
+    decoder_model,
+    hw_model,
+    n_logical_qubits: int,
+    space_time_volume: float,
+    code_distance: int,
+):
+    # get decoder requirements
+    if decoder_model and decoder_model.distance_cap >= code_distance:
+        decoder_total_energy_consumption = (
+            space_time_volume
+            * decoder_model.power(code_distance)
+            * decoder_model.delay(code_distance)
+        )
+        decoder_power = 2 * n_logical_qubits * decoder_model.power(code_distance)
+        decoder_area = n_logical_qubits * decoder_model.area(code_distance)
+        max_decodable_distance = decoder_model.find_max_decodable_distance(hw_model)
+        decoder_info = DecoderInfo(
+            total_energy_consumption=decoder_total_energy_consumption,
+            power=decoder_power,
+            area=decoder_area,
+            max_decodable_distance=max_decodable_distance,
+        )
+    else:
+        if decoder_model and decoder_model.distance_cap < code_distance:
+            warnings.warn("Code distance is too high to be decoded.")
+        decoder_info = None
+
+    return decoder_info

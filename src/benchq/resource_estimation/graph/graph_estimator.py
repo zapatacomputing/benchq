@@ -1,4 +1,3 @@
-import dataclasses
 import warnings
 from dataclasses import replace
 from decimal import Decimal, getcontext
@@ -22,6 +21,7 @@ from ...data_structures import (
     GraphResourceInfo,
 )
 from ..magic_state_distillation import Widget, default_widget_list
+from ...data_structures.decoder import get_decoder_info
 
 INITIAL_SYNTHESIS_ACCURACY = 0.0001
 
@@ -226,17 +226,6 @@ class GraphResourceEstimator:
             n_total_t_gates, graph_data, code_distance, widget
         )
 
-    def find_max_decodable_distance(self, min_d=4, max_d=100):
-        max_distance = 0
-        for distance in range(min_d, max_d):
-            time_for_logical_operation = (
-                6 * self.hw_model.surface_code_cycle_time_in_seconds * distance
-            )
-            if self.decoder_model.delay(distance) < time_for_logical_operation:
-                max_distance = distance
-
-        return max_distance
-
     def get_n_total_t_gates(
         self,
         n_t_gates: int,
@@ -390,6 +379,14 @@ class GraphResourceEstimator:
 
         total_time_in_seconds = (
             time_per_circuit_in_seconds * algorithm_implementation.n_calls
+        )
+
+        decoder_info = get_decoder_info(
+            self.decoder_model,
+            self.hw_model,
+            graph_data.max_graph_degree,
+            space_time_volume,
+            code_distance,
         )
 
         # get decoder requirements

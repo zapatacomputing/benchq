@@ -2,7 +2,7 @@
 # © Copyright 2023 Zapata Computing Inc.
 ################################################################################
 
-from typing import Tuple
+from typing import Tuple, Optional
 
 import numpy as np
 from openfermion.resource_estimates import df, sf
@@ -21,6 +21,7 @@ from benchq.resource_estimation._footprint_analysis import (
     CostEstimate,
     cost_estimator,
 )
+from ..data_structures.decoder import get_decoder_info, DecoderModel
 
 
 def _validate_eri(eri: np.ndarray):
@@ -212,7 +213,11 @@ def get_double_factorized_block_encoding_toffoli_and_qubit_cost(
     lam = compute_lambda_df(h1, eri_rr, LR)
 
     allowable_phase_estimation_error = 1
-    (step_cost, total_cost, ancilla_cost,) = _get_double_factorized_qpe_info(
+    (
+        step_cost,
+        total_cost,
+        ancilla_cost,
+    ) = _get_double_factorized_qpe_info(
         h1,
         eri,
         threshold,
@@ -235,6 +240,7 @@ def get_physical_cost(
     num_t: int = 0,
     architecture_model: BasicArchitectureModel = BASIC_SC_ARCHITECTURE_MODEL,
     routing_overhead_proportion=0.5,
+    decoder_model: Optional[DecoderModel] = None,
 ) -> OpenFermionResourceInfo:
     """Get the estimated resources for single factorized QPE as described in PRX Quantum
     2, 030305.
@@ -255,19 +261,25 @@ def get_physical_cost(
         routing_overhead_proportion=routing_overhead_proportion,
     )
 
-    return _openfermion_result_to_resource_info(best_cost, best_params)
+    return _openfermion_result_to_resource_info(best_cost, best_params, decoder_model)
 
 
 def _openfermion_result_to_resource_info(
-    cost: CostEstimate, algorithm_parameters: AlgorithmParameters
+    cost: CostEstimate,
+    algorithm_parameters: AlgorithmParameters,
+    decoder_model: Optional[DecoderModel] = None,
 ) -> OpenFermionResourceInfo:
+    decoder_info = get_decoder_info(
+        """decoder_model, hw_model, n_logical_qubits, space_time_volume, code_distance"""
+    )
+
     return OpenFermionResourceInfo(
         n_physical_qubits=cost.physical_qubit_count,
         n_logical_qubits=algorithm_parameters.max_allocated_logical_qubits,
         total_time_in_seconds=cost.duration,
         code_distance=algorithm_parameters.logical_data_qubit_distance,
         logical_error_rate=cost.algorithm_failure_probability,
-        decoder_info=None,
+        decoder_info=decoder_info,
         routing_to_measurement_volume_ratio=algorithm_parameters.routing_overhead_proportion,  # noqa
         widget_name=algorithm_parameters.magic_state_factory.details,
         extra=OpenFermionExtra(
