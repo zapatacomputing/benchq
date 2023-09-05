@@ -27,7 +27,26 @@ def default_widget_list(architecture_model: BasicArchitectureModel) -> Iterable[
 
 @default_widget_list.register
 def default_widget_list_for_ion_traps(
-    _architecture_model: Union[IONTrapModel, DetailedIonTrapModel],
+    _architecture_model: IONTrapModel,
+) -> Iterable[Widget]:
+    return [
+        Widget("(15-to-1)_7,3,3", 4.4e-8, (30, 27), 810, 18.1),
+        Widget("(15-to-1)_9,3,3", 9.3e-10, (38, 30), 1150, 18.1),
+        Widget("(15-to-1)_11,5,5", 1.9e-11, (47, 44), 2070, 30),
+        Widget(
+            "(15-to-1)^4_9,3,3 x (20-to-4)_15,7,9",
+            2.4e-15,
+            (221, 96),
+            16400,
+            90.3,
+            n_t_gates_produced_per_cycle=4,
+        ),
+        Widget("(15-to-1)^4_9,3,3 x (15-to-1)_25,9,9", 6.3e-25, (193, 96), 18600, 67.8),
+    ]
+
+@default_widget_list.register
+def default_widget_list_for_ion_traps(
+    _architecture_model: DetailedIonTrapModel,
 ) -> Iterable[Widget]:
     return [
         Widget("(15-to-1)_7,3,3", 4.4e-8, (30, 27), 810, 18.1),
