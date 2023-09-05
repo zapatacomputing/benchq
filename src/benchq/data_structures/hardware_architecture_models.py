@@ -36,7 +36,7 @@ class BasicArchitectureModel(Protocol):
 @dataclass(frozen=True)
 class IONTrapModel:
     physical_qubit_error_rate: float = 1e-4
-    surface_code_cycle_time_in_seconds: float = 1e-5
+    surface_code_cycle_time_in_seconds: float = 1e-3
 
 
 @dataclass(frozen=True)
