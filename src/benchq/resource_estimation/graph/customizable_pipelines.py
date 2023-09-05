@@ -21,8 +21,6 @@ def run_custom_resource_estimation_pipeline(
     transformers,
 ):
     for transformer in transformers:
-        # all transformers give back QuantumPrograms except the last one
-        assert isinstance(algorithm_implementation.program, QuantumProgram)
         algorithm_implementation = replace(
             algorithm_implementation,
             program=transformer(algorithm_implementation.program),
@@ -51,14 +49,11 @@ def _create_extrapolated_graph_data(
         )
 
         for transformer in transformers:
-            # all transformers give back QuantumPrograms except the last one
-            assert isinstance(small_algorithm_implementation.program, QuantumProgram)
             small_algorithm_implementation.program.steps = i
             small_algorithm_implementation.program = transformer(
                 small_algorithm_implementation.program
             )
 
-        assert isinstance(small_algorithm_implementation.program, GraphPartition)
         graph_data = estimator._get_graph_data_for_single_graph(
             small_algorithm_implementation.program
         )

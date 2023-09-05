@@ -51,12 +51,15 @@ def decompose_benchq_operations(
     operations: Iterable[Operation],
     decomposition_rules: Sequence[DecompositionRule[GateOperation]],
 ):
-    return [
-        decomposed_op
-        for op in operations
-        if isinstance(op, GateOperation)
-        for decomposed_op in decompose_operation(op, decomposition_rules)
-    ]
+    decomposed_operation_sequence = []
+    for op in operations:
+        if isinstance(op, GateOperation):
+            for decomposed_op in decompose_operation(op, decomposition_rules):
+                decomposed_operation_sequence += [decomposed_op]
+        else:
+            decomposed_operation_sequence += [op]
+
+    return decomposed_operation_sequence
 
 
 class DecomposeStandardRZ(DecompositionRule[GateOperation]):
