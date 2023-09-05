@@ -4,7 +4,6 @@
 # Implementation of an algorithm for LDE solver based on the research paper
 # "Time-marching based quantum solvers for time-dependent linear differential equations"
 # (https://arxiv.org/abs/2208.06941)
-
 from math import ceil
 from typing import Tuple
 
@@ -17,6 +16,7 @@ from orquestra.quantum.circuits import PHASE, RZ, SX, Circuit, X
 from qiskit import QuantumCircuit, transpile
 
 from .lin_and_dong_qsp import build_qsp_circuit
+from .utils.compression_gadget import get_add_dagger, get_add_l
 
 
 def get_kappa(matrix_norm: float, time_interval: float) -> float:
@@ -316,3 +316,67 @@ def matrix_exponentiation(
     matrix_exp += shifted_prep_dag
 
     return matrix_exp
+
+
+def long_time_propagator(
+    phases,
+    L: int,
+    n: int,
+    be_matrix: Circuit,
+    matrix_norm: float,
+    time: float,
+    beta: float,
+    epsilon: float,
+) -> Circuit:
+    """Coherently multiply unitaries representing a single time step such that
+    the result of the multiplication is the solution to the given differential equation.
+    To propagate the differential equation in time with a high probability,
+    use the compression gadget and the uniform singular value amplification as
+    described in Sections (2.3-2.4) and Appendices (C-D) of the research paper
+    (https://arxiv.org/abs/2208.06941).
+
+    Args:
+        phases (): a sequence of phase angles used to construct QSVT procedure
+            with an odd polynomial.
+        L (int): number of time steps.
+        n (int): size of the matrix that governs differential equation.
+        be_matrix (Circuit): the block encoding of a matrix.
+        matrix_norm (float): the norm of the matrix that is to be block encoded.
+        time (float): the time interval one seeks solution for a differntial equation.
+        beta (float): an upper bound for the largest eigenvalue of the block encoding.
+        epsilon (float): an accuracy for the polynomial approximation.
+
+    Return:
+        long_time_propagator (Circuit): an Orquestra.circuit instance representing
+            a quantum circuit for the time-marching algorithm.
+    """
+    long_time_propagator = Circuit()
+    long_time_propagator += get_add_l(L)
+    qubits_to_shift = ceil(np.log2(L)) + 1
+    add_dagger = get_add_dagger(L)
+
+    # Assuming a uniform time interval.
+    single_time_step = matrix_exponentiation(
+        be_matrix, matrix_norm, time, beta, epsilon
+    )
+    qsp_qubits = single_time_step.n_qubits + 1
+    amplified_single_time_step = import_from_qiskit(
+        build_qsp_circuit(
+            qsp_qubits, export_to_qiskit(single_time_step), phases, realpart=True
+        )
+    )
+    amplified_shifted = Circuit(
+        [
+            op.gate(*[qubit + qubits_to_shift for qubit in op.qubit_indices])
+            for op in amplified_single_time_step.operations
+        ]
+    )
+
+    for _ in range(L):
+        long_time_propagator += amplified_shifted
+        num_control_qubits = qsp_qubits - n
+        for q in range(num_control_qubits):
+            control_add_dag = add_dagger.controlled(qubits_to_shift + q)
+        long_time_propagator += control_add_dag
+
+    return long_time_propagator
