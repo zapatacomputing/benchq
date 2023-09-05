@@ -1,10 +1,11 @@
 from dataclasses import dataclass
 from functools import singledispatch
-from typing import Iterable, Tuple
+from typing import Iterable, Tuple, Union
 
 from benchq.data_structures.hardware_architecture_models import (
     BasicArchitectureModel,
     IONTrapModel,
+    DetailedIonTrapModel,
     SCModel,
 )
 
@@ -26,7 +27,7 @@ def default_widget_list(architecture_model: BasicArchitectureModel) -> Iterable[
 
 @default_widget_list.register
 def default_widget_list_for_ion_traps(
-    _architecture_model: IONTrapModel,
+    _architecture_model: Union[IONTrapModel, DetailedIonTrapModel],
 ) -> Iterable[Widget]:
     return [
         Widget("(15-to-1)_7,3,3", 4.4e-8, (30, 27), 810, 18.1),
