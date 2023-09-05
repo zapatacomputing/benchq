@@ -110,15 +110,9 @@ def iter_known_factories(
 ) -> Iterator[MagicStateFactory]:
     error_msg = "Cannot accommodate circuits having no T gates and Toffoli gates."
 
-    if physical_error_rate == 0.001 and num_t == 0 and num_toffoli == 0:
+    if num_t == 0 and num_toffoli == 0:
         raise ValueError(error_msg)
-
-    elif physical_error_rate == 0.001:
-        yield _two_level_t_state_factory_1p1000(physical_error_rate=physical_error_rate)
-    else:
-        if num_t == 0 and num_toffoli == 0:
-            raise ValueError(error_msg)
-        yield from iter_auto_ccz_factories(physical_error_rate)
+    yield from iter_auto_ccz_factories(physical_error_rate)
 
 
 def _two_level_t_state_factory_1p1000(physical_error_rate: float) -> MagicStateFactory:

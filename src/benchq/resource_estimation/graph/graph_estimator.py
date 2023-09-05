@@ -268,7 +268,7 @@ class GraphResourceEstimator:
         if self.optimization == "time":
             return (
                 6
-                * self.hw_model.physical_qubit_error_rate
+                * self.hw_model.surface_code_cycle_time_in_seconds
                 * (
                     graph_data.n_measurement_steps * code_distance
                     + widget.time_in_tocks
@@ -278,7 +278,7 @@ class GraphResourceEstimator:
         elif self.optimization == "space":
             return (
                 6
-                * self.hw_model.physical_qubit_error_rate
+                * self.hw_model.surface_code_cycle_time_in_seconds 
                 * (
                     graph_data.n_measurement_steps * code_distance
                     + (widget.time_in_tocks + code_distance) * n_total_t_gates
