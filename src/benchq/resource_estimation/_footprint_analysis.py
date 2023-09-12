@@ -22,7 +22,7 @@ from typing import Iterator, Tuple
 class MagicStateFactory:
     details: str
     physical_qubit_footprint: int
-    rounds: int
+    distillation_time_in_tocks: int
     failure_rate: float
 
 
@@ -38,7 +38,7 @@ class AlgorithmParameters:
     physical_error_rate: float
     surface_code_cycle_time: float
     logical_data_qubit_distance: int
-    magic_state_factory: MagicStateFactory
+    widget: MagicStateFactory
     max_allocated_logical_qubits: int
     factory_count: int
     routing_overhead_proportion: float
@@ -54,55 +54,69 @@ class AlgorithmParameters:
                 factories as fast as the factories run.
             - The bottleneck time cost is waiting for magic states.
         """
-        logical_storage = int(
-            math.ceil(
-                self.max_allocated_logical_qubits
-                * (1 + self.routing_overhead_proportion)
-            )
-        )
-        storage_area = logical_storage * _physical_qubits_per_logical_qubit(
-            self.logical_data_qubit_distance
-        )
-        distillation_area = (
-            self.factory_count * self.magic_state_factory.physical_qubit_footprint
-        )
         if self.t_count == 0 and self.toffoli_count == 0:
             raise ValueError(
                 "Cannot accommodate circuits having no T gates and Toffoli gates."
             )
 
-        rounds = int(
+        n_logical_qubits_used_for_computation = int(
+            math.ceil(
+                self.max_allocated_logical_qubits
+                * (1 + self.routing_overhead_proportion)
+            )
+        )
+        n_physical_qubits_used_for_computation = (
+            n_logical_qubits_used_for_computation
+            * _physical_qubits_per_logical_qubit(self.logical_data_qubit_distance)
+        )
+
+        n_physical_qubits_used_for_distillation = (
+            self.factory_count * self.widget.physical_qubit_footprint
+        )
+
+        total_distillation_tocks = int(
             (self.toffoli_count + math.ceil(self.t_count / 2))
             / self.factory_count
-            * self.magic_state_factory.rounds
+            * self.widget.distillation_time_in_tocks
         )
-        distillation_failure = self.magic_state_factory.failure_rate * (
+
+        distillation_failure = self.widget.failure_rate * (
             math.ceil(self.t_count / 2) + self.toffoli_count
         )
-        data_failure = (
+
+        V_computation = (
             self.proportion_of_bounding_box
-            * _topological_error_per_unit_cell(
-                self.logical_data_qubit_distance, gate_err=self.physical_error_rate
+            * n_physical_qubits_used_for_computation
+            * total_distillation_tocks
+        )
+        data_failure = (
+            _logical_cell_error_rate(
+                self.logical_data_qubit_distance,
+                physical_qubit_error_rate=self.physical_error_rate,
             )
-            * logical_storage
-            * rounds
+            * V_computation
         )
 
         return CostEstimate(
-            physical_qubit_count=storage_area + distillation_area,
-            duration=rounds * self.surface_code_cycle_time,
+            physical_qubit_count=n_physical_qubits_used_for_computation
+            + n_physical_qubits_used_for_distillation,
+            duration=total_distillation_tocks * self.surface_code_cycle_time,
             algorithm_failure_probability=min(1.0, data_failure + distillation_failure),
         )
 
 
-def _topological_error_per_unit_cell(code_distance: int, gate_err: float) -> float:
-    return 0.1 * (100 * gate_err) ** ((code_distance + 1) / 2)
-
-
-def _total_topological_error(
-    code_distance: int, gate_err: float, unit_cells: int
+def _logical_cell_error_rate(
+    code_distance: int, physical_qubit_error_rate: float
 ) -> float:
-    return unit_cells * _topological_error_per_unit_cell(code_distance, gate_err)
+    return 0.1 * (100 * physical_qubit_error_rate) ** ((code_distance + 1) / 2)
+
+
+def _get_total_logical_failure_rate(
+    code_distance: int, physical_qubit_error_rate: float, logical_st_volume: int
+) -> float:
+    return logical_st_volume * _logical_cell_error_rate(
+        code_distance, physical_qubit_error_rate
+    )
 
 
 def iter_known_factories(
@@ -113,18 +127,6 @@ def iter_known_factories(
     if num_t == 0 and num_toffoli == 0:
         raise ValueError(error_msg)
     yield from iter_auto_ccz_factories(physical_error_rate)
-
-
-def _two_level_t_state_factory_1p1000(physical_error_rate: float) -> MagicStateFactory:
-    assert physical_error_rate == 0.001
-    return MagicStateFactory(
-        details="https://arxiv.org/abs/1808.06709",
-        failure_rate=float(4 * 9 * 10**-17),
-        physical_qubit_footprint=(12 * 8)
-        * (4)
-        * _physical_qubits_per_logical_qubit(31),
-        rounds=6 * 31,
-    )
 
 
 def _autoccz_or_t_factory_dimensions(
@@ -169,7 +171,7 @@ def iter_auto_ccz_factories(physical_error_rate: float) -> Iterator[MagicStateFa
                 physical_qubit_footprint=w
                 * h
                 * _physical_qubits_per_logical_qubit(l2_distance),
-                rounds=int(d * l2_distance),
+                distillation_time_in_tocks=int(d * l2_distance),
                 failure_rate=float(f_ccz),
             )
 
@@ -180,27 +182,27 @@ def _compute_autoccz_distillation_error(
     # Level 0
     L0_distance = l1_distance // 2
     L0_distillation_error = physical_error_rate
-    L0_topological_error = _total_topological_error(
-        unit_cells=100,  # Estimated 100 for T injection.
+    L0_topological_error = _get_total_logical_failure_rate(
+        logical_st_volume=100,  # Estimated 100 for T injection.
         code_distance=L0_distance,
-        gate_err=physical_error_rate,
+        physical_qubit_error_rate=physical_error_rate,
     )
     L0_total_T_error = L0_distillation_error + L0_topological_error
 
     # Level 1
-    L1_topological_error = _total_topological_error(
-        unit_cells=1100,  # Estimated 1000 for factory, 100 for T injection.
+    L1_topological_error = _get_total_logical_failure_rate(
+        logical_st_volume=1100,  # Estimated 1000 for factory, 100 for T injection.
         code_distance=l1_distance,
-        gate_err=physical_error_rate,
+        physical_qubit_error_rate=physical_error_rate,
     )
     L1_distillation_error = 35 * L0_total_T_error**3
     L1_total_T_error = L1_distillation_error + L1_topological_error
 
     # Level 2
-    L2_topological_error = _total_topological_error(
-        unit_cells=1000,  # Estimated 1000 for factory.
+    L2_topological_error = _get_total_logical_failure_rate(
+        logical_st_volume=1000,  # Estimated 1000 for factory.
         code_distance=l2_distance,
-        gate_err=physical_error_rate,
+        physical_qubit_error_rate=physical_error_rate,
     )
     L2_distillation_error = 28 * L1_total_T_error**2
     L2_total_CCZ_or_2T_error = L2_topological_error + L2_distillation_error
@@ -220,11 +222,11 @@ def cost_estimator(
     physical_error_rate=1.0e-3,
     portion_of_bounding_box=1.0,
     routing_overhead_proportion=0.5,
+    hardware_failure_tolerance=1e-3,
 ):
     """
     Produce best cost in terms of physical qubits and real run time based on
     number of toffoli, number of logical qubits, and physical error rate.
-
     """
 
     best_cost = None
@@ -237,7 +239,7 @@ def cost_estimator(
                 physical_error_rate=physical_error_rate,
                 surface_code_cycle_time=surface_code_cycle_time,
                 logical_data_qubit_distance=logical_data_qubit_distance,
-                magic_state_factory=factory,
+                widget=factory,
                 toffoli_count=num_toffoli,
                 t_count=num_t,
                 max_allocated_logical_qubits=num_logical_qubits,
@@ -246,15 +248,15 @@ def cost_estimator(
                 proportion_of_bounding_box=portion_of_bounding_box,
             )
             cost = params.estimate_cost()
-            if cost.algorithm_failure_probability > 0.1:
-                continue
-            if (
-                best_cost is None
-                or cost.physical_qubit_count * cost.duration
-                < best_cost.physical_qubit_count * best_cost.duration
-            ):
-                best_cost = cost
-                best_params = params
+            if cost.algorithm_failure_probability < hardware_failure_tolerance:
+                # optimize for smallest spacetime volume
+                if (
+                    best_cost is None
+                    or cost.physical_qubit_count * cost.duration
+                    < best_cost.physical_qubit_count * best_cost.duration
+                ):
+                    best_cost = cost
+                    best_params = params
 
     if best_cost is None:
         raise RuntimeError(

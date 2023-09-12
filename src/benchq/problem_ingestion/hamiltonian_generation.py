@@ -31,7 +31,7 @@ def nx_triangle_lattice(lattice_size):
 def nx_longitudinal_ising_terms(g, p, magnitude=1):
     H_longitudinal = []
     n = len(g.nodes)
-    for (n1, n2) in g.edges:
+    for n1, n2 in g.edges:
         weight = magnitude if random.random() < p else -magnitude
         string = n * "I"
         for i in range(len(g)):
@@ -95,7 +95,6 @@ def generate_jw_qubit_hamiltonian_from_mol_data(chemistry_instance) -> PauliSum:
 
 
 def generate_1d_heisenberg_hamiltonian(N):
-
     # Setting J/h's
     # Adjusting these from zero to nonzero may also increase the circuit depth,
     # since additional terms in the Hamiltonian are introduced.
@@ -156,7 +155,7 @@ def assign_hexagon_labels(g):
 def nx_kitaev_terms(g, p):
     H = []
     n = len(g.nodes)
-    for (n1, n2, d) in g.edges(data=True):
+    for n1, n2, d in g.edges(data=True):
         label = d["label"]
         weight = 1 if random.random() < p else -1
         string = n * "I"
@@ -170,7 +169,6 @@ def nx_kitaev_terms(g, p):
 
 
 def generate_kitaev_hamiltonian(lattice_size, weight_prob=1):
-
     g = nx.generators.lattice.hexagonal_lattice_graph(lattice_size, lattice_size)
     assign_hexagon_labels(g)
     g = nx.convert_node_labels_to_integers(g)

@@ -15,7 +15,7 @@ class Widget:
     distilled_magic_state_error_rate: float
     space: Tuple[int, int]
     qubits: int
-    time_in_tocks: float
+    distillation_time_in_tocks: float
     n_t_gates_produced_per_cycle: int = 1
 
 

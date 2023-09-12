@@ -111,11 +111,11 @@ def test_ratio_of_failure_prob(num_toffoli, num_t):
         num_t=num_t,
         surface_code_cycle_time=scc_time,
         physical_error_rate=physical_error_rate,
+        hardware_failure_tolerance=1e-2,
     )
 
     assert (
-        best_params_toffoli.magic_state_factory.failure_rate
-        / best_params_t.magic_state_factory.failure_rate
+        best_params_toffoli.widget.failure_rate / best_params_t.widget.failure_rate
         == 1.0
     )
 
@@ -151,6 +151,7 @@ def test_calc_of_algorithm_failure_prob(num_toffoli, num_t):
         num_t=num_t,
         surface_code_cycle_time=scc_time,
         physical_error_rate=physical_error_rate,
+        hardware_failure_tolerance=1e-2,
     )
     numpy.testing.assert_almost_equal(
         (
@@ -204,21 +205,19 @@ def test_default_T_factories():
         num_t=num_t,
         surface_code_cycle_time=scc_time,
         physical_error_rate=physical_error_rate,
+        hardware_failure_tolerance=1e-2,
     )
     best_cost, best_params_toffoli = cost_estimator(
         num_logical_qubits=num_logical_qubits,
         num_toffoli=num_toffoli,
         surface_code_cycle_time=scc_time,
         physical_error_rate=physical_error_rate,
+        hardware_failure_tolerance=1e-2,
     )
-    numpy.testing.assert_allclose(best_params_t.magic_state_factory.rounds, 186)
-    numpy.testing.assert_allclose(
-        best_params_t.magic_state_factory.failure_rate, 3.6e-16
-    )
-    numpy.testing.assert_allclose(best_params_toffoli.magic_state_factory.rounds, 186)
-    numpy.testing.assert_allclose(
-        best_params_toffoli.magic_state_factory.failure_rate, 3.6e-16
-    )
+    numpy.testing.assert_allclose(best_params_t.widget.rounds, 186)
+    numpy.testing.assert_allclose(best_params_t.widget.failure_rate, 3.6e-16)
+    numpy.testing.assert_allclose(best_params_toffoli.widget.rounds, 186)
+    numpy.testing.assert_allclose(best_params_toffoli.widget.failure_rate, 3.6e-16)
 
 
 def test_default_values():

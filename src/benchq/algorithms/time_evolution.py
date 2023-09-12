@@ -45,7 +45,7 @@ def qsp_time_evolution_algorithm(
     n_block_encodings = _n_block_encodings_for_time_evolution(
         hamiltonian, time, failure_tolerance
     )
-    program = get_qsp_program(hamiltonian, n_block_encodings)
+    program = get_qsp_program(hamiltonian, n_block_encodings, decompose_select_v=False)
     return AlgorithmImplementation(
         program, ErrorBudget.from_even_split(failure_tolerance), 1
     )

@@ -226,11 +226,13 @@ def test_ratio_of_failure_prob_of_magicstateFactory(num_toffoli, num_t):
         num_logical_qubits=num_logical_qubits,
         num_toffoli=num_toffoli,
         architecture_model=BAM,
+        hardware_failure_tolerance=1e-2,
     )
     best_T = get_physical_cost(
         num_logical_qubits=num_logical_qubits,
         num_t=num_t,
         architecture_model=BAM,
+        hardware_failure_tolerance=1e-2,
     )
 
     assert (
@@ -263,11 +265,13 @@ def test_calc_of_algorithm_failure_prob(n_toffoli, n_T):
         num_logical_qubits=num_logical_qubits,
         num_toffoli=n_toffoli,
         architecture_model=BAM,
+        hardware_failure_tolerance=1e-2,
     )
     best_T = get_physical_cost(
         num_logical_qubits=num_logical_qubits,
         num_t=n_T,
         architecture_model=BAM,
+        hardware_failure_tolerance=1e-2,
     )
 
     numpy.testing.assert_almost_equal(
@@ -319,11 +323,13 @@ def test_default_T_factories():
         num_logical_qubits=num_logical_qubits,
         num_t=num_t,
         architecture_model=BAM,
+        hardware_failure_tolerance=1e-2,
     )
     best_toffoli = get_physical_cost(
         num_logical_qubits=num_logical_qubits,
         num_toffoli=num_toffoli,
         architecture_model=BAM,
+        hardware_failure_tolerance=1e-2,
     )
 
     numpy.testing.assert_allclose(best_T.extra.rounds_magicstateFactory, 186)
@@ -385,5 +391,7 @@ def test_default_scc_time():
 def test_get_physical_cost_supports_large_circuits():
     n_logical_qubits = 4e3
     n_toffoli = 1e12
-    resource_estimate = get_physical_cost(n_logical_qubits, n_toffoli)
+    resource_estimate = get_physical_cost(
+        n_logical_qubits, n_toffoli, hardware_failure_tolerance=1e-2
+    )
     assert resource_estimate.n_physical_qubits > n_logical_qubits

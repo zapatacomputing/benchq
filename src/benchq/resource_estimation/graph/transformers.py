@@ -1,3 +1,4 @@
+import time
 from copy import copy
 from typing import Callable, Sequence, Tuple
 
@@ -57,7 +58,10 @@ def synthesize_clifford_t(
 
 
 def transpile_to_native_gates(program: QuantumProgram) -> QuantumProgram:
+    print("Transpiling to native gates...")
+    start = time.time()
     circuits = [_transpile_to_native_gates(circuit) for circuit in program.subroutines]
+    print(f"Transpiled in {time.time() - start} seconds.")
     return QuantumProgram(
         circuits,
         steps=program.steps,
@@ -106,6 +110,8 @@ def remove_isolated_nodes(graph_partition: GraphPartition) -> GraphPartition:
     Returns:
         GraphPartition: input graph partition with isolated nodes removed.
     """
+    print("Removing isolated nodes from graph...")
+    start = time.time()
     new_graphs = []
     total_nodes_removed = 0
     for graph in graph_partition.subgraphs:
@@ -114,7 +120,10 @@ def remove_isolated_nodes(graph_partition: GraphPartition) -> GraphPartition:
         total_nodes_removed += n_nodes_removed
         new_graphs.append(graph)
 
-    print(f"Removed {total_nodes_removed} isolated nodes from graph partitions.")
+    print(
+        f"Removed {total_nodes_removed} isolated nodes "
+        f"in {time.time() - start} seconds."
+    )
     return GraphPartition(graph_partition.program, new_graphs)
 
 

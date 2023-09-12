@@ -25,7 +25,7 @@ class DecoderModel:
     distance_cap: int = 31
 
     def power(self, distance: int) -> float:
-        """Calculates the power (in W) that it will take to decode the code
+        """Calculates the power (in nW) that it will take to decode the code
         of given distance. Returns infinity if the decoder is not available for
         given distance.
 
@@ -35,7 +35,7 @@ class DecoderModel:
         return self.power_table.get(distance, invalid_code_distance())
 
     def area(self, distance: int) -> float:
-        """Calculates the area (arbitrary units) that it will take to have a decoder
+        """Calculates the area (arbitrary um) that it will take to have a decoder
         which allows to decode code of given distance. Returns infinity if the decoder
         is not available for given distance.
 
