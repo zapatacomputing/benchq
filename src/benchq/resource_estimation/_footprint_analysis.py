@@ -22,7 +22,7 @@ from typing import Iterator, Tuple
 class MagicStateFactory:
     details: str
     physical_qubit_footprint: int
-    distillation_time_in_tocks: int
+    distillation_time_in_cycles: int
     failure_rate: float
 
 
@@ -74,10 +74,10 @@ class AlgorithmParameters:
             self.factory_count * self.widget.physical_qubit_footprint
         )
 
-        total_distillation_tocks = int(
+        total_distillation_cycles = int(
             (self.toffoli_count + math.ceil(self.t_count / 2))
             / self.factory_count
-            * self.widget.distillation_time_in_tocks
+            * self.widget.distillation_time_in_cycles
         )
 
         distillation_failure = self.widget.failure_rate * (
@@ -87,7 +87,7 @@ class AlgorithmParameters:
         V_computation = (
             self.proportion_of_bounding_box
             * n_physical_qubits_used_for_computation
-            * total_distillation_tocks
+            * total_distillation_cycles
         )
         data_failure = (
             _logical_cell_error_rate(
@@ -100,7 +100,7 @@ class AlgorithmParameters:
         return CostEstimate(
             physical_qubit_count=n_physical_qubits_used_for_computation
             + n_physical_qubits_used_for_distillation,
-            duration=total_distillation_tocks * self.surface_code_cycle_time,
+            duration=total_distillation_cycles * self.surface_code_cycle_time,
             algorithm_failure_probability=min(1.0, data_failure + distillation_failure),
         )
 
@@ -171,7 +171,7 @@ def iter_auto_ccz_factories(physical_error_rate: float) -> Iterator[MagicStateFa
                 physical_qubit_footprint=w
                 * h
                 * _physical_qubits_per_logical_qubit(l2_distance),
-                distillation_time_in_tocks=int(d * l2_distance),
+                distillation_time_in_cycles=int(d * l2_distance),
                 failure_rate=float(f_ccz),
             )
 
