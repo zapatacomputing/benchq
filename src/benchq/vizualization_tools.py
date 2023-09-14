@@ -10,7 +10,6 @@ from scipy.optimize import minimize
 
 from .data_structures import ExtrapolatedGraphResourceInfo, ResourceInfo
 
-
 def plot_graph_state_with_measurement_steps(
     graph_state_graph,
     measurement_steps,
@@ -72,7 +71,7 @@ def plot_extrapolations(
         if (
             property == "n_measurement_steps"
             and n_measurement_steps_fit_type == "logarithmic"
-        ):
+        ) or property == "max_graph_degree":
             m, c, r_squared = _get_logarithmic_extrapolation(x, y)
 
             all_x = np.arange(1, info.extra.steps_to_extrapolate_to + 1, 1)
@@ -110,7 +109,6 @@ def plot_extrapolations(
 
     plt.show()
 
-
 def _get_logarithmic_extrapolation(x, y):
     x = np.array(x)
     y = np.array(y)
@@ -121,7 +119,15 @@ def _get_logarithmic_extrapolation(x, y):
         error = y_pred - y
         return np.sum(error**2)
 
-    return _extrapolate(x, y, _logarithmic_objective)
+    a_opt, b_opt = _extrapolate(x, y, _logarithmic_objective)
+
+    # Calculate R-squared value
+    y_mean = np.mean(y)
+    total_sum_of_squares = np.sum((y - y_mean) ** 2)
+    residual_sum_of_squares = np.sum((y - (a_opt * np.log(x) + b_opt)) ** 2)
+    r_squared = 1 - (residual_sum_of_squares / total_sum_of_squares)
+
+    return a_opt, b_opt, r_squared
 
 
 def _get_linear_extrapolation(x, y):
@@ -134,7 +140,15 @@ def _get_linear_extrapolation(x, y):
         error = y_pred - y
         return np.sum(error**2)
 
-    return _extrapolate(x, y, _linear_objective)
+    a_opt, b_opt = _extrapolate(x, y, _linear_objective)
+
+    # Calculate R-squared value
+    y_mean = np.mean(y)
+    total_sum_of_squares = np.sum((y - y_mean) ** 2)
+    residual_sum_of_squares = np.sum((y - (a_opt * x + b_opt)) ** 2)
+    r_squared = 1 - (residual_sum_of_squares / total_sum_of_squares)
+
+    return a_opt, b_opt, r_squared
 
 
 def _extrapolate(x, y, objective):
@@ -152,10 +166,16 @@ def _extrapolate(x, y, objective):
     # Extrapolated to desired point
     a_opt, b_opt = result.x
 
-    # Calculate R-squared value
-    y_mean = np.mean(y)
-    total_sum_of_squares = np.sum((y - y_mean) ** 2)
-    residual_sum_of_squares = np.sum((y - (a_opt * x + b_opt)) ** 2)
-    r_squared = 1 - (residual_sum_of_squares / total_sum_of_squares)
+    return a_opt, b_opt
 
-    return a_opt, b_opt, r_squared
+
+
+
+
+
+
+
+
+
+
+
