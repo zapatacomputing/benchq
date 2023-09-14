@@ -16,7 +16,7 @@ class DecoderInfo:
     total_energy_consumption: float
     power: float
     area: float
-    max_decodable_distance: int = field(repr=False)
+    max_decodable_distance: int = field(repr=True)
 
 
 @dataclass
@@ -65,8 +65,8 @@ class ExtrapolatedGraphData(GraphData):
     n_logical_qubits_r_squared: float
     n_measurement_steps_r_squared: float
     n_nodes_r_squared: float
-    data_used_to_extrapolate: List[GraphData] = field(repr=False)
-    steps_to_extrapolate_to: int = field(repr=False)
+    data_used_to_extrapolate: List[GraphData] = field(repr=True)
+    steps_to_extrapolate_to: int = field(repr=True)
 
     @property
     def max_graph_degree_r_squared(self) -> float:
