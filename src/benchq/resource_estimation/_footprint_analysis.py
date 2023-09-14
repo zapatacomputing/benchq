@@ -220,6 +220,7 @@ def cost_estimator(
     physical_error_rate=1.0e-3,
     portion_of_bounding_box=1.0,
     routing_overhead_proportion=0.5,
+    failure_tolerance = 0.1
 ):
     """
     Produce best cost in terms of physical qubits and real run time based on
@@ -246,7 +247,7 @@ def cost_estimator(
                 proportion_of_bounding_box=portion_of_bounding_box,
             )
             cost = params.estimate_cost()
-            if cost.algorithm_failure_probability > 0.1:
+            if cost.algorithm_failure_probability > failure_tolerance:
                 continue
             if (
                 best_cost is None
