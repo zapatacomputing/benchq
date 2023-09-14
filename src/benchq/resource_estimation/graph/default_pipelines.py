@@ -1,6 +1,6 @@
 from typing import List, Optional
 
-from ...compilation import get_algorithmic_graph_from_Jabalizer
+from ...compilation import get_algorithmic_graph_from_ruby_slippers
 from ...data_structures import (
     AlgorithmImplementation,
     DecoderModel,
@@ -14,7 +14,13 @@ from .customizable_pipelines import (
 )
 from .extrapolation_estimator import ExtrapolationResourceEstimator
 from .graph_estimator import GraphResourceEstimator
-from .transformers import create_big_graph_from_subcircuits, synthesize_clifford_t
+from .transformers import (
+    create_big_graph_from_subcircuits,
+    synthesize_clifford_t,
+    transpile_to_native_gates,
+)
+
+from ..openfermion_re import get_physical_cost
 
 
 def run_precise_graph_estimate(
@@ -47,6 +53,7 @@ def run_precise_graph_estimate(
         algorithm_implementation,
         estimator,
         transformers=[
+            transpile_to_native_gates,
             synthesize_clifford_t(algorithm_implementation.error_budget),
             create_big_graph_from_subcircuits(),
         ],
@@ -84,9 +91,10 @@ def run_fast_graph_estimate(
         algorithm_implementation,
         estimator,
         transformers=[
+            transpile_to_native_gates,
             create_big_graph_from_subcircuits(
-                graph_production_method=get_algorithmic_graph_from_Jabalizer,
-            )
+                graph_production_method=get_algorithmic_graph_from_ruby_slippers,
+            ),
         ],
     )
 
@@ -128,6 +136,7 @@ def run_precise_extrapolation_estimate(
         algorithm_implementation,
         estimator,
         transformers=[
+            transpile_to_native_gates,
             synthesize_clifford_t(algorithm_implementation.error_budget),
             create_big_graph_from_subcircuits(),
         ],
@@ -171,8 +180,37 @@ def run_fast_extrapolation_estimate(
         algorithm_implementation,
         estimator,
         transformers=[
+            transpile_to_native_gates,
             create_big_graph_from_subcircuits(
-                graph_production_method=get_algorithmic_graph_from_Jabalizer,
-            )
+                graph_production_method=get_algorithmic_graph_from_ruby_slippers,
+            ),
         ],
+    )
+
+
+def run_footprint_analysis_pipeline(
+    algorithm_implementation: AlgorithmImplementation,
+    hardware_model: BasicArchitectureModel,
+    decoder_model: Optional[DecoderModel] = None,
+):
+    dummy_estimator = GraphResourceEstimator(
+        hardware_model, decoder_model=decoder_model
+    )
+
+    algorithm_implementation.program = transpile_to_native_gates(
+        algorithm_implementation.program
+    )
+
+    total_t_gates = dummy_estimator.get_n_total_t_gates(
+        algorithm_implementation.program.n_t_gates,
+        algorithm_implementation.program.n_rotation_gates,
+        algorithm_implementation.error_budget.transpilation_failure_tolerance,
+    )
+
+    return get_physical_cost(
+        algorithm_implementation.program.num_data_qubits,
+        num_t=total_t_gates,
+        architecture_model=hardware_model,
+        hardware_failure_tolerance=algorithm_implementation.error_budget.hardware_failure_tolerance,
+        decoder_model=decoder_model,
     )

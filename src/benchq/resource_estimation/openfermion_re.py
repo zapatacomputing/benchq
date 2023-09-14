@@ -213,7 +213,11 @@ def get_double_factorized_block_encoding_toffoli_and_qubit_cost(
     lam = compute_lambda_df(h1, eri_rr, LR)
 
     allowable_phase_estimation_error = 1
-    (step_cost, total_cost, ancilla_cost,) = _get_double_factorized_qpe_info(
+    (
+        step_cost,
+        total_cost,
+        ancilla_cost,
+    ) = _get_double_factorized_qpe_info(
         h1,
         eri,
         threshold,
@@ -284,7 +288,7 @@ def _openfermion_result_to_resource_info(
         widget_name=algorithm_parameters.widget.details,
         extra=OpenFermionExtra(
             fail_rate_msFactory=algorithm_parameters.widget.failure_rate,
-            rounds_magicstateFactory=algorithm_parameters.widget.distillation_time_in_tocks,  # noqa
+            rounds_magicstateFactory=algorithm_parameters.widget.distillation_time_in_cycles,  # noqa
             physical_qubit_error_rate=algorithm_parameters.physical_error_rate,
             scc_time=algorithm_parameters.surface_code_cycle_time,
         ),

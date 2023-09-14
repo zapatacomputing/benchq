@@ -55,9 +55,7 @@ class AlgorithmParameters:
             - The bottleneck time cost is waiting for magic states.
         """
         if self.t_count == 0 and self.toffoli_count == 0:
-            raise ValueError(
-                "Cannot accommodate circuits having no T gates and Toffoli gates."
-            )
+            raise ValueError("Circuit must contain T gates and/or Toffoli gates.")
 
         n_logical_qubits_used_for_computation = int(
             math.ceil(
@@ -74,15 +72,14 @@ class AlgorithmParameters:
             self.factory_count * self.widget.physical_qubit_footprint
         )
 
+        n_total_distillations = self.toffoli_count + math.ceil(self.t_count / 2)
+
         total_distillation_cycles = int(
-            (self.toffoli_count + math.ceil(self.t_count / 2))
+            n_total_distillations
             / self.factory_count
             * self.widget.distillation_time_in_cycles
         )
-
-        distillation_failure = self.widget.failure_rate * (
-            math.ceil(self.t_count / 2) + self.toffoli_count
-        )
+        distillation_failure = self.widget.failure_rate * n_total_distillations
 
         V_computation = (
             self.proportion_of_bounding_box
@@ -122,11 +119,24 @@ def _get_total_logical_failure_rate(
 def iter_known_factories(
     physical_error_rate: float, num_toffoli: int, num_t: int
 ) -> Iterator[MagicStateFactory]:
-    error_msg = "Cannot accommodate circuits having no T gates and Toffoli gates."
-
     if num_t == 0 and num_toffoli == 0:
-        raise ValueError(error_msg)
+        raise ValueError("Circuit must contain T gates and/or Toffoli gates.")
+
+    if physical_error_rate == 0.001:
+        yield _two_level_t_state_factory_1p1000(physical_error_rate=physical_error_rate)
     yield from iter_auto_ccz_factories(physical_error_rate)
+
+
+def _two_level_t_state_factory_1p1000(physical_error_rate: float) -> MagicStateFactory:
+    assert physical_error_rate == 0.001
+    return MagicStateFactory(
+        details="https://arxiv.org/abs/1808.06709",
+        failure_rate=4 * 9 * 1e-17,
+        physical_qubit_footprint=(12 * 8)
+        * (4)
+        * _physical_qubits_per_logical_qubit(31),
+        distillation_time_in_cycles=6 * 31,
+    )
 
 
 def _autoccz_or_t_factory_dimensions(
@@ -167,7 +177,7 @@ def iter_auto_ccz_factories(physical_error_rate: float) -> Iterator[MagicStateFa
             )
 
             yield MagicStateFactory(
-                details=f"AutoCCZ({physical_error_rate=},{l1_distance=},{l2_distance=}",
+                details=f"AutoCCZ({physical_error_rate}, {l1_distance}, {l2_distance})",
                 physical_qubit_footprint=w
                 * h
                 * _physical_qubits_per_logical_qubit(l2_distance),
@@ -260,7 +270,8 @@ def cost_estimator(
 
     if best_cost is None:
         raise RuntimeError(
-            "Failed to find parameters that yield an acceptable failure probability."
+            "Failed to find parameters that yield an acceptable failure probability. "
+            "You must decrease the number of T gates and/or Toffolis in your circuit"
         )
 
     return best_cost, best_params

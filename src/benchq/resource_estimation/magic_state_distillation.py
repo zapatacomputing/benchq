@@ -15,8 +15,8 @@ class Widget:
     distilled_magic_state_error_rate: float
     space: Tuple[int, int]
     qubits: int
-    distillation_time_in_tocks: float
-    n_t_gates_produced_per_cycle: int = 1
+    distillation_time_in_cycles: float
+    n_t_gates_produced_per_distillation: int = 1
 
 
 @singledispatch
@@ -38,7 +38,7 @@ def default_widget_list_for_ion_traps(
             (221, 96),
             16400,
             90.3,
-            n_t_gates_produced_per_cycle=4,
+            n_t_gates_produced_per_distillation=4,
         ),
         Widget("(15-to-1)^4_9,3,3 x (15-to-1)_25,9,9", 6.3e-25, (193, 96), 18600, 67.8),
     ]
@@ -61,7 +61,7 @@ def default_widget_list_for_sc(_architecture_model: SCModel) -> Iterable[Widget]
             (382, 142),
             46800,
             157,
-            n_t_gates_produced_per_cycle=1,
+            n_t_gates_produced_per_distillation=1,
         ),
         Widget(
             "(15-to-1)^6_11,5,5 x (15-to-1)_25,11,11",

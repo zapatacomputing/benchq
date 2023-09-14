@@ -23,7 +23,7 @@ def get_trotter_program(
     circuit = time_evolution(hamiltonian, time=time_per_step, n_steps=1)
 
     def subrountines_for_trotter(steps):
-        return [0] * steps
+        return [0] * int(steps)
 
     return QuantumProgram(
         subroutines=[circuit],

@@ -208,13 +208,13 @@ class GraphResourceEstimator:
                 2
                 * graph_data.max_graph_degree
                 * n_total_t_gates
-                * (widget.distillation_time_in_tocks + code_distance)
+                * (widget.distillation_time_in_cycles + code_distance)
             )
         elif self.optimization == "time":
             V_measure = (
                 n_total_t_gates
                 * widget.space[1]
-                * (widget.distillation_time_in_tocks + code_distance)
+                * (widget.distillation_time_in_cycles + code_distance)
                 / (2 ** (1 / 2) * code_distance + 1)
             )
         else:
@@ -263,24 +263,24 @@ class GraphResourceEstimator:
         n_total_t_gates: float,
         widget: Widget,
     ) -> float:
-        if self.optimization == "time":
+        if self.optimization == "space":
             return (
                 6
                 * self.hw_model.surface_code_cycle_time_in_seconds
                 * (
                     graph_data.n_measurement_steps * code_distance
-                    + widget.distillation_time_in_tocks
-                    + code_distance
+                    + (widget.distillation_time_in_cycles + code_distance)
+                    * n_total_t_gates
                 )
             )
-        elif self.optimization == "space":
+        elif self.optimization == "time":
             return (
                 6
                 * self.hw_model.surface_code_cycle_time_in_seconds
                 * (
                     graph_data.n_measurement_steps * code_distance
-                    + (widget.distillation_time_in_tocks + code_distance)
-                    * n_total_t_gates
+                    + widget.distillation_time_in_cycles
+                    + code_distance
                 )
             )
         else:
@@ -292,14 +292,14 @@ class GraphResourceEstimator:
         self, graph_data: GraphData, code_distance: int, widget: Widget
     ) -> int:
         patch_size = 2 * code_distance**2
-        if self.optimization == "time":
+        if self.optimization == "space":
+            return 2 * graph_data.max_graph_degree * patch_size + widget.qubits
+        elif self.optimization == "time":
             return ceil(
                 graph_data.max_graph_degree * patch_size
                 + 2 ** (0.5) * graph_data.n_measurement_steps * widget.space[0]
                 + widget.qubits * graph_data.n_measurement_steps
             )
-        elif self.optimization == "space":
-            return 2 * graph_data.max_graph_degree * patch_size + widget.qubits
         else:
             raise NotImplementedError(
                 "Must use either time or space optimal estimator."
@@ -322,12 +322,14 @@ class GraphResourceEstimator:
                 tmp_graph_data = replace(
                     graph_data,
                     n_nodes=ceil(
-                        graph_data.n_nodes / widget.n_t_gates_produced_per_cycle
+                        graph_data.n_nodes / widget.n_t_gates_produced_per_distillation
                     ),
                     n_t_gates=ceil(
-                        graph_data.n_t_gates / widget.n_t_gates_produced_per_cycle
+                        graph_data.n_t_gates
+                        / widget.n_t_gates_produced_per_distillation
                     ),
                 )
+
                 n_total_t_gates = self.get_n_total_t_gates(
                     tmp_graph_data.n_t_gates,
                     tmp_graph_data.n_rotation_gates,
@@ -341,6 +343,7 @@ class GraphResourceEstimator:
                 )
                 _logical_cell_error_rate = self._logical_cell_error_rate(code_distance)
 
+                # Ensure we can ignore errors from magic state distillation.
                 if widget.distilled_magic_state_error_rate < _logical_cell_error_rate:
                     widget_found = True
                     break

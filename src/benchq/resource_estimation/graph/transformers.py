@@ -85,6 +85,7 @@ def create_big_graph_from_subcircuits(
     graph_production_method=get_algorithmic_graph_from_ruby_slippers,
 ) -> Callable[[QuantumProgram], GraphPartition]:
     def _transformer(program: QuantumProgram) -> GraphPartition:
+        print("Creating big graph from subcircuits...")
         big_circuit = program.full_circuit
         new_program = get_program_from_circuit(big_circuit)
         graph = graph_production_method(big_circuit)
