@@ -25,6 +25,6 @@ class TestDecoders:
         # However, it might be that the logic was faulty from the beginning and
         # fixing the logic will make this test fail.
         # In such case it should be edited.
-        assert decoder.power(distance) == 5.0
-        assert decoder.area(distance) == 500.0
-        assert decoder.delay(distance) == 50000.0
+        assert decoder.delay_in_nanoseconds(distance) == 5.0
+        assert decoder.area_in_micrometers(distance) == 500.0
+        assert decoder.power_in_nanowatts(distance) == 50000.0

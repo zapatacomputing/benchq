@@ -22,9 +22,9 @@ class DecoderModel:
     power_table: Dict[int, float]
     area_table: Dict[int, float]
     delay_table: Dict[int, float]
-    distance_cap: int = 31
+    highest_calculated_distance: int = 31
 
-    def power(self, distance: int) -> float:
+    def power_in_nanowatts(self, distance: int) -> float:
         """Calculates the power (in nW) that it will take to decode the code
         of given distance. Returns infinity if the decoder is not available for
         given distance.
@@ -34,7 +34,7 @@ class DecoderModel:
         """
         return self.power_table.get(distance, invalid_code_distance())
 
-    def area(self, distance: int) -> float:
+    def area_in_micrometers(self, distance: int) -> float:
         """Calculates the area (arbitrary um) that it will take to have a decoder
         which allows to decode code of given distance. Returns infinity if the decoder
         is not available for given distance.
@@ -44,7 +44,7 @@ class DecoderModel:
         """
         return self.area_table.get(distance, invalid_code_distance())
 
-    def delay(self, distance: int) -> float:
+    def delay_in_nanoseconds(self, distance: int) -> float:
         """Calculates the delay (in ns) it will take to decode the code of given
         distance. Returns infinity if the decoder is not available for given distance.
 
@@ -72,9 +72,9 @@ class DecoderModel:
                 "Data for creating DecoderModel doesn't comply to the required format."
             )
         distances = data[1:, 0]
-        power_table = data[1:, 1]
+        delay_table = data[1:, 1]
         area_table = data[1:, 2]
-        delay_table = data[1:, 3]
+        power_table = data[1:, 3]
 
         distances = list(distances)
         highest_distance = int(max(distances))
@@ -83,9 +83,9 @@ class DecoderModel:
         completed_area_table = {}
         completed_delay_table = {}
 
-        for d in range(highest_distance):
+        for d in range(highest_distance + 1):
             if d not in distances:
-                new_d_index = find_next_higest_distance(distances, d)
+                new_d_index = find_next_highest_distance(distances, d)
                 completed_power_table[d] = power_table[new_d_index]
                 completed_area_table[d] = area_table[new_d_index]
                 completed_delay_table[d] = delay_table[new_d_index]
@@ -99,11 +99,11 @@ class DecoderModel:
             completed_power_table,
             completed_area_table,
             completed_delay_table,
-            distance_cap=highest_distance,
+            highest_calculated_distance=highest_distance,
         )
 
 
-def find_next_higest_distance(distances, d):
+def find_next_highest_distance(distances, d):
     """Finds the next highest distance in the list of distances.
 
     Args:
@@ -118,5 +118,5 @@ def find_next_higest_distance(distances, d):
 
 def invalid_code_distance():
     """Returns the delay for invalid code distance."""
-    warnings.warn("Code distance is too high to be decoded.")
+    warnings.warn("Code distance is too high to be decoded.", RuntimeWarning)
     return np.infty

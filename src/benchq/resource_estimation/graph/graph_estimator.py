@@ -85,6 +85,9 @@ class GraphResourceEstimator:
             on hw_model parameter.
     """
 
+    # Assumes gridsynth scaling
+    SYNTHESIS_SCALING = 4
+
     def __init__(
         self,
         hw_model: BasicArchitectureModel,
@@ -99,9 +102,6 @@ class GraphResourceEstimator:
         self.substrate_scheduler_preset = substrate_scheduler_preset
         getcontext().prec = 100  # need some extra precision for this calculation
         self.widgets = widgets or default_widget_list(hw_model)
-
-    # Assumes gridsynth scaling
-    SYNTHESIS_SCALING = 4
 
     def _get_n_measurement_steps(self, graph) -> int:
         compiler = substrate_scheduler(graph, self.substrate_scheduler_preset)

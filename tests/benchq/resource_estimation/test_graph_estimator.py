@@ -8,6 +8,8 @@ from orquestra.quantum.circuits import CNOT, RX, RY, RZ, Circuit, H, T
 from benchq.compilation import get_ruby_slippers_compiler
 from benchq.data_structures import (
     BASIC_SC_ARCHITECTURE_MODEL,
+    BASIC_ION_TRAP_ARCHITECTURE_MODEL,
+    DetailedIonTrapModel,
     AlgorithmImplementation,
     DecoderModel,
     ErrorBudget,
@@ -50,6 +52,34 @@ def _get_transformers(use_delayed_gate_synthesis, error_budget):
             create_big_graph_from_subcircuits(fast_ruby_slippers),
         ]
     return transformers
+
+
+@pytest.mark.parametrize(
+    "architecture_model",
+    [
+        BASIC_SC_ARCHITECTURE_MODEL,
+        BASIC_ION_TRAP_ARCHITECTURE_MODEL,
+        DetailedIonTrapModel,
+    ],
+)
+def test_resource_estimations_returns_results_for_different_architectures(
+    architecture_model,
+):
+    # set circuit generation weight to 0
+    error_budget = ErrorBudget.from_weights(1e-3, 0, 1, 1)
+    quantum_program = QuantumProgram(
+        [Circuit([H(0), RZ(np.pi / 4)(0), CNOT(0, 1)])], 1, lambda x: [0]
+    )
+    algorithm_implementation = AlgorithmImplementation(quantum_program, error_budget, 1)
+
+    transformers = _get_transformers(use_delayed_gate_synthesis, error_budget)
+    gsc_resource_estimates = run_custom_resource_estimation_pipeline(
+        algorithm_implementation,
+        estimator=GraphResourceEstimator(architecture_model),
+        transformers=transformers,
+    )
+
+    assert gsc_resource_estimates
 
 
 @pytest.mark.parametrize(

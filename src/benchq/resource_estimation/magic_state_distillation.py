@@ -6,6 +6,7 @@ from benchq.data_structures.hardware_architecture_models import (
     BasicArchitectureModel,
     IONTrapModel,
     SCModel,
+    DetailedIonTrapModel,
 )
 
 
@@ -24,10 +25,9 @@ def default_widget_list(architecture_model: BasicArchitectureModel) -> Iterable[
     raise NotImplementedError(f"No widgets known for type model {architecture_model}")
 
 
-@default_widget_list.register
-def default_widget_list_for_ion_traps(
-    _architecture_model: IONTrapModel,
-) -> Iterable[Widget]:
+@default_widget_list.register(IONTrapModel)
+@default_widget_list.register(DetailedIonTrapModel)
+def default_widget_list_for_ion_traps(_architecture_model) -> Iterable[Widget]:
     return [
         Widget("(15-to-1)_7,3,3", 4.4e-8, (30, 27), 810, 18.1),
         Widget("(15-to-1)_9,3,3", 9.3e-10, (38, 30), 1150, 18.1),
