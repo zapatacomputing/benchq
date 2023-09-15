@@ -7,11 +7,11 @@ from orquestra.quantum.circuits import CNOT, RX, RY, RZ, Circuit, H, T
 
 from benchq.compilation import get_ruby_slippers_compiler
 from benchq.data_structures import (
-    BASIC_SC_ARCHITECTURE_MODEL,
     BASIC_ION_TRAP_ARCHITECTURE_MODEL,
-    DetailedIonTrapModel,
+    BASIC_SC_ARCHITECTURE_MODEL,
     AlgorithmImplementation,
     DecoderModel,
+    DetailedIonTrapModel,
     ErrorBudget,
     QuantumProgram,
     get_program_from_circuit,

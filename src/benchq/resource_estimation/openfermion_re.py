@@ -213,11 +213,7 @@ def get_double_factorized_block_encoding_toffoli_and_qubit_cost(
     lam = compute_lambda_df(h1, eri_rr, LR)
 
     allowable_phase_estimation_error = 1
-    (
-        step_cost,
-        total_cost,
-        ancilla_cost,
-    ) = _get_double_factorized_qpe_info(
+    (step_cost, total_cost, ancilla_cost,) = _get_double_factorized_qpe_info(
         h1,
         eri,
         threshold,

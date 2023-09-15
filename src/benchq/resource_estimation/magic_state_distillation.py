@@ -4,9 +4,9 @@ from typing import Iterable, Tuple
 
 from benchq.data_structures.hardware_architecture_models import (
     BasicArchitectureModel,
+    DetailedIonTrapModel,
     IONTrapModel,
     SCModel,
-    DetailedIonTrapModel,
 )
 
 

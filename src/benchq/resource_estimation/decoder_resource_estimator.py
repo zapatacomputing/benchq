@@ -2,8 +2,8 @@ import warnings
 from typing import Optional
 
 from benchq.data_structures.decoder import DecoderModel
-from benchq.data_structures.resource_info import DecoderInfo
 from benchq.data_structures.hardware_architecture_models import BasicArchitectureModel
+from benchq.data_structures.resource_info import DecoderInfo
 
 
 def get_decoder_info(

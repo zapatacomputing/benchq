@@ -1,12 +1,14 @@
-from benchq.resource_estimation.decoder_resource_estimator import get_decoder_info
-from benchq.data_structures import (
-    DecoderModel,
-    BASIC_SC_ARCHITECTURE_MODEL,
-    DecoderInfo,
-)
 import os
 import warnings
+
 import pytest
+
+from benchq.data_structures import (
+    BASIC_SC_ARCHITECTURE_MODEL,
+    DecoderInfo,
+    DecoderModel,
+)
+from benchq.resource_estimation.decoder_resource_estimator import get_decoder_info
 
 
 def file_path(file_name):
