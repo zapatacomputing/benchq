@@ -260,3 +260,6 @@ class DetailedIonTrapModel:
         warnings.warn("This output parameter has yet to be implemented.")
         num_ELUs_per_OXC = None
         return num_ELUs_per_OXC
+
+
+DETAILED_ION_TRAP_ARCHITECTURE_MODEL = DetailedIonTrapModel()

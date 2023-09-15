@@ -1,8 +1,6 @@
 #####################################################################
 # © Copyright 2023 Zapata Computing Inc.
 ################################################################################
-import math
-
 from orquestra.quantum.evolution import time_evolution
 from orquestra.quantum.operators._pauli_operators import PauliRepresentation
 

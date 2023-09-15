@@ -9,9 +9,9 @@ from benchq.compilation import get_ruby_slippers_compiler
 from benchq.data_structures import (
     BASIC_ION_TRAP_ARCHITECTURE_MODEL,
     BASIC_SC_ARCHITECTURE_MODEL,
+    DETAILED_ION_TRAP_ARCHITECTURE_MODEL,
     AlgorithmImplementation,
     DecoderModel,
-    DetailedIonTrapModel,
     ErrorBudget,
     QuantumProgram,
     get_program_from_circuit,
@@ -59,7 +59,7 @@ def _get_transformers(use_delayed_gate_synthesis, error_budget):
     [
         BASIC_SC_ARCHITECTURE_MODEL,
         BASIC_ION_TRAP_ARCHITECTURE_MODEL,
-        DetailedIonTrapModel,
+        DETAILED_ION_TRAP_ARCHITECTURE_MODEL,
     ],
 )
 def test_resource_estimations_returns_results_for_different_architectures(

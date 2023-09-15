@@ -31,6 +31,7 @@ class CostEstimate:
     physical_qubit_count: int
     duration: float
     algorithm_failure_probability: float
+    widget_name: str
 
 
 @dataclasses.dataclass(frozen=True, unsafe_hash=True)
@@ -99,6 +100,7 @@ class AlgorithmParameters:
             + n_physical_qubits_used_for_distillation,
             duration=total_distillation_cycles * self.surface_code_cycle_time,
             algorithm_failure_probability=min(1.0, data_failure + distillation_failure),
+            widget_name=self.widget.details,
         )
 
 
@@ -258,7 +260,7 @@ def cost_estimator(
                 proportion_of_bounding_box=portion_of_bounding_box,
             )
             cost = params.estimate_cost()
-            if cost.algorithm_failure_probability < hardware_failure_tolerance:
+            if cost.algorithm_failure_probability <= hardware_failure_tolerance:
                 # optimize for smallest spacetime volume
                 if (
                     best_cost is None
@@ -268,6 +270,9 @@ def cost_estimator(
                     best_cost = cost
                     best_params = params
 
+    print("   ")
+    print(best_cost)
+    print(best_params)
     if best_cost is None:
         raise RuntimeError(
             "Failed to find parameters that yield an acceptable failure probability. "

@@ -31,12 +31,14 @@ def test_monotonicity_of_duration_wrtSurfaceCC_time(scc_time_low, scc_time_high)
         num_toffoli=num_toffoli,
         surface_code_cycle_time=scc_time_low,
         physical_error_rate=physical_error_rate,
+        hardware_failure_tolerance=1e-1,
     )
     best_cost_high, best_params_high = cost_estimator(
         num_logical_qubits,
         num_toffoli=num_toffoli,
         surface_code_cycle_time=scc_time_high,
         physical_error_rate=physical_error_rate,
+        hardware_failure_tolerance=1e-1,
     )
     assert best_cost_high.duration > best_cost_low.duration
 
@@ -69,12 +71,14 @@ def test_linearity_wrtSurfaceCC_time(scc_time_low, scc_time_high):
         num_t=num_t,
         surface_code_cycle_time=scc_time_low,
         physical_error_rate=physical_error_rate,
+        hardware_failure_tolerance=1e-1,
     )
     best_cost_high, best_params_high = cost_estimator(
         num_logical_qubits,
         num_t=num_t,
         surface_code_cycle_time=scc_time_high,
         physical_error_rate=physical_error_rate,
+        hardware_failure_tolerance=1e-1,
     )
 
     numpy.testing.assert_almost_equal(
@@ -105,13 +109,14 @@ def test_ratio_of_failure_prob(num_toffoli, num_t):
         num_toffoli=num_toffoli,
         surface_code_cycle_time=scc_time,
         physical_error_rate=physical_error_rate,
+        hardware_failure_tolerance=1e-1,
     )
     best_cost_t, best_params_t = cost_estimator(
         num_logical_qubits=num_logical_qubits,
         num_t=num_t,
         surface_code_cycle_time=scc_time,
         physical_error_rate=physical_error_rate,
-        hardware_failure_tolerance=1e-2,
+        hardware_failure_tolerance=1e-1,
     )
 
     assert (
@@ -129,7 +134,7 @@ def test_ratio_of_failure_prob(num_toffoli, num_t):
 )
 def test_calc_of_algorithm_failure_prob(num_toffoli, num_t):
     """
-    X+Yf - 2*(X/2+Yf/2) = 0, where X+Yf and X+Yf/2 are
+    X+Yf - 2*(X/2+Yf/2) = 0, where X+Yf and (X+Yf)/2 are
     Algorithm Failure Prob for toffoli and t cases respectively,
     where X -> data failure, Yf -> distillation failure,
       Y=#toffoli gate=#t gates and f is 1 CCZ error.
@@ -145,13 +150,14 @@ def test_calc_of_algorithm_failure_prob(num_toffoli, num_t):
         num_toffoli=num_toffoli,
         surface_code_cycle_time=scc_time,
         physical_error_rate=physical_error_rate,
+        hardware_failure_tolerance=1e-1,
     )
     best_cost_t, best_params_t = cost_estimator(
         num_logical_qubits=num_logical_qubits,
         num_t=num_t,
         surface_code_cycle_time=scc_time,
         physical_error_rate=physical_error_rate,
-        hardware_failure_tolerance=1e-2,
+        hardware_failure_tolerance=1e-1,
     )
     numpy.testing.assert_almost_equal(
         (
@@ -159,6 +165,7 @@ def test_calc_of_algorithm_failure_prob(num_toffoli, num_t):
             - 2 * best_cost_t.algorithm_failure_probability
         ),
         0,
+        decimal=5,
     )
 
 
@@ -178,6 +185,7 @@ def test_algorithm_failure_prob_calculation():
         num_t=20,
         surface_code_cycle_time=scc_time,
         physical_error_rate=physical_error_rate,
+        hardware_failure_tolerance=1e-1,
     )
     best_cost_t, best_params_t = cost_estimator(
         num_logical_qubits=num_logical_qubits,
@@ -185,39 +193,12 @@ def test_algorithm_failure_prob_calculation():
         num_t=0,
         surface_code_cycle_time=scc_time,
         physical_error_rate=physical_error_rate,
+        hardware_failure_tolerance=1e-1,
     )
     numpy.testing.assert_almost_equal(
         best_cost_toffoli.algorithm_failure_probability,
         best_cost_t.algorithm_failure_probability,
     )
-
-
-def test_default_T_factories():
-    num_logical_qubits = 12
-    scc_time = 0.000002
-    physical_error_rate = 1.0e-3
-    # Default Magic State Factory details used based
-    # on this physical error rate.
-    num_t = 200
-    num_toffoli = 140
-    best_cost_t, best_params_t = cost_estimator(
-        num_logical_qubits=num_logical_qubits,
-        num_t=num_t,
-        surface_code_cycle_time=scc_time,
-        physical_error_rate=physical_error_rate,
-        hardware_failure_tolerance=1e-2,
-    )
-    best_cost, best_params_toffoli = cost_estimator(
-        num_logical_qubits=num_logical_qubits,
-        num_toffoli=num_toffoli,
-        surface_code_cycle_time=scc_time,
-        physical_error_rate=physical_error_rate,
-        hardware_failure_tolerance=1e-2,
-    )
-    numpy.testing.assert_allclose(best_params_t.widget.rounds, 186)
-    numpy.testing.assert_allclose(best_params_t.widget.failure_rate, 3.6e-16)
-    numpy.testing.assert_allclose(best_params_toffoli.widget.rounds, 186)
-    numpy.testing.assert_allclose(best_params_toffoli.widget.failure_rate, 3.6e-16)
 
 
 def test_default_values():

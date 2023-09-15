@@ -50,9 +50,9 @@ def get_decoder_info(
             )
 
             return DecoderInfo(
-                total_energy_consumption=decoder_total_energy_consumption,
-                power=decoder_power,
-                area=decoder_area,
+                total_energy_consumption_in_nanojoules=decoder_total_energy_consumption,
+                power_in_nanowatts=decoder_power,
+                area_in_micrometers=decoder_area,
                 max_decodable_distance=max_decodable_distance,
             )
 
