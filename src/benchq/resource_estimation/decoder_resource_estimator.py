@@ -41,7 +41,7 @@ def get_decoder_info(
             decoder_power = (
                 2 * n_logical_qubits * decoder_model.power_in_nanowatts(code_distance)
             )
-            decoder_area = n_logical_qubits * decoder_model.area_in_micrometers(
+            decoder_area = n_logical_qubits * decoder_model.area_in_micrometers_squared(
                 code_distance
             )
             max_decodable_distance = min(
@@ -52,7 +52,7 @@ def get_decoder_info(
             return DecoderInfo(
                 total_energy_consumption_in_nanojoules=decoder_total_energy_consumption,
                 power_in_nanowatts=decoder_power,
-                area_in_micrometers=decoder_area,
+                area_in_micrometers_squared=decoder_area,
                 max_decodable_distance=max_decodable_distance,
             )
 

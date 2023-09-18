@@ -54,7 +54,7 @@ def test_if_decoder_equations_have_changed():
     target_info = DecoderInfo(
         total_energy_consumption_in_nanojoules=4000000.0,
         power_in_nanowatts=120000.0,
-        area_in_micrometers=600.0,
+        area_in_micrometers_squared=600.0,
         max_decodable_distance=15,
     )
     print(decoder_info)

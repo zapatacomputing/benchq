@@ -15,7 +15,7 @@ class DecoderInfo:
 
     total_energy_consumption_in_nanojoules: float
     power_in_nanowatts: float
-    area_in_micrometers: float
+    area_in_micrometers_squared: float
     max_decodable_distance: int = field(repr=False)
 
 

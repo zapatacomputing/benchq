@@ -64,7 +64,7 @@ class AlgorithmParameters:
                 * (1 + self.routing_overhead_proportion)
             )
         )
-        n_physical_qubits_used_for_computation = (
+        n_physical_qubits_used_for_clifford_circuit = (
             n_logical_qubits_used_for_computation
             * _physical_qubits_per_logical_qubit(self.logical_data_qubit_distance)
         )
@@ -84,7 +84,7 @@ class AlgorithmParameters:
 
         V_computation = (
             self.proportion_of_bounding_box
-            * n_physical_qubits_used_for_computation
+            * n_physical_qubits_used_for_clifford_circuit
             * total_distillation_cycles
         )
         data_failure = (
@@ -96,7 +96,7 @@ class AlgorithmParameters:
         )
 
         return CostEstimate(
-            physical_qubit_count=n_physical_qubits_used_for_computation
+            physical_qubit_count=n_physical_qubits_used_for_clifford_circuit
             + n_physical_qubits_used_for_distillation,
             duration=total_distillation_cycles * self.surface_code_cycle_time,
             algorithm_failure_probability=min(1.0, data_failure + distillation_failure),
