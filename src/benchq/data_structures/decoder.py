@@ -35,7 +35,7 @@ class DecoderModel:
         return self.power_table.get(distance, invalid_code_distance())
 
     def area_in_micrometers_squared(self, distance: int) -> float:
-        """Calculates the area (arbitrary um) that it will take to have a decoder
+        """Calculates the area (in μm^2) that it will take to have a decoder
         which allows to decode code of given distance. Returns infinity if the decoder
         is not available for given distance.
 
