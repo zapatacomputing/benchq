@@ -52,7 +52,7 @@ def test_if_decoder_equations_have_changed():
     )
     decoder_info = get_decoder_info(BASIC_SC_ARCHITECTURE_MODEL, decoder_model, 4, 2, 3)
     target_info = DecoderInfo(
-        total_energy_consumption_in_nanojoules=4000000.0,
+        total_energy_consumption_in_nanojoules=0.004,
         power_in_nanowatts=120000.0,
         area_in_micrometers_squared=600.0,
         max_decodable_distance=15,
