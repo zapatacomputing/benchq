@@ -12,7 +12,7 @@ def get_decoder_info(
     code_distance: int,
     space_time_volume: float,
     n_logical_qubits: int,
-):
+) -> Optional[DecoderInfo]:
     if not decoder_model:
         return None
     else:
@@ -37,6 +37,7 @@ def get_decoder_info(
                 space_time_volume
                 * decoder_model.power_in_nanowatts(code_distance)
                 * decoder_model.delay_in_nanoseconds(code_distance)
+                * 1e-9
             )
             decoder_power = (
                 2 * n_logical_qubits * decoder_model.power_in_nanowatts(code_distance)

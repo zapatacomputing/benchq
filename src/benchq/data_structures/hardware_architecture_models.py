@@ -81,9 +81,9 @@ class DetailedIonTrapModel:
         physical_qubit_error_rate: float = 1e-4,
         surface_code_cycle_time_in_seconds: float = 1e-3,
     ):
-        self.physical_qubit_error_rate = 1e-4
+        self.physical_qubit_error_rate = physical_qubit_error_rate
         # TODO: PJ check with Simon about this number
-        self.surface_code_cycle_time_in_seconds = 1e-3
+        self.surface_code_cycle_time_in_seconds = surface_code_cycle_time_in_seconds
 
     def get_hardware_resource_estimates(self, resource_info: ResourceInfo):
         code_distance = resource_info.code_distance
