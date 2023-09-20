@@ -257,13 +257,8 @@ def test_get_resource_estimations_for_program_accounts_for_decoder(optimization)
 
     assert gsc_resource_estimates_no_decoder.decoder_info is None
 
-    assert (
-        gsc_resource_estimates_with_decoder.decoder_info.max_decodable_distance
-        is not None
-    )
-    assert gsc_resource_estimates_with_decoder.decoder_info.area is not None
-    assert (
-        gsc_resource_estimates_with_decoder.decoder_info.total_energy_consumption
-        is not None
-    )
-    assert gsc_resource_estimates_with_decoder.decoder_info.power is not None
+    info = gsc_resource_estimates_with_decoder.decoder_info
+    assert info.max_decodable_distance is not None
+    assert info.area_in_micrometers_squared is not None
+    assert info.total_energy_consumption_in_nanojoules is not None
+    assert info.power_in_nanowatts is not None

@@ -13,9 +13,9 @@ TExtra = TypeVar("TExtra")
 class DecoderInfo:
     """Information relating the deceoder."""
 
-    total_energy_consumption: float
-    power: float
-    area: float
+    total_energy_consumption_in_nanojoules: float
+    power_in_nanowatts: float
+    area_in_micrometers_squared: float
     max_decodable_distance: int = field(repr=False)
 
 
@@ -66,7 +66,7 @@ class ExtrapolatedGraphData(GraphData):
     n_measurement_steps_r_squared: float
     n_nodes_r_squared: float
     data_used_to_extrapolate: List[GraphData] = field(repr=False)
-    steps_to_extrapolate_to: int = field(repr=False)
+    steps_to_extrapolate_to: int
 
     @property
     def max_graph_degree_r_squared(self) -> float:

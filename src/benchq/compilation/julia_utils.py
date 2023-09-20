@@ -4,6 +4,7 @@
 import time
 
 import networkx as nx
+from orquestra.quantum.circuits import Circuit
 
 from . import jl
 
@@ -17,7 +18,7 @@ def get_nx_graph_from_rbs_adj_list(adj: list) -> nx.Graph:
     return graph
 
 
-def get_algorithmic_graph_from_ruby_slippers(circuit):
+def get_algorithmic_graph_from_ruby_slippers(circuit: Circuit) -> nx.Graph:
     lco, adj, _ = jl.run_ruby_slippers(circuit, True)
 
     print("getting networkx graph from vertices")
@@ -38,7 +39,7 @@ def get_ruby_slippers_compiler(
     max_num_neighbors_to_search=1e5,
     decomposition_strategy=1,
 ):
-    def _run_compiler(circuit):
+    def _run_compiler(circuit: Circuit) -> nx.Graph:
         lco, adj, _ = jl.run_ruby_slippers(
             circuit,
             verbose,
@@ -61,7 +62,7 @@ def get_ruby_slippers_compiler(
     return _run_compiler
 
 
-def get_algorithmic_graph_from_Jabalizer(circuit):
+def get_algorithmic_graph_from_Jabalizer(circuit: Circuit) -> nx.Graph:
     svec, op_seq, icm_output, data_qubits_map = jl.run_jabalizer(circuit)
     return create_graph_from_stabilizers(svec)
 

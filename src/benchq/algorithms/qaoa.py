@@ -7,7 +7,7 @@ from orquestra.quantum.circuits import Circuit
 from orquestra.quantum.operators import PauliSum
 from orquestra.vqa.algorithms import QAOA
 
-from ..data_structures import QuantumProgram
+from ..data_structures import AlgorithmImplementation, ErrorBudget, QuantumProgram
 
 
 def get_qaoa_circuit(hamiltonian: PauliSum, n_layers: int = 1) -> Circuit:
@@ -48,3 +48,12 @@ def get_qaoa_program(hamiltonian: PauliSum, n_layers: int = 1) -> QuantumProgram
     random_params = np.random.uniform(-np.pi, np.pi, 2)
     circuit = qaoa.get_circuit(random_params)
     return QuantumProgram([circuit], n_layers, lambda x: [0] * x)
+
+
+def qaoa_algorithm(
+    hamiltonian: PauliSum, n_layers: int = 1, failure_tolerance: float = 1e-3
+):
+    program = get_qaoa_program(hamiltonian, n_layers)
+    return AlgorithmImplementation(
+        program, ErrorBudget.from_even_split(failure_tolerance), 1
+    )

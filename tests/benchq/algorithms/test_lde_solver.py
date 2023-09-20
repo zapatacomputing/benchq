@@ -16,7 +16,13 @@ from benchq.algorithms.lde_solver import (
     get_num_of_grid_points,
     get_prep_int,
     inverse_blockencoding,
+    long_time_propagator,
     matrix_exponentiation,
+)
+from benchq.algorithms.utils.convex_optimization import optimize_chebyshev_coeff
+from benchq.algorithms.utils.qsp_solver import qsp_solver
+from benchq.block_encodings.offset_tridiagonal import (
+    get_offset_tridagonal_block_encoding,
 )
 
 
@@ -49,7 +55,6 @@ def test_get_degree(kappa, epsilon, expected_result):
     ],
 )
 def test_get_prep_int_circuit(matrix_norm, beta, epsilon, expected_result):
-
     circuit, circuit_prime = get_prep_int(matrix_norm, beta, epsilon)
     gate_names = [gate_op.gate.name for gate_op in circuit.operations]
     gate_names_prime = [gate_op.gate.name for gate_op in circuit_prime.operations]
@@ -139,7 +144,6 @@ matrix_exp_test = matrix_exponentiation(dummy_circuit, matrix_norm, time, beta, 
     [(1e-3), (1e-2), (1e-4)],
 )
 def test_matrix_exponentiation(epsilon):
-
     sel_inv = inverse_blockencoding(dummy_circuit, matrix_norm, time, beta, epsilon)
     total_qubits = sel_inv.n_qubits
     matrix_exp = matrix_exponentiation(dummy_circuit, matrix_norm, time, beta, epsilon)
@@ -147,3 +151,80 @@ def test_matrix_exponentiation(epsilon):
     assert isinstance(matrix_exp, Circuit)
     assert matrix_exp.n_qubits == total_qubits
     assert len(matrix_exp.operations) >= len(matrix_exp_test.operations)
+
+
+de_parameters = {
+    "total_time": 0.1,
+    "steps_number_short": 1,
+    "steps_number_long": 2,
+    "a": 0.4,
+    "b": 0.0,
+    "c": 0.0,
+    "matrix_size": 1,
+    "error_cheb_expansion": 0.1,
+    "epsilon_matrix_inversion": 1e-2,
+    "beta_contour_integral": 1.3,
+}
+
+
+def test_long_time_propagator():
+    """Testing a basic case when the dim(A)=1 (one DE to solve)."""
+
+    # construct a single time step amplified with QSVT and compression gadget
+    delta_t = de_parameters["total_time"]
+    delta = 1 / de_parameters["steps_number_short"]
+    n = de_parameters["matrix_size"]
+    a_matrix = np.diag(de_parameters["a"] * delta_t * np.ones(2**n))
+    b_matrix = np.diag(de_parameters["b"] * delta_t * np.ones(2**n - 2), k=-2)
+    c_matrix = np.diag(de_parameters["c"] * delta_t * np.ones(2**n - 2), k=2)
+    A_matrix = a_matrix + b_matrix + c_matrix
+    A_matrix_norm = np.linalg.norm(A_matrix, "fro")
+    gamma_prime = 5
+    chev_coeff, _, _ = optimize_chebyshev_coeff(
+        error=de_parameters["error_cheb_expansion"],
+        delta=delta,
+        gamma_prime=gamma_prime,
+    )
+    a = delta_t * de_parameters["a"]
+    b = delta_t * de_parameters["b"]
+    c = delta_t * de_parameters["c"]
+    be_circuit = get_offset_tridagonal_block_encoding(n=n, a=a, b=b, c=c)
+    phases, _ = qsp_solver(chev_coeff, parity=1, options={"criteria": 1e-3})
+    matrix_exp = matrix_exponentiation(
+        be_circuit,
+        A_matrix_norm,
+        delta_t,
+        de_parameters["beta_contour_integral"],
+        de_parameters["epsilon_matrix_inversion"],
+    )
+    total_qubits = (
+        matrix_exp.n_qubits + ceil(np.log2(de_parameters["steps_number_short"])) + 2
+    )
+
+    time_marching_cir_short = long_time_propagator(
+        phases,
+        de_parameters["steps_number_short"],
+        n,
+        be_circuit,
+        A_matrix_norm,
+        delta_t,
+        de_parameters["beta_contour_integral"],
+        de_parameters["epsilon_matrix_inversion"],
+    )
+
+    time_marching_cir_long = long_time_propagator(
+        phases,
+        de_parameters["steps_number_long"],
+        n,
+        be_circuit,
+        A_matrix_norm,
+        delta_t,
+        de_parameters["beta_contour_integral"],
+        de_parameters["epsilon_matrix_inversion"],
+    )
+
+    assert isinstance(time_marching_cir_short, Circuit)
+    assert total_qubits == time_marching_cir_short.n_qubits
+    assert len(time_marching_cir_short.operations) <= len(
+        time_marching_cir_long.operations
+    )

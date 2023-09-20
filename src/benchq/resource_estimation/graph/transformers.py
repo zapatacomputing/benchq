@@ -1,4 +1,8 @@
-from typing import Callable, Sequence
+import time
+from copy import copy
+from typing import Callable, Sequence, Tuple
+
+import networkx as nx
 
 from ...compilation import (
     get_algorithmic_graph_from_ruby_slippers,
@@ -54,7 +58,10 @@ def synthesize_clifford_t(
 
 
 def transpile_to_native_gates(program: QuantumProgram) -> QuantumProgram:
+    print("Transpiling to native gates...")
+    start = time.time()
     circuits = [_transpile_to_native_gates(circuit) for circuit in program.subroutines]
+    print(f"Transpiled in {time.time() - start} seconds.")
     return QuantumProgram(
         circuits,
         steps=program.steps,
@@ -78,9 +85,55 @@ def create_big_graph_from_subcircuits(
     graph_production_method=get_algorithmic_graph_from_ruby_slippers,
 ) -> Callable[[QuantumProgram], GraphPartition]:
     def _transformer(program: QuantumProgram) -> GraphPartition:
+        print("Creating big graph from subcircuits...")
         big_circuit = program.full_circuit
         new_program = get_program_from_circuit(big_circuit)
         graph = graph_production_method(big_circuit)
         return GraphPartition(new_program, [graph])
 
     return _transformer
+
+
+def remove_isolated_nodes(graph_partition: GraphPartition) -> GraphPartition:
+    """Sometimes our circuits can generate a lot of extra nodes because of how
+    RESET is implemented. This transformer removes these nodes from the
+    graph to prevent them from influencing the costing. There are 3 known sources
+    of isolated nodes:
+        1. Unneeded resets at the beginning of the circuit.
+        2. Decomposing rotations into gates sometimes gives bare nodes if a
+             T gate is placed after a reset. (most concerning)
+        3. Consecutive reset gates happening later on in the circuit.
+
+    Args:
+        graph_partition (GraphPartition): graph partition to remove the isoated
+            nodes of.
+
+    Returns:
+        GraphPartition: input graph partition with isolated nodes removed.
+    """
+    print("Removing isolated nodes from graph...")
+    start = time.time()
+    new_graphs = []
+    total_nodes_removed = 0
+    for graph in graph_partition.subgraphs:
+        n_nodes_removed, graph = remove_isolated_nodes_from_graph(graph)
+
+        total_nodes_removed += n_nodes_removed
+        new_graphs.append(graph)
+
+    print(
+        f"Removed {total_nodes_removed} isolated nodes "
+        f"in {time.time() - start} seconds."
+    )
+    return GraphPartition(graph_partition.program, new_graphs)
+
+
+def remove_isolated_nodes_from_graph(graph: nx.Graph) -> Tuple[int, nx.Graph]:
+    cleaned_graph = copy(graph)
+    isolated_nodes = list(nx.isolates(cleaned_graph))
+    n_nodes_removed = len(isolated_nodes)
+
+    cleaned_graph.remove_nodes_from(isolated_nodes)
+    cleaned_graph = nx.convert_node_labels_to_integers(cleaned_graph)
+
+    return n_nodes_removed, cleaned_graph

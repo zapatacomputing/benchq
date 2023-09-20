@@ -1,4 +1,4 @@
-import dataclasses
+import time
 import warnings
 from dataclasses import replace
 from decimal import Decimal, getcontext
@@ -12,23 +12,27 @@ from graph_state_generation.optimizers import (
 )
 from graph_state_generation.substrate_scheduler import TwoRowSubstrateScheduler
 
+from benchq.resource_estimation.decoder_resource_estimator import get_decoder_info
+
 from ...data_structures import (
     AlgorithmImplementation,
     BasicArchitectureModel,
-    DecoderInfo,
     DecoderModel,
     GraphData,
     GraphPartition,
     GraphResourceInfo,
 )
 from ..magic_state_distillation import Widget, default_widget_list
+from .transformers import remove_isolated_nodes_from_graph
 
 INITIAL_SYNTHESIS_ACCURACY = 0.0001
 
 
 def substrate_scheduler(graph: nx.Graph, preset: str) -> TwoRowSubstrateScheduler:
     """A simple interface for running the substrate scheduler. Can be run quickly or
-    optimized for smaller runtime.
+    optimized for smaller runtime. Using the "optimized" preset can halve the number
+    of measurement steps, but takes about 100x longer to run. It's probably only
+    suitable for graphs with less than 10^5 nodes.
 
     Args:
         graph (nx.Graph): Graph to create substrate schedule for.
@@ -39,21 +43,24 @@ def substrate_scheduler(graph: nx.Graph, preset: str) -> TwoRowSubstrateSchedule
         TwoRowSubstrateScheduler: A substrate scheduler object with the schedule
             already created.
     """
-    connected_graph = graph.copy()
-    connected_graph.remove_nodes_from(list(nx.isolates(graph)))  # remove isolated nodes
-    connected_graph = nx.convert_node_labels_to_integers(connected_graph)
+    cleaned_graph = remove_isolated_nodes_from_graph(graph)[1]
+
+    print("starting substrate scheduler")
+    start = time.time()
     if preset == "fast":
         compiler = TwoRowSubstrateScheduler(
-            connected_graph,
+            cleaned_graph,
             stabilizer_scheduler=greedy_stabilizer_measurement_scheduler,
         )
     if preset == "optimized":
         compiler = TwoRowSubstrateScheduler(
-            graph,
+            cleaned_graph,
             pre_mapping_optimizer=fast_maximal_independent_set_stabilizer_reduction,
             stabilizer_scheduler=greedy_stabilizer_measurement_scheduler,
         )
     compiler.run()
+    end = time.time()
+    print("substrate scheduler took", end - start, "seconds")
     return compiler
 
 
@@ -78,6 +85,9 @@ class GraphResourceEstimator:
             on hw_model parameter.
     """
 
+    # Assumes gridsynth scaling
+    SYNTHESIS_SCALING = 4
+
     def __init__(
         self,
         hw_model: BasicArchitectureModel,
@@ -93,16 +103,14 @@ class GraphResourceEstimator:
         getcontext().prec = 100  # need some extra precision for this calculation
         self.widgets = widgets or default_widget_list(hw_model)
 
-    # Assumes gridsynth scaling
-    SYNTHESIS_SCALING = 4
-
     def _get_n_measurement_steps(self, graph) -> int:
         compiler = substrate_scheduler(graph, self.substrate_scheduler_preset)
-        n_steps = len(compiler.measurement_steps)
-        return n_steps
+        n_measurement_steps = len(compiler.measurement_steps)
+        return n_measurement_steps
 
     def _get_graph_data_for_single_graph(self, problem: GraphPartition) -> GraphData:
         graph = problem.subgraphs[0]
+        print("getting max graph degree")
         max_graph_degree = max(deg for _, deg in graph.degree())
         n_measurement_steps = self._get_n_measurement_steps(graph)
         return GraphData(
@@ -143,6 +151,7 @@ class GraphResourceEstimator:
                 n_total_t_gates, graph_data, code_distance, widget
             )
         )
+
         return float(
             1 - (1 - precise_logical_cell_failure_rate) ** precise_logical_st_volume
         )
@@ -199,13 +208,13 @@ class GraphResourceEstimator:
                 2
                 * graph_data.max_graph_degree
                 * n_total_t_gates
-                * (widget.time_in_tocks + code_distance)
+                * (widget.distillation_time_in_cycles + code_distance)
             )
         elif self.optimization == "time":
             V_measure = (
                 n_total_t_gates
                 * widget.space[1]
-                * (widget.time_in_tocks + code_distance)
+                * (widget.distillation_time_in_cycles + code_distance)
                 / (2 ** (1 / 2) * code_distance + 1)
             )
         else:
@@ -225,17 +234,6 @@ class GraphResourceEstimator:
         return self._get_v_graph(graph_data, code_distance) + self._get_v_measure(
             n_total_t_gates, graph_data, code_distance, widget
         )
-
-    def find_max_decodable_distance(self, min_d=4, max_d=100):
-        max_distance = 0
-        for distance in range(min_d, max_d):
-            time_for_logical_operation = (
-                6 * self.hw_model.surface_code_cycle_time_in_seconds * distance
-            )
-            if self.decoder_model.delay(distance) < time_for_logical_operation:
-                max_distance = distance
-
-        return max_distance
 
     def get_n_total_t_gates(
         self,
@@ -265,23 +263,24 @@ class GraphResourceEstimator:
         n_total_t_gates: float,
         widget: Widget,
     ) -> float:
-        if self.optimization == "time":
+        if self.optimization == "space":
             return (
                 6
-                * self.hw_model.physical_qubit_error_rate
+                * self.hw_model.surface_code_cycle_time_in_seconds
                 * (
                     graph_data.n_measurement_steps * code_distance
-                    + widget.time_in_tocks
-                    + code_distance
+                    + (widget.distillation_time_in_cycles + code_distance)
+                    * n_total_t_gates
                 )
             )
-        elif self.optimization == "space":
+        elif self.optimization == "time":
             return (
                 6
-                * self.hw_model.physical_qubit_error_rate
+                * self.hw_model.surface_code_cycle_time_in_seconds
                 * (
                     graph_data.n_measurement_steps * code_distance
-                    + (widget.time_in_tocks + code_distance) * n_total_t_gates
+                    + widget.distillation_time_in_cycles
+                    + code_distance
                 )
             )
         else:
@@ -293,14 +292,14 @@ class GraphResourceEstimator:
         self, graph_data: GraphData, code_distance: int, widget: Widget
     ) -> int:
         patch_size = 2 * code_distance**2
-        if self.optimization == "time":
+        if self.optimization == "space":
+            return 2 * graph_data.max_graph_degree * patch_size + widget.qubits
+        elif self.optimization == "time":
             return ceil(
                 graph_data.max_graph_degree * patch_size
                 + 2 ** (0.5) * graph_data.n_measurement_steps * widget.space[0]
                 + widget.qubits * graph_data.n_measurement_steps
             )
-        elif self.optimization == "space":
-            return 2 * graph_data.max_graph_degree * patch_size + widget.qubits
         else:
             raise NotImplementedError(
                 "Must use either time or space optimal estimator."
@@ -311,23 +310,26 @@ class GraphResourceEstimator:
         graph_data: GraphData,
         algorithm_implementation: AlgorithmImplementation,
     ) -> GraphResourceInfo:
-        transpilation_failure_tolerance = 10 * (
+        this_transpilation_failure_tolerance = (
             algorithm_implementation.error_budget.transpilation_failure_tolerance
         )
 
         widget_iterator = iter(self.widgets)
 
-        for this_transpilation_failure_tolerance in [
-            transpilation_failure_tolerance * (0.1**i) for i in range(10)
-        ]:
+        while True:
             widget_found = False
             for widget in widget_iterator:
                 tmp_graph_data = replace(
                     graph_data,
                     n_nodes=ceil(
-                        graph_data.n_nodes / widget.n_t_gates_produced_per_cycle
+                        graph_data.n_nodes / widget.n_t_gates_produced_per_distillation
+                    ),
+                    n_t_gates=ceil(
+                        graph_data.n_t_gates
+                        / widget.n_t_gates_produced_per_distillation
                     ),
                 )
+
                 n_total_t_gates = self.get_n_total_t_gates(
                     tmp_graph_data.n_t_gates,
                     tmp_graph_data.n_rotation_gates,
@@ -341,18 +343,41 @@ class GraphResourceEstimator:
                 )
                 _logical_cell_error_rate = self._logical_cell_error_rate(code_distance)
 
+                # Ensure we can ignore errors from magic state distillation.
                 if widget.distilled_magic_state_error_rate < _logical_cell_error_rate:
                     widget_found = True
                     break
             if not widget_found:
-                raise ValueError("No viable widget found!")
+                warnings.warn(
+                    "No viable widget found! Returning null results.", RuntimeWarning
+                )
+                return GraphResourceInfo(
+                    code_distance=-1,
+                    logical_error_rate=1.0,
+                    # estimate the number of logical qubits using max node degree
+                    n_logical_qubits=graph_data.max_graph_degree,
+                    total_time_in_seconds=0.0,
+                    n_physical_qubits=0,
+                    widget_name="No Widget Found",
+                    decoder_info=None,
+                    routing_to_measurement_volume_ratio=0.0,
+                    extra=graph_data,
+                )
             if this_transpilation_failure_tolerance < _logical_cell_error_rate:
+                # if the t gates typically do not come from rotation gates, then
+                # then you will have to restart the calculation from scratch.
                 if graph_data.n_t_gates < 0.01 * graph_data.n_nodes:
-                    # re-run estimates with new synthesis failure tolerance
                     raise RuntimeError(
                         "Run estimate again with lower synthesis failure tolerance."
                     )
+                if this_transpilation_failure_tolerance < 1e-10:
+                    warnings.warn(
+                        "Synthesis tolerance low. Smaller problem size recommended.",
+                        RuntimeWarning,
+                    )
+                this_transpilation_failure_tolerance /= 10
             else:
+                graph_data = tmp_graph_data
                 break
 
         # get error rate after correction
@@ -392,32 +417,13 @@ class GraphResourceEstimator:
             time_per_circuit_in_seconds * algorithm_implementation.n_calls
         )
 
-        # get decoder requirements
-        if self.decoder_model and self.decoder_model.distance_cap >= code_distance:
-            decoder_total_energy_consumption = (
-                space_time_volume
-                * self.decoder_model.power(code_distance)
-                * self.decoder_model.delay(code_distance)
-            )
-            decoder_power = (
-                2
-                * graph_data.max_graph_degree
-                * self.decoder_model.power(code_distance)
-            )
-            decoder_area = graph_data.max_graph_degree * self.decoder_model.area(
-                code_distance
-            )
-            max_decodable_distance = self.find_max_decodable_distance()
-            decoder_info = DecoderInfo(
-                total_energy_consumption=decoder_total_energy_consumption,
-                power=decoder_power,
-                area=decoder_area,
-                max_decodable_distance=max_decodable_distance,
-            )
-        else:
-            if self.decoder_model and self.decoder_model.distance_cap < code_distance:
-                warnings.warn("Code distance is too high to be decoded.")
-            decoder_info = None
+        decoder_info = get_decoder_info(
+            self.hw_model,
+            self.decoder_model,
+            code_distance,
+            space_time_volume,
+            graph_data.max_graph_degree,
+        )
 
         return GraphResourceInfo(
             code_distance=code_distance,
