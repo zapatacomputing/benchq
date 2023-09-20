@@ -12,7 +12,7 @@ from ...data_structures import (
     ResourceInfo,
 )
 from ...data_structures.hardware_architecture_models import BasicArchitectureModel
-from .default_pipelines import (
+from ..default_pipelines import (
     run_fast_extrapolation_estimate,
     run_fast_graph_estimate,
     run_precise_extrapolation_estimate,

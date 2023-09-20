@@ -1,12 +1,12 @@
 from copy import deepcopy
 from dataclasses import replace
+from inspect import signature
 from typing import List
 
 from ...data_structures import (
     AlgorithmImplementation,
     ExtrapolatedGraphData,
     ExtrapolatedGraphResourceInfo,
-    QuantumProgram,
 )
 from ...data_structures.hardware_architecture_models import (
     BASIC_ION_TRAP_ARCHITECTURE_MODEL,
@@ -40,6 +40,8 @@ def _create_extrapolated_graph_data(
 
     small_programs_graph_data: List[GraphData] = []
     for i in estimator.steps_to_extrapolate_from:
+        print(f"Creating graph data for {i} steps...")
+
         # create copy of program for each number of steps
         small_algorithm_implementation = deepcopy(algorithm_implementation)
         small_algorithm_implementation.error_budget = replace(
@@ -59,8 +61,15 @@ def _create_extrapolated_graph_data(
         )
         small_programs_graph_data.append(graph_data)
 
-    # get rid of graph compilation step
-    for transformer in transformers[:-1]:
+    # get transformers which are used before graph creation
+    circuit_transformers = []
+    for transformer in transformers:
+        # This is a little hacky, would prefer to use a protocol here.
+        if signature(transformer).return_annotation is GraphPartition:
+            break
+        circuit_transformers.append(transformer)
+
+    for transformer in circuit_transformers:
         algorithm_implementation = replace(
             algorithm_implementation,
             program=transformer(algorithm_implementation.program),

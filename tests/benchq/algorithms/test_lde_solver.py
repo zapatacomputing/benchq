@@ -144,7 +144,6 @@ matrix_exp_test = matrix_exponentiation(dummy_circuit, matrix_norm, time, beta, 
     [(1e-3), (1e-2), (1e-4)],
 )
 def test_matrix_exponentiation(epsilon):
-
     sel_inv = inverse_blockencoding(dummy_circuit, matrix_norm, time, beta, epsilon)
     total_qubits = sel_inv.n_qubits
     matrix_exp = matrix_exponentiation(dummy_circuit, matrix_norm, time, beta, epsilon)

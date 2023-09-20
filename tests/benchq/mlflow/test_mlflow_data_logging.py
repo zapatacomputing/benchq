@@ -96,7 +96,7 @@ def test_log_input_objects_to_mlflow(mock_mlflow):
             "power_table.1": 1.5,
             "area_table.2": 6.28,
             "delay_table.3": 0.0001,
-            "distance_cap": 31,
+            "highest_calculated_distance": 31,
         }
     )  # from DecoderModel
 

@@ -121,7 +121,15 @@ def _get_logarithmic_extrapolation(x, y):
         error = y_pred - y
         return np.sum(error**2)
 
-    return _extrapolate(x, y, _logarithmic_objective)
+    a_opt, b_opt = _extrapolate(x, y, _logarithmic_objective)
+
+    # Calculate R-squared value
+    y_mean = np.mean(y)
+    total_sum_of_squares = np.sum((y - y_mean) ** 2)
+    residual_sum_of_squares = np.sum((y - (a_opt * np.log(x) + b_opt)) ** 2)
+    r_squared = 1 - (residual_sum_of_squares / total_sum_of_squares)
+
+    return a_opt, b_opt, r_squared
 
 
 def _get_linear_extrapolation(x, y):
@@ -134,7 +142,15 @@ def _get_linear_extrapolation(x, y):
         error = y_pred - y
         return np.sum(error**2)
 
-    return _extrapolate(x, y, _linear_objective)
+    a_opt, b_opt = _extrapolate(x, y, _linear_objective)
+
+    # Calculate R-squared value
+    y_mean = np.mean(y)
+    total_sum_of_squares = np.sum((y - y_mean) ** 2)
+    residual_sum_of_squares = np.sum((y - (a_opt * x + b_opt)) ** 2)
+    r_squared = 1 - (residual_sum_of_squares / total_sum_of_squares)
+
+    return a_opt, b_opt, r_squared
 
 
 def _extrapolate(x, y, objective):
@@ -152,10 +168,4 @@ def _extrapolate(x, y, objective):
     # Extrapolated to desired point
     a_opt, b_opt = result.x
 
-    # Calculate R-squared value
-    y_mean = np.mean(y)
-    total_sum_of_squares = np.sum((y - y_mean) ** 2)
-    residual_sum_of_squares = np.sum((y - (a_opt * x + b_opt)) ** 2)
-    r_squared = 1 - (residual_sum_of_squares / total_sum_of_squares)
-
-    return a_opt, b_opt, r_squared
+    return a_opt, b_opt

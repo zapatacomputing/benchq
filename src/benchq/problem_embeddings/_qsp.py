@@ -39,7 +39,7 @@ class _Indices:
     Indices are needed because our QSP QuantumProgram requires
     them (or at least function that computes them).
 
-    Rotation and reflection comprise a single subrouine, but the
+    Rotation and reflection comprise a single subroutine, but the
     select_v comprises several subroutines, that's why it's a list.
     """
 

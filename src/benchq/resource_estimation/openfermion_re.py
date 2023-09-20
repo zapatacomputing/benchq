@@ -21,6 +21,7 @@ from benchq.resource_estimation._footprint_analysis import (
     CostEstimate,
     cost_estimator,
 )
+from benchq.resource_estimation.decoder_resource_estimator import get_decoder_info
 
 
 def _validate_eri(eri: np.ndarray):
@@ -235,6 +236,8 @@ def get_physical_cost(
     num_t: int = 0,
     architecture_model: BasicArchitectureModel = BASIC_SC_ARCHITECTURE_MODEL,
     routing_overhead_proportion=0.5,
+    hardware_failure_tolerance=1e-3,
+    decoder_model=None,
 ) -> OpenFermionResourceInfo:
     """Get the estimated resources for single factorized QPE as described in PRX Quantum
     2, 030305.
@@ -253,13 +256,22 @@ def get_physical_cost(
         physical_error_rate=architecture_model.physical_qubit_error_rate,
         surface_code_cycle_time=architecture_model.surface_code_cycle_time_in_seconds,
         routing_overhead_proportion=routing_overhead_proportion,
+        hardware_failure_tolerance=hardware_failure_tolerance,
     )
 
-    return _openfermion_result_to_resource_info(best_cost, best_params)
+    decoder_info = get_decoder_info(
+        architecture_model,
+        decoder_model,
+        best_params.logical_data_qubit_distance,
+        best_cost.physical_qubit_count * best_cost.duration,
+        best_params.max_allocated_logical_qubits,
+    )
+
+    return _openfermion_result_to_resource_info(best_cost, best_params, decoder_info)
 
 
 def _openfermion_result_to_resource_info(
-    cost: CostEstimate, algorithm_parameters: AlgorithmParameters
+    cost: CostEstimate, algorithm_parameters: AlgorithmParameters, decoder_info=None
 ) -> OpenFermionResourceInfo:
     return OpenFermionResourceInfo(
         n_physical_qubits=cost.physical_qubit_count,
@@ -267,12 +279,12 @@ def _openfermion_result_to_resource_info(
         total_time_in_seconds=cost.duration,
         code_distance=algorithm_parameters.logical_data_qubit_distance,
         logical_error_rate=cost.algorithm_failure_probability,
-        decoder_info=None,
+        decoder_info=decoder_info,
         routing_to_measurement_volume_ratio=algorithm_parameters.routing_overhead_proportion,  # noqa
-        widget_name=algorithm_parameters.magic_state_factory.details,
+        widget_name=algorithm_parameters.widget.details,
         extra=OpenFermionExtra(
-            fail_rate_msFactory=algorithm_parameters.magic_state_factory.failure_rate,
-            rounds_magicstateFactory=algorithm_parameters.magic_state_factory.rounds,
+            fail_rate_msFactory=algorithm_parameters.widget.failure_rate,
+            rounds_magicstateFactory=algorithm_parameters.widget.distillation_time_in_cycles,  # noqa
             physical_qubit_error_rate=algorithm_parameters.physical_error_rate,
             scc_time=algorithm_parameters.surface_code_cycle_time,
         ),
