@@ -181,8 +181,8 @@ def get_double_factorized_block_encoding_info(
     bits_precision_state_prep: int = 10,
     bits_precision_rotation: int = 20,
 ) -> Tuple[int, int, float]:
-    """Get the Toffoli and qubit cost for the double factorized block encoding as
-    described in PRX Quantum 2, 030305.
+    """Get the Toffoli count, qubit cost, and the one-norm for the double factorized
+    block encoding as described in PRX Quantum 2, 030305.
 
     Args:
         h1: Matrix elements of the one-body operator that includes kinetic
@@ -217,7 +217,7 @@ def get_double_factorized_block_encoding_info(
     lam = compute_lambda_df(h1, eri_rr, LR)
 
     allowable_phase_estimation_error = 1
-    (step_cost, total_cost, ancilla_cost,) = _get_double_factorized_qpe_info(
+    (step_cost, total_cost, num_qubits,) = _get_double_factorized_qpe_info(
         h1,
         eri,
         threshold,
@@ -229,9 +229,9 @@ def get_double_factorized_block_encoding_info(
     # Remove all but one of the ancilla qubits in the QPE energy register.
     iterations = np.ceil(np.pi * lam / (allowable_phase_estimation_error * 2))
     num_qubits_energy_register = 2 * np.ceil(np.log2(iterations)) - 1
-    ancilla_cost = ancilla_cost - num_qubits_energy_register + 1
+    num_qubits = num_qubits - num_qubits_energy_register + 1
 
-    return step_cost, ancilla_cost, lam
+    return step_cost, num_qubits, lam
 
 
 def get_physical_cost(
