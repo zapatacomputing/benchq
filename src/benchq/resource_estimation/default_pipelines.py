@@ -1,13 +1,14 @@
-from typing import List, Optional, Any
 from functools import partial
+from typing import Any, List, Optional
+
 import numpy as np
 
 from ..compilation import get_algorithmic_graph_from_ruby_slippers
 from ..data_structures import (
     AlgorithmImplementation,
     DecoderModel,
-    QuantumProgram,
     ExtrapolatedGraphResourceInfo,
+    QuantumProgram,
     ResourceInfo,
 )
 from ..data_structures.hardware_architecture_models import BasicArchitectureModel
@@ -26,6 +27,7 @@ from .openfermion_re import get_physical_cost
 
 LARGEST_GRAPH_TOLERANCE = 1e8
 DEFAULT_STEPS_TO_EXTRAPOLATE_FROM = [1, 2, 3]
+
 
 def run_precise_graph_estimate(
     algorithm_implementation: AlgorithmImplementation,
@@ -222,6 +224,7 @@ def run_footprint_analysis_pipeline(
         hardware_failure_tolerance=hardware_failure_tolerance,
         decoder_model=decoder_model,
     )
+
 
 def automatic_resource_estimator(
     algorithm_implementation: AlgorithmImplementation,
