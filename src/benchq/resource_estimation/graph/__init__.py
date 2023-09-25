@@ -1,5 +1,4 @@
 """Initialization file for benchq.resource_estimation.v2 subpackage."""
-from .automatic_resource_estimator import automatic_resource_estimator
 from .customizable_pipelines import (
     run_custom_extrapolation_pipeline,
     run_custom_resource_estimation_pipeline,
@@ -16,7 +15,6 @@ from .transformers import (
 from .worstcase_footprint_estimator import WorstCaseFootprintResourceEstimator
 
 __all__ = [
-    "automatic_resource_estimator",
     "run_custom_resource_estimation_pipeline",
     "run_custom_extrapolation_pipeline",
     "synthesize_clifford_t",
