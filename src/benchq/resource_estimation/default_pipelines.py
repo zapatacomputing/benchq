@@ -224,8 +224,6 @@ def run_footprint_analysis_pipeline(
         hardware_failure_tolerance=hardware_failure_tolerance,
         decoder_model=decoder_model,
     )
-<<<<<<< HEAD
-=======
 
 
 def automatic_resource_estimator(
@@ -323,4 +321,3 @@ def estimate_full_graph_size(
         full_graph_size += algorithm_implementation.program.n_rotation_gates
 
     return full_graph_size
->>>>>>> origin
