@@ -8,6 +8,8 @@ for running time evolution for H2 molecule.
 Number of block encodings needed to run the algorithm is too high, so we
 estimate resources need for running similar circuit with 1, 2 and 3 block encodings
 and then we extrapolate the results to estimate resources for full problem.
+WARNING: This example requires the pyscf extra. run `pip install benchq[pyscf]`
+to install the extra.
 """
 
 from pathlib import Path
