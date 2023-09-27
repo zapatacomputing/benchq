@@ -7,9 +7,10 @@ WARNING: This example requires the pyscf extra. run `pip install benchq[pyscf]`
 to install the extra.
 """
 
+import os
+
 from orquestra.integrations.qiskit.conversions import import_from_qiskit
 from qiskit.circuit import QuantumCircuit
-import os
 
 from benchq.data_structures import (
     BASIC_SC_ARCHITECTURE_MODEL,

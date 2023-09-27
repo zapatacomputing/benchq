@@ -1,56 +1,42 @@
 ################################################################################
 # © Copyright 2022-2023 Zapata Computing Inc.
 ################################################################################
+import json
 import os
 import sys
 import time
 
+import networkx as nx
 import pytest
 from orquestra.sdk.schema.workflow_run import State
+from qiskit.circuit import QuantumCircuit
+
+import examples.data.get_icm as icm
+from benchq import BasicArchitectureModel
+from benchq.compilation import (
+    get_algorithmic_graph_from_Jabalizer,
+    pyliqtr_transpile_to_clifford_t,
+)
+from benchq.conversions import import_circuit
+from benchq.data_structures import (
+    BASIC_SC_ARCHITECTURE_MODEL,
+    AlgorithmImplementation,
+    ErrorBudget,
+    GraphPartition,
+    QuantumProgram,
+)
+from benchq.resource_estimation.default_pipelines import run_precise_graph_estimate
+from benchq.resource_estimation.graph import GraphResourceEstimator, graph_estimator
+from benchq.resource_estimation.magic_state_distillation import Widget
 
 MAIN_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.dirname(MAIN_DIR))
-
 from examples.ex_1_from_qasm import main as from_qasm_main  # noqa: E402
 from examples.ex_2_time_evolution import main as time_evolution_main  # noqa: E402
 from examples.ex_3_packages_comparison import (  # noqa: E402
     main as packages_comparison_main,
 )
 from examples.ex_4_extrapolation import main as extrapolation_main  # noqa: E402
-from benchq.resource_estimation.magic_state_distillation import Widget
-
-from qiskit.circuit import QuantumCircuit
-import os
-import json
-import networkx as nx
-
-from benchq import BasicArchitectureModel
-from benchq.compilation import (
-    get_algorithmic_graph_from_Jabalizer,
-    pyliqtr_transpile_to_clifford_t,
-)
-from benchq.resource_estimation.graph import (
-    graph_estimator,
-)
-from benchq.data_structures import BASIC_SC_ARCHITECTURE_MODEL
-
-from benchq.resource_estimation.graph import GraphResourceEstimator
-from benchq.data_structures import (
-    AlgorithmImplementation,
-    ErrorBudget,
-    GraphPartition,
-    QuantumProgram,
-)
-
-from benchq.resource_estimation.default_pipelines import (
-    run_precise_graph_estimate,
-)
-from benchq.conversions import import_circuit
-
-import examples.data.get_icm as icm
-
-from benchq.data_structures import GraphPartition
-
 
 SKIP_AZURE = pytest.mark.skipif(
     os.getenv("BENCHQ_TEST_AZURE") is None,
@@ -119,7 +105,7 @@ def test_toy_example_notebook():
     implementation = AlgorithmImplementation(program, budget, 1)
     estimator = GraphResourceEstimator(architecture_model)
 
-    resource_estimates = estimator.estimate(implementation)
+    estimator.estimate(implementation)
 
     budget = ErrorBudget.from_even_split(
         1e-2
@@ -128,11 +114,11 @@ def test_toy_example_notebook():
 
     implementation = AlgorithmImplementation(program, budget, 1)
 
-    resource_estimates = run_precise_graph_estimate(implementation, architecture_model)
+    run_precise_graph_estimate(implementation, architecture_model)
 
-    this_circuit_graph = get_algorithmic_graph_from_Jabalizer(clifford_t_circuit)
+    get_algorithmic_graph_from_Jabalizer(clifford_t_circuit)
 
-    circuit_after_icm = icm.get_icm(clifford_t_circuit)
+    icm.get_icm(clifford_t_circuit)
 
     graph_partition = GraphPartition(program, [circuit_graph])
 
@@ -140,7 +126,7 @@ def test_toy_example_notebook():
 
     widget = Widget("(15-to-1)_11,5,5", 1.9e-11, (47, 44), 2070, 30)
 
-    logical_qubit_count = len(circuit_graph)
+    len(circuit_graph)
 
     n_total_t_gates = estimator.get_n_total_t_gates(
         graph_data.n_t_gates,
@@ -154,19 +140,15 @@ def test_toy_example_notebook():
         architecture_model.physical_qubit_error_rate,  # physical error
         widget,
     )
-    physical_qubit_count = estimator._get_n_physical_qubits(
-        graph_data, distance, widget
-    )
-    total_time = estimator._get_time_per_circuit_in_seconds(
+    estimator._get_n_physical_qubits(graph_data, distance, widget)
+    estimator._get_time_per_circuit_in_seconds(
         graph_data, distance, n_total_t_gates, widget
     )
 
     from benchq.resource_estimation.graph.graph_estimator import substrate_scheduler
 
     compiler = substrate_scheduler(circuit_graph, "fast")
-    formatted_measurement_steps = [
-        [node[0] for node in step] for step in compiler.measurement_steps
-    ]
+    [[node[0] for node in step] for step in compiler.measurement_steps]
 
     circuit = QuantumCircuit.from_qasm_file("ghz_circuit.qasm")
 
@@ -174,4 +156,4 @@ def test_toy_example_notebook():
         circuit, circuit_precision=1e-10
     )
     circuit_graph = get_algorithmic_graph_from_Jabalizer(clifford_t_circuit)
-    compiler = substrate_scheduler(circuit_graph, "fast")
+    substrate_scheduler(circuit_graph, "fast")
