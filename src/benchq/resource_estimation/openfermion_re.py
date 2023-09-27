@@ -174,14 +174,15 @@ def get_double_factorized_qpe_toffoli_and_qubit_cost(
     return total_cost, ancilla_cost
 
 
-def get_double_factorized_block_encoding_toffoli_and_qubit_cost(
+def get_double_factorized_block_encoding_info(
     h1: np.ndarray,
     eri: np.ndarray,
     threshold: float,
     bits_precision_state_prep: int = 10,
     bits_precision_rotation: int = 20,
-) -> Tuple[int, int]:
-    """Get the Toffoli and qubit cost for the double factorized block encoding.
+) -> Tuple[int, int, float]:
+    """Get the Toffoli count, qubit cost, and the one-norm for the double factorized
+    block encoding as described in PRX Quantum 2, 030305.
 
     Args:
         h1: Matrix elements of the one-body operator that includes kinetic
@@ -197,10 +198,13 @@ def get_double_factorized_block_encoding_toffoli_and_qubit_cost(
             Corresponds to beth in the paper.
 
     Returns:
-        A tuple whose first element is the number of Toffolis required for a controlled
-            implementation of the block encoding, and whose second element is the number
-            of qubits required for the controlled block encoding (including the control
-            qubit).
+        A tuple containing:
+            The number of Toffolis required for a controlled implementation of the block
+                encoding.
+            The number of qubits required for the controlled block encoding (including
+                the control qubit).
+            The one-norm of the block encoding, corresponding to lambda in the paper.
+                Note that this has the same units as the entries of h1 and eri.
     """
 
     # In the df.compute_cost(...) function below, we set dE = 1 since this input doesn't
@@ -213,7 +217,7 @@ def get_double_factorized_block_encoding_toffoli_and_qubit_cost(
     lam = compute_lambda_df(h1, eri_rr, LR)
 
     allowable_phase_estimation_error = 1
-    (step_cost, total_cost, ancilla_cost,) = _get_double_factorized_qpe_info(
+    (step_cost, total_cost, num_qubits,) = _get_double_factorized_qpe_info(
         h1,
         eri,
         threshold,
@@ -225,9 +229,9 @@ def get_double_factorized_block_encoding_toffoli_and_qubit_cost(
     # Remove all but one of the ancilla qubits in the QPE energy register.
     iterations = np.ceil(np.pi * lam / (allowable_phase_estimation_error * 2))
     num_qubits_energy_register = 2 * np.ceil(np.log2(iterations)) - 1
-    ancilla_cost = ancilla_cost - num_qubits_energy_register + 1
+    num_qubits = num_qubits - num_qubits_energy_register + 1
 
-    return step_cost, ancilla_cost
+    return step_cost, num_qubits, lam
 
 
 def get_physical_cost(
