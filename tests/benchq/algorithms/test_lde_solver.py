@@ -2,6 +2,7 @@
 # © Copyright 2022-2023 Zapata Computing Inc.
 ###############################################################################
 
+import os
 from math import ceil
 
 import numpy as np
@@ -24,8 +25,6 @@ from benchq.algorithms.utils.qsp_solver import qsp_solver
 from benchq.block_encodings.offset_tridiagonal import (
     get_offset_tridagonal_block_encoding,
 )
-
-import os
 
 SKIP_SLOW = pytest.mark.skipif(
     os.getenv("SLOW_BENCHMARKS") is None,
