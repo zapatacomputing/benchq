@@ -1,18 +1,14 @@
 ################################################################################
 # © Copyright 2022-2023 Zapata Computing Inc.
 ################################################################################
-import json
 import os
 import sys
-import time
 
-import networkx as nx
 import pytest
 from orquestra.sdk.schema.workflow_run import State
 from qiskit.circuit import QuantumCircuit
 
 import examples.data.get_icm as icm
-from benchq import BasicArchitectureModel
 from benchq.compilation import (
     get_algorithmic_graph_from_Jabalizer,
     pyliqtr_transpile_to_clifford_t,
@@ -87,7 +83,8 @@ def test_extrapolation_example():
 
 def test_toy_example_notebook():
     """Test all of the lines in the toy model work."""
-    demo_circuit = QuantumCircuit.from_qasm_file("example_circuit.qasm")
+    file_path = os.path.join("examples", "data", "example_circuit.qasm")
+    demo_circuit = QuantumCircuit.from_qasm_file(file_path)
     architecture_model = BASIC_SC_ARCHITECTURE_MODEL
 
     clifford_t_circuit = pyliqtr_transpile_to_clifford_t(
@@ -150,7 +147,7 @@ def test_toy_example_notebook():
     compiler = substrate_scheduler(circuit_graph, "fast")
     [[node[0] for node in step] for step in compiler.measurement_steps]
 
-    circuit = QuantumCircuit.from_qasm_file("ghz_circuit.qasm")
+    circuit = QuantumCircuit.from_qasm_file(file_path)
 
     clifford_t_circuit = pyliqtr_transpile_to_clifford_t(
         circuit, circuit_precision=1e-10
