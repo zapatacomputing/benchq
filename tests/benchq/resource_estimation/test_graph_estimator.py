@@ -82,7 +82,6 @@ def test_resource_estimations_returns_results_for_different_architectures(
     assert gsc_resource_estimates
     if supports_hardware_resources:
         assert gsc_resource_estimates.hardware_resource_info is not None
-        breakpoint()
     else:
         assert gsc_resource_estimates.hardware_resource_info is None
 

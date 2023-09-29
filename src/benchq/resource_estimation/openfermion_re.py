@@ -7,7 +7,11 @@ from typing import Tuple
 import numpy as np
 from openfermion.resource_estimates import df, sf
 
-from benchq.data_structures import BASIC_SC_ARCHITECTURE_MODEL, BasicArchitectureModel
+from benchq.data_structures import (
+    BASIC_SC_ARCHITECTURE_MODEL,
+    BasicArchitectureModel,
+    DetailedArchitectureModel,
+)
 from benchq.data_structures.resource_info import (
     OpenFermionExtra,
     OpenFermionResourceInfo,
@@ -271,7 +275,15 @@ def get_physical_cost(
         best_params.max_allocated_logical_qubits,
     )
 
-    return _openfermion_result_to_resource_info(best_cost, best_params, decoder_info)
+    resource_info = _openfermion_result_to_resource_info(
+        best_cost, best_params, decoder_info
+    )
+    if isinstance(architecture_model, DetailedArchitectureModel):
+        resource_info.hardware_resource_info = (
+            architecture_model.get_hardware_resource_estimates(resource_info)
+        )
+
+    return resource_info
 
 
 def _openfermion_result_to_resource_info(
