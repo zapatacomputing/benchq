@@ -55,15 +55,15 @@ def _get_transformers(use_delayed_gate_synthesis, error_budget):
 
 
 @pytest.mark.parametrize(
-    "architecture_model",
+    "architecture_model, supports_hardware_resources",
     [
-        BASIC_SC_ARCHITECTURE_MODEL,
-        BASIC_ION_TRAP_ARCHITECTURE_MODEL,
-        DETAILED_ION_TRAP_ARCHITECTURE_MODEL,
+        (BASIC_SC_ARCHITECTURE_MODEL, False),
+        (BASIC_ION_TRAP_ARCHITECTURE_MODEL, False),
+        (DETAILED_ION_TRAP_ARCHITECTURE_MODEL, True),
     ],
 )
 def test_resource_estimations_returns_results_for_different_architectures(
-    architecture_model,
+    architecture_model, supports_hardware_resources
 ):
     # set circuit generation weight to 0
     error_budget = ErrorBudget.from_weights(1e-3, 0, 1, 1)
@@ -80,6 +80,11 @@ def test_resource_estimations_returns_results_for_different_architectures(
     )
 
     assert gsc_resource_estimates
+    if supports_hardware_resources:
+        assert gsc_resource_estimates.hardware_resource_info is not None
+        breakpoint()
+    else:
+        assert gsc_resource_estimates.hardware_resource_info is None
 
 
 @pytest.mark.parametrize(

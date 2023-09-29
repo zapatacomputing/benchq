@@ -13,6 +13,7 @@ from .hardware_architecture_models import (
     BASIC_SC_ARCHITECTURE_MODEL,
     DETAILED_ION_TRAP_ARCHITECTURE_MODEL,
     BasicArchitectureModel,
+    DetailedArchitectureModel,
     DetailedIonTrapModel,
 )
 from .quantum_program import QuantumProgram, get_program_from_circuit
@@ -38,6 +39,7 @@ __all__ = [
     "BASIC_ION_TRAP_ARCHITECTURE_MODEL",
     "BASIC_SC_ARCHITECTURE_MODEL",
     "BasicArchitectureModel",
+    "DetailedArchitectureModel",
     "QuantumProgram",
     "get_program_from_circuit",
     "ResourceInfo",
