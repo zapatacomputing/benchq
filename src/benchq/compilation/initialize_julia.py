@@ -1,11 +1,12 @@
 import juliapkg
+from typing import Any
 
 # juliapkg.json is undesirable because you have to put it in the same directory as
 # the script that calls it. So we have to check whether the dependencies are already
 # installed and if not, install them. When adding a new dependency, you have to
 # manually add it to the dependency_dict below as well as the juliapkg.add() call.
 required_julia_version = "1.9.3"
-dependency_dict = {
+dependency_dict: Any = {
     "julia": "^" + required_julia_version,
     "packages": {
         "JSON": {"uuid": "682c06a0-de6a-54ab-a142-c8b1cf79cde6", "version": "0.21"},
@@ -31,12 +32,12 @@ if juliapkg.deps.load_cur_deps() != dependency_dict:
         + " and with required dependencies..."
     )
     juliapkg.require_julia(required_julia_version)
-    juliapkg.add("JSON", "682c06a0-de6a-54ab-a142-c8b1cf79cde6", version="0.21")
-    juliapkg.add("Jabalizer", "5ba14d91-d028-496b-b148-c0fbc366f709", version="0.4.4")
-    juliapkg.add(
-        "TimerOutputs", "a759f4b9-e2f1-59dc-863e-4aeb61b1ea8f", version="0.5.23"
-    )
-    juliapkg.add("StatsBase", "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91", version="0.34.0")
+    for pkg_name, pkg_data in dependency_dict["packages"].values():
+        juliapkg.add(
+            pkg_name,
+            pkg_data["uuid"],
+            version=pkg_data["version"],
+        )
 
 
 juliapkg.resolve()
