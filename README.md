@@ -17,10 +17,9 @@ If you're a Windows user, please consider using [WSL](https://learn.microsoft.co
 ### Extra dependencies
 
 #### Julia
-If you want to run the Graph State Compilation pipeline, you'll have to install Julia. Fortunately, benchq will install Julia for you whenever it is needed.
-To avoid issues with conflicting versions, we do not install Julia in the typical {home}/.julia directory. We instead install julia within the python version you are using (if you are using a virtualenv, it will be installed in the file containing your virtualenv).
+If you want to run the Graph State Compilation pipeline, you'll have to install Julia. Fortunately, benchq will install Julia automatically for you whenever it is needed if your current Julia installation is not compatible with the version of Julia that benchq requires. To avoid issues with conflicting versions, `juliapkg` do not install Julia in the typical {home}/.julia directory. We instead install julia within the python version you are using (if you are using a virtualenv, it will be installed in the file containing your virtualenv).
 
-Note that running `julia` from the terminal will not give you access to the version of Julia that BenchQ installs. This is to prevent conflicts with other Julia installations you may have on your system. See the `juliapkg` documentation for more information.
+Note that running `julia` from the terminal may not give you access to the version of Julia that BenchQ installs. This is to prevent conflicts with other Julia installations you may have on your system. See the `juliapkg` documentation for more information.
 
 #### PySCF
 If you plan to use PySCF to generate Hamiltonians, use the `pyscf` install extra:
