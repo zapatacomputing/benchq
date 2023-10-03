@@ -9,6 +9,7 @@ from orquestra.quantum.circuits import (
     ControlledGate,
     Dagger,
     GateOperation,
+    ResetOperation,
     H,
     I,
     Operation,
@@ -35,7 +36,14 @@ def transpile_to_native_gates(circuit) -> Circuit:
     return Circuit(
         decompose_benchq_circuit(
             circuit,
-            [CCZtoT(), CCXtoT(), U3toRZ(), RXtoRZ(), RYtoRZ(), DecomposeStandardRZ()],
+            [
+                CCZtoT(),
+                CCXtoT(),
+                U3toRZ(),
+                RXtoRZ(),
+                RYtoRZ(),
+                DecomposeStandardRZ(),
+            ],
         ).operations,
         n_qubits=circuit.n_qubits,
     )
@@ -56,8 +64,9 @@ def decompose_benchq_operations(
         if isinstance(op, GateOperation):
             for decomposed_op in decompose_operation(op, decomposition_rules):
                 decomposed_operation_sequence += [decomposed_op]
-        else:
-            decomposed_operation_sequence += [op]
+        # Remove reset operations
+        # else:
+        #     decomposed_operation_sequence += [op]
 
     return decomposed_operation_sequence
 

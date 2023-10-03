@@ -85,13 +85,78 @@ def create_big_graph_from_subcircuits(
     graph_production_method=get_algorithmic_graph_from_ruby_slippers,
 ) -> Callable[[QuantumProgram], GraphPartition]:
     def _transformer(program: QuantumProgram) -> GraphPartition:
-        print("Creating big graph from subcircuits...")
+        print("Creating circuit from subcircuits...")
         big_circuit = program.full_circuit
         new_program = get_program_from_circuit(big_circuit)
+
+        start = time.time()
+        print("Creating full graph from subcircuits...")
         graph = graph_production_method(big_circuit)
+        total_time = time.time() - start
+        print(f"Created graph in {total_time} seconds.")
+        # String to remove
+        substring_to_remove = "get_algorithmic_graph_from_"
+        # Remove the substring
+        gpm_name = graph_production_method.__name__.replace(substring_to_remove, "")
+        get_graph_degree_histogram(graph, gpm_name, total_time)
+        exit()
+
         return GraphPartition(new_program, [graph])
 
     return _transformer
+
+
+import networkx as nx
+import matplotlib.pyplot as plt
+import numpy as np
+import json
+from datetime import datetime
+
+
+def get_graph_degree_histogram(
+    G: nx.Graph, compilation_method_name: str, total_time: float
+):
+    # Compute the degrees of all nodes in the graph
+    degrees = [d for n, d in G.degree()]
+
+    # Calculate the variance of node degrees
+    degree_variance = np.var(degrees)
+    print(f"Degree variance: {degree_variance}")
+
+    # Create a histogram of node degrees
+    hist, bins, _ = plt.hist(
+        degrees, bins=range(min(degrees), max(degrees) + 2, 1), align="left", rwidth=0.8
+    )
+    # Print the histogram data
+    print("Histogram Data:")
+    hist_dict = {}
+    for b, h in zip(bins, hist):
+        if h > 0:
+            hist_dict[b] = h
+    print(hist_dict)
+
+    # Generate a timestamp
+    timestamp = datetime.now().strftime("%Y-%m-%d-%H-%M")
+
+    # Set labels and title
+    plt.xlabel("Degree")
+    plt.ylabel("Count")
+    plt.title("Degree Histogram")
+    plt.savefig(
+        "benchmark_data/" + compilation_method_name + "_plot_" + timestamp + ".png"
+    )
+
+    # Show the histogram
+    # plt.show()
+
+    hist_dict["Variance"] = degree_variance
+    hist_dict["Total Time"] = total_time
+    with open(
+        "benchmark_data/" + compilation_method_name + "_histogram_data_" + timestamp,
+        "w",
+    ) as json_file:
+        # Write the JSON data to the file
+        json.dump(hist_dict, json_file)
 
 
 def remove_isolated_nodes(graph_partition: GraphPartition) -> GraphPartition:

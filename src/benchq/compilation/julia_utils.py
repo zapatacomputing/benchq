@@ -35,11 +35,11 @@ def get_ruby_slippers_compiler(
     max_graph_size=1e7,
     teleportation_threshold=40,
     min_neighbors=6,
-    teleportation_distance=4,
+    teleportation_distance=2,
     max_num_neighbors_to_search=1e5,
     decomposition_strategy=1,
 ):
-    def _run_compiler(circuit: Circuit) -> nx.Graph:
+    def get_algorithmic_graph_from_ruby_slippers(circuit: Circuit) -> nx.Graph:
         lco, adj, _ = jl.run_ruby_slippers(
             circuit,
             verbose,
@@ -59,11 +59,32 @@ def get_ruby_slippers_compiler(
 
         return graph
 
-    return _run_compiler
+    return get_algorithmic_graph_from_ruby_slippers
+
+
+def get_algorithmic_graph_from_graphsim_mini(circuit: Circuit) -> nx.Graph:
+    lco, adj, _ = jl.run_ruby_slippers(
+        circuit,
+        True,
+        1e7,
+        2**16 - 1,
+        6,
+        2,
+        1e5,
+        0,
+    )
+
+    print("getting networkx graph from vertices")
+    start = time.time()
+    graph = get_nx_graph_from_rbs_adj_list(adj)
+    end = time.time()
+    print("time: ", end - start)
+
+    return graph
 
 
 def get_algorithmic_graph_from_Jabalizer(circuit: Circuit) -> nx.Graph:
-    svec, op_seq, icm_output, data_qubits_map = jl.run_jabalizer(circuit)
+    svec, op_seq, icm_output, data_qubits_map = jl.run_jabalizer(circuit, True)
     return create_graph_from_stabilizers(svec)
 
 

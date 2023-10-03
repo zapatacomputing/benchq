@@ -10,7 +10,7 @@ icm_compile(circuit, n_qubits) =
 function out_cnt(opcnt, prevcnt, tn, pt, t0)
     print("  Ops: $opcnt ($(opcnt-prevcnt)), ")
     print("elapsed: $(round((tn-t0)/60_000_000_000, digits=2)) min (")
-    println(round((tn - pt) / 1_000_000_000, digits = 2), " s)")
+    println(round((tn - pt) / 1_000_000_000, digits=2), " s)")
 end
 
 function map_qubits(num_qubits, icm_output)
@@ -28,7 +28,7 @@ function map_qubits(num_qubits, icm_output)
     num_qubits, qubit_map
 end
 
-function prepare(num_qubits, qubit_map, icm_output, debug_flag = false)
+function prepare(num_qubits, qubit_map, icm_output, debug_flag=false)
     state = zero_state(num_qubits)
     chkcnt = prevbits = prevop = opcnt = 0
     pt = t0 = time_ns()
@@ -58,7 +58,7 @@ function prepare(num_qubits, qubit_map, icm_output, debug_flag = false)
     state
 end
 
-function run_jabalizer(circuit, debug_flag = false)
+function run_jabalizer(circuit, debug_flag=true)
     # Convert to Julia values
     n_qubits = Jabalizer.pyconvert(Int, circuit.n_qubits)
     icm_input = Jabalizer.ICMGate[]

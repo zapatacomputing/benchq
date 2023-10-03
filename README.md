@@ -1,3 +1,16 @@
+# Benchmarking Compilers Edition!!
+
+All of the benchmarks you have seen were generated from `ex_1_from_qasm.py` and `generate_qasm_circuit.py` inside the `examples`
+folder. I tried to make the comparisons as fair as possible by picking an actual utility scale instance to try it with.
+Currently the circuits are set to cost out 1 block encoding, but we would really need to do 10 or so block encoding to get a fair
+estimate of how the max node degree and number of measurement steps scales.
+
+You can either generate the circuit yourself using `generate_qasm_circuit.py` or just use the ones that I have already made inside the `examples/qasm_circuits` folder. The data from the benchmarks will be stored in the `examples/benchmark_data` folder. The total time is reported in the histogram data and it is just straight race from the time we feed in the circuit to the time we get a networkx graph back.
+
+The placement of there plotting software is rather annoying, but you can find it in `src/benchq/resource_estimation/graph/transformers.py`. All of the stuff we are doing to modify the circuit (transpiling to native gates mostly) is included in that file, so you can just track it down from there.
+
+You should be able to use the usual instructions for installing BenchQ below. But if you run into any issues just let me know and I'll be happy to help out! Remember this is just something I kind of threw together so please be kind to it. :)
+
 # benchq
 
 ## What is it?

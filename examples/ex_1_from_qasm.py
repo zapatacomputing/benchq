@@ -21,12 +21,18 @@ from benchq.resource_estimation.graph import (
     synthesize_clifford_t,
     transpile_to_native_gates,
 )
+from benchq.compilation.julia_utils import (
+    get_ruby_slippers_compiler,
+    get_algorithmic_graph_from_Jabalizer,
+    get_algorithmic_graph_from_graphsim_mini,
+)
 
 
 def main(file_name):
     # Uncomment to see extra debug output
     # logging.getLogger().setLevel(logging.INFO)
 
+    print("loading circuit...")
     # We can load a circuit from a QASM file using qiskit
     qiskit_circuit = QuantumCircuit.from_qasm_file(file_name)
     # In order to perform resource estimation we need to translate it to a
@@ -46,28 +52,57 @@ def main(file_name):
     # Architecture model is used to define the hardware model.
     architecture_model = BASIC_SC_ARCHITECTURE_MODEL
 
-    # Here we run the resource estimation pipeline.
-    # In this case before performing estimation we use the following transformers:
-    # 1. Simplify rotations – it is a simple transpilation that removes redundant
-    # rotations from the circuit, such as RZ(0) or RZ(2pi) and replaces RX and RY
-    # gates with RZs
-    # 2. Gate synthesis – replaces all RZ gates with Clifford+T gates
-    # 3. Create big graph from subcircuits – this transformer is used to create
-    # a graph from subcircuits. It is needed to perform resource estimation using
-    # the graph resource estimator. In this case we use delayed gate synthesis, as
-    # we have already performed gate synthesis in the previous step.
-    gsc_resource_estimates = run_custom_resource_estimation_pipeline(
-        algorithm_implementation,
-        estimator=GraphResourceEstimator(architecture_model),
-        transformers=[
-            transpile_to_native_gates,
-            synthesize_clifford_t(error_budget),
-            create_big_graph_from_subcircuits(),
-        ],
-    )
-    print("Resource estimation results:")
-    print(gsc_resource_estimates)
+    print("Running resource estimation for Ruby Slippers...")
+    try:
+        run_custom_resource_estimation_pipeline(
+            algorithm_implementation,
+            estimator=GraphResourceEstimator(architecture_model),
+            transformers=[
+                transpile_to_native_gates,
+                create_big_graph_from_subcircuits(
+                    graph_production_method=get_ruby_slippers_compiler()
+                ),
+            ],
+        )
+    except:
+        pass
+
+    # print("Running resource estimation for Graph Sim mini...")
+    # try:
+    #     run_custom_resource_estimation_pipeline(
+    #         algorithm_implementation,
+    #         estimator=GraphResourceEstimator(architecture_model),
+    #         transformers=[
+    #             transpile_to_native_gates,
+    #             create_big_graph_from_subcircuits(
+    #                 graph_production_method=get_algorithmic_graph_from_graphsim_mini
+    #             ),
+    #         ],
+    #     )
+    # except:
+    #     pass
+
+    # print("Running resource estimation for Jabalizer...")
+    # try:
+    #     run_custom_resource_estimation_pipeline(
+    #         algorithm_implementation,
+    #         estimator=GraphResourceEstimator(architecture_model),
+    #         transformers=[
+    #             transpile_to_native_gates,
+    #             create_big_graph_from_subcircuits(
+    #                 graph_production_method=get_algorithmic_graph_from_Jabalizer
+    #             ),
+    #         ],
+    #     )
+    # except:
+    #     pass
+
+
+# Some notes:
+# 1. These reset operations make graph sim mini about 10x faster than measured here.
+# 2. The isolated nodes are from qubits which are used in the preparation and measurement
+#    they are not used in the block encoding
 
 
 if __name__ == "__main__":
-    main("data/example_circuit.qasm")
+    main("qasm_circuits/ising_circuit_10_for_100.qasm")
