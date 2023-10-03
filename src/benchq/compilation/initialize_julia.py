@@ -26,7 +26,7 @@ dependency_dict: Any = {
 }
 curr_deps = juliapkg.deps.load_cur_deps()
 if curr_deps != dependency_dict:
-    if curr_deps["julia"] != dependency_dict["julia"]:
+    if "julia" not in curr_deps or curr_deps["julia"] != dependency_dict["julia"]:
         print(
             "No suitable Julia installation detected. "
             "Automatically installing Julia " + required_julia_version + "."
