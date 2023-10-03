@@ -6,9 +6,9 @@
 
 import warnings
 from dataclasses import dataclass
-from typing import Protocol
+from typing import Protocol, runtime_checkable
 
-from .resource_info import ResourceInfo
+from .resource_info import DetailedIonTrapResourceInfo, ResourceInfo
 
 
 class BasicArchitectureModel(Protocol):
@@ -36,6 +36,15 @@ class BasicArchitectureModel(Protocol):
         pass
 
 
+@runtime_checkable
+class DetailedArchitectureModel(BasicArchitectureModel, Protocol):
+    """DetailedArchitectureModel extends basic one, with the ability to
+    calculate detailed hardware estimates"""
+
+    def get_hardware_resource_estimates(self, resource_info: ResourceInfo):
+        pass
+
+
 @dataclass(frozen=True)
 class IONTrapModel:
     physical_qubit_error_rate: float = 1e-4
@@ -50,29 +59,6 @@ class SCModel:
 
 BASIC_ION_TRAP_ARCHITECTURE_MODEL = IONTrapModel()
 BASIC_SC_ARCHITECTURE_MODEL = SCModel()
-
-
-@dataclass
-class DetailedIonTrapResourceInfo:
-    """Info relating to detailed ion trap architecture model resources."""
-
-    power_consumed_per_elu_in_kW: float
-    num_communication_ports_per_elu: int
-    second_switch_per_elu_necessary: bool
-    num_communication_qubits_per_elu: int
-    num_memory_qubits_per_elu: int
-    num_computational_qubits_per_elu: int
-    num_optical_cross_connect_layers: int
-    num_ELUs_per_optical_cross_connect: int
-
-    total_num_ions: int
-    total_num_communication_qubits: int
-    total_num_memory_qubits: int
-    total_num_computational_qubits: int
-    total_num_communication_ports: int
-    num_elus: int
-    total_elu_power_consumed_in_kW: float
-    total_elu_energy_consumed_in_kJ: float
 
 
 class DetailedIonTrapModel:
