@@ -16,20 +16,18 @@ If you're a Windows user, please consider using [WSL](https://learn.microsoft.co
 
 ### Extra dependencies
 
-Graph compilation requires non-Python dependencies to be installed.
-Either:
-1. Install a recent Julia version from the [Julia website](https://julialang.org/downloads/).
-2. Make sure `julia` executable is on your `$PATH`. You can test it by running `julia` in a new terminal window.
-3. Install Julia dependencies: open `julia` REPL, press `]`, run `add Jabalizer`.
+#### Julia
+If you want to run the Graph State Compilation pipeline, you'll have to install Julia. Fortunately, benchq will install Julia automatically for you whenever it is needed if your current Julia installation is not compatible with the version of Julia that benchq requires. To avoid issues with conflicting versions, `juliapkg` do not install Julia in the typical {home}/.julia directory. We instead install julia within the python version you are using (if you are using a virtualenv, it will be installed in the file containing your virtualenv).
 
-Or:
-1. Run `python setup_julia.py` in repo root.
+Note that running `julia` from the terminal may not give you access to the version of Julia that BenchQ installs. This is to prevent conflicts with other Julia installations you may have on your system. See the `juliapkg` documentation for more information.
 
+#### PySCF
 If you plan to use PySCF to generate Hamiltonians, use the `pyscf` install extra:
 ```bash
 pip install '.[pyscf]'
 ```
 
+#### Azure Quantum Resource Estimation
 To run resource estimation using Azure Quantum Resource Estimation (QRE) tool, one needs to have Azure QRE package configured, please see [this tutorial](https://learn.microsoft.com/en-us/azure/quantum/intro-to-resource-estimation).
 
 ## Usage
