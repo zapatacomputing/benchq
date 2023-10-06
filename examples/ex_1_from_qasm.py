@@ -27,75 +27,87 @@ from benchq.compilation.julia_utils import (
     get_algorithmic_graph_from_graphsim_mini,
 )
 
+from timeout_decorator import timeout
 
-def main(file_name):
+
+class TimeoutException(Exception):
+    pass
+
+
+timeout_seconds = 6000
+
+
+def main():
     # Uncomment to see extra debug output
     # logging.getLogger().setLevel(logging.INFO)
 
-    print("loading circuit...")
-    # We can load a circuit from a QASM file using qiskit
-    qiskit_circuit = QuantumCircuit.from_qasm_file(file_name)
-    # In order to perform resource estimation we need to translate it to a
-    # benchq program.
-    quantum_program = get_program_from_circuit(import_from_qiskit(qiskit_circuit))
+    # store functions to run compilers as well as whether they timed out
+    compiler_data = [
+        [get_ruby_slippers_compiler(), False, "Ruby Slippers"],
+        [get_algorithmic_graph_from_graphsim_mini, False, "GraphSim Mini"],
+        [get_algorithmic_graph_from_Jabalizer, False, "Jabalizer"],
+    ]
 
-    # Error budget is used to define what should be the failure rate of running
-    # the whole calculation. It also allows to set relative weights for different
-    # parts of the calculation, such as gate synthesis or circuit generation.
-    error_budget = ErrorBudget.from_even_split(total_failure_tolerance=1e-3)
+    for N in range(2, 11):
+        print(f"loading circuit for N={N}...")
+        file_name = "qasm_circuits/ising_circuit_" + str(N) + "_for_100.qasm"
+        # We can load a circuit from a QASM file using qiskit
+        qiskit_circuit = QuantumCircuit.from_qasm_file(file_name)
+        # In order to perform resource estimation we need to translate it to a
+        # benchq program.
+        quantum_program = get_program_from_circuit(import_from_qiskit(qiskit_circuit))
 
-    # algorithm implementation encapsulates the how the algorithm is implemented
-    # including the program, the number of times the program must be repeated,
-    # and the error budget which will be used in the circuit.
-    algorithm_implementation = AlgorithmImplementation(quantum_program, error_budget, 1)
+        # Error budget is used to define what should be the failure rate of running
+        # the whole calculation. It also allows to set relative weights for different
+        # parts of the calculation, such as gate synthesis or circuit generation.
+        error_budget = ErrorBudget.from_even_split(total_failure_tolerance=1e-3)
 
-    # Architecture model is used to define the hardware model.
-    architecture_model = BASIC_SC_ARCHITECTURE_MODEL
-
-    print("Running resource estimation for Ruby Slippers...")
-    try:
-        run_custom_resource_estimation_pipeline(
-            algorithm_implementation,
-            estimator=GraphResourceEstimator(architecture_model),
-            transformers=[
-                transpile_to_native_gates,
-                create_big_graph_from_subcircuits(
-                    graph_production_method=get_ruby_slippers_compiler()
-                ),
-            ],
+        # algorithm implementation encapsulates the how the algorithm is implemented
+        # including the program, the number of times the program must be repeated,
+        # and the error budget which will be used in the circuit.
+        algorithm_implementation = AlgorithmImplementation(
+            quantum_program, error_budget, 1
         )
-    except:
-        pass
 
-    # print("Running resource estimation for Graph Sim mini...")
-    # try:
-    #     run_custom_resource_estimation_pipeline(
-    #         algorithm_implementation,
-    #         estimator=GraphResourceEstimator(architecture_model),
-    #         transformers=[
-    #             transpile_to_native_gates,
-    #             create_big_graph_from_subcircuits(
-    #                 graph_production_method=get_algorithmic_graph_from_graphsim_mini
-    #             ),
-    #         ],
-    #     )
-    # except:
-    #     pass
+        # Architecture model is used to define the hardware model.
+        architecture_model = BASIC_SC_ARCHITECTURE_MODEL
 
-    # print("Running resource estimation for Jabalizer...")
-    # try:
-    #     run_custom_resource_estimation_pipeline(
-    #         algorithm_implementation,
-    #         estimator=GraphResourceEstimator(architecture_model),
-    #         transformers=[
-    #             transpile_to_native_gates,
-    #             create_big_graph_from_subcircuits(
-    #                 graph_production_method=get_algorithmic_graph_from_Jabalizer
-    #             ),
-    #         ],
-    #     )
-    # except:
-    #     pass
+        for data in compiler_data:
+            if not data[1]:
+                try:
+                    test_compiler(
+                        algorithm_implementation,
+                        architecture_model,
+                        data[0],
+                        data[2],
+                    )
+                except Exception as e:
+                    if isinstance(e, TimeoutException):
+                        print(data[2] + " timed out!")
+                        data[1] = True
+
+        del algorithm_implementation
+
+
+@timeout(
+    timeout_seconds,
+    timeout_exception=TimeoutException,
+)
+def test_compiler(
+    algorithm_implementation,
+    architecture_model,
+    compiler,
+    compiler_name,
+):
+    print("Running resource estimation for " + compiler_name + "...")
+    run_custom_resource_estimation_pipeline(
+        algorithm_implementation,
+        estimator=GraphResourceEstimator(architecture_model),
+        transformers=[
+            transpile_to_native_gates,
+            create_big_graph_from_subcircuits(graph_production_method=compiler),
+        ],
+    )
 
 
 # Some notes:
@@ -105,4 +117,4 @@ def main(file_name):
 
 
 if __name__ == "__main__":
-    main("qasm_circuits/ising_circuit_10_for_100.qasm")
+    main()

@@ -99,18 +99,23 @@ def create_big_graph_from_subcircuits(
         # Remove the substring
         gpm_name = graph_production_method.__name__.replace(substring_to_remove, "")
         get_graph_degree_histogram(graph, gpm_name, total_time)
-        exit()
+        raise GetMeTheHellOutOfHereException
 
         return GraphPartition(new_program, [graph])
 
     return _transformer
 
 
+class GetMeTheHellOutOfHereException(Exception):
+    pass
+
+
 import networkx as nx
-import matplotlib.pyplot as plt
 import numpy as np
 import json
 from datetime import datetime
+import importlib
+import matplotlib.pyplot as plt
 
 
 def get_graph_degree_histogram(
@@ -145,6 +150,8 @@ def get_graph_degree_histogram(
     plt.savefig(
         "benchmark_data/" + compilation_method_name + "_plot_" + timestamp + ".png"
     )
+
+    plt.clf()
 
     # Show the histogram
     # plt.show()

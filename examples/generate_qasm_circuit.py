@@ -46,7 +46,7 @@ from copy import deepcopy
 
 
 evolution_time = 100
-N = 9  # must be >= 2!
+N = 2  # must be >= 2!
 
 print("Generating circuit...")
 operator = generate_cubic_hamiltonian(N)
@@ -60,22 +60,19 @@ qiskit_circuit = export_circuit(QuantumCircuit, algorithm.program.full_circuit)
 
 print("Optimizing circuit...")
 # Define the set of allowed gates (X, Y, Z, H, S, RZ, T, and CZ)
-# allowed_gates = ["x", "y", "z", "h", "s", "rz", "cz", "t", "tdg", "sdg"]
+allowed_gates = ["i", "x", "y", "z", "h", "s", "rz", "cz", "t", "tdg", "sdg"]
 
 # I tried to optimize the circuit with qiskit, but it seems to add a bunch of
 # isolated nodes to the graph. If Rigetti is getting isolated nodes, this might be why....
 # I don't have time to look at this now, but maybe someone else will down the line? ¯\_(ツ)_/¯
-# Because we can't transpile, we know there will be some RY operations that could be combined,
-# you can see them at the end of the circuit. I'm not sure how to get rid of them without
-# transpiling with qiskit.
 # optimized_circuit = transpile(
 #     qiskit_circuit,
-#     # basis_gates=allowed_gates,
-#     optimization_level=2,
+#     basis_gates=allowed_gates,
+#     optimization_level=1,
 # )
 
-# combine adjacent RY gates manually in an attempt to make up for the fact that
-# transpile is not working....
+# # combine adjacent RY gates manually in an attempt to make up for the fact that
+# # transpile is not working.... Also remove RY gates with theta = 0
 optimized_circuit = QuantumCircuit(qiskit_circuit.num_qubits)
 
 prev_gate_name = None
@@ -132,10 +129,14 @@ for operation in old_optimized_circuit.data:
 
 # Get the QASM representation of the circuit
 print("Writing circuit to qasm file...")
-qasm_string = optimized_circuit.qasm()
+qasm_string = qiskit_circuit.qasm()
 # Specify the file path where you want to write the QASM data
 qasm_file_path = (
-    "qasm_circuits/ising_circuit_" + str(N) + "_for_" + str(evolution_time) + ".qasm"
+    "qasm_circuits/ising_circuit_"
+    + str(N)
+    + "_for_"
+    + str(evolution_time)
+    + "_amara_2.qasm"
 )  # Replace with the desired file path
 # Write the QASM data to a file
 with open(qasm_file_path, "w") as qasm_file:
