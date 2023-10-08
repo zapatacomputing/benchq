@@ -44,8 +44,8 @@ def main():
     # store functions to run compilers as well as whether they timed out
     compiler_data = [
         [get_ruby_slippers_compiler(), False, "Ruby Slippers"],
-        [get_algorithmic_graph_from_graphsim_mini, False, "GraphSim Mini"],
-        [get_algorithmic_graph_from_Jabalizer, False, "Jabalizer"],
+        # [get_algorithmic_graph_from_graphsim_mini, False, "GraphSim Mini"],
+        # [get_algorithmic_graph_from_Jabalizer, False, "Jabalizer"],
     ]
 
     for N in range(2, 11):
@@ -85,6 +85,8 @@ def main():
                     if isinstance(e, TimeoutException):
                         print(data[2] + " timed out!")
                         data[1] = True
+                    else:
+                        print(e)
 
         del algorithm_implementation
 

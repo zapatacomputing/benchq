@@ -130,7 +130,7 @@ def get_graph_degree_histogram(
 
     # Create a histogram of node degrees
     hist, bins, _ = plt.hist(
-        degrees, bins=range(min(degrees), max(degrees) + 2, 1), align="left", rwidth=0.8
+        degrees, bins=range(1, max(degrees) + 2, 1), align="left", rwidth=0.8
     )
     # Print the histogram data
     print("Histogram Data:")
@@ -141,7 +141,7 @@ def get_graph_degree_histogram(
     print(hist_dict)
 
     # Generate a timestamp
-    timestamp = datetime.now().strftime("%Y-%m-%d-%H-%M")
+    timestamp = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
 
     # Set labels and title
     plt.xlabel("Degree")
@@ -156,8 +156,15 @@ def get_graph_degree_histogram(
     # Show the histogram
     # plt.show()
 
+    # get total number of nodes in graph
+    total_nodes = 0
+    for degree, count in hist_dict.items():
+        if degree != 0:
+            total_nodes += count
+
     hist_dict["Variance"] = degree_variance
     hist_dict["Total Time"] = total_time
+    hist_dict["Total Nodes"] = total_nodes
     with open(
         "benchmark_data/" + compilation_method_name + "_histogram_data_" + timestamp,
         "w",

@@ -39,7 +39,7 @@ struct RubySlippersHyperparams
     decomposition_strategy::UInt8
 end
 
-default_hyperparams = RubySlippersHyperparams(40, 2, 6, 1e5, 1)
+default_hyperparams = RubySlippersHyperparams(40, 4, 6, 1e5, 1)
 
 
 """
@@ -71,11 +71,11 @@ function run_ruby_slippers(
     verbose=false,
     max_graph_size=nothing,
     teleportation_threshold=40,
-    teleportation_distance=2,
+    teleportation_distance=4,
     min_neighbors=6,
     max_num_neighbors_to_search=1e5,
     decomposition_strategy=1,
-    max_time=1e8
+    max_time=1e8,
 )
     # params which can be optimized to speed up computation
     hyperparams = RubySlippersHyperparams(
@@ -94,11 +94,11 @@ function run_ruby_slippers(
 
     if verbose
         print("get_graph_state_data:\t")
-        (lco, adj, proportion) = @time get_graph_state_data(circuit, true, max_graph_size, hyperparams, max_time)
+        (lco, adj, input_nodes) = @time get_graph_state_data(circuit, true, max_graph_size, hyperparams, max_time)
     else
-        (lco, adj, proportion) = get_graph_state_data(circuit, false, max_graph_size, hyperparams, max_time)
+        (lco, adj, input_nodes) = get_graph_state_data(circuit, false, max_graph_size, hyperparams, max_time)
     end
-    return pylist(lco), python_adjlist!(adj), proportion
+    return pylist(lco), python_adjlist!(adj), pylist(input_nodes)
 end
 
 function get_max_n_nodes(circuit, teleportation_distance)
@@ -150,6 +150,7 @@ function get_graph_state_data(
     max_graph_size::UInt32=1e8,
     hyperparams::RubySlippersHyperparams=default_hyperparams,
     max_time::Float64=1e8,
+    with_buffer::Bool=false,
 )
 
     n_qubits = pyconvert(Int, circuit.n_qubits)
@@ -157,12 +158,40 @@ function get_graph_state_data(
 
     lco = fill(H_code, max_graph_size)   # local clifford operation on each node
     adj = [AdjList() for _ = 1:max_graph_size]  # adjacency list
+
+
+    buffer_size = 1000
+    if buffer_size % 2 != 0
+        error("Buffer size must be even")
+    end
+    if with_buffer
+        data_qubits = []
+        curr_qubits = [1] # make this a list so it can be modified in place
+        # add buffer qubits to the graph state
+        for i = 1:n_qubits
+            push!(data_qubits, Qubit(curr_qubits[1]))
+            teleportation!(
+                lco,
+                adj,
+                last(data_qubits),
+                data_qubits,
+                curr_qubits,
+                hyperparams,
+                buffer_size,
+            )
+            curr_qubits[1] += 1
+        end
+    else
+        curr_qubits = [n_qubits]
+        data_qubits = [Qubit(i) for i = 1:n_qubits]
+    end
+
+
     if verbose
         println("Memory for data structures allocated")
     end
 
-    data_qubits = [Qubit(i) for i = 1:n_qubits]
-    curr_qubits = [n_qubits] # make this a list so it can be modified in place
+
     supported_ops = get_op_list()
 
     total_length = length(ops)
@@ -245,11 +274,60 @@ function get_graph_state_data(
         println("\r100% ($counter) completed in $erase$(elapsed)s")
     end
 
+    # turn excess buffer into isolated nodes which are ignored
+    if with_buffer
+        # add teleportations at end so we can connect to next buffer
+        output_nodes = []
+        for qubit in data_qubits
+            teleportation!(
+                lco,
+                adj,
+                qubit,
+                data_qubits,
+                curr_qubits,
+                hyperparams,
+                4,
+            )
+            push!(output_nodes, curr_qubits[1] - 3)
+            push!(output_nodes, curr_qubits[1] - 4)
+            # remove_edge!(adj, curr_qubits[1], curr_qubits[1] - 1)
+            remove_edge!(adj, curr_qubits[1] - 1, curr_qubits[1] - 2)
+        end
+
+        input_nodes = []
+        for i = 1:n_qubits
+            buffer_start = (i - 1) * (buffer_size + 1) + 3
+            buffer_end = i * (buffer_size + 1) # +1 to include the data qubit
+            correct_lco_start = lco[buffer_start] == H_code && lco[buffer_start+1] == H_code
+            correct_adj_start = adj[buffer_start+1] == Set([buffer_start + 1, buffer_start - 1]) && adj[buffer_start] == Set([buffer_start + 1])
+            if correct_lco_start && correct_adj_start
+                throw(DomainError("Buffer size Exceeded!"))
+            end
+            adj_consumed = false
+            lco_consumed = false
+            for j = buffer_start:2:buffer_end
+                adj_consumed = adj[j+2] != Set([j + 3, j + 1]) || adj[j+1] != Set([j])
+                lco_consumed = lco[j+2] != H_code || lco[j+1] != H_code
+                if !adj_consumed || !lco_consumed
+                    remove_edge!(adj, j, j - 1)
+                    remove_edge!(adj, j + 1, j)
+                else
+                    push!(input_nodes, j - 1)
+                    push!(input_nodes, j - 2)
+                    break
+                end
+            end
+        end
+    else
+        input_nodes = [Qubit(i) for i = 1:n_qubits]
+        output_nodes = data_qubits
+    end
+
     # get rid of excess space in the data structures
     resize!(lco, curr_qubits[1])
     resize!(adj, curr_qubits[1])
 
-    return lco, adj, 1
+    return lco, adj, input_nodes
 end
 
 """Unpacks the values in the cz table and updates the lco values)"""
@@ -590,10 +668,10 @@ function teleportation!(
     curr_qubits[1] += 2
 
     # prepare bell state
-    adj[slippers_qubit] = AdjList([kansas_qubit])
-    adj[kansas_qubit] = AdjList([slippers_qubit])
-    lco[slippers_qubit] = SH_code
-    lco[kansas_qubit] = S_code
+    lco[slippers_qubit] = multiply_h(lco[slippers_qubit])
+    lco[kansas_qubit] = multiply_h(lco[kansas_qubit])
+    cz(lco, adj, kansas_qubit, slippers_qubit, data_qubits, curr_qubits, hyperparams)
+    lco[kansas_qubit] = multiply_h(lco[kansas_qubit])
 
     # teleport
     lco[slippers_qubit] = multiply_h(lco[slippers_qubit])
