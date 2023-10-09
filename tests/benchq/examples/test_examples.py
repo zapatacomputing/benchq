@@ -18,6 +18,8 @@ from examples.ex_3_packages_comparison import (  # noqa: E402
 )
 from examples.ex_4_extrapolation import main as extrapolation_main  # noqa: E402
 
+from examples.ex_11_utility_scale import main as utility_scale
+
 SKIP_AZURE = pytest.mark.skipif(
     os.getenv("BENCHQ_TEST_AZURE") is None,
     reason="Azure tests can only run if BENCHQ_TEST_AZURE env variable is defined",
@@ -63,3 +65,10 @@ def test_packages_comparison_example():
 
 def test_extrapolation_example():
     extrapolation_main(use_hydrogen=False)
+
+
+def test_utility_scale_example():
+    decoder_data = os.path.join("examples", "data", "sample_decoder_data.csv")
+    gsc, footprint = utility_scale(decoder_data, False, "triangular", 3)
+    assert gsc
+    assert footprint

@@ -2,6 +2,7 @@ import datetime
 import json
 import os
 import typing
+import warnings
 from pathlib import Path
 
 from typing import Literal
@@ -135,6 +136,9 @@ def main(decoder_data_file: str, save_results: bool, lattice_type: Literal["tria
 
 
 if __name__ == "__main__":
+    warnings.warn("Those utility-scale examples take a lot of time to calculate."
+                  "It can take up to a day for single example to finish calculation.")
+
     decoder_data = "data/sample_decoder_data.csv"
     save_results = False
 
@@ -145,8 +149,6 @@ if __name__ == "__main__":
     lattice_type = "triangular"
     # lattice_type = "kitaev"
     # lattice_type = "cubic"
-
-    size = 10
 
     gsc_estimates, footprint_estimates = main(decoder_data, save_results, lattice_type, utiliy_scale_problems[lattice_type])
 
