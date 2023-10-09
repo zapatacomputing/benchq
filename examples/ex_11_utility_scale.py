@@ -1,17 +1,17 @@
 import datetime
 import json
 import os
-from dataclasses import dataclass
+import typing
 from pathlib import Path
+
+from typing import Literal
 
 from benchq.algorithms.time_evolution import qsp_time_evolution_algorithm
 from benchq.compilation import get_ruby_slippers_compiler
 from benchq.data_structures import (
-    BASIC_ION_TRAP_ARCHITECTURE_MODEL,
-    BASIC_SC_ARCHITECTURE_MODEL,
+    DETAILED_ION_TRAP_ARCHITECTURE_MODEL,
     DecoderModel,
 )
-from benchq.data_structures.hardware_architecture_models import DetailedIonTrapModel
 from benchq.problem_ingestion.hamiltonian_generation import (
     generate_cubic_hamiltonian,
     generate_kitaev_hamiltonian,
@@ -19,17 +19,15 @@ from benchq.problem_ingestion.hamiltonian_generation import (
 )
 from benchq.resource_estimation.graph import (
     ExtrapolationResourceEstimator,
-    GraphResourceEstimator,
     create_big_graph_from_subcircuits,
     remove_isolated_nodes,
     run_custom_extrapolation_pipeline,
-    run_custom_resource_estimation_pipeline,
     transpile_to_native_gates,
 )
 from benchq.resource_estimation.openfermion_re import get_physical_cost
 
 
-def get_resources(lattice_type: str, size: int, architecture_model):
+def get_resources(lattice_type: str, size: int, decoder_data_file: str):
     print(f"Getting operator for size {size} {lattice_type} lattice...")
     if lattice_type == "triangular":
         operator = generate_triangular_hamiltonian(size)
@@ -40,6 +38,8 @@ def get_resources(lattice_type: str, size: int, architecture_model):
     else:
         raise ValueError(f"Lattice type {lattice_type} not supported")
 
+    architecture_model = DETAILED_ION_TRAP_ARCHITECTURE_MODEL
+
     print("Getting algorithm implementation...")
     evolution_time = 1
     failure_tolerance = 1e-4
@@ -48,7 +48,7 @@ def get_resources(lattice_type: str, size: int, architecture_model):
     )
 
     print("Setting resource estimation parameters...")
-    decoder_model = DecoderModel.from_csv("stochastic_re_realistic.csv")
+    decoder_model = DecoderModel.from_csv(decoder_data_file)
     my_estimator = ExtrapolationResourceEstimator(
         architecture_model,
         [2, 4, 6, 8, 10],
@@ -78,12 +78,6 @@ def get_resources(lattice_type: str, size: int, architecture_model):
         ],
     )
 
-    if architecture_model == BASIC_ION_TRAP_ARCHITECTURE_MODEL:
-        gsc_detailed_ion_trap_resource_info = (
-            DetailedIonTrapModel().get_hardware_resource_estimates(gsc_resources)
-        )
-
-    print("Estimating resources via footprint analysis...")
     total_t_gates = my_estimator.get_n_total_t_gates(
         gsc_resources.extra.n_t_gates,
         gsc_resources.extra.n_rotation_gates,
@@ -97,57 +91,64 @@ def get_resources(lattice_type: str, size: int, architecture_model):
         hardware_failure_tolerance=algorithm_implementation.error_budget.hardware_failure_tolerance,
         decoder_model=decoder_model,
     )
+    return gsc_resources, footprint_resources
 
-    if architecture_model == BASIC_ION_TRAP_ARCHITECTURE_MODEL:
-        footprint_detailed_ion_trap_resource_info = (
-            DetailedIonTrapModel().get_hardware_resource_estimates(footprint_resources)
-        )
 
-    print("Saving results...")
+def save_to_file(gsc_resources, footprint_resources, lattice_type):
     cwd = os.getcwd()
     results_folder = get_new_directory(
         lattice_type, save_base_path=cwd + "/new_results/"
     )
 
-    if architecture_model == BASIC_ION_TRAP_ARCHITECTURE_MODEL:
-        gsc_resource_data = [gsc_resources, gsc_detailed_ion_trap_resource_info]
-        footprint_resource_data = [
-            footprint_resources,
-            footprint_detailed_ion_trap_resource_info,
-        ]
-    else:
-        gsc_resource_data = [gsc_resources]
-        footprint_resource_data = [footprint_resources]
-
     with open(results_folder + lattice_type + "_gsc_re_data.json", "w") as outfile:
-        json.dump(gsc_resource_data, outfile, indent=4, sort_keys=True, default=str)
+        json.dump(gsc_resources, outfile, indent=4, sort_keys=True, default=str)
     with open(
         results_folder + lattice_type + "_footprint_re_data.json", "w"
     ) as outfile:
         json.dump(
-            footprint_resource_data, outfile, indent=4, sort_keys=True, default=str
+            footprint_resources, outfile, indent=4, sort_keys=True, default=str
         )
 
 
 def get_new_directory(lattice_type, save_base_path=None):
     if save_base_path is None:
-        return datetime.datetime.now().strftime(lattice_type + "-%Y-%m-%d_%H-%M-%S/")
+        return datetime.datetime.now().strftime(
+            lattice_type + "-%Y-%m-%d_%H-%M-%S/")
     else:
         Path(
             save_base_path
-            + datetime.datetime.now().strftime(lattice_type + "-%Y-%m-%d_%H-%M-%S/")
+            + datetime.datetime.now().strftime(
+                lattice_type + "-%Y-%m-%d_%H-%M-%S/")
         ).mkdir(parents=True, exist_ok=True)
         return save_base_path + datetime.datetime.now().strftime(
             lattice_type + "-%Y-%m-%d_%H-%M-%S/"
         )
 
 
-if __name__ == "__main__":
-    architecture_model = BASIC_ION_TRAP_ARCHITECTURE_MODEL
+def main(decoder_data_file: str, save_results: bool, lattice_type: Literal["triangular", "kitaev", "cubic"], size: int):
+    gsc_estimates, footprint_estimates = get_resources(lattice_type, size, decoder_data_file)
 
-    # size 30 has 900 nodes
-    get_resources("triangular", 30, architecture_model)
-    # size 22 has 1056 nodes
-    # get_resources("kitaev", 22, architecture_model)
-    # size 10 has 1000 nodes
-    # get_resources("cubic", 10, architecture_model)
+    if save_results:
+        save_to_file(gsc_estimates, footprint_estimates, lattice_type)
+
+    return gsc_estimates, footprint_estimates
+
+
+if __name__ == "__main__":
+    decoder_data = "data/sample_decoder_data.csv"
+    save_results = False
+
+    utiliy_scale_problems: typing.Dict[Literal["triangular", "kitaev", "cubic"], int] = {"triangular": 30, "kitaev": 22, "cubic": 10}
+
+    lattice_type: Literal["triangular", "kitaev", "cubic"]
+
+    lattice_type = "triangular"
+    # lattice_type = "kitaev"
+    # lattice_type = "cubic"
+
+    size = 10
+
+    gsc_estimates, footprint_estimates = main(decoder_data, save_results, lattice_type, utiliy_scale_problems[lattice_type])
+
+    print(gsc_estimates)
+    print(footprint_estimates)
