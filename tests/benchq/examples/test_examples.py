@@ -33,7 +33,7 @@ from examples.ex_3_packages_comparison import (  # noqa: E402
     main as packages_comparison_main,
 )
 from examples.ex_4_fast_graph_estimates import main as fast_graph  # noqa: E402
-from examples.ex_11_utility_scale import main as utility_scale
+from examples.ex_11_utility_scale import main as utility_scale  # noqa: E402
 
 SKIP_AZURE = pytest.mark.skipif(
     os.getenv("BENCHQ_TEST_AZURE") is None,
