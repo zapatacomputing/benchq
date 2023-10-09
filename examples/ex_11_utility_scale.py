@@ -4,15 +4,11 @@ import os
 import typing
 import warnings
 from pathlib import Path
-
 from typing import Literal
 
 from benchq.algorithms.time_evolution import qsp_time_evolution_algorithm
 from benchq.compilation import get_ruby_slippers_compiler
-from benchq.data_structures import (
-    DETAILED_ION_TRAP_ARCHITECTURE_MODEL,
-    DecoderModel,
-)
+from benchq.data_structures import DETAILED_ION_TRAP_ARCHITECTURE_MODEL, DecoderModel
 from benchq.problem_ingestion.hamiltonian_generation import (
     generate_cubic_hamiltonian,
     generate_kitaev_hamiltonian,
@@ -106,28 +102,31 @@ def save_to_file(gsc_resources, footprint_resources, lattice_type):
     with open(
         results_folder + lattice_type + "_footprint_re_data.json", "w"
     ) as outfile:
-        json.dump(
-            footprint_resources, outfile, indent=4, sort_keys=True, default=str
-        )
+        json.dump(footprint_resources, outfile, indent=4, sort_keys=True, default=str)
 
 
 def get_new_directory(lattice_type, save_base_path=None):
     if save_base_path is None:
-        return datetime.datetime.now().strftime(
-            lattice_type + "-%Y-%m-%d_%H-%M-%S/")
+        return datetime.datetime.now().strftime(lattice_type + "-%Y-%m-%d_%H-%M-%S/")
     else:
         Path(
             save_base_path
-            + datetime.datetime.now().strftime(
-                lattice_type + "-%Y-%m-%d_%H-%M-%S/")
+            + datetime.datetime.now().strftime(lattice_type + "-%Y-%m-%d_%H-%M-%S/")
         ).mkdir(parents=True, exist_ok=True)
         return save_base_path + datetime.datetime.now().strftime(
             lattice_type + "-%Y-%m-%d_%H-%M-%S/"
         )
 
 
-def main(decoder_data_file: str, save_results: bool, lattice_type: Literal["triangular", "kitaev", "cubic"], size: int):
-    gsc_estimates, footprint_estimates = get_resources(lattice_type, size, decoder_data_file)
+def main(
+    decoder_data_file: str,
+    save_results: bool,
+    lattice_type: Literal["triangular", "kitaev", "cubic"],
+    size: int,
+):
+    gsc_estimates, footprint_estimates = get_resources(
+        lattice_type, size, decoder_data_file
+    )
 
     if save_results:
         save_to_file(gsc_estimates, footprint_estimates, lattice_type)
@@ -136,13 +135,17 @@ def main(decoder_data_file: str, save_results: bool, lattice_type: Literal["tria
 
 
 if __name__ == "__main__":
-    warnings.warn("Those utility-scale examples take a lot of time to calculate."
-                  "It can take up to a day for single example to finish calculation.")
+    warnings.warn(
+        "Those utility-scale examples take a lot of time to calculate."
+        "It can take up to a day for single example to finish calculation."
+    )
 
     decoder_data = "data/sample_decoder_data.csv"
     save_results = False
 
-    utiliy_scale_problems: typing.Dict[Literal["triangular", "kitaev", "cubic"], int] = {"triangular": 30, "kitaev": 22, "cubic": 10}
+    utiliy_scale_problems: typing.Dict[
+        Literal["triangular", "kitaev", "cubic"], int
+    ] = {"triangular": 30, "kitaev": 22, "cubic": 10}
 
     lattice_type: Literal["triangular", "kitaev", "cubic"]
 
@@ -150,7 +153,9 @@ if __name__ == "__main__":
     # lattice_type = "kitaev"
     # lattice_type = "cubic"
 
-    gsc_estimates, footprint_estimates = main(decoder_data, save_results, lattice_type, utiliy_scale_problems[lattice_type])
+    gsc_estimates, footprint_estimates = main(
+        decoder_data, save_results, lattice_type, utiliy_scale_problems[lattice_type]
+    )
 
     print(gsc_estimates)
     print(footprint_estimates)
