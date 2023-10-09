@@ -10,6 +10,9 @@ but is also more expensive in terms of runtime and memory usage.
 
 Most of the objects has been described in the `1_from_qasm.py` examples, here
 we only explain new concepts.
+
+WARNING: This example requires the pyscf extra. run `pip install benchq[pyscf]`
+to install the extra.
 """
 from pprint import pprint
 

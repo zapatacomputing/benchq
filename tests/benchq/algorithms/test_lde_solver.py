@@ -2,6 +2,7 @@
 # © Copyright 2022-2023 Zapata Computing Inc.
 ###############################################################################
 
+import os
 from math import ceil
 
 import numpy as np
@@ -23,6 +24,11 @@ from benchq.algorithms.utils.convex_optimization import optimize_chebyshev_coeff
 from benchq.algorithms.utils.qsp_solver import qsp_solver
 from benchq.block_encodings.offset_tridiagonal import (
     get_offset_tridagonal_block_encoding,
+)
+
+SKIP_SLOW = pytest.mark.skipif(
+    os.getenv("SLOW_BENCHMARKS") is None,
+    reason="Slow benchmarks can only run if SLOW_BENCHMARKS env variable is defined",
 )
 
 
@@ -67,6 +73,7 @@ def test_get_prep_int_circuit(matrix_norm, beta, epsilon, expected_result):
     assert all(gate in expected_result["gates"] for gate in gate_names_prime)
 
 
+@SKIP_SLOW
 @pytest.mark.parametrize(
     "k, num_qubits, beta, matrix_norm, epsilon",
     [
@@ -105,6 +112,7 @@ def construct_dummy_cir():
     return norm, custom_cir
 
 
+@SKIP_SLOW
 @pytest.mark.parametrize(
     "beta, epsilon, time",
     [
@@ -139,6 +147,7 @@ matrix_norm, dummy_circuit = construct_dummy_cir()
 matrix_exp_test = matrix_exponentiation(dummy_circuit, matrix_norm, time, beta, 1e-1)
 
 
+@SKIP_SLOW
 @pytest.mark.parametrize(
     "epsilon",
     [(1e-3), (1e-2), (1e-4)],
@@ -167,6 +176,7 @@ de_parameters = {
 }
 
 
+@SKIP_SLOW
 def test_long_time_propagator():
     """Testing a basic case when the dim(A)=1 (one DE to solve)."""
 
