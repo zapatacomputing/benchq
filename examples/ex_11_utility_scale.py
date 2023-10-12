@@ -91,11 +91,8 @@ def get_resources(lattice_type: str, size: int, decoder_data_file: str):
     return gsc_resources, footprint_resources
 
 
-def save_to_file(gsc_resources, footprint_resources, lattice_type):
-    cwd = os.getcwd()
-    results_folder = get_new_directory(
-        lattice_type, save_base_path=cwd + "/new_results/"
-    )
+def save_to_file(gsc_resources, footprint_resources, lattice_type, path: str):
+    results_folder = path
 
     with open(results_folder + lattice_type + "_gsc_re_data.json", "w") as outfile:
         json.dump(gsc_resources, outfile, indent=4, sort_keys=True, default=str)
@@ -105,43 +102,37 @@ def save_to_file(gsc_resources, footprint_resources, lattice_type):
         json.dump(footprint_resources, outfile, indent=4, sort_keys=True, default=str)
 
 
-def get_new_directory(lattice_type, save_base_path=None):
-    if save_base_path is None:
-        return datetime.datetime.now().strftime(lattice_type + "-%Y-%m-%d_%H-%M-%S/")
-    else:
-        Path(
-            save_base_path
-            + datetime.datetime.now().strftime(lattice_type + "-%Y-%m-%d_%H-%M-%S/")
-        ).mkdir(parents=True, exist_ok=True)
-        return save_base_path + datetime.datetime.now().strftime(
-            lattice_type + "-%Y-%m-%d_%H-%M-%S/"
-        )
-
-
 def main(
     decoder_data_file: str,
     save_results: bool,
     lattice_type: Literal["triangular", "kitaev", "cubic"],
     size: int,
+    path_to_save_results: typing.Optional[str] = None,
 ):
     gsc_estimates, footprint_estimates = get_resources(
         lattice_type, size, decoder_data_file
     )
 
     if save_results:
-        save_to_file(gsc_estimates, footprint_estimates, lattice_type)
+        if path_to_save_results is None:
+            warnings.warn("Path is required to save the results.")
+        else:
+            save_to_file(
+                gsc_estimates, footprint_estimates, lattice_type, path_to_save_results
+            )
 
     return gsc_estimates, footprint_estimates
 
 
 if __name__ == "__main__":
     warnings.warn(
-        "Those utility-scale examples take a lot of time to calculate."
+        "These utility scale estimates take a lot of time to calculate."
         "It can take up to a day for single example to finish calculation."
     )
 
     decoder_data = "data/sample_decoder_data.csv"
     save_results = False
+    path_to_save_results = "."
 
     utiliy_scale_problems: typing.Dict[
         Literal["triangular", "kitaev", "cubic"], int
@@ -154,7 +145,11 @@ if __name__ == "__main__":
     # lattice_type = "cubic"
 
     gsc_estimates, footprint_estimates = main(
-        decoder_data, save_results, lattice_type, utiliy_scale_problems[lattice_type]
+        decoder_data,
+        save_results,
+        lattice_type,
+        utiliy_scale_problems[lattice_type],
+        path_to_save_results,
     )
 
     print(gsc_estimates)
