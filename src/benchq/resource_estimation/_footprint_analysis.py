@@ -18,8 +18,8 @@ import math
 from typing import Iterator, Tuple
 
 l0_max = 140  #101
-l1_max = 50   #25
-l2_max = 70   #41
+l1_max = 70   #25
+l2_max = 90   #41
 
 
 @dataclasses.dataclass(frozen=True, unsafe_hash=True)
