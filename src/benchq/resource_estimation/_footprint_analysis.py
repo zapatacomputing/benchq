@@ -1,4 +1,4 @@
-#   Copyright 2017 The OpenFermion Developers
+#   Copyrght 2017 The OpenFermion Developers
 #   Modifications copyright 2023 Zapata Computing, Inc. for purposes
 #   of giving users more control over physical costing parameters.
 #   Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,9 +17,9 @@ import dataclasses
 import math
 from typing import Iterator, Tuple
 
-l0_max = 140  #101
-l1_max = 70   #25
-l2_max = 90   #41
+l0_max = 180  #101
+l1_max = 100   #25
+l2_max = 100   #41
 
 
 @dataclasses.dataclass(frozen=True, unsafe_hash=True)
