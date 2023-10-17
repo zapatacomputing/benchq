@@ -17,9 +17,9 @@ import dataclasses
 import math
 from typing import Iterator, Tuple
 
-l0_max = 120  #101
-l1_max = 40   #25
-l2_max = 60   #41
+l0_max = 140  #101
+l1_max = 50   #25
+l2_max = 70   #41
 
 
 @dataclasses.dataclass(frozen=True, unsafe_hash=True)
