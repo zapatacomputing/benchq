@@ -17,6 +17,10 @@ import dataclasses
 import math
 from typing import Iterator, Tuple
 
+l0_max = 120  #101
+l1_max = 40   #25
+l2_max = 60   #41
+
 
 @dataclasses.dataclass(frozen=True, unsafe_hash=True)
 class MagicStateFactory:
@@ -167,8 +171,8 @@ def _autoccz_or_t_factory_dimensions(
 
 
 def iter_auto_ccz_factories(physical_error_rate: float) -> Iterator[MagicStateFactory]:
-    for l1_distance in range(5, 25, 2):
-        for l2_distance in range(l1_distance + 2, 41, 2):
+    for l1_distance in range(5, l1_max, 2):
+        for l2_distance in range(l1_distance + 2, l2_max, 2):
             w, h, d = _autoccz_or_t_factory_dimensions(
                 l1_distance=l1_distance, l2_distance=l2_distance
             )
@@ -246,7 +250,7 @@ def cost_estimator(
     for factory in iter_known_factories(
         physical_error_rate=physical_error_rate, num_toffoli=num_toffoli, num_t=num_t
     ):
-        for logical_data_qubit_distance in range(7, 101, 2):
+        for logical_data_qubit_distance in range(7, l0_max, 2):
             params = AlgorithmParameters(
                 physical_error_rate=physical_error_rate,
                 surface_code_cycle_time=surface_code_cycle_time,
