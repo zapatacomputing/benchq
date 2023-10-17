@@ -172,6 +172,7 @@ def _autoccz_or_t_factory_dimensions(
 
 def iter_auto_ccz_factories(physical_error_rate: float) -> Iterator[MagicStateFactory]:
     for l1_distance in range(5, l1_max, 2):
+        print("yz debug: l1_max = ", l1_distance)
         for l2_distance in range(l1_distance + 2, l2_max, 2):
             w, h, d = _autoccz_or_t_factory_dimensions(
                 l1_distance=l1_distance, l2_distance=l2_distance
