@@ -243,7 +243,7 @@ def cost_estimator(
     physical_error_rate=1.0e-3,
     portion_of_bounding_box=1.0,
     routing_overhead_proportion=0.5,
-    hardware_failure_tolerance=0.1,
+    hardware_failure_tolerance=1e-3,
 ):
     """
     Produce best cost in terms of physical qubits and real run time based on
