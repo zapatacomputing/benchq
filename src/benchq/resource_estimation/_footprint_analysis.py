@@ -17,9 +17,13 @@ import dataclasses
 import math
 from typing import Iterator, Tuple
 
-l0_max = 180  #101
-l1_max = 100   #25
-l2_max = 100   #41
+#l0_max = 180  #101
+#l1_max = 100   #25
+#l2_max = 100   #41
+l0_max = 101
+l1_max = 25
+l2_max = 41
+
 
 
 @dataclasses.dataclass(frozen=True, unsafe_hash=True)
@@ -172,7 +176,7 @@ def _autoccz_or_t_factory_dimensions(
 
 def iter_auto_ccz_factories(physical_error_rate: float) -> Iterator[MagicStateFactory]:
     for l1_distance in range(5, l1_max, 2):
-        print("yz debug: l1_max = ", l1_distance)
+        #print("yz debug: l1_max = ", l1_distance)
         for l2_distance in range(l1_distance + 2, l2_max, 2):
             w, h, d = _autoccz_or_t_factory_dimensions(
                 l1_distance=l1_distance, l2_distance=l2_distance
