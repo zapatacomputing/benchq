@@ -32,7 +32,8 @@ from examples.ex_2_time_evolution import main as time_evolution_main  # noqa: E4
 from examples.ex_3_packages_comparison import (  # noqa: E402
     main as packages_comparison_main,
 )
-from examples.ex_4_extrapolation import main as extrapolation_main  # noqa: E402
+from examples.ex_4_fast_graph_estimates import main as fast_graph  # noqa: E402
+from examples.ex_11_utility_scale import main as utility_scale  # noqa: E402
 
 SKIP_AZURE = pytest.mark.skipif(
     os.getenv("BENCHQ_TEST_AZURE") is None,
@@ -78,7 +79,14 @@ def test_packages_comparison_example():
 
 
 def test_extrapolation_example():
-    extrapolation_main(use_hydrogen=False)
+    fast_graph()
+
+
+def test_utility_scale_example():
+    decoder_data = os.path.join("examples", "data", "sample_decoder_data.csv")
+    gsc, footprint = utility_scale(decoder_data, False, "triangular", 3)
+    assert gsc
+    assert footprint
 
 
 def test_toy_example_notebook():
