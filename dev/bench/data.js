@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1697537673927,
+  "lastUpdate": 1697807634672,
   "repoUrl": "https://github.com/zapatacomputing/benchq",
   "entries": {
     "Benchq Benchmarking": [
@@ -11981,6 +11981,527 @@ window.BENCHMARK_DATA = {
             "unit": "iter/sec",
             "range": "stddev: 0.0004108647378611847",
             "extra": "mean: 3.0513541284409293 msec\nrounds: 327"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "70290797+jamesclark-Zapata@users.noreply.github.com",
+            "name": "James Clark",
+            "username": "jamesclark-Zapata"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "d02a37c6a7f7d3b7014667be3ef4542375a44f6d",
+          "message": "chore: Remove Python 3.11 upper bound and bump orquestra-* packages (#137)\n\n* chore: Remove Python 3.11 upper bound and bump orquestra-* packages\r\n\r\n* chore: Use 3.11 in PR checks",
+          "timestamp": "2023-10-20T14:03:31+01:00",
+          "tree_id": "b56ff1bd3edec09ff3ea385ed85b9317bd0afce2",
+          "url": "https://github.com/zapatacomputing/benchq/commit/d02a37c6a7f7d3b7014667be3ef4542375a44f6d"
+        },
+        "date": 1697807631701,
+        "tool": "pytest",
+        "benches": [
+          {
+            "name": "benchmarks/test_get_qsp_program.py::test_get_qsp_program[vlasov]",
+            "value": 150.54461573655314,
+            "unit": "iter/sec",
+            "range": "stddev: 0.00010810173724764435",
+            "extra": "mean: 6.642549088238125 msec\nrounds: 102"
+          },
+          {
+            "name": "benchmarks/test_get_qsp_program.py::test_get_qsp_program[jw-2]",
+            "value": 4.098129010674774,
+            "unit": "iter/sec",
+            "range": "stddev: 0.07983314556289765",
+            "extra": "mean: 244.01379200000974 msec\nrounds: 5"
+          },
+          {
+            "name": "benchmarks/test_ruby_slippers_performance.py::test_ruby_slippers[many single qubit gates]",
+            "value": 1.1420160609493315,
+            "unit": "iter/sec",
+            "range": "stddev: 0.11472251412485844",
+            "extra": "mean: 875.6444276000138 msec\nrounds: 5"
+          },
+          {
+            "name": "benchmarks/test_ruby_slippers_performance.py::test_ruby_slippers[GHZ state]",
+            "value": 378.0877296094555,
+            "unit": "iter/sec",
+            "range": "stddev: 0.015182540021614678",
+            "extra": "mean: 2.644888796134555 msec\nrounds: 932"
+          },
+          {
+            "name": "benchmarks/test_ruby_slippers_performance.py::test_ruby_slippers[Fully connected state]",
+            "value": 8.992160858966328,
+            "unit": "iter/sec",
+            "range": "stddev: 0.07181912672349546",
+            "extra": "mean: 111.20797500001045 msec\nrounds: 19"
+          },
+          {
+            "name": "benchmarks/test_ruby_slippers_performance.py::test_ruby_slippers[CNOT chain]",
+            "value": 42.67107259715948,
+            "unit": "iter/sec",
+            "range": "stddev: 0.008672179254729776",
+            "extra": "mean: 23.435079999994368 msec\nrounds: 49"
+          },
+          {
+            "name": "benchmarks/test_ruby_slippers_performance.py::test_ruby_slippers[rotation chain]",
+            "value": 136.49137129506795,
+            "unit": "iter/sec",
+            "range": "stddev: 0.020674861092154332",
+            "extra": "mean: 7.32647046118537 msec\nrounds: 219"
+          },
+          {
+            "name": "benchmarks/test_substrate_scheduler_performance.py::TestSubstrateScheduler::test_substrate_scheduler_timing[10-path_graph-fast]",
+            "value": 7638.6841692803855,
+            "unit": "iter/sec",
+            "range": "stddev: 0.000026073081515198253",
+            "extra": "mean: 130.91259932195973 usec\nrounds: 2653"
+          },
+          {
+            "name": "benchmarks/test_substrate_scheduler_performance.py::TestSubstrateScheduler::test_substrate_scheduler_timing[10-path_graph-optimized]",
+            "value": 4412.107321233675,
+            "unit": "iter/sec",
+            "range": "stddev: 0.0000182010846880644",
+            "extra": "mean: 226.6490652182025 usec\nrounds: 1380"
+          },
+          {
+            "name": "benchmarks/test_substrate_scheduler_performance.py::TestSubstrateScheduler::test_substrate_scheduler_timing[10-complete_graph-fast]",
+            "value": 4920.801150277431,
+            "unit": "iter/sec",
+            "range": "stddev: 0.000012931069931712694",
+            "extra": "mean: 203.2189412782146 usec\nrounds: 3474"
+          },
+          {
+            "name": "benchmarks/test_substrate_scheduler_performance.py::TestSubstrateScheduler::test_substrate_scheduler_timing[10-complete_graph-optimized]",
+            "value": 3914.45615947103,
+            "unit": "iter/sec",
+            "range": "stddev: 0.000013811307901738664",
+            "extra": "mean: 255.46332855983047 usec\nrounds: 2584"
+          },
+          {
+            "name": "benchmarks/test_substrate_scheduler_performance.py::TestSubstrateScheduler::test_substrate_scheduler_timing[10-star_graph-fast]",
+            "value": 7321.037165029384,
+            "unit": "iter/sec",
+            "range": "stddev: 0.000012168494359761189",
+            "extra": "mean: 136.59266815045413 usec\nrounds: 4493"
+          },
+          {
+            "name": "benchmarks/test_substrate_scheduler_performance.py::TestSubstrateScheduler::test_substrate_scheduler_timing[10-star_graph-optimized]",
+            "value": 3848.7121391587557,
+            "unit": "iter/sec",
+            "range": "stddev: 0.00001660324797946844",
+            "extra": "mean: 259.8271743489182 usec\nrounds: 2495"
+          },
+          {
+            "name": "benchmarks/test_substrate_scheduler_performance.py::TestSubstrateScheduler::test_substrate_scheduler_timing[10-wheel_graph-fast]",
+            "value": 6681.71423249705,
+            "unit": "iter/sec",
+            "range": "stddev: 0.000013882015604974243",
+            "extra": "mean: 149.66219224647776 usec\nrounds: 4437"
+          },
+          {
+            "name": "benchmarks/test_substrate_scheduler_performance.py::TestSubstrateScheduler::test_substrate_scheduler_timing[10-wheel_graph-optimized]",
+            "value": 4340.792137734642,
+            "unit": "iter/sec",
+            "range": "stddev: 0.000014708565202847805",
+            "extra": "mean: 230.37269886916926 usec\nrounds: 2836"
+          },
+          {
+            "name": "benchmarks/test_substrate_scheduler_performance.py::TestSubstrateScheduler::test_substrate_scheduler_timing[100-path_graph-fast]",
+            "value": 1504.0125950943846,
+            "unit": "iter/sec",
+            "range": "stddev: 0.00001663073220398354",
+            "extra": "mean: 664.8880489842207 usec\nrounds: 1184"
+          },
+          {
+            "name": "benchmarks/test_substrate_scheduler_performance.py::TestSubstrateScheduler::test_substrate_scheduler_timing[100-path_graph-optimized]",
+            "value": 478.79546467904385,
+            "unit": "iter/sec",
+            "range": "stddev: 0.00037632750489434116",
+            "extra": "mean: 2.0885745036669063 msec\nrounds: 409"
+          },
+          {
+            "name": "benchmarks/test_substrate_scheduler_performance.py::TestSubstrateScheduler::test_substrate_scheduler_timing[100-complete_graph-fast]",
+            "value": 95.33606253686028,
+            "unit": "iter/sec",
+            "range": "stddev: 0.00009885088327197438",
+            "extra": "mean: 10.489210204306106 msec\nrounds: 93"
+          },
+          {
+            "name": "benchmarks/test_substrate_scheduler_performance.py::TestSubstrateScheduler::test_substrate_scheduler_timing[100-complete_graph-optimized]",
+            "value": 77.91954126917595,
+            "unit": "iter/sec",
+            "range": "stddev: 0.019549088261543588",
+            "extra": "mean: 12.833751119574266 msec\nrounds: 92"
+          },
+          {
+            "name": "benchmarks/test_substrate_scheduler_performance.py::TestSubstrateScheduler::test_substrate_scheduler_timing[100-star_graph-fast]",
+            "value": 1493.3466076984018,
+            "unit": "iter/sec",
+            "range": "stddev: 0.000014357332731938134",
+            "extra": "mean: 669.6369046843284 usec\nrounds: 1238"
+          },
+          {
+            "name": "benchmarks/test_substrate_scheduler_performance.py::TestSubstrateScheduler::test_substrate_scheduler_timing[100-star_graph-optimized]",
+            "value": 357.7294130889567,
+            "unit": "iter/sec",
+            "range": "stddev: 0.00006436118857493728",
+            "extra": "mean: 2.7954089415379713 msec\nrounds: 325"
+          },
+          {
+            "name": "benchmarks/test_substrate_scheduler_performance.py::TestSubstrateScheduler::test_substrate_scheduler_timing[100-wheel_graph-fast]",
+            "value": 1156.8877668302675,
+            "unit": "iter/sec",
+            "range": "stddev: 0.000015625675964258814",
+            "extra": "mean: 864.3880838500687 usec\nrounds: 966"
+          },
+          {
+            "name": "benchmarks/test_substrate_scheduler_performance.py::TestSubstrateScheduler::test_substrate_scheduler_timing[100-wheel_graph-optimized]",
+            "value": 431.90250849569816,
+            "unit": "iter/sec",
+            "range": "stddev: 0.0003888446666702986",
+            "extra": "mean: 2.3153373280534213 msec\nrounds: 442"
+          },
+          {
+            "name": "benchmarks/test_substrate_scheduler_performance.py::TestSubstrateScheduler::test_substrate_scheduler_timing[1000-path_graph-fast]",
+            "value": 162.85585336056494,
+            "unit": "iter/sec",
+            "range": "stddev: 0.00004064824062632989",
+            "extra": "mean: 6.140399496639445 msec\nrounds: 149"
+          },
+          {
+            "name": "benchmarks/test_substrate_scheduler_performance.py::TestSubstrateScheduler::test_substrate_scheduler_timing[1000-path_graph-optimized]",
+            "value": 14.174029614398103,
+            "unit": "iter/sec",
+            "range": "stddev: 0.017320497378180373",
+            "extra": "mean: 70.55156699998645 msec\nrounds: 19"
+          },
+          {
+            "name": "benchmarks/test_substrate_scheduler_performance.py::TestSubstrateScheduler::test_substrate_scheduler_timing[1000-complete_graph-fast]",
+            "value": 0.8827137759272391,
+            "unit": "iter/sec",
+            "range": "stddev: 0.004698346670964262",
+            "extra": "mean: 1.1328700505999905 sec\nrounds: 5"
+          },
+          {
+            "name": "benchmarks/test_substrate_scheduler_performance.py::TestSubstrateScheduler::test_substrate_scheduler_timing[1000-complete_graph-optimized]",
+            "value": 0.8821063239659771,
+            "unit": "iter/sec",
+            "range": "stddev: 0.00267466167644937",
+            "extra": "mean: 1.1336501879999787 sec\nrounds: 5"
+          },
+          {
+            "name": "benchmarks/test_substrate_scheduler_performance.py::TestSubstrateScheduler::test_substrate_scheduler_timing[1000-star_graph-fast]",
+            "value": 114.77296489379964,
+            "unit": "iter/sec",
+            "range": "stddev: 0.029267388917010414",
+            "extra": "mean: 8.712853248370017 msec\nrounds: 153"
+          },
+          {
+            "name": "benchmarks/test_substrate_scheduler_performance.py::TestSubstrateScheduler::test_substrate_scheduler_timing[1000-star_graph-optimized]",
+            "value": 9.665993498848103,
+            "unit": "iter/sec",
+            "range": "stddev: 0.002677746673542855",
+            "extra": "mean: 103.45548029999918 msec\nrounds: 10"
+          },
+          {
+            "name": "benchmarks/test_substrate_scheduler_performance.py::TestSubstrateScheduler::test_substrate_scheduler_timing[1000-wheel_graph-fast]",
+            "value": 98.42165856711104,
+            "unit": "iter/sec",
+            "range": "stddev: 0.01865034135108548",
+            "extra": "mean: 10.160365254545344 msec\nrounds: 110"
+          },
+          {
+            "name": "benchmarks/test_substrate_scheduler_performance.py::TestSubstrateScheduler::test_substrate_scheduler_timing[1000-wheel_graph-optimized]",
+            "value": 12.20804063293183,
+            "unit": "iter/sec",
+            "range": "stddev: 0.017494382585675306",
+            "extra": "mean: 81.91322670588494 msec\nrounds: 17"
+          },
+          {
+            "name": "benchmarks/test_substrate_scheduler_performance.py::TestSubstrateScheduler::test_substrate_scheduler_timing_with_pre_mapping_optimizer[10-path_graph-fast]",
+            "value": 7714.412408978196,
+            "unit": "iter/sec",
+            "range": "stddev: 0.000011219896356603915",
+            "extra": "mean: 129.6275007071412 usec\nrounds: 4238"
+          },
+          {
+            "name": "benchmarks/test_substrate_scheduler_performance.py::TestSubstrateScheduler::test_substrate_scheduler_timing_with_pre_mapping_optimizer[10-path_graph-optimized]",
+            "value": 4465.374221234406,
+            "unit": "iter/sec",
+            "range": "stddev: 0.000016809925210906967",
+            "extra": "mean: 223.94539638909828 usec\nrounds: 2548"
+          },
+          {
+            "name": "benchmarks/test_substrate_scheduler_performance.py::TestSubstrateScheduler::test_substrate_scheduler_timing_with_pre_mapping_optimizer[10-complete_graph-fast]",
+            "value": 4948.201534073734,
+            "unit": "iter/sec",
+            "range": "stddev: 0.000011442908031483188",
+            "extra": "mean: 202.09362798057342 usec\nrounds: 2266"
+          },
+          {
+            "name": "benchmarks/test_substrate_scheduler_performance.py::TestSubstrateScheduler::test_substrate_scheduler_timing_with_pre_mapping_optimizer[10-complete_graph-optimized]",
+            "value": 3942.383809588835,
+            "unit": "iter/sec",
+            "range": "stddev: 0.000013420792592833569",
+            "extra": "mean: 253.6536390921039 usec\nrounds: 2599"
+          },
+          {
+            "name": "benchmarks/test_substrate_scheduler_performance.py::TestSubstrateScheduler::test_substrate_scheduler_timing_with_pre_mapping_optimizer[10-star_graph-fast]",
+            "value": 7355.107928551256,
+            "unit": "iter/sec",
+            "range": "stddev: 0.000011510773044664372",
+            "extra": "mean: 135.95993555963648 usec\nrounds: 4702"
+          },
+          {
+            "name": "benchmarks/test_substrate_scheduler_performance.py::TestSubstrateScheduler::test_substrate_scheduler_timing_with_pre_mapping_optimizer[10-star_graph-optimized]",
+            "value": 3861.751446477544,
+            "unit": "iter/sec",
+            "range": "stddev: 0.000016225691300872884",
+            "extra": "mean: 258.9498609269997 usec\nrounds: 2567"
+          },
+          {
+            "name": "benchmarks/test_substrate_scheduler_performance.py::TestSubstrateScheduler::test_substrate_scheduler_timing_with_pre_mapping_optimizer[10-wheel_graph-fast]",
+            "value": 6712.42561082269,
+            "unit": "iter/sec",
+            "range": "stddev: 0.000011659741599950607",
+            "extra": "mean: 148.9774424297028 usec\nrounds: 4412"
+          },
+          {
+            "name": "benchmarks/test_substrate_scheduler_performance.py::TestSubstrateScheduler::test_substrate_scheduler_timing_with_pre_mapping_optimizer[10-wheel_graph-optimized]",
+            "value": 4358.319772564086,
+            "unit": "iter/sec",
+            "range": "stddev: 0.0000146691025395609",
+            "extra": "mean: 229.44622060434088 usec\nrounds: 2815"
+          },
+          {
+            "name": "benchmarks/test_substrate_scheduler_performance.py::TestSubstrateScheduler::test_substrate_scheduler_timing_with_pre_mapping_optimizer[100-path_graph-fast]",
+            "value": 1516.0433871765988,
+            "unit": "iter/sec",
+            "range": "stddev: 0.000014056269995301551",
+            "extra": "mean: 659.6117290959255 usec\nrounds: 1196"
+          },
+          {
+            "name": "benchmarks/test_substrate_scheduler_performance.py::TestSubstrateScheduler::test_substrate_scheduler_timing_with_pre_mapping_optimizer[100-path_graph-optimized]",
+            "value": 478.52942542326826,
+            "unit": "iter/sec",
+            "range": "stddev: 0.00038942942824234464",
+            "extra": "mean: 2.089735650248637 msec\nrounds: 406"
+          },
+          {
+            "name": "benchmarks/test_substrate_scheduler_performance.py::TestSubstrateScheduler::test_substrate_scheduler_timing_with_pre_mapping_optimizer[100-complete_graph-fast]",
+            "value": 94.77726750292499,
+            "unit": "iter/sec",
+            "range": "stddev: 0.00011348870292534995",
+            "extra": "mean: 10.551053288903251 msec\nrounds: 90"
+          },
+          {
+            "name": "benchmarks/test_substrate_scheduler_performance.py::TestSubstrateScheduler::test_substrate_scheduler_timing_with_pre_mapping_optimizer[100-complete_graph-optimized]",
+            "value": 93.03577168232577,
+            "unit": "iter/sec",
+            "range": "stddev: 0.00011379586402552404",
+            "extra": "mean: 10.748553829537078 msec\nrounds: 88"
+          },
+          {
+            "name": "benchmarks/test_substrate_scheduler_performance.py::TestSubstrateScheduler::test_substrate_scheduler_timing_with_pre_mapping_optimizer[100-star_graph-fast]",
+            "value": 1476.0454909713246,
+            "unit": "iter/sec",
+            "range": "stddev: 0.00014325399332748483",
+            "extra": "mean: 677.4858946535186 usec\nrounds: 1234"
+          },
+          {
+            "name": "benchmarks/test_substrate_scheduler_performance.py::TestSubstrateScheduler::test_substrate_scheduler_timing_with_pre_mapping_optimizer[100-star_graph-optimized]",
+            "value": 357.91199196731174,
+            "unit": "iter/sec",
+            "range": "stddev: 0.000060146382268129426",
+            "extra": "mean: 2.7939829411788204 msec\nrounds: 323"
+          },
+          {
+            "name": "benchmarks/test_substrate_scheduler_performance.py::TestSubstrateScheduler::test_substrate_scheduler_timing_with_pre_mapping_optimizer[100-wheel_graph-fast]",
+            "value": 1158.4530644358283,
+            "unit": "iter/sec",
+            "range": "stddev: 0.000016570406474946335",
+            "extra": "mean: 863.220125786455 usec\nrounds: 954"
+          },
+          {
+            "name": "benchmarks/test_substrate_scheduler_performance.py::TestSubstrateScheduler::test_substrate_scheduler_timing_with_pre_mapping_optimizer[100-wheel_graph-optimized]",
+            "value": 436.6583974284006,
+            "unit": "iter/sec",
+            "range": "stddev: 0.00037530508322147657",
+            "extra": "mean: 2.2901197043026555 msec\nrounds: 372"
+          },
+          {
+            "name": "benchmarks/test_substrate_scheduler_performance.py::TestSubstrateScheduler::test_substrate_scheduler_timing_with_pre_mapping_optimizer[1000-path_graph-fast]",
+            "value": 161.42373408971574,
+            "unit": "iter/sec",
+            "range": "stddev: 0.00069904476153869",
+            "extra": "mean: 6.194875899997593 msec\nrounds: 150"
+          },
+          {
+            "name": "benchmarks/test_substrate_scheduler_performance.py::TestSubstrateScheduler::test_substrate_scheduler_timing_with_pre_mapping_optimizer[1000-path_graph-optimized]",
+            "value": 12.626775939778412,
+            "unit": "iter/sec",
+            "range": "stddev: 0.02156880250216471",
+            "extra": "mean: 79.19678030000341 msec\nrounds: 10"
+          },
+          {
+            "name": "benchmarks/test_substrate_scheduler_performance.py::TestSubstrateScheduler::test_substrate_scheduler_timing_with_pre_mapping_optimizer[1000-complete_graph-fast]",
+            "value": 0.8776503392896778,
+            "unit": "iter/sec",
+            "range": "stddev: 0.006136599565257252",
+            "extra": "mean: 1.1394059288000107 sec\nrounds: 5"
+          },
+          {
+            "name": "benchmarks/test_substrate_scheduler_performance.py::TestSubstrateScheduler::test_substrate_scheduler_timing_with_pre_mapping_optimizer[1000-complete_graph-optimized]",
+            "value": 0.8782496770596943,
+            "unit": "iter/sec",
+            "range": "stddev: 0.0014657857428071357",
+            "extra": "mean: 1.1386283719999937 sec\nrounds: 5"
+          },
+          {
+            "name": "benchmarks/test_substrate_scheduler_performance.py::TestSubstrateScheduler::test_substrate_scheduler_timing_with_pre_mapping_optimizer[1000-star_graph-fast]",
+            "value": 123.14952314381914,
+            "unit": "iter/sec",
+            "range": "stddev: 0.021813331619392487",
+            "extra": "mean: 8.12021008666155 msec\nrounds: 150"
+          },
+          {
+            "name": "benchmarks/test_substrate_scheduler_performance.py::TestSubstrateScheduler::test_substrate_scheduler_timing_with_pre_mapping_optimizer[1000-star_graph-optimized]",
+            "value": 9.569830684630753,
+            "unit": "iter/sec",
+            "range": "stddev: 0.0005543546819705666",
+            "extra": "mean: 104.49505670001145 msec\nrounds: 10"
+          },
+          {
+            "name": "benchmarks/test_substrate_scheduler_performance.py::TestSubstrateScheduler::test_substrate_scheduler_timing_with_pre_mapping_optimizer[1000-wheel_graph-fast]",
+            "value": 120.11344677776073,
+            "unit": "iter/sec",
+            "range": "stddev: 0.00006202554399390792",
+            "extra": "mean: 8.325462525858947 msec\nrounds: 116"
+          },
+          {
+            "name": "benchmarks/test_substrate_scheduler_performance.py::TestSubstrateScheduler::test_substrate_scheduler_timing_with_pre_mapping_optimizer[1000-wheel_graph-optimized]",
+            "value": 12.933665547120121,
+            "unit": "iter/sec",
+            "range": "stddev: 0.01861742967874418",
+            "extra": "mean: 77.31760160000931 msec\nrounds: 10"
+          },
+          {
+            "name": "benchmarks/test_substrate_scheduler_performance.py::TestSubstrateScheduler::test_substrate_scheduler_timing_barbell_graph[10-10-fast]",
+            "value": 2550.0034232582348,
+            "unit": "iter/sec",
+            "range": "stddev: 0.000014686109744994017",
+            "extra": "mean: 392.1563362931735 usec\nrounds: 2028"
+          },
+          {
+            "name": "benchmarks/test_substrate_scheduler_performance.py::TestSubstrateScheduler::test_substrate_scheduler_timing_barbell_graph[10-10-optimized]",
+            "value": 1759.6636633036499,
+            "unit": "iter/sec",
+            "range": "stddev: 0.000030319734780542403",
+            "extra": "mean: 568.2904187056789 usec\nrounds: 1144"
+          },
+          {
+            "name": "benchmarks/test_substrate_scheduler_performance.py::TestSubstrateScheduler::test_substrate_scheduler_timing_barbell_graph[10-100-fast]",
+            "value": 46.954593314885685,
+            "unit": "iter/sec",
+            "range": "stddev: 0.00021793574072696118",
+            "extra": "mean: 21.297170934775767 msec\nrounds: 46"
+          },
+          {
+            "name": "benchmarks/test_substrate_scheduler_performance.py::TestSubstrateScheduler::test_substrate_scheduler_timing_barbell_graph[10-100-optimized]",
+            "value": 46.30071252498694,
+            "unit": "iter/sec",
+            "range": "stddev: 0.00019751739246669483",
+            "extra": "mean: 21.597939760869412 msec\nrounds: 46"
+          },
+          {
+            "name": "benchmarks/test_substrate_scheduler_performance.py::TestSubstrateScheduler::test_substrate_scheduler_timing_barbell_graph[100-10-fast]",
+            "value": 1086.5007960132114,
+            "unit": "iter/sec",
+            "range": "stddev: 0.000014549088134177083",
+            "extra": "mean: 920.3858880447984 usec\nrounds: 920"
+          },
+          {
+            "name": "benchmarks/test_substrate_scheduler_performance.py::TestSubstrateScheduler::test_substrate_scheduler_timing_barbell_graph[100-10-optimized]",
+            "value": 404.91304698039716,
+            "unit": "iter/sec",
+            "range": "stddev: 0.00039443973516156006",
+            "extra": "mean: 2.469666036837811 msec\nrounds: 380"
+          },
+          {
+            "name": "benchmarks/test_substrate_scheduler_performance.py::TestSubstrateScheduler::test_substrate_scheduler_timing_barbell_graph[100-100-fast]",
+            "value": 46.139343919194594,
+            "unit": "iter/sec",
+            "range": "stddev: 0.00018229662978977275",
+            "extra": "mean: 21.673476800002494 msec\nrounds: 45"
+          },
+          {
+            "name": "benchmarks/test_substrate_scheduler_performance.py::TestSubstrateScheduler::test_substrate_scheduler_timing_barbell_graph[100-100-optimized]",
+            "value": 40.680392422215064,
+            "unit": "iter/sec",
+            "range": "stddev: 0.0006745640851627934",
+            "extra": "mean: 24.58186709757284 msec\nrounds: 41"
+          },
+          {
+            "name": "benchmarks/test_substrate_scheduler_performance.py::TestSubstrateScheduler::test_substrate_scheduler_timing_erdos_renyi[0.01-10-fast]",
+            "value": 12654.342864738992,
+            "unit": "iter/sec",
+            "range": "stddev: 0.000010935552866849794",
+            "extra": "mean: 79.02425362493337 usec\nrounds: 5587"
+          },
+          {
+            "name": "benchmarks/test_substrate_scheduler_performance.py::TestSubstrateScheduler::test_substrate_scheduler_timing_erdos_renyi[0.01-10-optimized]",
+            "value": 9431.113351092623,
+            "unit": "iter/sec",
+            "range": "stddev: 0.000011298398957199214",
+            "extra": "mean: 106.03202005669321 usec\nrounds: 4238"
+          },
+          {
+            "name": "benchmarks/test_substrate_scheduler_performance.py::TestSubstrateScheduler::test_substrate_scheduler_timing_erdos_renyi[0.01-100-fast]",
+            "value": 2267.146412780539,
+            "unit": "iter/sec",
+            "range": "stddev: 0.000013015622874152621",
+            "extra": "mean: 441.0831141573919 usec\nrounds: 1787"
+          },
+          {
+            "name": "benchmarks/test_substrate_scheduler_performance.py::TestSubstrateScheduler::test_substrate_scheduler_timing_erdos_renyi[0.01-100-optimized]",
+            "value": 665.2272765406286,
+            "unit": "iter/sec",
+            "range": "stddev: 0.00029002671054257945",
+            "extra": "mean: 1.5032456353868784 msec\nrounds: 746"
+          },
+          {
+            "name": "benchmarks/test_substrate_scheduler_performance.py::TestSubstrateScheduler::test_substrate_scheduler_timing_erdos_renyi[0.1-10-fast]",
+            "value": 8315.23544171331,
+            "unit": "iter/sec",
+            "range": "stddev: 0.000011226105668379009",
+            "extra": "mean: 120.26117684936595 usec\nrounds: 5123"
+          },
+          {
+            "name": "benchmarks/test_substrate_scheduler_performance.py::TestSubstrateScheduler::test_substrate_scheduler_timing_erdos_renyi[0.1-10-optimized]",
+            "value": 5203.894296237663,
+            "unit": "iter/sec",
+            "range": "stddev: 0.000014228761678853561",
+            "extra": "mean: 192.16378025260522 usec\nrounds: 3231"
+          },
+          {
+            "name": "benchmarks/test_substrate_scheduler_performance.py::TestSubstrateScheduler::test_substrate_scheduler_timing_erdos_renyi[0.1-100-fast]",
+            "value": 639.5994002659187,
+            "unit": "iter/sec",
+            "range": "stddev: 0.000014943537166966179",
+            "extra": "mean: 1.5634786392611402 msec\nrounds: 596"
+          },
+          {
+            "name": "benchmarks/test_substrate_scheduler_performance.py::TestSubstrateScheduler::test_substrate_scheduler_timing_erdos_renyi[0.1-100-optimized]",
+            "value": 308.7677752264389,
+            "unit": "iter/sec",
+            "range": "stddev: 0.010829595325548507",
+            "extra": "mean: 3.2386799408281415 msec\nrounds: 338"
           }
         ]
       }
