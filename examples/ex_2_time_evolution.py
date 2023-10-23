@@ -39,8 +39,8 @@ def main():
     # measure_time is a utility tool which measures the execution time of
     # the code inside the with statement.
     with measure_time() as t_info:
-        N = 2  # Problem size
-        operator = get_vlasov_hamiltonian(N=N, k=2.0, alpha=0.6, nu=0)
+        # N = 2  # Problem size
+        # operator = get_vlasov_hamiltonian(N=N, k=2.0, alpha=0.6, nu=0)
 
         # Alternative operator: 1D Heisenberg model
         # N = 100
