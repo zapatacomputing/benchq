@@ -25,7 +25,6 @@ from .graph.transformers import (
 )
 from .openfermion_re import get_physical_cost
 
-LARGEST_GRAPH_TOLERANCE = 1e8
 DEFAULT_STEPS_TO_EXTRAPOLATE_FROM = [1, 2, 3]
 
 
@@ -233,74 +232,55 @@ def automatic_resource_estimator(
 ) -> ResourceInfo:
     """Pick the appropriate resource estimator based on the size of the program.
 
-    Currently chooses between GraphResourceEstimator and
-    ExtrapolationResourceEstimator and whether or not to use delayed gate synthesis
+    Currently, chooses between GraphResourceEstimator and
+    ExtrapolationResourceEstimator and whether to use delayed gate synthesis
     in the following order:
         1. GraphResourceEstimator without delayed gate synthesis
-        2. GraphResourceEstimator with delayed gate synthesis
-        3. ExtrapolationResourceEstimator without delayed gate synthesis
+        2. ExtrapolationResourceEstimator without delayed gate synthesis
+        3. GraphResourceEstimator with delayed gate synthesis
         4. ExtrapolationResourceEstimator with delayed gate synthesis
 
 
     Args:
-        program (QuantumProgram): program to estimate resources for
-        error_budget (ErrorBudget): budget for the error the program can tolerate
-        delayed_gate_synthesis (bool, optional): whether or not to decompose.
-            The gates into clifford + T before creating graph. Defaults to False.
-
-    Raises:
-        ValueError: if the problem is too big to estimate resources for
+        algorithm_implementation (AlgorithmImplementation): The algorithm to estimate
+            resources for.
+        hardware_model (BasicArchitectureModel): The hardware model to estimate
+            resources for.
+        decoder_model (Optional[DecoderModel], optional): The decoder model to
+            run the algorithm with. Defaults to None and returns no estimate in
+            that case.
 
     Returns:
-        GraphResourceEstimator: an appropriate resource estimator for the problem
+        ResourceInfo: The resources required to run the algorithm.
     """
-    pipeline: Any = None
     assert isinstance(algorithm_implementation.program, QuantumProgram)
 
-    prev_steps = algorithm_implementation.program.steps
+    graph_size = estimate_full_graph_size(algorithm_implementation, False)
+    reduced_graph_size = estimate_full_graph_size(algorithm_implementation, True)
     algorithm_implementation.program.steps = max(DEFAULT_STEPS_TO_EXTRAPOLATE_FROM)
-    if (
-        estimate_full_graph_size(algorithm_implementation, True)
-        < LARGEST_GRAPH_TOLERANCE
-    ):
-        pipeline = partial(
-            run_fast_extrapolation_estimate,
-            steps_to_extrapolate_from=DEFAULT_STEPS_TO_EXTRAPOLATE_FROM,
-        )
-    elif (
-        estimate_full_graph_size(algorithm_implementation, False)
-        < LARGEST_GRAPH_TOLERANCE
-    ):
+
+    if graph_size < 1e7:
+        pipeline = run_precise_graph_estimate
+    elif graph_size < 1e8:
         pipeline = partial(
             run_precise_extrapolation_estimate,
             steps_to_extrapolate_from=DEFAULT_STEPS_TO_EXTRAPOLATE_FROM,
         )
-
-    algorithm_implementation.program.steps = prev_steps
-    if (
-        estimate_full_graph_size(algorithm_implementation, True)
-        < LARGEST_GRAPH_TOLERANCE
-    ):
+    elif reduced_graph_size < 1e7:
         pipeline = run_fast_graph_estimate
-    if (
-        estimate_full_graph_size(algorithm_implementation, False)
-        < LARGEST_GRAPH_TOLERANCE
-    ):
-        pipeline = run_precise_graph_estimate
-
-    if pipeline is not None:
-        return pipeline(
-            algorithm_implementation,
-            hardware_model,
-            decoder_model=decoder_model,
+    elif reduced_graph_size < 1e8:
+        pipeline = partial(
+            run_fast_extrapolation_estimate,
+            steps_to_extrapolate_from=DEFAULT_STEPS_TO_EXTRAPOLATE_FROM,
         )
     else:
-        raise ValueError(
-            "Problem size too large for resource estimation. "
-            "Try reducing the size of each of your steps in the program. "
-            "If you are creating a program from a circuit, consider breaking "
-            "the program up into steps."
-        )
+        pipeline = run_footprint_analysis_pipeline
+
+    return pipeline(
+        algorithm_implementation,
+        hardware_model,
+        decoder_model=decoder_model,
+    )
 
 
 def estimate_full_graph_size(
