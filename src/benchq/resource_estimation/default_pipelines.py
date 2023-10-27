@@ -296,13 +296,13 @@ def automatic_resource_estimator(
 def estimate_full_graph_size(
     algorithm_implementation: AlgorithmImplementation, delayed_gate_synthesis=False
 ) -> int:
-    full_graph_size = (
+    graph_complexity = (
         algorithm_implementation.program.n_t_gates
-        + algorithm_implementation.program.n_c_gates
+        + algorithm_implementation.program.n_c_gates * 2
     )
 
     if not delayed_gate_synthesis:
-        full_graph_size += (
+        graph_complexity += (
             algorithm_implementation.program.n_rotation_gates
             * GraphResourceEstimator.SYNTHESIS_SCALING
             * np.log2(
@@ -311,7 +311,6 @@ def estimate_full_graph_size(
             )
         )
     else:
-        full_graph_size += algorithm_implementation.program.n_rotation_gates
-        full_graph_size += algorithm_implementation.program.n_c_gates
+        graph_complexity += algorithm_implementation.program.n_rotation_gates
 
-    return full_graph_size
+    return graph_complexity
