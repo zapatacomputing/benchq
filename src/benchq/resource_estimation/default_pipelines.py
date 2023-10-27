@@ -239,7 +239,7 @@ def automatic_resource_estimator(
         2. ExtrapolationResourceEstimator without delayed gate synthesis
         3. GraphResourceEstimator with delayed gate synthesis
         4. ExtrapolationResourceEstimator with delayed gate synthesis
-
+        5. Footprint estimator as a last-ditch effort
 
     Args:
         algorithm_implementation (AlgorithmImplementation): The algorithm to estimate
