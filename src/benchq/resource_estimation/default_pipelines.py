@@ -263,7 +263,9 @@ def automatic_resource_estimator(
     algorithm_implementation.program.steps = max(DEFAULT_STEPS_TO_EXTRAPOLATE_FROM)
 
     extrapolaed_graph_size = estimate_full_graph_size(algorithm_implementation, False)
-    small_extrapolated_graph_size = estimate_full_graph_size(algorithm_implementation, True)
+    small_extrapolated_graph_size = estimate_full_graph_size(
+        algorithm_implementation, True
+    )
 
     algorithm_implementation.program.steps = initial_number_of_steps
 
@@ -294,7 +296,10 @@ def automatic_resource_estimator(
 def estimate_full_graph_size(
     algorithm_implementation: AlgorithmImplementation, delayed_gate_synthesis=False
 ) -> int:
-    full_graph_size = algorithm_implementation.program.n_t_gates + algorithm_implementation.program.c_gates
+    full_graph_size = (
+        algorithm_implementation.program.n_t_gates
+        + algorithm_implementation.program.c_gates
+    )
 
     if not delayed_gate_synthesis:
         full_graph_size += (
