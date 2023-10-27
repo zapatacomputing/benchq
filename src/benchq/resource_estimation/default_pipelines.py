@@ -241,6 +241,10 @@ def automatic_resource_estimator(
         4. ExtrapolationResourceEstimator with delayed gate synthesis
         5. Footprint estimator as a last-ditch effort
 
+    Decision is based on graph complexity, which is roughly the number
+    of remove_sqs operations one needs to do. Check out Ruby slippers compiler
+    for more details on remove_sqs.
+
     Args:
         algorithm_implementation (AlgorithmImplementation): The algorithm to estimate
             resources for.
@@ -271,20 +275,25 @@ def automatic_resource_estimator(
 
     if graph_size < 1e7:
         pipeline = run_precise_graph_estimate
+        print("Using precise graph estimator")
     elif extrapolaed_graph_size < 1e7:
         pipeline = partial(
             run_precise_extrapolation_estimate,
             steps_to_extrapolate_from=DEFAULT_STEPS_TO_EXTRAPOLATE_FROM,
         )
+        print("Using precise extrapolation graph estimator")
     elif reduced_graph_size < 1e7:
         pipeline = run_fast_graph_estimate
+        print("Using fast graph estimator")
     elif small_extrapolated_graph_size < 1e7:
         pipeline = partial(
             run_fast_extrapolation_estimate,
             steps_to_extrapolate_from=DEFAULT_STEPS_TO_EXTRAPOLATE_FROM,
         )
+        print("Using fast extrapolation graph estimator")
     else:
         pipeline = run_footprint_analysis_pipeline
+        print("Using footprint analysis estimator")
 
     return pipeline(
         algorithm_implementation,
