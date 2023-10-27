@@ -59,7 +59,7 @@ class QuantumProgram:
         return self.count_operations_in_program(["RX", "RY", "RZ"])
 
     @property
-    def c_gates(self) -> int:
+    def n_c_gates(self) -> int:
         return self.count_operations_in_program(["CZ", "CNOT"])
 
     @property

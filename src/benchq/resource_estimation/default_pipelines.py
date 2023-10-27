@@ -298,7 +298,7 @@ def estimate_full_graph_size(
 ) -> int:
     full_graph_size = (
         algorithm_implementation.program.n_t_gates
-        + algorithm_implementation.program.c_gates
+        + algorithm_implementation.program.n_c_gates
     )
 
     if not delayed_gate_synthesis:
@@ -312,6 +312,6 @@ def estimate_full_graph_size(
         )
     else:
         full_graph_size += algorithm_implementation.program.n_rotation_gates
-        full_graph_size += algorithm_implementation.program.c_gates
+        full_graph_size += algorithm_implementation.program.n_c_gates
 
     return full_graph_size
