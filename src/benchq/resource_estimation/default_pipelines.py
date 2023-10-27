@@ -254,21 +254,29 @@ def automatic_resource_estimator(
         ResourceInfo: The resources required to run the algorithm.
     """
     assert isinstance(algorithm_implementation.program, QuantumProgram)
+    initial_number_of_steps = algorithm_implementation.program.steps
 
     graph_size = estimate_full_graph_size(algorithm_implementation, False)
     reduced_graph_size = estimate_full_graph_size(algorithm_implementation, True)
+
+    # Changing number of steps impacts estimated graph size for extrapolation
     algorithm_implementation.program.steps = max(DEFAULT_STEPS_TO_EXTRAPOLATE_FROM)
+
+    extrapolaed_graph_size = estimate_full_graph_size(algorithm_implementation, False)
+    small_extrapolated_graph_size = estimate_full_graph_size(algorithm_implementation, True)
+
+    algorithm_implementation.program.steps = initial_number_of_steps
 
     if graph_size < 1e7:
         pipeline = run_precise_graph_estimate
-    elif graph_size < 1e8:
+    elif extrapolaed_graph_size < 1e7:
         pipeline = partial(
             run_precise_extrapolation_estimate,
             steps_to_extrapolate_from=DEFAULT_STEPS_TO_EXTRAPOLATE_FROM,
         )
     elif reduced_graph_size < 1e7:
         pipeline = run_fast_graph_estimate
-    elif reduced_graph_size < 1e8:
+    elif small_extrapolated_graph_size < 1e7:
         pipeline = partial(
             run_fast_extrapolation_estimate,
             steps_to_extrapolate_from=DEFAULT_STEPS_TO_EXTRAPOLATE_FROM,
@@ -286,7 +294,7 @@ def automatic_resource_estimator(
 def estimate_full_graph_size(
     algorithm_implementation: AlgorithmImplementation, delayed_gate_synthesis=False
 ) -> int:
-    full_graph_size = algorithm_implementation.program.n_t_gates
+    full_graph_size = algorithm_implementation.program.n_t_gates + algorithm_implementation.program.c_gates
 
     if not delayed_gate_synthesis:
         full_graph_size += (
@@ -299,5 +307,6 @@ def estimate_full_graph_size(
         )
     else:
         full_graph_size += algorithm_implementation.program.n_rotation_gates
+        full_graph_size += algorithm_implementation.program.c_gates
 
     return full_graph_size
