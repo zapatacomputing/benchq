@@ -18,6 +18,7 @@ from ...data_structures import (
     AlgorithmImplementation,
     BasicArchitectureModel,
     DecoderModel,
+    DetailedArchitectureModel,
     GraphData,
     GraphPartition,
     GraphResourceInfo,
@@ -452,6 +453,10 @@ class GraphResourceEstimator:
             resource_info = self.estimate_resources_from_graph_data(
                 graph_data, algorithm_implementation
             )
+            if isinstance(self.hw_model, DetailedArchitectureModel):
+                resource_info.hardware_resource_info = (
+                    self.hw_model.get_hardware_resource_estimates(resource_info)
+                )
             return resource_info
         else:
             raise NotImplementedError(

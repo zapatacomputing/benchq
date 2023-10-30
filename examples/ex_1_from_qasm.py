@@ -3,7 +3,11 @@
 ################################################################################
 """
 Basic example of how to perform resource estimation of a circuit from a QASM file.
+WARNING: This example requires the pyscf extra. run `pip install benchq[pyscf]`
+to install the extra.
 """
+
+import os
 
 from orquestra.integrations.qiskit.conversions import import_from_qiskit
 from qiskit.circuit import QuantumCircuit
@@ -70,4 +74,5 @@ def main(file_name):
 
 
 if __name__ == "__main__":
-    main("data/example_circuit.qasm")
+    current_directory = os.path.dirname(__file__)
+    main(current_directory + "/data/example_circuit.qasm")

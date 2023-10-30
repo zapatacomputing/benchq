@@ -6,7 +6,7 @@ import time
 import networkx as nx
 from orquestra.quantum.circuits import Circuit
 
-from . import jl
+from .initialize_julia import jl
 
 
 def get_nx_graph_from_rbs_adj_list(adj: list) -> nx.Graph:

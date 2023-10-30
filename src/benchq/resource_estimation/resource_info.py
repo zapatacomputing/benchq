@@ -20,6 +20,29 @@ class DecoderInfo:
 
 
 @dataclass
+class DetailedIonTrapResourceInfo:
+    """Info relating to detailed ion trap architecture model resources."""
+
+    power_consumed_per_elu_in_kW: float
+    num_communication_ports_per_elu: int
+    second_switch_per_elu_necessary: bool
+    num_communication_qubits_per_elu: int
+    num_memory_qubits_per_elu: int
+    num_computational_qubits_per_elu: int
+    num_optical_cross_connect_layers: int
+    num_ELUs_per_optical_cross_connect: int
+
+    total_num_ions: int
+    total_num_communication_qubits: int
+    total_num_memory_qubits: int
+    total_num_computational_qubits: int
+    total_num_communication_ports: int
+    num_elus: int
+    total_elu_power_consumed_in_kW: float
+    total_elu_energy_consumed_in_kJ: float
+
+
+@dataclass
 class ResourceInfo(Generic[TExtra]):
     """Generic information about estimated resources with possible extras.
 
@@ -41,6 +64,7 @@ class ResourceInfo(Generic[TExtra]):
     magic_state_factory_name: str
     routing_to_measurement_volume_ratio: float
     extra: TExtra
+    hardware_resource_info: Optional[DetailedIonTrapResourceInfo] = None
 
 
 @dataclass

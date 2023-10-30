@@ -6,6 +6,8 @@ In this example, we compare the resource estimation results obtained using diffe
 packages. We use the same circuit as in the previous example (2_time_evolution.py)
 and compare the results obtained using the BenchQ's graph state compilation method and
 the Azure QRE.
+WARNING: This example requires the pyscf extra. run `pip install benchq[pyscf]`
+to install the extra.
 """
 
 from pathlib import Path

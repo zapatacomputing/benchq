@@ -4,11 +4,10 @@ Workflow & task defs.
 To run this on Orquestra see the ``run.py`` script in the same directory.
 """
 
-import mlflow
-
 import os
-import urllib3
 
+import mlflow
+import urllib3
 from orquestra import sdk
 
 from benchq.algorithms.time_evolution import qsp_time_evolution_algorithm
@@ -16,13 +15,12 @@ from benchq.data_structures import ErrorBudget
 from benchq.data_structures.hardware_architecture_models import (
     BASIC_SC_ARCHITECTURE_MODEL,
 )
-from benchq.problem_ingestion import get_vlasov_hamiltonian
-
 from benchq.mlflow.data_logging import (
     log_input_objects_to_mlflow,
     log_resource_info_to_mlflow,
 )
-from benchq.resource_estimation.graph_estimator import (
+from benchq.problem_ingestion import get_vlasov_hamiltonian
+from benchq.resource_estimation.graph import (
     GraphResourceEstimator,
     create_big_graph_from_subcircuits,
     run_custom_resource_estimation_pipeline,

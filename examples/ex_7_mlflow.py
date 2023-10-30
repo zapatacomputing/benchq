@@ -23,8 +23,6 @@ from benchq.resource_estimation.graph_estimator import (
     synthesize_clifford_t,
     transpile_to_native_gates,
 )
-from benchq.mlflow import log_input_objects_to_mlflow, log_resource_info_to_mlflow
-import mlflow
 
 
 def main(file_name, total_failure_tolerance=1e-3):
