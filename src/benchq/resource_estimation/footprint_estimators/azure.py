@@ -10,7 +10,8 @@ from orquestra.integrations.qiskit.conversions import export_to_qiskit
 from orquestra.quantum.circuits import Circuit
 from qiskit.tools.monitor import job_monitor
 
-from ...data_structures import AzureExtra, AzureResourceInfo, BasicArchitectureModel
+from ...data_structures import BasicArchitectureModel
+from ..resource_info import AzureExtra, AzureResourceInfo
 
 
 def _azure_result_to_resource_info(job_results: dict) -> AzureResourceInfo:
@@ -23,7 +24,7 @@ def _azure_result_to_resource_info(job_results: dict) -> AzureResourceInfo:
         code_distance=job_results["logicalQubit"]["codeDistance"],
         logical_error_rate=job_results["errorBudget"]["logical"],
         decoder_info=None,
-        widget_name="default",
+        magic_state_factory_name="default",
         routing_to_measurement_volume_ratio=0,
         extra=AzureExtra(
             cycle_time=job_results["logicalQubit"]["logicalCycleTime"],

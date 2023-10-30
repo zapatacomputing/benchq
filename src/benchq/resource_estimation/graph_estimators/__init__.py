@@ -12,6 +12,7 @@ from .transformers import (
     synthesize_clifford_t,
     transpile_to_native_gates,
 )
+from .graph_partition import GraphPartition
 
 __all__ = [
     "run_custom_resource_estimation_pipeline",

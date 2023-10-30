@@ -6,10 +6,10 @@ from orquestra.quantum.circuits import Circuit, H
 
 from ..data_structures import (
     BASIC_SC_ARCHITECTURE_MODEL,
-    GraphPartition,
     QuantumProgram,
 )
-from ..resource_estimation.graph_estimator import GraphResourceEstimator
+from ..resource_estimation.graph_estimators.graph_partition import GraphPartition
+from ..resource_estimation.graph_estimators import GraphResourceEstimator
 from . import jl, transpile_to_native_gates
 from .julia_utils import get_nx_graph_from_rbs_adj_list
 

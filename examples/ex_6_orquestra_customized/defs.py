@@ -11,15 +11,15 @@ from benchq.algorithms.time_evolution import qsp_time_evolution_algorithm
 from benchq.data_structures import (
     BASIC_ION_TRAP_ARCHITECTURE_MODEL,
     BASIC_SC_ARCHITECTURE_MODEL,
-    AlgorithmImplementation,
     BasicArchitectureModel,
     ErrorBudget,
-    GraphPartition,
-    GraphResourceInfo,
     QuantumProgram,
 )
+from benchq.algorithms import AlgorithmImplementation
+from benchq.resource_estimation.graph_estimators import GraphPartition
+from benchq.resource_estimation.resource_info import GraphResourceInfo
 from benchq.problem_ingestion import get_vlasov_hamiltonian
-from benchq.resource_estimation.graph_estimator import (
+from benchq.resource_estimation.graph_estimators import (
     GraphResourceEstimator,
     create_big_graph_from_subcircuits,
     transpile_to_native_gates,

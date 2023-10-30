@@ -3,10 +3,32 @@ import math
 from .magic_state_factory import MagicStateFactory
 from ..data_structures import BasicArchitectureModel
 
-from ..surface_code_properties.gidney_surface_code_properties import (
+from ..resource_estimation.surface_code_properties.gidney_surface_code_properties import (
     get_total_logical_failure_rate,
     physical_qubits_per_logical_qubit,
 )
+
+
+def iter_auto_ccz_factories(physical_error_rate: float) -> Iterator[MagicStateFactory]:
+    for l1_distance in range(5, 25, 2):
+        for l2_distance in range(l1_distance + 2, 41, 2):
+            w, h, d = _autoccz_or_t_factory_dimensions(
+                l1_distance=l1_distance, l2_distance=l2_distance
+            )
+            f_ccz = _compute_autoccz_distillation_error(
+                l1_distance=l1_distance,
+                l2_distance=l2_distance,
+                physical_error_rate=physical_error_rate,
+            )
+
+            yield MagicStateFactory(
+                name=f"AutoCCZ({physical_error_rate}, {l1_distance}, {l2_distance})",
+                distilled_magic_state_error_rate=float(f_ccz),
+                space=(w, h),
+                qubits=w * h * physical_qubits_per_logical_qubit(l2_distance),
+                distillation_time_in_cycles=int(d * l2_distance),
+                n_t_gates_produced_per_distillation=2,
+            )
 
 
 def _autoccz_or_t_factory_dimensions(
@@ -32,28 +54,6 @@ def _autoccz_or_t_factory_dimensions(
     depth = max(ccz_depth, t1_depth)
 
     return width, height, depth
-
-
-def iter_auto_ccz_factories(physical_error_rate: float) -> Iterator[MagicStateFactory]:
-    for l1_distance in range(5, 25, 2):
-        for l2_distance in range(l1_distance + 2, 41, 2):
-            w, h, d = _autoccz_or_t_factory_dimensions(
-                l1_distance=l1_distance, l2_distance=l2_distance
-            )
-            f_ccz = _compute_autoccz_distillation_error(
-                l1_distance=l1_distance,
-                l2_distance=l2_distance,
-                physical_error_rate=physical_error_rate,
-            )
-
-            yield MagicStateFactory(
-                name=f"AutoCCZ({physical_error_rate}, {l1_distance}, {l2_distance})",
-                distilled_magic_state_error_rate=float(f_ccz),
-                space=(w, h),
-                qubits=w * h * physical_qubits_per_logical_qubit(l2_distance),
-                distillation_time_in_cycles=int(d * l2_distance),
-                n_t_gates_produced_per_distillation=2,
-            )
 
 
 def _compute_autoccz_distillation_error(

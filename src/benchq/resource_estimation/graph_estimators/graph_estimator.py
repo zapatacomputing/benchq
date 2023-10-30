@@ -13,16 +13,14 @@ from graph_state_generation.optimizers import (
 from graph_state_generation.substrate_scheduler import TwoRowSubstrateScheduler
 
 from benchq.decoders.decoder_resource_estimator import get_decoder_info
+from ...algorithms import AlgorithmImplementation
+from ...decoders import DecoderModel
 
 from ...data_structures import (
-    AlgorithmImplementation,
     BasicArchitectureModel,
-    DecoderModel,
-    DetailedArchitectureModel,
-    GraphData,
-    GraphPartition,
-    GraphResourceInfo,
 )
+from ..resource_info import GraphResourceInfo, GraphData
+from .graph_partition import GraphPartition
 from ...magic_state_distillation import MagicStateFactory, iter_litinski_factories
 from .transformers import remove_isolated_nodes_from_graph
 
@@ -305,7 +303,7 @@ class GraphResourceEstimator:
             algorithm_implementation.error_budget.transpilation_failure_tolerance
         )
 
-        magic_state_factory_iterator = iter(self.magic_state_factory)
+        magic_state_factory_iterator = iter(self.magic_state_factory_iterator)
 
         while True:
             magic_state_factory_found = False
@@ -453,10 +451,6 @@ class GraphResourceEstimator:
             resource_info = self.estimate_resources_from_graph_data(
                 graph_data, algorithm_implementation
             )
-            if isinstance(self.hw_model, DetailedArchitectureModel):
-                resource_info.hardware_resource_info = (
-                    self.hw_model.get_hardware_resource_estimates(resource_info)
-                )
             return resource_info
         else:
             raise NotImplementedError(
