@@ -12,7 +12,6 @@ from .transformers import (
     synthesize_clifford_t,
     transpile_to_native_gates,
 )
-from .worstcase_footprint_estimator import WorstCaseFootprintResourceEstimator
 
 __all__ = [
     "run_custom_resource_estimation_pipeline",

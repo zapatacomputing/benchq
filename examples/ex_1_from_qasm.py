@@ -14,7 +14,7 @@ from benchq.data_structures import (
     ErrorBudget,
     get_program_from_circuit,
 )
-from benchq.resource_estimation.graph import (
+from benchq.resource_estimation.graph_estimator import (
     GraphResourceEstimator,
     create_big_graph_from_subcircuits,
     run_custom_resource_estimation_pipeline,

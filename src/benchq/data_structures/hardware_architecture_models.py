@@ -8,8 +8,6 @@ import warnings
 from dataclasses import dataclass
 from typing import Protocol
 
-from .resource_info import ResourceInfo
-
 
 class BasicArchitectureModel(Protocol):
     """Basic Architecture model meant to serve as a base class for the
@@ -56,7 +54,7 @@ BASIC_SC_ARCHITECTURE_MODEL = SCModel()
 class DetailedIonTrapResourceInfo:
     """Info relating to detailed ion trap architecture model resources."""
 
-    power_consumed_per_elu_in_kW: float
+    power_consumed_per_elu_in_kilowatts: float
     num_communication_ports_per_elu: int
     second_switch_per_elu_necessary: bool
     num_communication_qubits_per_elu: int
@@ -71,8 +69,8 @@ class DetailedIonTrapResourceInfo:
     total_num_computational_qubits: int
     total_num_communication_ports: int
     num_elus: int
-    total_elu_power_consumed_in_kW: float
-    total_elu_energy_consumed_in_kJ: float
+    total_elu_power_consumed_in_kilowatts: float
+    total_elu_energy_consumed_in_kiloJoules: float
 
 
 class DetailedIonTrapModel:
@@ -85,9 +83,9 @@ class DetailedIonTrapModel:
         # TODO: PJ check with Simon about this number
         self.surface_code_cycle_time_in_seconds = surface_code_cycle_time_in_seconds
 
-    def get_hardware_resource_estimates(self, resource_info: ResourceInfo):
-        code_distance = resource_info.code_distance
-
+    def get_hardware_resource_estimates(
+        self, code_distance, n_logical_qubits, total_time_in_seconds
+    ):
         # Compute per-elu values
         (
             memory_qubits,
@@ -104,7 +102,7 @@ class DetailedIonTrapModel:
 
         # Number of logical qubits can't exceed 1 per ELU
         # Protocol requires 1 logical qubit per ELU
-        num_elus = resource_info.n_logical_qubits
+        num_elus = n_logical_qubits
 
         # Multiply quantities by number of ELUs
         total_num_memory_qubits = num_elus * memory_qubits
@@ -116,15 +114,17 @@ class DetailedIonTrapModel:
             + total_num_communication_qubits
         )
         total_num_communication_ports = num_elus * num_communication_ports_per_elu
-        total_elu_power_consumed_in_kW = num_elus * self.power_consumed_per_ELU_in_kW()
-        total_elu_energy_consumed_in_kJ = (
+        total_elu_power_consumed_in_kilowatts = (
+            num_elus * self.power_consumed_per_ELU_in_kilowatts()
+        )
+        total_elu_energy_consumed_in_kiloJoules = (
             num_elus
-            * self.power_consumed_per_ELU_in_kW()
-            * resource_info.total_time_in_seconds
+            * self.power_consumed_per_ELU_in_kilowatts()
+            * total_time_in_seconds
         )
 
         hardware_resource_estimates = DetailedIonTrapResourceInfo(
-            power_consumed_per_elu_in_kW=self.power_consumed_per_ELU_in_kW(),
+            power_consumed_per_elu_in_kilowatts=self.power_consumed_per_ELU_in_kilowatts(),  # noqa: E501
             num_communication_ports_per_elu=num_communication_ports_per_elu,
             second_switch_per_elu_necessary=second_switch_per_elu_necessary,
             num_communication_qubits_per_elu=communication_qubits,
@@ -144,13 +144,13 @@ class DetailedIonTrapModel:
             total_num_computational_qubits=total_num_computational_qubits,
             total_num_communication_ports=total_num_communication_ports,
             num_elus=num_elus,
-            total_elu_power_consumed_in_kW=total_elu_power_consumed_in_kW,
-            total_elu_energy_consumed_in_kJ=total_elu_energy_consumed_in_kJ,
+            total_elu_power_consumed_in_kilowatts=total_elu_power_consumed_in_kilowatts,
+            total_elu_energy_consumed_in_kiloJoules=total_elu_energy_consumed_in_kiloJoules,  # noqa: E501
         )
 
         return hardware_resource_estimates
 
-    def power_consumed_per_ELU_in_kW(
+    def power_consumed_per_ELU_in_kilowatts(
         self,
     ):
         # Value reported by IonQ

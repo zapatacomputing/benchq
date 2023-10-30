@@ -16,7 +16,7 @@ from benchq.data_structures import (
     get_program_from_circuit,
 )
 from benchq.mlflow import log_input_objects_to_mlflow, log_resource_info_to_mlflow
-from benchq.resource_estimation.graph import (
+from benchq.resource_estimation.graph_estimator import (
     GraphResourceEstimator,
     create_big_graph_from_subcircuits,
     run_custom_resource_estimation_pipeline,

@@ -13,7 +13,7 @@ from ...data_structures import (
     ExtrapolatedGraphResourceInfo,
     QuantumProgram,
 )
-from ..magic_state_distillation import Widget
+from ...magic_state_distillation import MagicStateFactory
 from .graph_estimator import GraphData, GraphResourceEstimator
 
 
@@ -39,12 +39,16 @@ class ExtrapolationResourceEstimator(GraphResourceEstimator):
         decoder_model: Optional[DecoderModel] = None,
         optimization: str = "space",
         substrate_scheduler_preset: str = "fast",
-        widgets: Optional[Iterable[Widget]] = None,
+        magic_state_factory_iterator: Optional[Iterable[MagicStateFactory]] = None,
         n_measurement_steps_fit_type: str = "logarithmic",
         max_graph_degree_fit_type: str = "logarithmic",
     ):
         super().__init__(
-            hw_model, decoder_model, optimization, substrate_scheduler_preset, widgets
+            hw_model,
+            decoder_model,
+            optimization,
+            substrate_scheduler_preset,
+            magic_state_factory_iterator,
         )
         self.steps_to_extrapolate_from = steps_to_extrapolate_from
         self.n_measurement_steps_fit_type = n_measurement_steps_fit_type

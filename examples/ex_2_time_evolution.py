@@ -19,7 +19,7 @@ from benchq.problem_ingestion import get_vlasov_hamiltonian
 from benchq.problem_ingestion.hamiltonian_generation import (
     generate_1d_heisenberg_hamiltonian,
 )
-from benchq.resource_estimation.graph import (
+from benchq.resource_estimation.graph_estimator import (
     GraphResourceEstimator,
     create_big_graph_from_subcircuits,
     run_custom_resource_estimation_pipeline,

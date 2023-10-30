@@ -1,9 +1,9 @@
 import warnings
 from typing import Optional
 
-from benchq.data_structures.decoder import DecoderModel
+from benchq.decoders.decoder import DecoderModel
 from benchq.data_structures.hardware_architecture_models import BasicArchitectureModel
-from benchq.data_structures.resource_info import DecoderInfo
+from benchq.resource_estimation.resource_info import DecoderInfo
 
 
 def get_decoder_info(
@@ -33,7 +33,7 @@ def get_decoder_info(
             )
             return None
         else:
-            decoder_total_energy_consumption = (
+            decoder_total_energy_in_nanojoules = (
                 space_time_volume
                 * decoder_model.power_in_nanowatts(code_distance)
                 * decoder_model.delay_in_nanoseconds(code_distance)
@@ -50,9 +50,14 @@ def get_decoder_info(
                 decoder_model.highest_calculated_distance,
             )
 
+            decoder_total_energy_in_kilojoules = (
+                decoder_total_energy_in_nanojoules * 1e-12
+            )
+            power_in_kilowatts = decoder_power * 1e-12
+
             return DecoderInfo(
-                total_energy_consumption_in_nanojoules=decoder_total_energy_consumption,
-                power_in_nanowatts=decoder_power,
+                total_energy_in_kilojoules=decoder_total_energy_in_kilojoules,
+                power_in_kilowatts=power_in_kilowatts,
                 area_in_micrometers_squared=decoder_area,
                 max_decodable_distance=max_decodable_distance,
             )

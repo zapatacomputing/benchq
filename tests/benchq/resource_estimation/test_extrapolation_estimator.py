@@ -9,7 +9,7 @@ from benchq.data_structures import AlgorithmImplementation, ErrorBudget, Quantum
 from benchq.data_structures.hardware_architecture_models import (
     BASIC_SC_ARCHITECTURE_MODEL,
 )
-from benchq.resource_estimation.graph import (
+from benchq.resource_estimation.graph_estimator import (
     ExtrapolationResourceEstimator,
     GraphResourceEstimator,
     create_big_graph_from_subcircuits,

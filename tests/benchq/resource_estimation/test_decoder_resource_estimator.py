@@ -8,7 +8,7 @@ from benchq.data_structures import (
     DecoderInfo,
     DecoderModel,
 )
-from benchq.resource_estimation.decoder_resource_estimator import get_decoder_info
+from benchq.decoders.decoder_resource_estimator import get_decoder_info
 
 
 def file_path(file_name):

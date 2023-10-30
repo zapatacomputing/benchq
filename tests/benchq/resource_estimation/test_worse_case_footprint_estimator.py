@@ -14,12 +14,12 @@ from benchq.data_structures import (
     QuantumProgram,
     get_program_from_circuit,
 )
-from benchq.resource_estimation.graph import (
+from benchq.resource_estimation.graph_estimator import (
     run_custom_resource_estimation_pipeline,
     synthesize_clifford_t,
     transpile_to_native_gates,
 )
-from benchq.resource_estimation.graph.worstcase_footprint_estimator import (
+from benchq.resource_estimation.graph_estimator.worstcase_footprint_estimator import (
     WorstCaseFootprintResourceEstimator,
 )
 
@@ -261,4 +261,4 @@ def test_get_resource_estimations_for_program_accounts_for_decoder(optimization)
     assert info.max_decodable_distance is not None
     assert info.area_in_micrometers_squared is not None
     assert info.total_energy_consumption_in_nanojoules is not None
-    assert info.power_in_nanowatts is not None
+    assert info.power_in_kilowatts is not None

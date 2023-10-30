@@ -10,7 +10,7 @@ from benchq.data_structures import (
     get_program_from_circuit,
 )
 from benchq.data_structures.hardware_architecture_models import IONTrapModel
-from benchq.resource_estimation.azure import AzureResourceEstimator
+from benchq.resource_estimation.footprint_estimator.azure import AzureResourceEstimator
 
 SKIP_AZURE = pytest.mark.skipif(
     os.getenv("BENCHQ_TEST_AZURE") is None,
@@ -40,7 +40,7 @@ def test_better_architecture_does_not_require_more_resources() -> None:
     )
 
     alg_impl = AlgorithmImplementation(
-        program=quantum_program, error_budget=error_budget, n_calls=1
+        program=quantum_program, error_budget=error_budget, n_shots=1
     )
 
     low_quality_azure_re = AzureResourceEstimator(
@@ -80,13 +80,13 @@ def test_higher_error_budget_requires_less_resources() -> None:
     low_error_budget_impl = AlgorithmImplementation(
         program=quantum_program,
         error_budget=ErrorBudget.from_weights(low_failure_tolerance, 0, 1, 1),
-        n_calls=1,
+        n_shots=1,
     )
 
     high_error_budget_impl = AlgorithmImplementation(
         program=quantum_program,
         error_budget=ErrorBudget.from_weights(high_failure_tolerance, 0, 1, 1),
-        n_calls=1,
+        n_shots=1,
     )
     azure_re = AzureResourceEstimator()
 

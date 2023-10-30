@@ -19,7 +19,7 @@ def test_qsp_te_alg_creates_correct_alg_description():
     failure_tolerance = 0.1
     algorithm = qsp_time_evolution_algorithm(hamiltonian, time, failure_tolerance)
 
-    assert algorithm.n_calls == 1
+    assert algorithm.n_shots == 1
     assert algorithm.error_budget.total_failure_tolerance == failure_tolerance
 
 

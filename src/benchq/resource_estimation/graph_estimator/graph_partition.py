@@ -6,7 +6,7 @@ from cirq.circuits.circuit import Circuit as CirqCircuit
 from orquestra.quantum.circuits import Circuit as OrquestraCircuit
 from qiskit.circuit import QuantumCircuit as QiskitCircuit
 
-from .quantum_program import QuantumProgram
+from ...data_structures.quantum_program import QuantumProgram
 
 AnyCircuit = Union[OrquestraCircuit, CirqCircuit, QiskitCircuit]
 

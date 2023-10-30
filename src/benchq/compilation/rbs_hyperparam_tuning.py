@@ -9,7 +9,7 @@ from ..data_structures import (
     GraphPartition,
     QuantumProgram,
 )
-from ..resource_estimation.graph import GraphResourceEstimator
+from ..resource_estimation.graph_estimator import GraphResourceEstimator
 from . import jl, transpile_to_native_gates
 from .julia_utils import get_nx_graph_from_rbs_adj_list
 

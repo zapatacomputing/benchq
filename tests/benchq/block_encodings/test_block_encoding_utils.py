@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from benchq.block_encodings.block_encoding_utils import controlled_clock
+from benchq.block_encodings.utils.offset_trdiagonal_utils import controlled_clock
 
 
 @pytest.mark.parametrize(

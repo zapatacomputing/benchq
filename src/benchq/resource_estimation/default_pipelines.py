@@ -2,28 +2,26 @@ from functools import partial
 from typing import Any, List, Optional
 
 import numpy as np
-
+from ..algorithms import AlgorithmImplementation
+from ..decoders import DecoderModel
+from .resource_info import ExtrapolatedGraphResourceInfo, ResourceInfo
 from ..compilation import get_algorithmic_graph_from_ruby_slippers
 from ..data_structures import (
-    AlgorithmImplementation,
-    DecoderModel,
-    ExtrapolatedGraphResourceInfo,
     QuantumProgram,
-    ResourceInfo,
 )
 from ..data_structures.hardware_architecture_models import BasicArchitectureModel
-from .graph.customizable_pipelines import (
+from .graph_estimator.customizable_pipelines import (
     run_custom_extrapolation_pipeline,
     run_custom_resource_estimation_pipeline,
 )
-from .graph.extrapolation_estimator import ExtrapolationResourceEstimator
-from .graph.graph_estimator import GraphResourceEstimator
-from .graph.transformers import (
+from .graph_estimator.extrapolation_estimator import ExtrapolationResourceEstimator
+from .graph_estimator.graph_estimator import GraphResourceEstimator
+from .graph_estimator.transformers import (
     create_big_graph_from_subcircuits,
     synthesize_clifford_t,
     transpile_to_native_gates,
 )
-from .openfermion_re import get_physical_cost
+from .footprint_estimator.footprint_estimator import footprint_estimator
 
 LARGEST_GRAPH_TOLERANCE = 1e8
 DEFAULT_STEPS_TO_EXTRAPOLATE_FROM = [1, 2, 3]
@@ -217,7 +215,7 @@ def run_footprint_analysis_pipeline(
         algorithm_implementation.error_budget.hardware_failure_tolerance
     )
 
-    return get_physical_cost(
+    return footprint_estimator(
         algorithm_implementation.program.num_data_qubits,
         num_t=total_t_gates,
         architecture_model=hardware_model,

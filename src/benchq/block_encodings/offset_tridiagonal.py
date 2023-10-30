@@ -1,7 +1,7 @@
 import numpy as np
 from orquestra.quantum.circuits import RY, Circuit, H
 
-from .block_encoding_utils import controlled_clock, x_conj_gate
+from .utils.offset_trdiagonal_utils import controlled_clock, x_conj_gate
 
 
 def get_offset_tridagonal_block_encoding(

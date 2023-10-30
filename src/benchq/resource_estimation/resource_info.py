@@ -13,8 +13,8 @@ TExtra = TypeVar("TExtra")
 class DecoderInfo:
     """Information relating the deceoder."""
 
-    total_energy_consumption_in_nanojoules: float
-    power_in_nanowatts: float
+    total_energy_in_kilojoules: float
+    power_in_kilowatts: float
     area_in_micrometers_squared: float
     max_decodable_distance: int = field(repr=False)
 
@@ -38,7 +38,7 @@ class ResourceInfo(Generic[TExtra]):
     n_physical_qubits: int
     total_time_in_seconds: float
     decoder_info: Optional[DecoderInfo]
-    widget_name: str
+    magic_state_factory_name: str
     routing_to_measurement_volume_ratio: float
     extra: TExtra
 

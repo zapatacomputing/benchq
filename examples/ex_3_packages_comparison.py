@@ -14,8 +14,8 @@ from pprint import pprint
 from benchq.algorithms.time_evolution import qsp_time_evolution_algorithm
 from benchq.data_structures import BASIC_SC_ARCHITECTURE_MODEL, DecoderModel
 from benchq.problem_ingestion import get_vlasov_hamiltonian
-from benchq.resource_estimation.azure import AzureResourceEstimator
-from benchq.resource_estimation.graph import (
+from benchq.resource_estimation.footprint_estimator.azure import AzureResourceEstimator
+from benchq.resource_estimation.graph_estimator import (
     GraphResourceEstimator,
     create_big_graph_from_subcircuits,
     run_custom_resource_estimation_pipeline,

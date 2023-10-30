@@ -3,7 +3,7 @@ import math
 import numpy as np
 from orquestra.quantum.circuits import Circuit
 
-from benchq.block_encodings.block_encoding_utils import controlled_clock
+from benchq.block_encodings.utils.offset_trdiagonal_utils import controlled_clock
 
 
 def get_add_l(L) -> Circuit:

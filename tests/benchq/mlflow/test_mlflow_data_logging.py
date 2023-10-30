@@ -7,10 +7,10 @@ from unittest.mock import ANY, patch
 
 import pytest
 
-from benchq.data_structures.algorithm_implementation import AlgorithmImplementation
-from benchq.data_structures.decoder import DecoderModel
+from benchq.algorithms.algorithm_implementation import AlgorithmImplementation
+from benchq.decoders.decoder import DecoderModel
 from benchq.data_structures.hardware_architecture_models import IONTrapModel
-from benchq.data_structures.resource_info import ResourceInfo
+from benchq.resource_estimation.resource_info import ResourceInfo
 from benchq.mlflow.data_logging import (
     _flatten_dict,
     create_mlflow_scf_callback,
@@ -84,7 +84,7 @@ def test_log_input_objects_to_mlflow(mock_mlflow):
     mock_mlflow.log_metrics.assert_not_called()
 
     mock_mlflow.log_param.assert_called()
-    mock_mlflow.log_param.assert_any_call("n_calls", 10)  # from AlgorithmImplementation
+    mock_mlflow.log_param.assert_any_call("n_shots", 10)  # from AlgorithmImplementation
     mock_mlflow.log_param.assert_any_call("algorithm_name", "testing algo")
 
     mock_mlflow.log_params.assert_called()

@@ -22,7 +22,7 @@ from benchq.problem_ingestion import (
 from benchq.problem_ingestion.molecule_instance_generation import (
     generate_hydrogen_chain_instance,
 )
-from benchq.resource_estimation.graph import (
+from benchq.resource_estimation.graph_estimator import (
     ExtrapolationResourceEstimator,
     create_big_graph_from_subcircuits,
     run_custom_extrapolation_pipeline,

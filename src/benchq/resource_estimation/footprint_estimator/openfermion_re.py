@@ -7,21 +7,10 @@ from typing import Tuple
 import numpy as np
 from openfermion.resource_estimates import df, sf
 
-from benchq.data_structures import BASIC_SC_ARCHITECTURE_MODEL, BasicArchitectureModel
-from benchq.data_structures.resource_info import (
-    OpenFermionExtra,
-    OpenFermionResourceInfo,
-)
-from benchq.resource_estimation._compute_lambda import (
+from benchq.block_encodings.utils._compute_lambda import (
     compute_lambda_df,
     compute_lambda_sf,
 )
-from benchq.resource_estimation._footprint_analysis import (
-    AlgorithmParameters,
-    CostEstimate,
-    cost_estimator,
-)
-from benchq.resource_estimation.decoder_resource_estimator import get_decoder_info
 
 
 def _validate_eri(eri: np.ndarray):
@@ -217,7 +206,11 @@ def get_double_factorized_block_encoding_info(
     lam = compute_lambda_df(h1, eri_rr, LR)
 
     allowable_phase_estimation_error = 1
-    (step_cost, total_cost, num_qubits,) = _get_double_factorized_qpe_info(
+    (
+        step_cost,
+        total_cost,
+        num_qubits,
+    ) = _get_double_factorized_qpe_info(
         h1,
         eri,
         threshold,
@@ -232,64 +225,3 @@ def get_double_factorized_block_encoding_info(
     num_qubits = num_qubits - num_qubits_energy_register + 1
 
     return step_cost, num_qubits, lam
-
-
-def get_physical_cost(
-    num_logical_qubits: int,
-    num_toffoli: int = 0,
-    num_t: int = 0,
-    architecture_model: BasicArchitectureModel = BASIC_SC_ARCHITECTURE_MODEL,
-    routing_overhead_proportion=0.5,
-    hardware_failure_tolerance=1e-3,
-    decoder_model=None,
-) -> OpenFermionResourceInfo:
-    """Get the estimated resources for single factorized QPE as described in PRX Quantum
-    2, 030305.
-
-    Args:
-        num_toffoli: The number of Toffoli gates required.
-        num_logical_qubits: The number of logical qubits required.
-    Returns:
-        The estimated physical qubits, runtime, and other resource estimation info.
-    """
-
-    best_cost, best_params = cost_estimator(
-        num_logical_qubits,
-        num_toffoli=num_toffoli,
-        num_t=num_t,
-        physical_error_rate=architecture_model.physical_qubit_error_rate,
-        surface_code_cycle_time=architecture_model.surface_code_cycle_time_in_seconds,
-        routing_overhead_proportion=routing_overhead_proportion,
-        hardware_failure_tolerance=hardware_failure_tolerance,
-    )
-
-    decoder_info = get_decoder_info(
-        architecture_model,
-        decoder_model,
-        best_params.logical_data_qubit_distance,
-        best_cost.physical_qubit_count * best_cost.duration,
-        best_params.max_allocated_logical_qubits,
-    )
-
-    return _openfermion_result_to_resource_info(best_cost, best_params, decoder_info)
-
-
-def _openfermion_result_to_resource_info(
-    cost: CostEstimate, algorithm_parameters: AlgorithmParameters, decoder_info=None
-) -> OpenFermionResourceInfo:
-    return OpenFermionResourceInfo(
-        n_physical_qubits=cost.physical_qubit_count,
-        n_logical_qubits=algorithm_parameters.max_allocated_logical_qubits,
-        total_time_in_seconds=cost.duration,
-        code_distance=algorithm_parameters.logical_data_qubit_distance,
-        logical_error_rate=cost.algorithm_failure_probability,
-        decoder_info=decoder_info,
-        routing_to_measurement_volume_ratio=algorithm_parameters.routing_overhead_proportion,  # noqa
-        widget_name=algorithm_parameters.widget.details,
-        extra=OpenFermionExtra(
-            fail_rate_msFactory=algorithm_parameters.widget.failure_rate,
-            rounds_magicstateFactory=algorithm_parameters.widget.distillation_time_in_cycles,  # noqa
-            physical_qubit_error_rate=algorithm_parameters.physical_error_rate,
-            scc_time=algorithm_parameters.surface_code_cycle_time,
-        ),
-    )
