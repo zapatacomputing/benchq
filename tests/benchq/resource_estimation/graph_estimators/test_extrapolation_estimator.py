@@ -4,12 +4,16 @@ import numpy as np
 import pytest
 from orquestra.quantum.circuits import CNOT, RZ, Circuit, H
 
+from benchq.algorithms.data_structures import (
+    AlgorithmImplementation,
+    ErrorBudget,
+    QuantumProgram,
+)
 from benchq.compilation import get_ruby_slippers_compiler
-from benchq.data_structures import AlgorithmImplementation, ErrorBudget, QuantumProgram
-from benchq.data_structures.hardware_architecture_models import (
+from benchq.quantum_hardware_modeling.hardware_architecture_models import (
     BASIC_SC_ARCHITECTURE_MODEL,
 )
-from benchq.resource_estimation.graph_estimator import (
+from benchq.resource_estimators.graph_estimators import (
     ExtrapolationResourceEstimator,
     GraphResourceEstimator,
     create_big_graph_from_subcircuits,

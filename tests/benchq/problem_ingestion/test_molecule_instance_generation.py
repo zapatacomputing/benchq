@@ -4,8 +4,8 @@ from unittest.mock import ANY, patch
 
 import pytest
 
-from benchq.mlflow import create_mlflow_scf_callback
-from benchq.problem_ingestion.molecule_instance_generation import (
+from benchq.data_logging import create_mlflow_scf_callback
+from benchq.problem_ingestion.hamiltonians.molecule_instance_generation import (
     ChemistryApplicationInstance,
     SCFConvergenceError,
     generate_hydrogen_chain_instance,
@@ -139,7 +139,7 @@ def test_get_active_space_meanfield_object_raises_scf_convergence_error(method):
 @pytest.fixture
 def patch_sdk_token():
     with patch(
-        "benchq.problem_ingestion.molecule_instance_generation"
+        "benchq.problem_ingestion.hamiltonians.molecule_instance_generation"
         ".sdk.mlflow.get_tracking_token",
         autospec=True,
         return_value="fake",
@@ -150,7 +150,7 @@ def patch_sdk_token():
 @pytest.fixture
 def patch_sdk_uri():
     with patch(
-        "benchq.problem_ingestion.molecule_instance_generation"
+        "benchq.problem_ingestion.hamiltonians.molecule_instance_generation"
         ".sdk.mlflow.get_tracking_uri",
         autospec=True,
         return_value=None,
@@ -161,7 +161,8 @@ def patch_sdk_uri():
 @pytest.fixture
 def patch_log_metric():
     with patch(
-        "benchq.problem_ingestion.molecule_instance_generation.MlflowClient.log_metric",
+        "benchq.problem_ingestion.hamiltonians.molecule_instance_generation."
+        "MlflowClient.log_metric",
         autospec=True,
     ) as patched_log_metric:
         yield patched_log_metric
@@ -170,7 +171,8 @@ def patch_log_metric():
 @pytest.fixture
 def patch_log_param():
     with patch(
-        "benchq.problem_ingestion.molecule_instance_generation.MlflowClient.log_param",
+        "benchq.problem_ingestion.hamiltonians.molecule_instance_generation."
+        "MlflowClient.log_param",
         autospec=True,
     ) as patched_log_param:
         yield patched_log_param

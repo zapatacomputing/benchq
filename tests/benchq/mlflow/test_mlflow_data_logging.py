@@ -1,22 +1,24 @@
 ################################################################################
 # © Copyright 2023 Zapata Computing Inc.
 ################################################################################
-"""Unit tests for benchq.mlflow.data_logging."""
+"""Unit tests for benchq.data_logging."""
 
 from unittest.mock import ANY, patch
 
 import pytest
 
-from benchq.algorithms.algorithm_implementation import AlgorithmImplementation
-from benchq.decoders.decoder import DecoderModel
-from benchq.data_structures.hardware_architecture_models import IONTrapModel
-from benchq.resource_estimation.resource_info import ResourceInfo
-from benchq.mlflow.data_logging import (
+from benchq.algorithms.data_structures.algorithm_implementation import (
+    AlgorithmImplementation,
+)
+from benchq.data_logging import (
     _flatten_dict,
     create_mlflow_scf_callback,
     log_input_objects_to_mlflow,
     log_resource_info_to_mlflow,
 )
+from benchq.decoder_modeling.decoder import DecoderModel
+from benchq.quantum_hardware_modeling.hardware_architecture_models import IONTrapModel
+from benchq.resource_estimators.resource_info import ResourceInfo
 
 
 @pytest.mark.parametrize(
@@ -42,7 +44,7 @@ from benchq.mlflow.data_logging import (
                 "n_logical_qubits": 51,
                 "n_physical_qubits": 104344,
                 "total_time_in_seconds": 950.748,
-                "widget_name": "(15-to-1)^6_11,5,5 x (15-to-1)_25,11,11",
+                "factory_name": "(15-to-1)^6_11,5,5 x (15-to-1)_25,11,11",
             },
             {
                 "code_distance": 19,
@@ -56,7 +58,7 @@ from benchq.mlflow.data_logging import (
                 "n_logical_qubits": 51,
                 "n_physical_qubits": 104344,
                 "total_time_in_seconds": 950.748,
-                "widget_name": "(15-to-1)^6_11,5,5 x (15-to-1)_25,11,11",
+                "factory_name": "(15-to-1)^6_11,5,5 x (15-to-1)_25,11,11",
             },
         ),
     ],
@@ -65,7 +67,7 @@ def test__flatten_dict(input_dict, expected):
     assert _flatten_dict(input_dict) == expected
 
 
-@patch("benchq.mlflow.data_logging.mlflow", autospec=True)
+@patch("benchq.data_logging.mlflow", autospec=True)
 def test_log_input_objects_to_mlflow(mock_mlflow):
     # Given
     test_algo_descrip = AlgorithmImplementation(None, None, 10)
@@ -101,7 +103,7 @@ def test_log_input_objects_to_mlflow(mock_mlflow):
     )  # from DecoderModel
 
 
-@patch("benchq.mlflow.data_logging.mlflow", autospec=True)
+@patch("benchq.data_logging.mlflow", autospec=True)
 def test_log_resource_info_to_mlflow(mock_mlflow):
     # Given
     test_resource_info = ResourceInfo(
@@ -112,7 +114,7 @@ def test_log_resource_info_to_mlflow(mock_mlflow):
         routing_to_measurement_volume_ratio=1,
         total_time_in_seconds=0.01,
         decoder_info=None,
-        widget_name="tau",
+        magic_state_factory_name="tau",
         extra=None,
     )
 
@@ -129,7 +131,7 @@ def test_log_resource_info_to_mlflow(mock_mlflow):
     mock_mlflow.log_metric.assert_any_call("logical_error_rate", 0.1)
 
     mock_mlflow.log_param.assert_any_call("decoder_info", "None")
-    mock_mlflow.log_param.assert_any_call("widget_name", "tau")
+    mock_mlflow.log_param.assert_any_call("magic_state_factory_name", "tau")
 
 
 @patch("mlflow.MlflowClient", autospec=True)

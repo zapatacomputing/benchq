@@ -4,7 +4,7 @@
 import numpy as np
 import pytest
 
-from benchq.algorithms.ld_gsee import (
+from benchq.algorithms.gsee.ld_gsee import (
     get_ff_ld_gsee_max_evolution_time,
     get_ff_ld_gsee_num_circuit_repetitions,
 )

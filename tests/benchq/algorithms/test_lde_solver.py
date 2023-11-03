@@ -11,7 +11,7 @@ from orquestra.integrations.qiskit.conversions import export_to_qiskit
 from orquestra.quantum.circuits import ZZ, Circuit
 from qiskit import Aer, execute
 
-from benchq.algorithms.lde_solver import (
+from benchq.algorithms.lde_solver.lde_solver import (
     get_degree,
     get_kappa,
     get_num_of_grid_points,
@@ -20,9 +20,9 @@ from benchq.algorithms.lde_solver import (
     long_time_propagator,
     matrix_exponentiation,
 )
-from benchq.algorithms.utils.convex_optimization import optimize_chebyshev_coeff
-from benchq.algorithms.utils.qsp_solver import qsp_solver
-from benchq.block_encodings.offset_tridiagonal import (
+from benchq.problem_embedding.qsp.get_qsp_phases import get_qsp_phases
+from benchq.problem_embedding.qsp.get_qsp_polynomial import optimize_chebyshev_coeff
+from benchq.problem_ingestion.block_encodings.offset_tridiagonal import (
     get_offset_tridagonal_block_encoding,
 )
 
@@ -199,7 +199,7 @@ def test_long_time_propagator():
     b = delta_t * de_parameters["b"]
     c = delta_t * de_parameters["c"]
     be_circuit = get_offset_tridagonal_block_encoding(n=n, a=a, b=b, c=c)
-    phases, _ = qsp_solver(chev_coeff, parity=1, options={"criteria": 1e-3})
+    phases, _ = get_qsp_phases(chev_coeff, parity=1, options={"criteria": 1e-3})
     matrix_exp = matrix_exponentiation(
         be_circuit,
         A_matrix_norm,

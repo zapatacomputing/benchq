@@ -8,18 +8,18 @@ import numpy as np
 from orquestra.quantum.circuits import GateOperation, load_circuit, save_circuit
 from orquestra.quantum.decompositions._decomposition import DecompositionRule
 
-from benchq.algorithms.block_encodings.offset_tridiagonal import (
+from benchq.problem_ingestion.block_encodings.offset_tridiagonal import (
     get_offset_tridagonal_block_encoding,
 )
-from benchq.algorithms.lde_solver import get_kappa, long_time_propagator
-from benchq.algorithms.utils.convex_optimization import optimize_chebyshev_coeff
-from benchq.algorithms.utils.qsp_solver import qsp_solver
+from benchq.algorithms.lde_solver.lde_solver import get_kappa, long_time_propagator
+from benchq.problem_embedding.qsp.get_qsp_polynomial import optimize_chebyshev_coeff
+from benchq.problem_embedding.qsp.get_qsp_phases import get_qsp_phases
 from benchq.compilation import (
     pyliqtr_transpile_to_clifford_t,
     transpile_to_native_gates,
 )
 from benchq.compilation.transpile_to_native_gates import decompose_benchq_circuit
-from benchq.data_structures import get_program_from_circuit
+from benchq.algorithms.data_structures import get_program_from_circuit
 
 
 class Remove_Multicontrol(DecompositionRule[GateOperation]):
@@ -120,7 +120,7 @@ def run_time_marching():
     except AssertionError:
         print("Not possible to construct a block encoding for the given entries")
         exit()
-    phases, _ = qsp_solver(chev_coeff, parity=1, options={"criteria": 1e-3})
+    phases, _ = get_qsp_phases(chev_coeff, parity=1, options={"criteria": 1e-3})
     # construct a time-marching circuit for the given parameters set
     time_marching_cir = long_time_propagator(
         phases,

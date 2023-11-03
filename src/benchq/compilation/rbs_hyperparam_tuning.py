@@ -4,12 +4,9 @@ import networkx as nx
 import optuna
 from orquestra.quantum.circuits import Circuit, H
 
-from ..data_structures import (
-    BASIC_SC_ARCHITECTURE_MODEL,
-    QuantumProgram,
-)
-from ..resource_estimation.graph_estimators.graph_partition import GraphPartition
-from ..resource_estimation.graph_estimators import GraphResourceEstimator
+from ..algorithms.data_structures import GraphPartition, QuantumProgram
+from ..quantum_hardware_modeling import BASIC_SC_ARCHITECTURE_MODEL
+from ..resource_estimators.graph_estimators import GraphResourceEstimator
 from . import jl, transpile_to_native_gates
 from .julia_utils import get_nx_graph_from_rbs_adj_list
 

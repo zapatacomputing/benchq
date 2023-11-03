@@ -16,11 +16,12 @@ from pathlib import Path
 from pprint import pprint
 
 from benchq.algorithms.time_evolution import qsp_time_evolution_algorithm
-from benchq.data_structures import DETAILED_ION_TRAP_ARCHITECTURE_MODEL, DecoderModel
-from benchq.problem_ingestion.hamiltonian_generation import (
+from benchq.quantum_hardware_modeling import DETAILED_ION_TRAP_ARCHITECTURE_MODEL
+from benchq.decoder_modeling import DecoderModel
+from benchq.problem_ingestion.hamiltonians.lanl_maglab import (
     generate_triangular_hamiltonian,
 )
-from benchq.resource_estimation.default_pipelines import run_fast_graph_estimate
+from benchq.resource_estimators.default_estimators import run_fast_graph_estimate
 from benchq.timing import measure_time
 
 

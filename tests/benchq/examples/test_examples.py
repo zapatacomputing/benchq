@@ -9,21 +9,24 @@ from orquestra.sdk.schema.workflow_run import State
 from qiskit.circuit import QuantumCircuit
 
 import examples.data.get_icm as icm
-from benchq.compilation import (
-    get_algorithmic_graph_from_Jabalizer,
-    pyliqtr_transpile_to_clifford_t,
-)
-from benchq.conversions import import_circuit
-from benchq.data_structures import (
-    BASIC_SC_ARCHITECTURE_MODEL,
+from benchq.algorithms.data_structures import (
     AlgorithmImplementation,
     ErrorBudget,
     GraphPartition,
     QuantumProgram,
 )
-from benchq.resource_estimation.default_pipelines import run_precise_graph_estimate
-from benchq.resource_estimation.graph import GraphResourceEstimator, graph_estimator
-from benchq.resource_estimation.magic_state_distillation import Widget
+from benchq.compilation import (
+    get_algorithmic_graph_from_Jabalizer,
+    pyliqtr_transpile_to_clifford_t,
+)
+from benchq.conversions import import_circuit
+from benchq.magic_state_distillation import MagicStateFactory
+from benchq.quantum_hardware_modeling import BASIC_SC_ARCHITECTURE_MODEL
+from benchq.resource_estimators.default_estimators import run_precise_graph_estimate
+from benchq.resource_estimators.graph_estimators import (
+    GraphResourceEstimator,
+    graph_estimator,
+)
 
 MAIN_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.dirname(MAIN_DIR))
@@ -129,7 +132,7 @@ def test_toy_example_notebook():
 
     graph_data = estimator._get_graph_data_for_single_graph(graph_partition)
 
-    widget = Widget("(15-to-1)_11,5,5", 1.9e-11, (47, 44), 2070, 30)
+    factory = MagicStateFactory("(15-to-1)_11,5,5", 1.9e-11, (47, 44), 2070, 30)
 
     len(circuit_graph)
 
@@ -143,14 +146,16 @@ def test_toy_example_notebook():
         n_total_t_gates,
         graph_data,
         architecture_model.physical_qubit_error_rate,  # physical error
-        widget,
+        factory,
     )
-    estimator._get_n_physical_qubits(graph_data, distance, widget)
+    estimator._get_n_physical_qubits(graph_data, distance, factory)
     estimator._get_time_per_circuit_in_seconds(
-        graph_data, distance, n_total_t_gates, widget
+        graph_data, distance, n_total_t_gates, factory
     )
 
-    from benchq.resource_estimation.graph.graph_estimator import substrate_scheduler
+    from benchq.resource_estimators.graph_estimators.graph_estimator import (
+        substrate_scheduler,
+    )
 
     compiler = substrate_scheduler(circuit_graph, "fast")
     [[node[0] for node in step] for step in compiler.measurement_steps]

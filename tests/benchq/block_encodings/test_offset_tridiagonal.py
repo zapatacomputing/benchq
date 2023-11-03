@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from benchq.block_encodings.offset_tridiagonal import (
+from benchq.problem_ingestion.block_encodings.offset_tridiagonal import (
     get_offset_tridagonal_block_encoding,
 )
 

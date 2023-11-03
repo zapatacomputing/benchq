@@ -3,17 +3,18 @@ import numpy as np
 import pytest
 from openfermion.resource_estimates.molecule import pyscf_to_cas
 
-from benchq.data_structures import BasicArchitectureModel
-from benchq.problem_ingestion.molecule_instance_generation import (
+from benchq.problem_ingestion.hamiltonians.molecule_instance_generation import (
     generate_hydrogen_chain_instance,
 )
-from benchq.resource_estimation.footprint_estimator.openfermion_re import (
+from benchq.quantum_hardware_modeling import BasicArchitectureModel
+from benchq.resource_estimators.footprint_estimators.openfermion_estimator import (
+    footprint_estimator,
+)
+from benchq.resource_estimators.footprint_estimators.openfermion_re import (
     get_double_factorized_block_encoding_info,
     get_double_factorized_qpe_toffoli_and_qubit_cost,
     get_single_factorized_qpe_toffoli_and_qubit_cost,
 )
-
-from benchq.resource_estimation.footprint_estimator import footprint_estimator
 
 
 @pytest.mark.parametrize(

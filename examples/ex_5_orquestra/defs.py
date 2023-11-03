@@ -9,13 +9,15 @@ import os
 from orquestra import sdk
 
 from benchq.algorithms.time_evolution import qsp_time_evolution_algorithm
-from benchq.data_structures import ErrorBudget
-from benchq.data_structures.hardware_architecture_models import (
+from benchq.algorithms.data_structures import ErrorBudget
+from benchq.quantum_hardware_modeling.hardware_architecture_models import (
     BASIC_SC_ARCHITECTURE_MODEL,
 )
 from benchq.problem_ingestion import get_vlasov_hamiltonian
-from benchq.resource_estimation.footprint_estimator.azure import AzureResourceEstimator
-from benchq.resource_estimation.graph_estimator import (
+from benchq.resource_estimators.footprint_estimators.azure_estimator import (
+    AzureResourceEstimator,
+)
+from benchq.resource_estimators.graph_estimators import (
     GraphResourceEstimator,
     create_big_graph_from_subcircuits,
     run_custom_resource_estimation_pipeline,

@@ -1,7 +1,7 @@
 from functools import singledispatch
 from typing import Iterable
 
-from benchq.data_structures.hardware_architecture_models import (
+from benchq.quantum_hardware_modeling.hardware_architecture_models import (
     DetailedIonTrapModel,
     IONTrapModel,
     SCModel,

@@ -1,7 +1,9 @@
 import numpy
 import pytest
 
-from benchq.resource_estimation import cost_estimator
+from benchq.resource_estimators.footprint_estimators.openfermion_estimator import (
+    cost_estimator,
+)
 
 
 @pytest.mark.parametrize(
@@ -120,7 +122,8 @@ def test_ratio_of_failure_prob(num_toffoli, num_t):
     )
 
     assert (
-        best_params_toffoli.widget.failure_rate / best_params_t.widget.failure_rate
+        best_params_toffoli.magic_state_factory.distilled_magic_state_error_rate
+        / best_params_t.magic_state_factory.distilled_magic_state_error_rate
         == 1.0
     )
 

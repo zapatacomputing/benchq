@@ -12,13 +12,13 @@ import os
 from orquestra.integrations.qiskit.conversions import import_from_qiskit
 from qiskit.circuit import QuantumCircuit
 
-from benchq.data_structures import (
-    BASIC_SC_ARCHITECTURE_MODEL,
+from benchq.algorithms.data_structures import (
     AlgorithmImplementation,
     ErrorBudget,
     get_program_from_circuit,
 )
-from benchq.resource_estimation.graph_estimator import (
+from benchq.quantum_hardware_modeling import BASIC_SC_ARCHITECTURE_MODEL
+from benchq.resource_estimators.graph_estimators import (
     GraphResourceEstimator,
     create_big_graph_from_subcircuits,
     run_custom_resource_estimation_pipeline,

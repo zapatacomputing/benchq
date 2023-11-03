@@ -3,12 +3,10 @@ import warnings
 
 import pytest
 
-from benchq.data_structures import (
-    BASIC_SC_ARCHITECTURE_MODEL,
-    DecoderInfo,
-    DecoderModel,
-)
-from benchq.decoders.decoder_resource_estimator import get_decoder_info
+from benchq.decoder_modeling import DecoderModel
+from benchq.decoder_modeling.decoder_resource_estimator import get_decoder_info
+from benchq.quantum_hardware_modeling import BASIC_SC_ARCHITECTURE_MODEL
+from benchq.resource_estimators.resource_info import DecoderInfo
 
 
 def file_path(file_name):
@@ -52,8 +50,8 @@ def test_if_decoder_equations_have_changed():
     )
     decoder_info = get_decoder_info(BASIC_SC_ARCHITECTURE_MODEL, decoder_model, 4, 2, 3)
     target_info = DecoderInfo(
-        total_energy_consumption_in_nanojoules=0.004,
-        power_in_nanowatts=120000.0,
+        total_energy_in_kilojoules=4e-15,
+        power_in_kilowatts=1.2e-07,
         area_in_micrometers_squared=600.0,
         max_decodable_distance=15,
     )

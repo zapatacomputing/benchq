@@ -8,20 +8,23 @@ from typing import Literal
 
 from benchq.algorithms.time_evolution import qsp_time_evolution_algorithm
 from benchq.compilation import get_ruby_slippers_compiler
-from benchq.data_structures import DETAILED_ION_TRAP_ARCHITECTURE_MODEL, DecoderModel
-from benchq.problem_ingestion.hamiltonian_generation import (
+from benchq.quantum_hardware_modeling import DETAILED_ION_TRAP_ARCHITECTURE_MODEL
+from benchq.decoder_modeling import DecoderModel
+from benchq.problem_ingestion.hamiltonians.lanl_maglab import (
     generate_cubic_hamiltonian,
     generate_kitaev_hamiltonian,
     generate_triangular_hamiltonian,
 )
-from benchq.resource_estimation.graph import (
+from benchq.resource_estimators.graph_estimators import (
     ExtrapolationResourceEstimator,
     create_big_graph_from_subcircuits,
     remove_isolated_nodes,
     run_custom_extrapolation_pipeline,
     transpile_to_native_gates,
 )
-from benchq.resource_estimation.openfermion_re import get_physical_cost
+from benchq.resource_estimators.footprint_estimators.openfermion_estimator import (
+    footprint_estimator,
+)
 
 
 def get_resources(lattice_type: str, size: int, decoder_data_file: str):
@@ -81,7 +84,7 @@ def get_resources(lattice_type: str, size: int, decoder_data_file: str):
         algorithm_implementation.error_budget.transpilation_failure_tolerance,
     )
 
-    footprint_resources = get_physical_cost(
+    footprint_resources = footprint_estimator(
         algorithm_implementation.program.num_data_qubits,
         num_t=total_t_gates,
         architecture_model=my_estimator.hw_model,

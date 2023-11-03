@@ -5,18 +5,20 @@ import numpy as np
 import pytest
 from orquestra.quantum.circuits import CNOT, RX, RY, RZ, Circuit, H, T
 
-from benchq.compilation import get_ruby_slippers_compiler
-from benchq.data_structures import (
-    BASIC_ION_TRAP_ARCHITECTURE_MODEL,
-    BASIC_SC_ARCHITECTURE_MODEL,
-    DETAILED_ION_TRAP_ARCHITECTURE_MODEL,
+from benchq.algorithms.data_structures import (
     AlgorithmImplementation,
-    DecoderModel,
     ErrorBudget,
     QuantumProgram,
     get_program_from_circuit,
 )
-from benchq.resource_estimation.graph_estimator import (
+from benchq.compilation import get_ruby_slippers_compiler
+from benchq.decoder_modeling import DecoderModel
+from benchq.quantum_hardware_modeling import (
+    BASIC_ION_TRAP_ARCHITECTURE_MODEL,
+    BASIC_SC_ARCHITECTURE_MODEL,
+    DETAILED_ION_TRAP_ARCHITECTURE_MODEL,
+)
+from benchq.resource_estimators.graph_estimators import (
     GraphResourceEstimator,
     create_big_graph_from_subcircuits,
     run_custom_resource_estimation_pipeline,
@@ -274,10 +276,9 @@ def test_get_resource_estimations_for_program_accounts_for_decoder(optimization)
         transformers=transformers,
     )
 
-    file_dir = os.path.join(
-        os.path.dirname(os.path.abspath(__file__)), "..", "data_structures"
+    file_path = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), "decoder_test_data.csv"
     )
-    file_path = os.path.join(file_dir, "decoder_test_data.csv")
 
     decoder = DecoderModel.from_csv(file_path)
     gsc_resource_estimates_with_decoder = run_custom_resource_estimation_pipeline(

@@ -4,8 +4,10 @@ import numpy as np
 import pytest
 from orquestra.quantum.circuits import Circuit
 
-from benchq.algorithms.utils.compression_gadget import get_add_dagger, get_add_l
-from benchq.block_encodings.utils.offset_trdiagonal_utils import controlled_clock
+from benchq.algorithms.lde_solver.compression_gadget import get_add_dagger, get_add_l
+from benchq.problem_ingestion.block_encodings.utils.offset_trdiagonal_utils import (
+    controlled_clock,
+)
 
 
 @pytest.mark.parametrize(

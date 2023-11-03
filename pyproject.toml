@@ -30,6 +30,7 @@ module = [
     'scipy.*',
     'sympy.*',
     'rapidjson',
+    'mlflow.*',
     'networkx.*',
     'openfermion.*',
     'openfermionpyscf.*',
@@ -43,6 +44,7 @@ module = [
     'h5py.*',
     'numba.*',
     'juliapkg.*',
+    'urllib3.*',
 ]
 ignore_missing_imports = true
 

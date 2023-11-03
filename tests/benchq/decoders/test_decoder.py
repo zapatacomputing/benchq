@@ -2,7 +2,7 @@ import os
 
 import pytest
 
-from benchq.data_structures import DecoderModel
+from benchq.decoder_modeling import DecoderModel
 
 
 class TestDecoders:

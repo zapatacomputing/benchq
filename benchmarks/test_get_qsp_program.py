@@ -5,13 +5,13 @@ from pathlib import Path
 import pytest
 
 from benchq.algorithms.time_evolution import _n_block_encodings_for_time_evolution
-from benchq.problem_embeddings import get_qsp_program
+from benchq.problem_embedding import get_qsp_program
 from benchq.problem_ingestion import (
     generate_jw_qubit_hamiltonian_from_mol_data,
     get_hamiltonian_from_file,
     get_vlasov_hamiltonian,
 )
-from benchq.problem_ingestion.molecule_instance_generation import (
+from benchq.problem_ingestion.hamiltonians.molecule_instance_generation import (
     generate_hydrogen_chain_instance,
 )
 
