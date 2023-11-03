@@ -6,7 +6,7 @@ from orquestra.quantum.operators import PauliRepresentation
 
 from ...algorithms.data_structures import AlgorithmImplementation, ErrorBudget
 from ...conversions import openfermion_to_pyliqtr
-from ...problem_embedding import get_qsp_program
+from ...problem_embeddings import get_qsp_program
 
 
 def _n_block_encodings(hamiltonian: PauliRepresentation, precision: float):

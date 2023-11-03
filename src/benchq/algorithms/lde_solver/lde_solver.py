@@ -15,7 +15,7 @@ from orquestra.integrations.qiskit.conversions import (
 from orquestra.quantum.circuits import PHASE, RZ, SX, Circuit, X
 from qiskit import QuantumCircuit, transpile
 
-from ...problem_embedding.qsp._lin_and_dong_qsp import build_qsp_circuit
+from ...problem_embeddings.qsp._lin_and_dong_qsp import build_qsp_circuit
 from .compression_gadget import get_add_dagger, get_add_l
 
 

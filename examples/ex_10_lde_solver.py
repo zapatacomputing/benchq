@@ -12,8 +12,8 @@ from benchq.problem_ingestion.block_encodings.offset_tridiagonal import (
     get_offset_tridagonal_block_encoding,
 )
 from benchq.algorithms.lde_solver.lde_solver import get_kappa, long_time_propagator
-from benchq.problem_embedding.qsp.get_qsp_polynomial import optimize_chebyshev_coeff
-from benchq.problem_embedding.qsp.get_qsp_phases import get_qsp_phases
+from benchq.problem_embeddings.qsp.get_qsp_polynomial import optimize_chebyshev_coeff
+from benchq.problem_embeddings.qsp.get_qsp_phases import get_qsp_phases
 from benchq.compilation import (
     pyliqtr_transpile_to_clifford_t,
     transpile_to_native_gates,

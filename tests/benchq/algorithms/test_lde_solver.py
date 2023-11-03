@@ -20,8 +20,8 @@ from benchq.algorithms.lde_solver.lde_solver import (
     long_time_propagator,
     matrix_exponentiation,
 )
-from benchq.problem_embedding.qsp.get_qsp_phases import get_qsp_phases
-from benchq.problem_embedding.qsp.get_qsp_polynomial import optimize_chebyshev_coeff
+from benchq.problem_embeddings.qsp.get_qsp_phases import get_qsp_phases
+from benchq.problem_embeddings.qsp.get_qsp_polynomial import optimize_chebyshev_coeff
 from benchq.problem_ingestion.block_encodings.offset_tridiagonal import (
     get_offset_tridagonal_block_encoding,
 )

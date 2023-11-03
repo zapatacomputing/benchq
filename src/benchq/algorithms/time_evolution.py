@@ -5,7 +5,7 @@ from pyLIQTR.QSP import gen_qsp
 
 from ..algorithms.data_structures import AlgorithmImplementation, ErrorBudget
 from ..conversions import openfermion_to_pyliqtr
-from ..problem_embedding import get_qsp_program, get_trotter_program
+from ..problem_embeddings import get_qsp_program, get_trotter_program
 
 
 # TODO: This logic is copied from pyLIQTR, perhaps we want to change it to our own?

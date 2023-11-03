@@ -15,7 +15,7 @@ from orquestra.integrations.cirq.conversions import from_openfermion
 from qiskit import Aer, QuantumCircuit, transpile
 from scipy.sparse.linalg import expm_multiply
 
-from benchq.problem_embedding._taylorization_lcu import (
+from benchq.problem_embeddings._taylorization_lcu import (
     generate_lcu_taylorization_program,
     generate_prepare_circuits,
     generate_taylor_series,

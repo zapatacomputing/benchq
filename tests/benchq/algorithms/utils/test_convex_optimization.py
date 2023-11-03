@@ -3,7 +3,7 @@
 ###############################################################################
 import pytest
 
-from benchq.problem_embedding.qsp.get_qsp_polynomial import optimize_chebyshev_coeff
+from benchq.problem_embeddings.qsp.get_qsp_polynomial import optimize_chebyshev_coeff
 
 
 @pytest.mark.parametrize(

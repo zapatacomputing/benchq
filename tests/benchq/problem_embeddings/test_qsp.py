@@ -10,7 +10,7 @@ import pytest
 from orquestra.quantum import circuits
 from orquestra.quantum.operators import PauliSum
 
-from benchq.problem_embedding.qsp import _qsp
+from benchq.problem_embeddings.qsp import _qsp
 
 
 def _make_real_pauli_sum(terms_str: str) -> PauliSum:
