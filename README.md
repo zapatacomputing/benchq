@@ -23,7 +23,7 @@ If you plan to use PySCF to generate Hamiltonians, use the `pyscf` install extra
 pip install '.[pyscf]'
 ```
 
-On some systems, the installation of PySCF can be problematic. If you're a Windows user, consider using [WSL](https://learn.microsoft.com/en-us/windows/wsl/install). An alternative is to install PySCF directly from its git repo: `pip install git+https://github.com/pyscf/pyscf@v2.2.1`.
+On some systems, the installation of PySCF can be problematic. If you're a Windows user, consider using [WSL](https://learn.microsoft.com/en-us/windows/wsl/install). You might also consider installing PySCF directly from its git repo: `pip install git+https://github.com/pyscf/pyscf@v2.2.1`.
 
 
 #### Azure Quantum Resource Estimation
@@ -42,7 +42,7 @@ pytest benchmarks/
 
 from the top-level directory of this repo.
 
-By default, this will skip some benchmarks that run extremely low. If you want to run
+By default, this will skip some benchmarks that are extremely slow. If you want to run
 those too, set environmental variable `SLOW_BENCHMARKS` to any value, e.g.:
 
 ``` bash
