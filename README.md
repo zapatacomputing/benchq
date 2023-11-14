@@ -56,8 +56,7 @@ These benchmarks are run automatically on each release. You can see the performa
 To install the development version, run `pip install -e '.[dev]'` from the main directory.
 
 We use [Google-style](https://sphinxcontrib-napoleon.readthedocs.io/en/latest/example_google.html) docstring format. If you'd like to specify types, please use [PEP 484](https://www.python.org/dev/peps/pep-0484/) type hints instead adding them to docstrings.
-
-There are codestyle-related [Github Actions](.github/workflows/style.yml) running for PRs. (TODO)
+[Style checks](.github/workflows/style.yml) will automatically be run on pull requests.
 
 - If you'd like to report a bug/issue please create a new issue in this repository.
 - If you'd like to contribute, please create a pull request to `main`.
