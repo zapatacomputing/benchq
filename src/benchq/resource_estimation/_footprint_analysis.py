@@ -270,9 +270,6 @@ def cost_estimator(
                     best_cost = cost
                     best_params = params
 
-    print("   ")
-    print(best_cost)
-    print(best_params)
     if best_cost is None:
         raise RuntimeError(
             "Failed to find parameters that yield an acceptable failure probability. "

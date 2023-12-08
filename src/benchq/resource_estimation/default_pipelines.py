@@ -1,12 +1,11 @@
 from typing import List, Optional
 
 from ..compilation import get_algorithmic_graph_from_ruby_slippers
-from ..data_structures import (
-    AlgorithmImplementation,
-    DecoderModel,
-    ExtrapolatedGraphResourceInfo,
-    ResourceInfo,
-)
+from ..data_structures.algorithm_implementation import AlgorithmImplementation
+from ..data_structures.resource_info import ResourceInfo, ExtrapolatedGraphResourceInfo
+from ..data_structures.decoder import DecoderModel
+
+
 from ..data_structures.hardware_architecture_models import BasicArchitectureModel
 from .graph.customizable_pipelines import (
     run_custom_extrapolation_pipeline,

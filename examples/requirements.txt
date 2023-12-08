@@ -1,0 +1,6 @@
+notebook==6.4.12
+icecream
+ipykernel
+jupyter_contrib_nbextensions
+jupyterthemes
+rise
