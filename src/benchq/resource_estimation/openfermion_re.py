@@ -5,7 +5,13 @@
 from typing import Tuple
 
 import numpy as np
-from openfermion.resource_estimates import df, sf
+import warnings
+
+with warnings.catch_warnings():
+    warnings.filterwarnings("ignore", category=DeprecationWarning)
+    # openfermion throws deprecation warning thru pyscf and numpy
+    # Could be fixed by using old setuptools, but there would be dependency conflict
+    from openfermion.resource_estimates import df, sf
 
 from benchq.data_structures import (
     BASIC_SC_ARCHITECTURE_MODEL,

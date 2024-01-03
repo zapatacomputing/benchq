@@ -2,6 +2,7 @@
 # © Copyright 2022 Zapata Computing Inc.
 ################################################################################
 import os
+import warnings
 from copy import deepcopy
 from dataclasses import asdict, dataclass
 from typing import Iterable, List, Optional, Tuple
@@ -257,7 +258,9 @@ def _run_pyscf(scf_info: SCFInfo) -> Tuple[gto.Mole, scf.hf.SCF]:
             mean_field_object.run(**scf_info.scf_options)
         else:
             # we don't want to run on mlflow, and haven't specified scf_options
-            mean_field_object.run()
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", category=DeprecationWarning)
+                mean_field_object.run()
 
     if not mean_field_object.converged:
         raise SCFConvergenceError()

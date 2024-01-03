@@ -1,7 +1,20 @@
 import numpy
 import numpy as np
 import pytest
-from openfermion.resource_estimates.molecule import pyscf_to_cas
+import warnings
+
+
+
+with warnings.catch_warnings():
+    warnings.filterwarnings("ignore", category=DeprecationWarning)
+    # openfermion throws deprecation warning thru pyscf and numpy
+    # Could be fixed by using old setuptools, but there would be dependency conflict
+
+    # We also need to disable GC for pyscf. It causes resources warnings
+    import pyscf
+    pyscf.gto.mole.DISABLE_GC = True
+
+    from openfermion.resource_estimates.molecule import pyscf_to_cas
 
 from benchq.data_structures import BasicArchitectureModel
 from benchq.problem_ingestion.molecule_instance_generation import (
