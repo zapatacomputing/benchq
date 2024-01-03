@@ -1,6 +1,7 @@
 ################################################################################
 # © Copyright 2022 Zapata Computing Inc.
 ################################################################################
+import warnings
 from typing import Optional, Union
 
 from cirq.circuits import Circuit as CirqCircuit
@@ -56,12 +57,17 @@ def pyliqtr_transpile_to_clifford_t(
         raise ValueError("Please supply gate or circuit precision not both")
 
     cirq_circuit = export_circuit(CirqCircuit, orquestra_circuit)
-    compiled_cirq_circuit = clifford_plus_t_direct_transform(
-        cirq_circuit,
-        precision=gate_precision,
-        circuit_precision=circuit_precision,
-        use_random_decomp=False,
-        num_rotation_gates=n_rotation_gates,
-    )
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=RuntimeWarning)
+        # Pyliqtr throws "RuntimeWarning: H is not a rotation gate, cannot decompose.
+        # Set warn_if_not_decomposed=False to silence this warning." but the setting
+        # to silent warning is not exposed by pyliqtr.
+        compiled_cirq_circuit = clifford_plus_t_direct_transform(
+            cirq_circuit,
+            precision=gate_precision,
+            circuit_precision=circuit_precision,
+            use_random_decomp=False,
+            num_rotation_gates=n_rotation_gates,
+        )
 
     return import_circuit(compiled_cirq_circuit, orquestra_circuit.n_qubits)

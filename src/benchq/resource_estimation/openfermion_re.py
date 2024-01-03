@@ -2,10 +2,10 @@
 # © Copyright 2023 Zapata Computing Inc.
 ################################################################################
 
+import warnings
 from typing import Tuple
 
 import numpy as np
-import warnings
 
 with warnings.catch_warnings():
     warnings.filterwarnings("ignore", category=DeprecationWarning)

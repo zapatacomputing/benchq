@@ -1,9 +1,8 @@
+import warnings
+
 import numpy
 import numpy as np
 import pytest
-import warnings
-
-
 
 with warnings.catch_warnings():
     warnings.filterwarnings("ignore", category=DeprecationWarning)
@@ -12,6 +11,7 @@ with warnings.catch_warnings():
 
     # We also need to disable GC for pyscf. It causes resources warnings
     import pyscf
+
     pyscf.gto.mole.DISABLE_GC = True
 
     from openfermion.resource_estimates.molecule import pyscf_to_cas

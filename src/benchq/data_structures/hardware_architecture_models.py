@@ -116,14 +116,8 @@ class DetailedIonTrapModel:
             num_communication_qubits_per_elu=communication_qubits,
             num_memory_qubits_per_elu=memory_qubits,
             num_computational_qubits_per_elu=computational_qubits,
-            num_optical_cross_connect_layers=self.num_optical_cross_connect_layers(
-                num_elus,
-                communication_qubits,
-                num_communication_ports_per_elu,
-            ),
-            num_ELUs_per_optical_cross_connect=self.num_ELUs_per_optical_cross_connect(
-                code_distance, communication_qubits
-            ),
+            num_optical_cross_connect_layers=-1,
+            num_ELUs_per_optical_cross_connect=-1,
             total_num_ions=total_num_ions,
             total_num_communication_qubits=total_num_communication_qubits,
             total_num_memory_qubits=total_num_memory_qubits,
