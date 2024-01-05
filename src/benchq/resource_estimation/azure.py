@@ -63,7 +63,7 @@ class AzureResourceEstimator:
         self.hw_model = hw_model
         self.use_full_circuit = use_full_circuit
 
-    def estimate(
+    def estimate_from_circuit(
         self,
         algorithm,
     ) -> AzureResourceInfo:
@@ -81,12 +81,32 @@ class AzureResourceEstimator:
             return self._estimate_resources_for_circuit(circuit, azure_error_budget)
         else:
             raise NotImplementedError(
-                "Resource estimation for Quantum Programs which are not consisting "
-                "of a single circuit is not implemented yet."
+                "Wrong estiamtor called!"
             )
 
-    def _estimate_resources_for_circuit(
-        self, circuit: Circuit, error_budget: Dict[str, float]
+    def estimate_from_t_gate_count(
+        self,
+        algorithm,
+        t_gate_count: int,
+    ) -> AzureResourceInfo:
+        azure_error_budget: Dict[str, float] = {}
+        if algorithm.error_budget is not None:
+            azure_error_budget = {}
+            azure_error_budget[
+                "rotations"
+            ] = algorithm.error_budget.transpilation_failure_tolerance
+            remaining_error = algorithm.error_budget.hardware_failure_tolerance
+            azure_error_budget["logical"] = remaining_error / 2
+            azure_error_budget["tstates"] = remaining_error / 2
+        if not self.use_full_circuit:
+            return self._estimate_resources_for_num_t_gates(num_t_gates, azure_error_budget)
+        else:
+            raise NotImplementedError(
+                "Wrong estiamtor called!"
+            )   
+    
+    def _estimate_resources_for_num_t_gates(
+        self, num_t_gates: int, error_budget: Dict[str, float]
     ) -> AzureResourceInfo:
         if self.hw_model is not None:
             gate_time = self.hw_model.surface_code_cycle_time_in_seconds
@@ -102,17 +122,16 @@ class AzureResourceEstimator:
         else:
             qubitParams = None
 
-        qiskit_circuit = export_to_qiskit(circuit)
         provider = AzureQuantumProvider(
             resource_id=os.getenv("AZURE_RESOURCE_ID"), location="East US"
         )
 
         backend = provider.get_backend("microsoft.estimator")
         if qubitParams is None:
-            job = backend.run(qiskit_circuit, errorBudget=error_budget)
+            job = backend.run(num_t_gates, errorBudget=error_budget)
         else:
             job = backend.run(
-                qiskit_circuit, qubitParams=qubitParams, errorBudget=error_budget
+                num_t_gates, qubitParams=qubitParams, errorBudget=error_budget
             )
 
         job_monitor(job)
@@ -122,3 +141,8 @@ class AzureResourceEstimator:
             job_results["physicalCounts"]["runtime"] / 1e9
         )
         return _azure_result_to_resource_info(job_results)
+
+
+            raise NotImplementedError(
+                "Wrong estiamtor called!"
+            )
