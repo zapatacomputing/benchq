@@ -5,7 +5,11 @@ import numpy as np
 import pytest
 
 with warnings.catch_warnings():
-    warnings.filterwarnings("ignore", category=DeprecationWarning)
+    warnings.filterwarnings(
+        "ignore",
+        message="\n\n"
+        "  `numpy.distutils` is deprecated since NumPy 1.23.0, as a result\n",
+    )
     # openfermion throws deprecation warning thru pyscf and numpy
     # Could be fixed by using old setuptools, but there would be dependency conflict
 
