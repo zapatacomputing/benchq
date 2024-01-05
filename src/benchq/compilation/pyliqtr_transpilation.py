@@ -58,7 +58,9 @@ def pyliqtr_transpile_to_clifford_t(
 
     cirq_circuit = export_circuit(CirqCircuit, orquestra_circuit)
     with warnings.catch_warnings():
-        warnings.filterwarnings("ignore", message=r"\w* is not a rotation gate, cannot decompose.")
+        warnings.filterwarnings(
+            "ignore", message=r"\w* is not a rotation gate, cannot decompose."
+        )
         compiled_cirq_circuit = clifford_plus_t_direct_transform(
             cirq_circuit,
             precision=gate_precision,
