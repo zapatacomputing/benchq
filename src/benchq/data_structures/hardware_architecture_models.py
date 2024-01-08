@@ -234,18 +234,15 @@ class DetailedIonTrapModel:
         # must be used for connecting to connector switches
         # Each switch has 1000 ports
         # Each group of ELU + neighbor has at most 4 ELUs
-        warnings.warn("This output parameter has yet to be implemented.")
 
-        num_OXC_layers = None
-
-        return num_OXC_layers
+        # Not yet implemented
+        return -1
 
     def num_ELUs_per_optical_cross_connect(
         self, code_distance: int, num_communication_qubits: int
     ):
-        warnings.warn("This output parameter has yet to be implemented.")
-        num_ELUs_per_OXC = None
-        return num_ELUs_per_OXC
+        # Not yet implemented
+        return -1
 
 
 DETAILED_ION_TRAP_ARCHITECTURE_MODEL = DetailedIonTrapModel()

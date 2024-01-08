@@ -2,10 +2,21 @@
 # © Copyright 2023 Zapata Computing Inc.
 ################################################################################
 
+import warnings
 from typing import Tuple
 
 import numpy as np
-from openfermion.resource_estimates import df, sf
+
+with warnings.catch_warnings():
+    warnings.filterwarnings(
+        "ignore",
+        message="\n\n"
+        "  `numpy.distutils` is deprecated "
+        "since NumPy 1.23.0, as a result\n",
+    )
+    # openfermion throws deprecation warning thru pyscf and numpy
+    # Could be fixed by using old setuptools, but there would be dependency conflict
+    from openfermion.resource_estimates import df, sf
 
 from benchq.data_structures import (
     BASIC_SC_ARCHITECTURE_MODEL,
