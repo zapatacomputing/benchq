@@ -11,18 +11,21 @@ from orquestra.integrations.qiskit.conversions import export_to_qiskit
 from orquestra.quantum.circuits import ZZ, Circuit
 from qiskit import Aer, execute
 
-from benchq.algorithms.lde_solver.lde_solver import (
-    get_degree,
-    get_kappa,
-    get_num_of_grid_points,
+from benchq.problem_embeddings.time_marching import (
     get_prep_int,
-    inverse_blockencoding,
+    inverse_block_encoding,
     long_time_propagator,
     matrix_exponentiation,
 )
+from benchq.problem_ingestion.test_time_marching_matrix_properties import (
+    get_degree,
+    get_kappa,
+    get_num_of_grid_points,
+)
+from benchq.problem_embeddings.
 from benchq.problem_embeddings.qsp.get_qsp_phases import get_qsp_phases
 from benchq.problem_embeddings.qsp.get_qsp_polynomial import optimize_chebyshev_coeff
-from benchq.problem_ingestion.block_encodings.offset_tridiagonal import (
+from benchq.problem_embeddings.block_encodings.offset_tridiagonal import (
     get_offset_tridagonal_block_encoding,
 )
 
@@ -30,25 +33,6 @@ SKIP_SLOW = pytest.mark.skipif(
     os.getenv("SLOW_BENCHMARKS") is None,
     reason="Slow benchmarks can only run if SLOW_BENCHMARKS env variable is defined",
 )
-
-
-@pytest.mark.parametrize(
-    "kappa, epsilon, expected_result",
-    [
-        (1, 1e-1, 3),
-        (1, 1e-3, 7),
-        (10, 1e-3, 80),
-        (10, 1e-6, 128),
-        (20, 1e-6, 269),
-        (30, 1e-6, 415),
-        (40, 1e-6, 564),
-        (10, 1e-14, 254),
-        (20, 1e-14, 521),
-    ],
-)
-def test_get_degree(kappa, epsilon, expected_result):
-    result = get_degree(kappa, epsilon)
-    assert result == expected_result
 
 
 @pytest.mark.parametrize(
@@ -119,12 +103,12 @@ def construct_dummy_cir():
         (1.3, 1e-3, 0.1),
     ],
 )
-def test_inverse_blockencoding(beta, epsilon, time):
+def test_inverse_block_encoding(beta, epsilon, time):
     matrix_norm, dummy_circuit = construct_dummy_cir()
     kappa = get_kappa(matrix_norm, time)
     K = get_num_of_grid_points(matrix_norm, epsilon, beta)
     total_qubits = dummy_circuit.n_qubits + ceil(np.log2(K)) + 2
-    sel_inv = inverse_blockencoding(dummy_circuit, matrix_norm, time, beta, epsilon)
+    sel_inv = inverse_block_encoding(dummy_circuit, matrix_norm, time, beta, epsilon)
 
     # Note: the expected number of the 'custom_matrix' repetitions is 1 less than
     # the degree of the approximating polynomial because of the
@@ -153,7 +137,7 @@ matrix_exp_test = matrix_exponentiation(dummy_circuit, matrix_norm, time, beta, 
     [(1e-3), (1e-2), (1e-4)],
 )
 def test_matrix_exponentiation(epsilon):
-    sel_inv = inverse_blockencoding(dummy_circuit, matrix_norm, time, beta, epsilon)
+    sel_inv = inverse_block_encoding(dummy_circuit, matrix_norm, time, beta, epsilon)
     total_qubits = sel_inv.n_qubits
     matrix_exp = matrix_exponentiation(dummy_circuit, matrix_norm, time, beta, epsilon)
 

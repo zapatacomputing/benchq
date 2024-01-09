@@ -1,6 +1,5 @@
 import warnings
 
-import numpy
 import numpy as np
 import pytest
 
@@ -28,7 +27,6 @@ from benchq.resource_estimators.footprint_estimators.openfermion_estimator impor
     footprint_estimator,
 )
 from benchq.problem_embeddings._qpe import (
-    get_double_factorized_block_encoding,
     get_double_factorized_qpe_toffoli_and_qubit_cost,
     get_single_factorized_qpe_toffoli_and_qubit_cost,
 )
@@ -78,64 +76,6 @@ def test_df_qpe_logical_qubit_count_is_larger_than_number_of_spin_orbitals(
     assert num_qubits > 2 * eri_full.shape[0]
 
 
-@pytest.mark.parametrize(
-    "avas_atomic_orbitals,avas_minao",
-    [
-        (None, None),
-        (["H 1s", "H 2s"], "sto-3g"),
-    ],
-)
-def test_df_block_encoding_logical_qubit_count_is_larger_than_number_of_spin_orbitals(
-    avas_atomic_orbitals, avas_minao
-):
-    instance = generate_hydrogen_chain_instance(8)
-    instance.avas_atomic_orbitals = avas_atomic_orbitals
-    instance.avas_minao = avas_minao
-    mean_field_object = instance.get_active_space_meanfield_object()
-    h1, eri_full, _, _, _ = pyscf_to_cas(mean_field_object)
-
-    (num_toffoli, num_qubits, lam) = get_double_factorized_block_encoding(
-        h1, eri_full, 1e-6
-    )
-    assert num_qubits > 2 * eri_full.shape[0]
-
-
-@pytest.mark.parametrize(
-    "avas_atomic_orbitals,avas_minao",
-    [
-        (None, None),
-        (["H 1s", "H 2s"], "sto-3g"),
-    ],
-)
-def test_df_block_encoding_lambda_scales_with_hamiltonian(
-    avas_atomic_orbitals, avas_minao
-):
-    instance = generate_hydrogen_chain_instance(8)
-    instance.avas_atomic_orbitals = avas_atomic_orbitals
-    instance.avas_minao = avas_minao
-    mean_field_object = instance.get_active_space_meanfield_object()
-    h1, eri_full, _, _, _ = pyscf_to_cas(mean_field_object)
-
-    threshold = 1e-6
-    scale_factor = 10
-
-    (num_toffoli, num_qubits, lam) = get_double_factorized_block_encoding(
-        h1, eri_full, threshold
-    )
-
-    (
-        scaled_num_toffoli,
-        scaled_num_qubits,
-        scaled_lam,
-    ) = get_double_factorized_block_encoding(
-        scale_factor * h1, scale_factor * eri_full, scale_factor * threshold
-    )
-
-    assert scaled_num_qubits == num_qubits
-    assert scaled_num_toffoli == num_toffoli
-    assert np.isclose(scaled_lam, scale_factor * lam, rtol=1e-3)
-
-
 def _get_asymmetric_hamiltonian():
     instance = generate_hydrogen_chain_instance(8)
     instance.avas_atomic_orbitals = ["H 1s", "H 2s"]
@@ -156,12 +96,6 @@ def test_double_factorized_qpe_raises_exception_for_invalid_eri():
     h1, eri_full = _get_asymmetric_hamiltonian()
     with pytest.raises(ValueError):
         get_double_factorized_qpe_toffoli_and_qubit_cost(h1, eri_full, 1e-6)
-
-
-def test_double_factorized_block_encoding_raises_exception_for_invalid_eri():
-    h1, eri_full = _get_asymmetric_hamiltonian()
-    with pytest.raises(ValueError):
-        get_double_factorized_block_encoding(h1, eri_full, 1e-6)
 
 
 def test_physical_qubits_larger_than_logical_qubits():
@@ -256,7 +190,7 @@ def test_linearity_of_duration_wrt_scc_time(scc_time_low, scc_time_high):
         hardware_failure_tolerance=1e-1,
     )
 
-    numpy.testing.assert_allclose(
+    np.testing.assert_allclose(
         resource_estimates_high.total_time_in_seconds / scc_time_high,
         resource_estimates_low.total_time_in_seconds / scc_time_low,
     )
@@ -334,7 +268,7 @@ def test_calc_of_algorithm_failure_prob(n_toffoli, n_T):
         hardware_failure_tolerance=1e-1,
     )
 
-    numpy.testing.assert_almost_equal(
+    np.testing.assert_almost_equal(
         (best_toffoli.logical_error_rate - 2 * best_T.logical_error_rate), 0, decimal=5
     )
 
@@ -364,7 +298,7 @@ def test_algorithm_failure_prob_calculation():
         architecture_model=BAM,
         hardware_failure_tolerance=1e-1,
     )
-    numpy.testing.assert_almost_equal(
+    np.testing.assert_almost_equal(
         best_cost_toffoli.logical_error_rate, best_cost_t.logical_error_rate
     )
 

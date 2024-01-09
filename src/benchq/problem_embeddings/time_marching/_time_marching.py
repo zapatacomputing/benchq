@@ -103,7 +103,7 @@ def control_prep(k: int, beta: float) -> Tuple[Circuit, Circuit]:
     return c_prep, c_prep_prime
 
 
-def inverse_blockencoding(
+def inverse_block_encoding(
     be_matrix: Circuit, matrix_norm: float, time: float, beta: float, epsilon: float
 ) -> Circuit:
     """Constructs SEL_inv, an inverse of the block encoding, utilizing the QSP.
@@ -227,7 +227,7 @@ def matrix_exponentiation(
             the approximation exp(A)=f(A).
     """
     prep_int, prep_int_prime = get_prep_int(matrix_norm, beta, epsilon)
-    sel_inverse = inverse_blockencoding(be_matrix, matrix_norm, time, beta, epsilon)
+    sel_inverse = inverse_block_encoding(be_matrix, matrix_norm, time, beta, epsilon)
     # shifting indices
     shifted_prep_int = Circuit(
         [
