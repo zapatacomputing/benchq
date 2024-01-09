@@ -4,19 +4,16 @@ from typing import Callable, Sequence, Tuple
 
 import networkx as nx
 
-from ...algorithms.data_structures import (
-    ErrorBudget,
-    GraphPartition,
-)
-from ...problem_embeddings.quantum_program import (
-    QuantumProgram,
-    get_program_from_circuit,
-)
+from ...algorithms.data_structures import ErrorBudget, GraphPartition
 from ...compilation import (
     get_algorithmic_graph_from_ruby_slippers,
     pyliqtr_transpile_to_clifford_t,
 )
 from ...compilation import transpile_to_native_gates as _transpile_to_native_gates
+from ...problem_embeddings.quantum_program import (
+    QuantumProgram,
+    get_program_from_circuit,
+)
 
 
 def _distribute_transpilation_failure_tolerance(

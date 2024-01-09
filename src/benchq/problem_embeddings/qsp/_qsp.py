@@ -13,8 +13,8 @@ from orquestra.quantum.operators import PauliRepresentation
 from pyLIQTR.QSP import gen_qsp
 from pyLIQTR.QSP.qsp_helpers import qsp_decompose_once
 
-from ..quantum_program import QuantumProgram
 from ...conversions import openfermion_to_pyliqtr
+from ..quantum_program import QuantumProgram
 
 TCircuit = TypeVar("TCircuit")
 

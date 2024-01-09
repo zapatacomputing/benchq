@@ -12,12 +12,12 @@ from orquestra.integrations.qiskit.conversions import import_from_qiskit
 from orquestra.quantum.circuits import CNOT, CZ, Circuit, H, S, T, X
 from qiskit import QuantumCircuit
 
-from benchq.problem_embeddings.quantum_program import QuantumProgram
 from benchq.compilation import (
     jl,
     pyliqtr_transpile_to_clifford_t,
     transpile_to_native_gates,
 )
+from benchq.problem_embeddings.quantum_program import QuantumProgram
 
 
 @pytest.mark.parametrize(

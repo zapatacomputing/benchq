@@ -5,16 +5,13 @@ import numpy as np
 import pytest
 from orquestra.quantum.circuits import CNOT, RX, RY, RZ, Circuit, H, T
 
-from benchq.algorithms.data_structures import (
-    AlgorithmImplementation,
-    ErrorBudget,
-)
+from benchq.algorithms.data_structures import AlgorithmImplementation, ErrorBudget
+from benchq.compilation import get_ruby_slippers_compiler
+from benchq.decoder_modeling import DecoderModel
 from benchq.problem_embeddings.quantum_program import (
     QuantumProgram,
     get_program_from_circuit,
 )
-from benchq.compilation import get_ruby_slippers_compiler
-from benchq.decoder_modeling import DecoderModel
 from benchq.quantum_hardware_modeling import (
     BASIC_ION_TRAP_ARCHITECTURE_MODEL,
     BASIC_SC_ARCHITECTURE_MODEL,

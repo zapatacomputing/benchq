@@ -3,12 +3,8 @@
 ################################################################################
 from orquestra.quantum.operators import PauliSum
 
-from .data_structures import (
-    AlgorithmImplementation,
-    ErrorBudget,
-)
-
 from ..problem_embeddings._qaoa import get_qaoa_program
+from .data_structures import AlgorithmImplementation, ErrorBudget
 
 
 def get_qaoa_optimization_algorithm(

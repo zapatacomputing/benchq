@@ -4,12 +4,12 @@ import numpy as np
 import pytest
 from orquestra.quantum.circuits import Circuit
 
+from benchq.problem_embeddings.block_encodings.offset_tridiagonal_utils import (
+    controlled_clock,
+)
 from benchq.problem_embeddings.time_marching.compression_gadget import (
     get_add_dagger,
     get_add_l,
-)
-from benchq.problem_embeddings.block_encodings.offset_tridiagonal_utils import (
-    controlled_clock,
 )
 
 

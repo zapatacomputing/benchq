@@ -14,21 +14,19 @@ from benchq.algorithms.data_structures import (
     ErrorBudget,
     GraphPartition,
 )
-from benchq.problem_embeddings.quantum_program import QuantumProgram
 from benchq.compilation import (
     get_algorithmic_graph_from_Jabalizer,
     pyliqtr_transpile_to_clifford_t,
 )
 from benchq.conversions import import_circuit
 from benchq.magic_state_distillation import MagicStateFactory
+from benchq.magic_state_distillation.litinski_factories import iter_litinski_factories
+from benchq.problem_embeddings.quantum_program import QuantumProgram
 from benchq.quantum_hardware_modeling import BASIC_SC_ARCHITECTURE_MODEL
 from benchq.resource_estimators.default_estimators import run_precise_graph_estimate
 from benchq.resource_estimators.graph_estimators import (
     GraphResourceEstimator,
     graph_estimator,
-)
-from benchq.magic_state_distillation.litinski_factories import (
-    iter_litinski_factories,
 )
 
 MAIN_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))

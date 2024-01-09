@@ -19,16 +19,16 @@ with warnings.catch_warnings():
 
     from openfermion.resource_estimates.molecule import pyscf_to_cas
 
+from benchq.problem_embeddings._qpe import (
+    get_double_factorized_qpe_toffoli_and_qubit_cost,
+    get_single_factorized_qpe_toffoli_and_qubit_cost,
+)
 from benchq.problem_ingestion.hamiltonians.molecule_instance_generation import (
     generate_hydrogen_chain_instance,
 )
 from benchq.quantum_hardware_modeling import BasicArchitectureModel
 from benchq.resource_estimators.footprint_estimators.openfermion_estimator import (
     footprint_estimator,
-)
-from benchq.problem_embeddings._qpe import (
-    get_double_factorized_qpe_toffoli_and_qubit_cost,
-    get_single_factorized_qpe_toffoli_and_qubit_cost,
 )
 
 

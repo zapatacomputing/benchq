@@ -1,14 +1,10 @@
 from dataclasses import dataclass
 from typing import Generic, TypeVar
 
-
+from ...conversions import SUPPORTED_CIRCUITS, import_circuit
+from ...problem_embeddings import QuantumProgram, get_program_from_circuit
 from .error_budget import ErrorBudget
 from .graph_partition import GraphPartition
-from ...problem_embeddings import (
-    QuantumProgram,
-    get_program_from_circuit,
-)
-from ...conversions import import_circuit, SUPPORTED_CIRCUITS
 
 T = TypeVar("T", QuantumProgram, GraphPartition)
 

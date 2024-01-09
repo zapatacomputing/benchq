@@ -4,15 +4,10 @@ import numpy as np
 import pytest
 from orquestra.quantum.circuits import CNOT, RZ, Circuit, H
 
-from benchq.algorithms.data_structures import (
-    AlgorithmImplementation,
-    ErrorBudget,
-)
+from benchq.algorithms.data_structures import AlgorithmImplementation, ErrorBudget
 from benchq.problem_embeddings.quantum_program import get_program_from_circuit
 from benchq.quantum_hardware_modeling.hardware_architecture_models import IONTrapModel
-from benchq.resource_estimators.azure_estimator import (
-    AzureResourceEstimator,
-)
+from benchq.resource_estimators.azure_estimator import AzureResourceEstimator
 
 SKIP_AZURE = pytest.mark.skipif(
     os.getenv("BENCHQ_TEST_AZURE") is None,

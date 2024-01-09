@@ -7,9 +7,7 @@ from typing import Tuple
 import numpy as np
 from openfermion.resource_estimates import df
 
-from benchq.problem_ingestion.hamiltonians._compute_lambda import (
-    compute_lambda_df,
-)
+from benchq.problem_ingestion.hamiltonians._compute_lambda import compute_lambda_df
 
 from .._qpe import _get_double_factorized_qpe_info
 

@@ -7,9 +7,7 @@ from orquestra.quantum.circuits import Circuit
 from orquestra.quantum.operators import PauliSum
 from orquestra.vqa.algorithms.qaoa import QAOA
 
-from .quantum_program import (
-    QuantumProgram,
-)
+from .quantum_program import QuantumProgram
 
 
 def get_qaoa_circuit(hamiltonian: PauliSum, n_layers: int = 1) -> Circuit:

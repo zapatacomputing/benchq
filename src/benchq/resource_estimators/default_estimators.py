@@ -4,9 +4,9 @@ from typing import List, Optional
 import numpy as np
 
 from ..algorithms.data_structures import AlgorithmImplementation
-from ..problem_embeddings.quantum_program import QuantumProgram
 from ..compilation import get_algorithmic_graph_from_ruby_slippers
 from ..decoder_modeling import DecoderModel
+from ..problem_embeddings.quantum_program import QuantumProgram
 from ..quantum_hardware_modeling.hardware_architecture_models import (
     BasicArchitectureModel,
 )
