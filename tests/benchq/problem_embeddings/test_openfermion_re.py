@@ -1,7 +1,24 @@
+import warnings
+
 import numpy
 import numpy as np
 import pytest
-from openfermion.resource_estimates.molecule import pyscf_to_cas
+
+with warnings.catch_warnings():
+    warnings.filterwarnings(
+        "ignore",
+        message="\n\n"
+        "  `numpy.distutils` is deprecated since NumPy 1.23.0, as a result\n",
+    )
+    # openfermion throws deprecation warning thru pyscf and numpy
+    # Could be fixed by using old setuptools, but there would be dependency conflict
+
+    # We also need to disable GC for pyscf. It causes resources warnings
+    import pyscf
+
+    pyscf.gto.mole.DISABLE_GC = True
+
+    from openfermion.resource_estimates.molecule import pyscf_to_cas
 
 from benchq.problem_ingestion.hamiltonians.molecule_instance_generation import (
     generate_hydrogen_chain_instance,

@@ -140,8 +140,8 @@ class TestDetailedIonTrapModel:
                 num_communication_qubits_per_elu=qubits,
                 num_memory_qubits_per_elu=code_distance,
                 num_computational_qubits_per_elu=num_computational_qubits_per_elu,
-                num_optical_cross_connect_layers=None,
-                num_ELUs_per_optical_cross_connect=None,
+                num_optical_cross_connect_layers=-1,
+                num_ELUs_per_optical_cross_connect=-1,
                 total_num_ions=n_logical_qubits
                 * (num_computational_qubits_per_elu + code_distance + qubits),
                 total_num_communication_qubits=n_logical_qubits * qubits,

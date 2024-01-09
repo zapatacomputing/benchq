@@ -70,7 +70,7 @@ def _estimate_cost(params: AlgorithmParameters) -> CostEstimate:
             * (1 + params.routing_overhead_proportion)
         )
     )
-    n_physical_qubits_used_for_clifford_circuit = (
+    n_physical_qubits_used_for_computation = (
         n_logical_qubits_used_for_computation
         * physical_qubits_per_logical_qubit(params.logical_data_qubit_distance)
     )
@@ -93,7 +93,7 @@ def _estimate_cost(params: AlgorithmParameters) -> CostEstimate:
 
     V_computation = (
         params.proportion_of_bounding_box
-        * n_physical_qubits_used_for_clifford_circuit
+        * n_physical_qubits_used_for_computation
         * total_distillation_cycles
     )
     data_failure = (
@@ -105,7 +105,7 @@ def _estimate_cost(params: AlgorithmParameters) -> CostEstimate:
     )
 
     return CostEstimate(
-        physical_qubit_count=n_physical_qubits_used_for_clifford_circuit
+        physical_qubit_count=n_physical_qubits_used_for_computation
         + n_physical_qubits_used_for_distillation,
         duration=total_distillation_cycles * params.surface_code_cycle_time,
         algorithm_failure_probability=min(1.0, data_failure + distillation_failure),
@@ -122,6 +122,7 @@ def _cost_estimator(
     portion_of_bounding_box: float = 1.0,
     routing_overhead_proportion: float = 0.5,
     hardware_failure_tolerance: float = 1e-3,
+    factory_count: int = 4,
     magic_state_factory_iterator: Optional[Iterable[MagicStateFactory]] = None,
 ):
     """
@@ -147,7 +148,7 @@ def _cost_estimator(
                 toffoli_count=num_toffoli,
                 t_count=num_t,
                 max_allocated_logical_qubits=num_logical_qubits,
-                factory_count=4,
+                factory_count=factory_count,
                 routing_overhead_proportion=routing_overhead_proportion,
                 proportion_of_bounding_box=portion_of_bounding_box,
             )
@@ -180,6 +181,7 @@ def footprint_estimator(
     architecture_model: BasicArchitectureModel = BASIC_SC_ARCHITECTURE_MODEL,
     routing_overhead_proportion=0.5,
     hardware_failure_tolerance=1e-3,
+    factory_count: int = 4,
     magic_state_factory_iterator: Optional[Iterable[MagicStateFactory]] = None,
     decoder_model=None,
 ) -> OpenFermionResourceInfo:
@@ -201,6 +203,7 @@ def footprint_estimator(
         surface_code_cycle_time=architecture_model.surface_code_cycle_time_in_seconds,
         routing_overhead_proportion=routing_overhead_proportion,
         hardware_failure_tolerance=hardware_failure_tolerance,
+        factory_count=factory_count,
         magic_state_factory_iterator=magic_state_factory_iterator,
     )
 

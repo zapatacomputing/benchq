@@ -2,6 +2,7 @@
 # © Copyright 2022 Zapata Computing Inc.
 ################################################################################
 import os
+import warnings
 from copy import deepcopy
 from dataclasses import asdict, dataclass
 from typing import Iterable, List, Optional, Tuple
@@ -11,11 +12,25 @@ import openfermion
 import urllib3
 from mlflow import MlflowClient
 from openfermion import MolecularData
-from openfermion.resource_estimates.molecule import (
-    avas_active_space,
-    localize,
-    stability,
-)
+
+with warnings.catch_warnings():
+    warnings.filterwarnings(
+        "ignore",
+        message="\n\n"
+        "  `numpy.distutils` is deprecated since NumPy 1.23.0, as a result\n",
+    )
+
+    # we need to disable pyscf GC as it throws around bunch of warnings
+    import pyscf
+
+    pyscf.gto.mole.DISABLE_GC = True
+
+    from openfermion.resource_estimates.molecule import (
+        avas_active_space,
+        localize,
+        stability,
+    )
+
 from openfermionpyscf import PyscfMolecularData
 from openfermionpyscf._run_pyscf import compute_integrals
 from orquestra import sdk
@@ -43,11 +58,19 @@ def truncate_with_avas(
     mean_field_object = stability(mean_field_object)
 
     # localize before automatically selecting active space with AVAS
-    mean_field_object = localize(
-        mean_field_object, loc_type="pm"
-    )  # default is loc_type ='pm' (Pipek-Mezey)
 
-    return avas_active_space(mean_field_object, ao_list=ao_list, minao=minao)
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            "ignore", message="The 'sym_pos' keyword is deprecated and should be"
+        )
+        mean_field_object = localize(
+            mean_field_object, loc_type="pm"
+        )  # default is loc_type ='pm' (Pipek-Mezey)
+        active_space = avas_active_space(
+            mean_field_object, ao_list=ao_list, minao=minao
+        )
+
+    return active_space
 
 
 def _create_mlflow_setup(
@@ -210,7 +233,12 @@ def _run_pyscf(scf_info: SCFInfo) -> Tuple[gto.Mole, scf.hf.SCF]:
             if "callback" in scf_info.scf_options:
                 # we want to log to mlflow, AND we've defined the
                 # callback in scf_options
-                mean_field_object.run(**scf_info.scf_options)
+                with warnings.catch_warnings():
+                    warnings.filterwarnings(
+                        "ignore",
+                        message="The 'sym_pos' keyword is deprecated and should be",
+                    )
+                    mean_field_object.run(**scf_info.scf_options)
             else:
                 # we want to log to mlflow, BUT haven't defined the
                 # callback in scf_options
@@ -231,7 +259,12 @@ def _run_pyscf(scf_info: SCFInfo) -> Tuple[gto.Mole, scf.hf.SCF]:
                     client.log_param(run_id, key, val)
                 temp_options = deepcopy(scf_info.scf_options)
                 temp_options["callback"] = create_mlflow_scf_callback(client, run_id)
-                mean_field_object.run(**temp_options)
+                with warnings.catch_warnings():
+                    warnings.filterwarnings(
+                        "ignore",
+                        message="The 'sym_pos' keyword is deprecated and should be",
+                    )
+                    mean_field_object.run(**temp_options)
         else:
             # we want to log to mlflow, but haven't defined scf_options
             if not isinstance(scf_info.orq_workspace_id, str):
@@ -250,14 +283,29 @@ def _run_pyscf(scf_info: SCFInfo) -> Tuple[gto.Mole, scf.hf.SCF]:
             for key, val in flat_active_dict.items():
                 client.log_param(run_id, key, val)
             temp_options = {"callback": create_mlflow_scf_callback(client, run_id)}
-            mean_field_object.run(**temp_options)
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
+                    "ignore",
+                    message="The 'sym_pos' keyword is deprecated and should be",
+                )
+                mean_field_object.run(**temp_options)
     else:
         if scf_info.scf_options is not None:
             # we don't want to run on mlflow, but we've specified scf_options
-            mean_field_object.run(**scf_info.scf_options)
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
+                    "ignore",
+                    message="The 'sym_pos' keyword is deprecated and should be",
+                )
+                mean_field_object.run(**scf_info.scf_options)
         else:
             # we don't want to run on mlflow, and haven't specified scf_options
-            mean_field_object.run()
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
+                    "ignore",
+                    message="The 'sym_pos' keyword is deprecated and should be",
+                )
+                mean_field_object.run()
 
     if not mean_field_object.converged:
         raise SCFConvergenceError()
