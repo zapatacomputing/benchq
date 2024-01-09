@@ -5,7 +5,10 @@ from orquestra.quantum.circuits import Circuit
 
 from .error_budget import ErrorBudget
 from .graph_partition import GraphPartition
-from .quantum_program import QuantumProgram, get_program_from_circuit
+from ...problem_embeddings.quantum_program import (
+    QuantumProgram,
+    get_program_from_circuit,
+)
 
 T = TypeVar("T", QuantumProgram, GraphPartition)
 

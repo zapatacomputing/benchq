@@ -14,7 +14,7 @@ from benchq.quantum_hardware_modeling.hardware_architecture_models import (
     BASIC_SC_ARCHITECTURE_MODEL,
 )
 from benchq.problem_ingestion import get_vlasov_hamiltonian
-from benchq.resource_estimators.footprint_estimators.azure_estimator import (
+from benchq.resource_estimators.azure_estimator import (
     AzureResourceEstimator,
 )
 from benchq.resource_estimators.graph_estimators import (

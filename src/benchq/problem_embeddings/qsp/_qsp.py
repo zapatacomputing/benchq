@@ -13,7 +13,7 @@ from orquestra.quantum.operators import PauliRepresentation
 from pyLIQTR.QSP import gen_qsp
 from pyLIQTR.QSP.qsp_helpers import qsp_decompose_once
 
-from ...algorithms.data_structures.quantum_program import QuantumProgram
+from ..quantum_program import QuantumProgram
 from ...conversions import openfermion_to_pyliqtr
 
 TCircuit = TypeVar("TCircuit")
@@ -98,7 +98,7 @@ def get_qsp_program(
     operator: PauliRepresentation,
     n_block_encodings: int,
     decompose_select_v: bool = True,
-):
+) -> QuantumProgram:
     pyliqtr_operator = openfermion_to_pyliqtr(to_openfermion(operator))
     angles = np.random.random(3)
 

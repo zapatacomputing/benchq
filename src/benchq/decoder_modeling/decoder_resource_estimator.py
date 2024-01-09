@@ -35,14 +35,17 @@ def get_decoder_info(
             )
             return None
         else:
-            decoder_total_energy_in_nanojoules = (
+            decoder_total_energy_in_joules = (
                 space_time_volume
                 * decoder_model.power_in_nanowatts(code_distance)
                 * decoder_model.delay_in_nanoseconds(code_distance)
-                * 1e-9
+                * 1e-18
             )
-            decoder_power = (
-                2 * n_logical_qubits * decoder_model.power_in_nanowatts(code_distance)
+            decoder_power_in_watts = (
+                2
+                * n_logical_qubits
+                * decoder_model.power_in_nanowatts(code_distance)
+                * 1e-9
             )
             decoder_area = n_logical_qubits * decoder_model.area_in_micrometers_squared(
                 code_distance
@@ -52,14 +55,9 @@ def get_decoder_info(
                 decoder_model.highest_calculated_distance,
             )
 
-            decoder_total_energy_in_kilojoules = (
-                decoder_total_energy_in_nanojoules * 1e-12
-            )
-            power_in_kilowatts = decoder_power * 1e-12
-
             return DecoderInfo(
-                total_energy_in_kilojoules=decoder_total_energy_in_kilojoules,
-                power_in_kilowatts=power_in_kilowatts,
+                total_energy_in_joules=decoder_total_energy_in_joules,
+                power_in_watts=decoder_power_in_watts,
                 area_in_micrometers_squared=decoder_area,
                 max_decodable_distance=max_decodable_distance,
             )

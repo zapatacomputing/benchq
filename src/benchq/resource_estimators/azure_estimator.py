@@ -10,9 +10,9 @@ from orquestra.integrations.qiskit.conversions import export_to_qiskit
 from orquestra.quantum.circuits import Circuit
 from qiskit.tools.monitor import job_monitor
 
-from ...algorithms.data_structures import AlgorithmImplementation
-from ...quantum_hardware_modeling import BasicArchitectureModel
-from ..resource_info import AzureExtra, AzureResourceInfo
+from ..algorithms.data_structures import AlgorithmImplementation
+from ..quantum_hardware_modeling import BasicArchitectureModel
+from .resource_info import AzureExtra, AzureResourceInfo
 
 
 def _azure_result_to_resource_info(job_results: dict) -> AzureResourceInfo:

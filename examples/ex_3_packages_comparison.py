@@ -17,7 +17,7 @@ from benchq.algorithms.time_evolution import qsp_time_evolution_algorithm
 from benchq.quantum_hardware_modeling import BASIC_SC_ARCHITECTURE_MODEL
 from benchq.decoder_modeling import DecoderModel
 from benchq.problem_ingestion import get_vlasov_hamiltonian
-from benchq.resource_estimators.footprint_estimators.azure_estimator import (
+from benchq.resource_estimators.azure_estimator import (
     AzureResourceEstimator,
 )
 from benchq.resource_estimators.graph_estimators import (

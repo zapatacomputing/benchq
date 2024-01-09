@@ -50,7 +50,7 @@ def test_if_decoder_equations_have_changed():
     )
     decoder_info = get_decoder_info(BASIC_SC_ARCHITECTURE_MODEL, decoder_model, 4, 2, 3)
     target_info = DecoderInfo(
-        total_energy_in_kilojoules=4e-15,
+        total_energy_in_joules=4e-12,
         power_in_kilowatts=1.2e-07,
         area_in_micrometers_squared=600.0,
         max_decodable_distance=15,

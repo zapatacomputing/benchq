@@ -5,7 +5,7 @@ import pytest
 from orquestra.quantum.circuits import Circuit
 
 from benchq.algorithms.lde_solver.compression_gadget import get_add_dagger, get_add_l
-from benchq.problem_ingestion.block_encodings.utils.offset_trdiagonal_utils import (
+from benchq.problem_embeddings.block_encodings.utils.offset_tridiagonal_utils import (
     controlled_clock,
 )
 

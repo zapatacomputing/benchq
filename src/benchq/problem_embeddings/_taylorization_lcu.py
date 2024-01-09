@@ -12,7 +12,7 @@ from orquestra.quantum.operators import PauliRepresentation, PauliSum
 from qiskit import QuantumCircuit, QuantumRegister, transpile
 from qiskit.circuit.library import PhaseGate, RZGate
 
-from ..algorithms.data_structures.quantum_program import (
+from .quantum_program import (
     QuantumProgram,
     get_program_from_circuit,
 )

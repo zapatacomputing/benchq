@@ -10,7 +10,7 @@ from benchq.algorithms.data_structures import (
     get_program_from_circuit,
 )
 from benchq.quantum_hardware_modeling.hardware_architecture_models import IONTrapModel
-from benchq.resource_estimators.footprint_estimators.azure_estimator import (
+from benchq.resource_estimators.azure_estimator import (
     AzureResourceEstimator,
 )
 

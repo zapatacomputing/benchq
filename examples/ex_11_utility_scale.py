@@ -10,7 +10,7 @@ from benchq.algorithms.time_evolution import qsp_time_evolution_algorithm
 from benchq.compilation import get_ruby_slippers_compiler
 from benchq.quantum_hardware_modeling import DETAILED_ION_TRAP_ARCHITECTURE_MODEL
 from benchq.decoder_modeling import DecoderModel
-from benchq.problem_ingestion.hamiltonians.lanl_maglab import (
+from benchq.problem_ingestion.hamiltonians.ising_hamiltonians import (
     generate_cubic_hamiltonian,
     generate_kitaev_hamiltonian,
     generate_triangular_hamiltonian,

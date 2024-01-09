@@ -24,7 +24,7 @@ from ...quantum_hardware_modeling import (
     BASIC_SC_ARCHITECTURE_MODEL,
     BasicArchitectureModel,
 )
-from ...quantum_hardware_modeling.gidney_surface_code_model import (
+from ...quantum_hardware_modeling.fowler_surface_code_model import (
     logical_cell_error_rate,
     physical_qubits_per_logical_qubit,
 )
@@ -53,7 +53,7 @@ class AlgorithmParameters:
     proportion_of_bounding_box: float = 1
 
 
-def estimate_cost(params: AlgorithmParameters) -> CostEstimate:
+def _estimate_cost(params: AlgorithmParameters) -> CostEstimate:
     """Determine algorithm single-shot layout and costs for given params.
 
     ASSUMES:
@@ -113,7 +113,7 @@ def estimate_cost(params: AlgorithmParameters) -> CostEstimate:
     )
 
 
-def cost_estimator(
+def _cost_estimator(
     num_logical_qubits: int,
     num_toffoli: int = 0,
     num_t: int = 0,
@@ -152,7 +152,7 @@ def cost_estimator(
                 proportion_of_bounding_box=portion_of_bounding_box,
             )
 
-            cost = estimate_cost(params)
+            cost = _estimate_cost(params)
 
             if cost.algorithm_failure_probability <= hardware_failure_tolerance:
                 # optimize for smallest spacetime volume
@@ -193,7 +193,7 @@ def footprint_estimator(
         The estimated physical qubits, runtime, and other resource estimation info.
     """
 
-    best_cost, best_params = cost_estimator(
+    best_cost, best_params = _cost_estimator(
         num_logical_qubits,
         num_toffoli=num_toffoli,
         num_t=num_t,

@@ -1,3 +1,9 @@
+"""
+Surface code model based on the numbers used in openfermion:
+https://github.com/quantumlib/OpenFermion/tree/master/src/openfermion/resource_estimates
+"""
+
+
 def logical_cell_error_rate(
     code_distance: int, physical_qubit_error_rate: float
 ) -> float:

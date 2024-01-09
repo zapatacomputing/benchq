@@ -2,7 +2,7 @@ import numpy
 import pytest
 
 from benchq.resource_estimators.footprint_estimators.openfermion_estimator import (
-    cost_estimator,
+    _cost_estimator,
 )
 
 
@@ -28,14 +28,14 @@ def test_monotonicity_of_duration_wrtSurfaceCC_time(scc_time_low, scc_time_high)
     num_logical_qubits = 12
     num_toffoli = 15
     physical_error_rate = 1.0e-4
-    best_cost_low, best_params_low = cost_estimator(
+    best_cost_low, best_params_low = _cost_estimator(
         num_logical_qubits,
         num_toffoli=num_toffoli,
         surface_code_cycle_time=scc_time_low,
         physical_error_rate=physical_error_rate,
         hardware_failure_tolerance=1e-1,
     )
-    best_cost_high, best_params_high = cost_estimator(
+    best_cost_high, best_params_high = _cost_estimator(
         num_logical_qubits,
         num_toffoli=num_toffoli,
         surface_code_cycle_time=scc_time_high,
@@ -68,14 +68,14 @@ def test_linearity_wrtSurfaceCC_time(scc_time_low, scc_time_high):
     num_logical_qubits = 12
     num_t = 13
     physical_error_rate = 1.0e-4
-    best_cost_low, best_params_low = cost_estimator(
+    best_cost_low, best_params_low = _cost_estimator(
         num_logical_qubits,
         num_t=num_t,
         surface_code_cycle_time=scc_time_low,
         physical_error_rate=physical_error_rate,
         hardware_failure_tolerance=1e-1,
     )
-    best_cost_high, best_params_high = cost_estimator(
+    best_cost_high, best_params_high = _cost_estimator(
         num_logical_qubits,
         num_t=num_t,
         surface_code_cycle_time=scc_time_high,
@@ -106,14 +106,14 @@ def test_ratio_of_failure_prob(num_toffoli, num_t):
     num_logical_qubits = 12
     scc_time = 0.000002
     physical_error_rate = 1.0e-4
-    best_cost_toffoli, best_params_toffoli = cost_estimator(
+    best_cost_toffoli, best_params_toffoli = _cost_estimator(
         num_logical_qubits=num_logical_qubits,
         num_toffoli=num_toffoli,
         surface_code_cycle_time=scc_time,
         physical_error_rate=physical_error_rate,
         hardware_failure_tolerance=1e-1,
     )
-    best_cost_t, best_params_t = cost_estimator(
+    best_cost_t, best_params_t = _cost_estimator(
         num_logical_qubits=num_logical_qubits,
         num_t=num_t,
         surface_code_cycle_time=scc_time,
@@ -148,14 +148,14 @@ def test_calc_of_algorithm_failure_prob(num_toffoli, num_t):
     num_logical_qubits = 12
     scc_time = 0.000002
     physical_error_rate = 1.0e-4
-    best_cost_toffoli, best_params_toffoli = cost_estimator(
+    best_cost_toffoli, best_params_toffoli = _cost_estimator(
         num_logical_qubits=num_logical_qubits,
         num_toffoli=num_toffoli,
         surface_code_cycle_time=scc_time,
         physical_error_rate=physical_error_rate,
         hardware_failure_tolerance=1e-1,
     )
-    best_cost_t, best_params_t = cost_estimator(
+    best_cost_t, best_params_t = _cost_estimator(
         num_logical_qubits=num_logical_qubits,
         num_t=num_t,
         surface_code_cycle_time=scc_time,
@@ -182,7 +182,7 @@ def test_algorithm_failure_prob_calculation():
     num_logical_qubits = 12
     scc_time = 0.000002
     physical_error_rate = 1.0e-4
-    best_cost_toffoli, best_params_toffoli = cost_estimator(
+    best_cost_toffoli, best_params_toffoli = _cost_estimator(
         num_logical_qubits=num_logical_qubits,
         num_toffoli=20,
         num_t=20,
@@ -190,7 +190,7 @@ def test_algorithm_failure_prob_calculation():
         physical_error_rate=physical_error_rate,
         hardware_failure_tolerance=1e-1,
     )
-    best_cost_t, best_params_t = cost_estimator(
+    best_cost_t, best_params_t = _cost_estimator(
         num_logical_qubits=num_logical_qubits,
         num_toffoli=30,
         num_t=0,
@@ -214,7 +214,7 @@ def test_default_values():
     num_logical_qubits = 12
     physical_error_rate = 1.0e-4
     with pytest.raises(ValueError) as dvalue:
-        a, b = cost_estimator(
+        a, b = _cost_estimator(
             num_logical_qubits=num_logical_qubits,
             physical_error_rate=physical_error_rate,
         )
@@ -231,7 +231,7 @@ def test_all_default_values():
     """
     num_logical_qubits = 12
     with pytest.raises(ValueError) as dvalue:
-        a, b = cost_estimator(
+        a, b = _cost_estimator(
             num_logical_qubits=num_logical_qubits,
         )
 

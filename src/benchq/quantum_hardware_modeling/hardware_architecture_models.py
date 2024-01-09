@@ -72,7 +72,7 @@ class DetailedIonTrapModel:
         self.physical_qubit_error_rate = physical_qubit_error_rate
         self.surface_code_cycle_time_in_seconds = surface_code_cycle_time_in_seconds
 
-    def get_hardware_resource_estimates(self, resource_info):
+    def get_hardware_resource_estimates(self, resource_info: ResourceInfo):
         code_distance = resource_info.code_distance
 
         # Compute per-elu values

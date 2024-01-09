@@ -18,7 +18,7 @@ from pprint import pprint
 from benchq.algorithms.time_evolution import qsp_time_evolution_algorithm
 from benchq.quantum_hardware_modeling import DETAILED_ION_TRAP_ARCHITECTURE_MODEL
 from benchq.decoder_modeling import DecoderModel
-from benchq.problem_ingestion.hamiltonians.lanl_maglab import (
+from benchq.problem_ingestion.hamiltonians.ising_hamiltonians import (
     generate_triangular_hamiltonian,
 )
 from benchq.resource_estimators.default_estimators import run_fast_graph_estimate
