@@ -7,8 +7,8 @@ from orquestra.quantum.circuits import CNOT, RZ, Circuit, H
 from benchq.algorithms.data_structures import (
     AlgorithmImplementation,
     ErrorBudget,
-    get_program_from_circuit,
 )
+from benchq.problem_embeddings.quantum_program import get_program_from_circuit
 from benchq.quantum_hardware_modeling.hardware_architecture_models import IONTrapModel
 from benchq.resource_estimators.azure_estimator import (
     AzureResourceEstimator,

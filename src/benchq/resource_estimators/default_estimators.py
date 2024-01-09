@@ -3,7 +3,8 @@ from typing import List, Optional
 
 import numpy as np
 
-from ..algorithms.data_structures import AlgorithmImplementation, QuantumProgram
+from ..algorithms.data_structures import AlgorithmImplementation
+from ..problem_embeddings.quantum_program import QuantumProgram
 from ..compilation import get_algorithmic_graph_from_ruby_slippers
 from ..decoder_modeling import DecoderModel
 from ..quantum_hardware_modeling.hardware_architecture_models import (
@@ -191,7 +192,7 @@ def run_fast_extrapolation_estimate(
     )
 
 
-def run_footprint_analysis_pipeline(
+def run_footprint_estimate(
     algorithm_implementation: AlgorithmImplementation,
     hardware_model: BasicArchitectureModel,
     decoder_model: Optional[DecoderModel] = None,
@@ -290,7 +291,7 @@ def automatic_resource_estimator(
         )
         print("Using fast extrapolation graph estimator")
     else:
-        pipeline = run_footprint_analysis_pipeline
+        pipeline = run_footprint_estimate
         print("Using footprint analysis estimator")
 
     return pipeline(

@@ -1,4 +1,4 @@
-from benchq.problem_ingestion.test_time_marching_matrix_properties import (
+from benchq.problem_ingestion.time_marching_matrix_properties import (
     get_degree,
 )
 import pytest

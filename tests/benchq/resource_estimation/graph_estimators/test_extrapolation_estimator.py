@@ -7,6 +7,8 @@ from orquestra.quantum.circuits import CNOT, RZ, Circuit, H
 from benchq.algorithms.data_structures import (
     AlgorithmImplementation,
     ErrorBudget,
+)
+from benchq.problem_embeddings import (
     QuantumProgram,
 )
 from benchq.compilation import get_ruby_slippers_compiler

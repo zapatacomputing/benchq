@@ -8,7 +8,7 @@ from .data_structures import (
     ErrorBudget,
 )
 
-from ..problem_embeddings import get_qaoa_program
+from ..problem_embeddings._qaoa import get_qaoa_program
 
 
 def get_qaoa_optimization_algorithm(

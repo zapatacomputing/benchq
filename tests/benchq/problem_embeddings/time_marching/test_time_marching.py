@@ -11,18 +11,17 @@ from orquestra.integrations.qiskit.conversions import export_to_qiskit
 from orquestra.quantum.circuits import ZZ, Circuit
 from qiskit import Aer, execute
 
-from benchq.problem_embeddings.time_marching import (
+from benchq.problem_embeddings.time_marching._time_marching import (
     get_prep_int,
     inverse_block_encoding,
-    long_time_propagator,
     matrix_exponentiation,
+    get_time_marching_program,
 )
-from benchq.problem_ingestion.test_time_marching_matrix_properties import (
+from benchq.problem_ingestion.time_marching_matrix_properties import (
     get_degree,
     get_kappa,
     get_num_of_grid_points,
 )
-from benchq.problem_embeddings.
 from benchq.problem_embeddings.qsp.get_qsp_phases import get_qsp_phases
 from benchq.problem_embeddings.qsp.get_qsp_polynomial import optimize_chebyshev_coeff
 from benchq.problem_embeddings.block_encodings.offset_tridiagonal import (
@@ -161,7 +160,7 @@ de_parameters = {
 
 
 @SKIP_SLOW
-def test_long_time_propagator():
+def test_get_time_marching_program():
     """Testing a basic case when the dim(A)=1 (one DE to solve)."""
 
     # construct a single time step amplified with QSVT and compression gadget
@@ -195,7 +194,7 @@ def test_long_time_propagator():
         matrix_exp.n_qubits + ceil(np.log2(de_parameters["steps_number_short"])) + 2
     )
 
-    time_marching_cir_short = long_time_propagator(
+    time_marching_cir_short = get_time_marching_program(
         phases,
         de_parameters["steps_number_short"],
         n,
@@ -204,9 +203,9 @@ def test_long_time_propagator():
         delta_t,
         de_parameters["beta_contour_integral"],
         de_parameters["epsilon_matrix_inversion"],
-    )
+    ).full_circuit
 
-    time_marching_cir_long = long_time_propagator(
+    time_marching_cir_long = get_time_marching_program(
         phases,
         de_parameters["steps_number_long"],
         n,
@@ -215,7 +214,7 @@ def test_long_time_propagator():
         delta_t,
         de_parameters["beta_contour_integral"],
         de_parameters["epsilon_matrix_inversion"],
-    )
+    ).full_circuit
 
     assert isinstance(time_marching_cir_short, Circuit)
     assert total_qubits == time_marching_cir_short.n_qubits

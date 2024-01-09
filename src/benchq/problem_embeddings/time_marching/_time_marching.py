@@ -20,6 +20,12 @@ from .compression_gadget import get_add_dagger, get_add_l
 
 from ..quantum_program import QuantumProgram
 
+from ...problem_ingestion.time_marching_matrix_properties import (
+    get_degree,
+    get_kappa,
+    get_num_of_grid_points,
+)
+
 
 def get_prep(grid_point: int, k: int, beta: float) -> Tuple[Circuit, Circuit]:
     """Constructs unitaries that prepare states COEF_k and COEF_k_prime

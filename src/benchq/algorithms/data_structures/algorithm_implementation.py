@@ -1,14 +1,14 @@
 from dataclasses import dataclass
 from typing import Generic, TypeVar
 
-from orquestra.quantum.circuits import Circuit
 
 from .error_budget import ErrorBudget
 from .graph_partition import GraphPartition
-from ...problem_embeddings.quantum_program import (
+from ...problem_embeddings import (
     QuantumProgram,
     get_program_from_circuit,
 )
+from ...conversions import import_circuit, SUPPORTED_CIRCUITS
 
 T = TypeVar("T", QuantumProgram, GraphPartition)
 
@@ -19,9 +19,8 @@ class AlgorithmImplementation(Generic[T]):
     error_budget: ErrorBudget
     n_shots: int
 
-
-def get_algorithm_implementation_from_circuit(
-    circuit: Circuit, error_budget: ErrorBudget, n_calls: int = 1
-):
-    quantum_program = get_program_from_circuit(circuit)
-    return AlgorithmImplementation(quantum_program, error_budget, n_calls)
+    def from_circuit(
+        circuit: SUPPORTED_CIRCUITS, error_budget: ErrorBudget, n_shots: int = 1
+    ):
+        program = get_program_from_circuit(import_circuit(circuit))
+        return AlgorithmImplementation(program, error_budget, n_shots)

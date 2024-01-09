@@ -5,7 +5,8 @@ from typing import Iterable, List, Optional
 import numpy as np
 from scipy.optimize import minimize
 
-from ...algorithms.data_structures import AlgorithmImplementation, QuantumProgram
+from ...algorithms.data_structures import AlgorithmImplementation
+from ...problem_embeddings.quantum_program import QuantumProgram
 from ...decoder_modeling import DecoderModel
 from ...magic_state_distillation import MagicStateFactory
 from ...quantum_hardware_modeling.hardware_architecture_models import (

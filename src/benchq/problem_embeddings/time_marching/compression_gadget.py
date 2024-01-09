@@ -2,7 +2,7 @@ import math
 
 from orquestra.quantum.circuits import Circuit
 
-from benchq.problem_embeddings.block_encodings.utils.offset_tridiagonal_utils import (
+from benchq.problem_embeddings.block_encodings.offset_tridiagonal_utils import (
     controlled_clock,
 )
 

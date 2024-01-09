@@ -12,7 +12,6 @@ WARNING: This example requires the pyscf extra. run `pip install benchq[pyscf]`
 to install the extra.
 """
 
-from pathlib import Path
 from pprint import pprint
 
 from benchq.algorithms.time_evolution import qsp_time_evolution_algorithm

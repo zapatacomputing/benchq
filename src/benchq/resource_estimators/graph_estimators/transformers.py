@@ -7,6 +7,8 @@ import networkx as nx
 from ...algorithms.data_structures import (
     ErrorBudget,
     GraphPartition,
+)
+from ...problem_embeddings.quantum_program import (
     QuantumProgram,
     get_program_from_circuit,
 )

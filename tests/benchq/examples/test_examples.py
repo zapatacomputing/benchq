@@ -13,8 +13,8 @@ from benchq.algorithms.data_structures import (
     AlgorithmImplementation,
     ErrorBudget,
     GraphPartition,
-    QuantumProgram,
 )
+from benchq.problem_embeddings.quantum_program import QuantumProgram
 from benchq.compilation import (
     get_algorithmic_graph_from_Jabalizer,
     pyliqtr_transpile_to_clifford_t,
@@ -26,6 +26,9 @@ from benchq.resource_estimators.default_estimators import run_precise_graph_esti
 from benchq.resource_estimators.graph_estimators import (
     GraphResourceEstimator,
     graph_estimator,
+)
+from benchq.magic_state_distillation.litinski_factories import (
+    iter_litinski_factories,
 )
 
 MAIN_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -104,9 +107,8 @@ def test_toy_example_notebook():
 
     circuit_graph = get_algorithmic_graph_from_Jabalizer(clifford_t_circuit)
 
-    budget = ErrorBudget.from_even_split(
-        1e-2
-    )  # only allow a failure to occur 1% of the time
+    # only allow a failure to occur 1% of the time
+    budget = ErrorBudget.from_even_split(1e-2)
     program = GraphPartition(
         QuantumProgram.from_circuit(clifford_t_circuit), [circuit_graph]
     )
@@ -115,13 +117,9 @@ def test_toy_example_notebook():
 
     estimator.estimate(implementation)
 
-    budget = ErrorBudget.from_even_split(
-        1e-2
-    )  # only allow a failure to occur 1% of the time
-    program = QuantumProgram.from_circuit(import_circuit(demo_circuit))
-
-    implementation = AlgorithmImplementation(program, budget, 1)
-
+    # only allow a failure to occur 1% of the time
+    budget = ErrorBudget.from_even_split(1e-2)
+    implementation = AlgorithmImplementation.from_circuit(demo_circuit, budget, 1)
     run_precise_graph_estimate(implementation, architecture_model)
 
     get_algorithmic_graph_from_Jabalizer(clifford_t_circuit)
@@ -132,7 +130,7 @@ def test_toy_example_notebook():
 
     graph_data = estimator._get_graph_data_for_single_graph(graph_partition)
 
-    factory = MagicStateFactory("(15-to-1)_11,5,5", 1.9e-11, (47, 44), 2070, 30)
+    magic_state_factory = iter_litinski_factories(architecture_model)[0]
 
     len(circuit_graph)
 
@@ -146,11 +144,11 @@ def test_toy_example_notebook():
         n_total_t_gates,
         graph_data,
         architecture_model.physical_qubit_error_rate,  # physical error
-        factory,
+        magic_state_factory,
     )
-    estimator._get_n_physical_qubits(graph_data, distance, factory)
+    estimator._get_n_physical_qubits(graph_data, distance, magic_state_factory)
     estimator._get_time_per_circuit_in_seconds(
-        graph_data, distance, n_total_t_gates, factory
+        graph_data, distance, n_total_t_gates, magic_state_factory
     )
 
     from benchq.resource_estimators.graph_estimators.graph_estimator import (

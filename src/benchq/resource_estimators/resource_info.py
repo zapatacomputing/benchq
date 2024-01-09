@@ -13,8 +13,8 @@ TExtra = TypeVar("TExtra")
 class DecoderInfo:
     """Information relating the deceoder."""
 
-    total_energy_in_kilojoules: float
-    power_in_kilowatts: float
+    total_energy_in_joules: float
+    power_in_watts: float
     area_in_micrometers_squared: float
     max_decodable_distance: int = field(repr=False)
 

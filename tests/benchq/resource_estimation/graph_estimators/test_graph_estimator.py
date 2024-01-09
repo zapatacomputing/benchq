@@ -8,6 +8,8 @@ from orquestra.quantum.circuits import CNOT, RX, RY, RZ, Circuit, H, T
 from benchq.algorithms.data_structures import (
     AlgorithmImplementation,
     ErrorBudget,
+)
+from benchq.problem_embeddings.quantum_program import (
     QuantumProgram,
     get_program_from_circuit,
 )
