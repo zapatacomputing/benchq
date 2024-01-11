@@ -94,31 +94,31 @@ def test_resource_estimations_returns_results_for_different_architectures(
             QuantumProgram(
                 [Circuit([H(0), RZ(np.pi / 4)(0), CNOT(0, 1)])], 1, lambda x: [0]
             ),
-            {"n_measurement_steps": 3, "n_nodes": 3, "n_logical_qubits": 2},
+            {"n_measurement_steps": 3, "n_nodes": 3, "n_logical_qubits": 4},
         ),
         (
             get_program_from_circuit(
                 Circuit([RX(np.pi / 4)(0), RY(np.pi / 4)(0), CNOT(0, 1)])
             ),
-            {"n_measurement_steps": 4, "n_nodes": 4, "n_logical_qubits": 2},
+            {"n_measurement_steps": 4, "n_nodes": 4, "n_logical_qubits": 4},
         ),
         (
             get_program_from_circuit(
                 Circuit([H(0)] + [CNOT(i, i + 1) for i in range(3)])
             ),
-            {"n_measurement_steps": 4, "n_nodes": 4, "n_logical_qubits": 3},
+            {"n_measurement_steps": 4, "n_nodes": 4, "n_logical_qubits": 6},
         ),
         (
             get_program_from_circuit(
                 Circuit([H(0)] + [CNOT(i, i + 1) for i in range(3)] + [T(1), T(2)])
             ),
-            {"n_measurement_steps": 6, "n_nodes": 6, "n_logical_qubits": 5},
+            {"n_measurement_steps": 6, "n_nodes": 6, "n_logical_qubits": 10},
         ),
         (
             get_program_from_circuit(
                 Circuit([H(0), T(0), CNOT(0, 1), T(2), CNOT(2, 3)])
             ),
-            {"n_measurement_steps": 3, "n_nodes": 3, "n_logical_qubits": 2},
+            {"n_measurement_steps": 3, "n_nodes": 3, "n_logical_qubits": 4},
         ),
     ],
 )
