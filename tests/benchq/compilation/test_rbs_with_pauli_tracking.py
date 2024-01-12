@@ -14,7 +14,7 @@ from benchq.visualization_tools.plot_graph_state import plot_graph_state
 jl.include(
     os.path.join(
         pathlib.Path(__file__).parent.resolve(),
-        "../../../src/benchq/compilation/ruby_slippers.jl",
+        "../../../src/benchq/compilation/ruby_slippers/ruby_slippers.jl",
     ),
 )
 
