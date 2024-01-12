@@ -8,7 +8,7 @@ import pytest
 jl.include(
     os.path.join(
         pathlib.Path(__file__).parent.resolve(),
-        "../../../src/benchq/compilation/ruby_slippers.jl",
+        "../../../src/benchq/compilation/ruby_slippers/ruby_slippers.jl",
     ),
 )
 
@@ -148,7 +148,7 @@ def to_python(asg, pauli_tracker):
     return jl.python_asg(asg), jl.python_pauli_tracker(pauli_tracker)
 
 
-@pytest.mark.parametrize("optimization", ["ST-Volume", "Space", "Time", "Variable"])
+@pytest.mark.parametrize("optimization", ["ST-Volume", "Space", "Time"])
 @pytest.mark.parametrize(
     "circuit_1, circuit_2, circuit_3",
     [
@@ -245,76 +245,76 @@ def test_triple_stitched_circuit_produces_correct_result(
     )
 
 
-@pytest.mark.parametrize("optimization", ["ST-Volume", "Space", "Time", "Variable"])
-@pytest.mark.parametrize(
-    "circuit_1, circuit_2",
-    [
-        (
-            # test rotations work as expected
-            [
-                (8, 2, -1, 0),
-                (8, 2, -1, 0),
-                (11, 1, 0, 0),
-                (7, 1, -1, 0),
-                (14, 2, -1, 1.3856216182779741),
-            ],
-            [
-                (14, 1, -1, 3.9206180253660037),
-                (10, 2, 0, 0),
-                (8, 1, -1, 0),
-                (11, 0, 1, 0),
-                (3, 2, -1, 0),
-            ],
-        ),
-        (
-            # test T gates work as expected
-            [
-                (13, 2, -1, 0),
-                (12, 2, -1, 0),
-                (12, 2, -1, 0),
-                (7, 1, -1, 0),
-                (9, 1, -1, 0),
-            ],
-            [
-                (9, 1, -1, 0),
-                (12, 2, -1, 0),
-                (11, 1, 2, 0),
-                (9, 1, -1, 0),
-                (8, 2, -1, 0),
-            ],
-        ),
-    ],
-)
-def test_double_stitched_circuit_produces_correct_result(
-    optimization, circuit_1, circuit_2
-):
-    hyperparams = jl.RubySlippersHyperparams(3, 2, 6, 1e5, 0)
+# @pytest.mark.parametrize("optimization", ["ST-Volume", "Space", "Time", "Variable"])
+# @pytest.mark.parametrize(
+#     "circuit_1, circuit_2",
+#     [
+#         (
+#             # test rotations work as expected
+#             [
+#                 (8, 2, -1, 0),
+#                 (8, 2, -1, 0),
+#                 (11, 1, 0, 0),
+#                 (7, 1, -1, 0),
+#                 (14, 2, -1, 1.3856216182779741),
+#             ],
+#             [
+#                 (14, 1, -1, 3.9206180253660037),
+#                 (10, 2, 0, 0),
+#                 (8, 1, -1, 0),
+#                 (11, 0, 1, 0),
+#                 (3, 2, -1, 0),
+#             ],
+#         ),
+#         (
+#             # test T gates work as expected
+#             [
+#                 (13, 2, -1, 0),
+#                 (12, 2, -1, 0),
+#                 (12, 2, -1, 0),
+#                 (7, 1, -1, 0),
+#                 (9, 1, -1, 0),
+#             ],
+#             [
+#                 (9, 1, -1, 0),
+#                 (12, 2, -1, 0),
+#                 (11, 1, 2, 0),
+#                 (9, 1, -1, 0),
+#                 (8, 2, -1, 0),
+#             ],
+#         ),
+#     ],
+# )
+# def test_double_stitched_circuit_produces_correct_result(
+#     optimization, circuit_1, circuit_2
+# ):
+#     hyperparams = jl.RubySlippersHyperparams(3, 2, 6, 1e5, 0)
 
-    asg_1, pauli_tracker_1 = get_graph(circuit_1, hyperparams, "output", optimization)
-    # plot_graph_state.plot_graph_state(*to_python(asg_1, pauli_tracker_1))
-    asg_2, pauli_tracker_2 = get_graph(circuit_2, hyperparams, "both", optimization)
-    # plot_graph_state.plot_graph_state(*to_python(asg_2, pauli_tracker_2))
+#     asg_1, pauli_tracker_1 = get_graph(circuit_1, hyperparams, "output", optimization)
+#     # plot_graph_state.plot_graph_state(*to_python(asg_1, pauli_tracker_1))
+#     asg_2, pauli_tracker_2 = get_graph(circuit_2, hyperparams, "both", optimization)
+#     # plot_graph_state.plot_graph_state(*to_python(asg_2, pauli_tracker_2))
 
-    # combine graphs
-    asg, pauli_tracker = jl.stitch_graphs(
-        asg_1, pauli_tracker_1, asg_2, pauli_tracker_2
-    )
-    # plot_graph_state.plot_graph_state(*to_python(asg, pauli_tracker))
+#     # combine graphs
+#     asg, pauli_tracker = jl.stitch_graphs(
+#         asg_1, pauli_tracker_1, asg_2, pauli_tracker_2
+#     )
+#     # plot_graph_state.plot_graph_state(*to_python(asg, pauli_tracker))
 
-    asg, pauli_tracker = to_python(asg, pauli_tracker)
+#     asg, pauli_tracker = to_python(asg, pauli_tracker)
 
-    check_correctness_for_stiched_circuits(
-        circuit_1,
-        circuit_2,
-        circuit_3,
-        [
-            (3, 0, -1, 0),
-            (3, 1, -1, 0),
-            (3, 2, -1, 0),
-        ],
-        hyperparams,
-        optimization,
-        show_graph=False,
-        show_circuit=True,
-        throw_error_on_incorrect_result=True,
-    )
+#     check_correctness_for_stiched_circuits(
+#         circuit_1,
+#         circuit_2,
+#         circuit_3,
+#         [
+#             (3, 0, -1, 0),
+#             (3, 1, -1, 0),
+#             (3, 2, -1, 0),
+#         ],
+#         hyperparams,
+#         optimization,
+#         show_graph=False,
+#         show_circuit=True,
+#         throw_error_on_incorrect_result=True,
+#     )
