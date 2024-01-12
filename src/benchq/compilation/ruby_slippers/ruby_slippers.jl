@@ -192,12 +192,13 @@ function get_graph_state_data(
         pauli_tracker = PauliTracker(n_qubits, layering_optimization)
     end
 
-    total_length = length(orquestra_circuit)
+    # Convert the Python iterable to a Julia iterable
+    total_length = length(orquestra_circuit.operations)
     counter = dispcnt = 0
     erase = "        \b\b\b\b\b\b\b\b"
     start_time = time()
 
-    for (counter, op) in enumerate(orquestra_circuit)
+    for (counter, op) in enumerate(orquestra_circuit.operations)
         elapsed_time = time() - start_time
         # End early if we have exceeded the max time
         if elapsed_time >= max_time
@@ -645,12 +646,12 @@ get_qubit_1(op) = pyconvert(Int, op.qubit_indices[0]) + 1 # +1 because Julia is 
 get_qubit_2(op) = pyconvert(Int, op.qubit_indices[1]) + 1
 
 """Get Python version of op_list of to speed up getting index"""
-get_op_list() = pylist(op_list)
+# TODO: make this consistent with the mapping in graph_sim_data.jl
+get_op_list() = pylist(["I","X","Y","Z","N","N","X","Y","Z","CZ","CNOT","T","T_Dagger","RZ",])
 
 """Get index of operation name"""
 get_op_index(op_list, op) = pyconvert(Int, op_list.index(op.gate.name)) + 1
 
-# TODO: double check nums in graph_sim_data
 pauli_op(index) = 1 <= index <= 4 # i.e. I, X, Y, Z
 single_qubit_op(index) = 1 <= index <= 9   # Paulis, H, S, S_Dagger
 double_qubit_op(index) = 10 <= index <= 11  # CZ, CNOT
