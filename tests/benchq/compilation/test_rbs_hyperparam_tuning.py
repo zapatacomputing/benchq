@@ -6,7 +6,7 @@ import pytest
 from orquestra.quantum.circuits import CNOT, Circuit, H
 
 from benchq.compilation import transpile_to_native_gates
-from benchq.compilation.rbs_hyperparam_tuning import (
+from benchq.compilation.ruby_slippers.rbs_hyperparam_tuning import (
     create_estimated_rbs_time_objective_fn,
     create_space_time_objective_fn,
     estimated_time_cost_from_rbs,

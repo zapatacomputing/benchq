@@ -14,33 +14,51 @@ a graph simulator for stabilizer states.
 =#
 
 using PythonCall
+import Pkg
+Pkg.add("StatsBase")
 using StatsBase
 
-include("graph_sim_data.jl")
-
-const AdjList = Set{Int32}
 
 const Qubit = UInt32
+const AdjList = Set{Qubit}
+
+"""
+Destructively convert this to a Python adjacency list
+"""
+function python_adjlist!(adj)
+    pylist([pylist(adj[i] .- 1) for i = 1:length(adj)])
+end
+
+
+include("graph_sim_data.jl")
+include("pauli_tracker.jl")
 
 struct ICMOp
     code::UInt8
     qubit1::Qubit
     qubit2::Qubit
+    angle::Float64
 
-    ICMOp(name, qubit) = new(name, qubit, 0)
-    ICMOp(name, qubit1, qubit2) = new(name, qubit1, qubit2)
+    ICMOp(code, qubit) = new(code, qubit, 0, 0)
+    ICMOp(code, qubit1, qubit2) = new(code, qubit1, qubit2, 0)
+    ICMOp(code, qubit1, qubit2, angle) = new(code, qubit1, qubit2, angle)
 end
+RZOp(qubit1, angle) = ICMOp(RZ_code, qubit1, 0, angle)
 
 struct RubySlippersHyperparams
     teleportation_threshold::UInt16
     teleportation_distance::UInt8
     min_neighbors::UInt8
     max_num_neighbors_to_search::UInt32
-    decomposition_strategy::UInt8
+    decomposition_strategy::UInt8 # TODO: make pauli tracker work witn decomposition_strategy=1
 end
 
-default_hyperparams = RubySlippersHyperparams(40, 4, 6, 1e5, 1)
+default_hyperparams = RubySlippersHyperparams(3, 4, 6, 1e5, 0)
+graphsim_hyperparams(min_neighbors, max_num_neighbors_to_search) = RubySlippersHyperparams(65535, 2, min_neighbors, max_num_neighbors_to_search, 0)
+default_graphsim_hyperparams = graphsim_hyperparams(6, 1e5)
 
+include("algorithm_specific_graph.jl")
+include("asg_stitching.jl")
 
 """
 Converts a given circuit in Clifford + T form to icm form and simulates the icm
@@ -64,7 +82,7 @@ Args:
 
 Returns:
     adj::Vector{AdjList}              adjacency list describing the graph state
-    lco::Vector{UInt8}                  local clifford operations on each node
+    sqs::Vector{UInt8}                  single qubit clifford operations on each node
 """
 function run_ruby_slippers(
     circuit,
@@ -93,12 +111,12 @@ function run_ruby_slippers(
     end
 
     if verbose
-        print("get_graph_state_data:\t")
-        (lco, adj, proportion) = @time get_graph_state_data(circuit, true, max_graph_size, hyperparams, max_time)
+        # print("get_graph_state_data:\t")
+        (sqc, adj, proportion) = @time get_graph_state_data(circuit, true, max_graph_size, hyperparams, max_time)
     else
-        (lco, adj, proportion) = get_graph_state_data(circuit, false, max_graph_size, hyperparams, max_time)
+        (sqc, adj, proportion) = get_graph_state_data(circuit, false, max_graph_size, hyperparams, max_time)
     end
-    return pylist(lco), python_adjlist!(adj), proportion
+    return pylist(sqc), python_adjlist!(adj), proportion
 end
 
 function get_max_n_nodes(circuit, teleportation_distance)
@@ -129,7 +147,7 @@ end
 
 """
 Get the vertices of a graph state corresponding to enacting the given circuit
-on the |0> state. Also gives the local clifford operation on each node.
+on the |0> state. Also gives the single qubit clifford operation on each node.
 
 Args:
     circuit (Circuit): orquestra circuit circuit to get the graph state for
@@ -141,102 +159,90 @@ Raises:
     ValueError: if an unsupported gate is encountered
 
 Returns:
-    Vector{UInt8}: the list of local clifford operations on each node
+    Vector{UInt8}: the list of single qubit clifford operations on each node
     Vector{AdjList}:   the adjacency list describing the graph corresponding to the graph state
 """
 function get_graph_state_data(
-    circuit,
-    verbose::Bool=false,
-    max_graph_size::UInt32=1e8,
-    hyperparams::RubySlippersHyperparams=default_hyperparams,
+    orquestra_circuit,
+    n_qubits,
+    takes_graph_input::Bool=true,
+    gives_graph_output::Bool=true,
+    verbose::Bool=true,
+    max_graph_size::Int64=1e7,
     max_time::Float64=1e8,
+    layering_optimization::String="ST-Volume",
+    hyperparams::RubySlippersHyperparams=default_hyperparams,
 )
-
-    n_qubits = pyconvert(Int, circuit.n_qubits)
-    ops = circuit.operations
-
-    lco = fill(H_code, max_graph_size)   # local clifford operation on each node
-    adj = [AdjList() for _ = 1:max_graph_size]  # adjacency list
-    if verbose
-        println("Memory for data structures allocated")
+    println("First n_qubits: ", n_qubits)
+    if takes_graph_input
+        asg, pauli_tracker = initialize_for_graph_input(max_graph_size, n_qubits, layering_optimization)
+    else
+        asg = AlgorithmSpecificGraphAllZero(max_graph_size, n_qubits)
+        pauli_tracker = PauliTracker(n_qubits, layering_optimization)
     end
 
-    data_qubits = [Qubit(i) for i = 1:n_qubits]
-    curr_qubits = [n_qubits] # make this a list so it can be modified in place
-    supported_ops = get_op_list()
-
-    total_length = length(ops)
+    total_length = length(orquestra_circuit)
     counter = dispcnt = 0
     erase = "        \b\b\b\b\b\b\b\b"
-
     start_time = time()
 
-    for (i, op) in enumerate(ops)
-        elapsed = time() - start_time
-        if elapsed >= max_time
-            # get rid of excess space in the data structures
-            resize!(lco, curr_qubits[1])
-            resize!(adj, curr_qubits[1])
-
-            proportion = i / total_length
-
-            return lco, adj, proportion
+    for (counter, op) in enumerate(orquestra_circuit)
+        elapsed_time = time() - start_time
+        # End early if we have exceeded the max time
+        if elapsed_time >= max_time
+            delete_excess_asg_space!(asg)
+            percent = counter / total_length
+            return asg.sqs, asg.edge_data, percent
         end
-        counter += 1
+
+        # Show progress of compilation in real time
         if verbose
             if (dispcnt += 1) >= 1000
                 percent = round(Int, 100 * counter / total_length)
-                display_elapsed = round(elapsed, digits=2)
+                display_elapsed = round(elapsed_time, digits=2)
                 print("\r$(percent)% ($counter) completed in $erase$(display_elapsed)s")
                 dispcnt = 0
             end
         end
 
-        if occursin("ResetOperation", pyconvert(String, op.__str__()))
-            curr_qubits[1] += 1
-            data_qubits[get_qubit_1(op)] = curr_qubits[1]
+        # Apply current operation
+        if occursin("ResetOperation", pyconvert(String, op.__str__())) # reset operation
+            asg.n_nodes += 1
+            data_qubits[get_qubit_1(op)] = asg.n_nodes
             continue
         else
-            # Decomposes gates into the icm format.
-            # Reference: https://arxiv.org/abs/1509.02004
-            op_index = get_op_index(supported_ops, op)
-            if single_qubit_op(op_index)
-                icm_op = ICMOp(code_list[op_index], data_qubits[get_qubit_1(op)])
-            elseif double_qubit_op(op_index)
-                icm_op = ICMOp(
-                    code_list[op_index],
-                    data_qubits[get_qubit_1(op)],
-                    data_qubits[get_qubit_2(op)],
-                )
-            elseif decompose_op(op_index)
-                # Note: these are currently all single qubit gates
-                original_qubit = get_qubit_1(op)
-                compiled_qubit = data_qubits[original_qubit]
-                curr_qubits[1] += 1
-                if hyperparams.decomposition_strategy == 0
-                    data_qubits[original_qubit] = curr_qubits[1]
-                end
-                icm_op = ICMOp(CNOT_code, compiled_qubit, curr_qubits[1])
-            end
-        end
+            op = get_op_from_orquestra_gate(op)
 
-        # apply the icm_op to the circuit, thereby creating the graph
-        op_code = icm_op.code
-        qubit_1 = icm_op.qubit1
-        if op_code == H_code
-            lco[qubit_1] = multiply_h(lco[qubit_1])
-        elseif op_code == S_code
-            lco[qubit_1] = multiply_s(lco[qubit_1])
-        elseif op_code == CNOT_code
-            # CNOT = (I ⊗ H) CZ (I ⊗ H)
-            qubit_2 = icm_op.qubit2
-            lco[qubit_2] = multiply_h(lco[qubit_2])
-            cz(lco, adj, qubit_1, qubit_2, data_qubits, curr_qubits, hyperparams)
-            lco[qubit_2] = multiply_h(lco[qubit_2])
-        elseif op_code == CZ_code
-            cz(lco, adj, qubit_1, icm_op.qubit2, data_qubits, curr_qubits, hyperparams)
-        elseif !pauli_op(op_code)
-            error("Unrecognized gate code $op_code encountered")
+            # println("applying operation ", op, " with data nodes ", asg.stitching_properties.gate_output_nodes)
+            if op.code in non_clifford_gate_codes
+                apply_non_clifford_gate!(asg, pauli_tracker, op, hyperparams)
+            elseif op.code in [I_code, X_code, Y_code, Z_code, H_code, S_code] # single qubit clifford gates
+                op_code = op.code
+                node = asg.stitching_properties.gate_output_nodes[op.qubit1] # node this operation with act on
+                if op_code in [I_code, X_code, Y_code, Z_code]
+                    asg.sqp[node] = multiply_sqp[asg.sqp[node], external_to_internal_paulis[op_code]]
+                elseif op_code == H_code
+                    multiply_h_from_left(asg, pauli_tracker, node)
+                elseif op_code == S_code
+                    multiply_s_from_left(asg, pauli_tracker, node)
+                end
+            elseif op.code in [CZ_code, CNOT_code] # two qubit clifford gates
+                op_code = op.code
+                node_1 = asg.stitching_properties.gate_output_nodes[op.qubit1]
+                node_2 = asg.stitching_properties.gate_output_nodes[op.qubit2]
+                if op_code == CNOT_code
+                    # CNOT = (I ⊗ H) CZ (I ⊗ H)
+                    multiply_h_from_left(asg, pauli_tracker, node_2)
+                    cz(asg, node_1, node_2, pauli_tracker, hyperparams)
+                    # update node_2 to the new qubit if previous cz teleported it
+                    node_2 = asg.stitching_properties.gate_output_nodes[op.qubit2]
+                    multiply_h_from_left(asg, pauli_tracker, node_2)
+                elseif op_code == CZ_code
+                    cz(asg, node_1, node_2, pauli_tracker, hyperparams)
+                end
+            else
+                error("Unsupported gate: $(op.code)")
+            end
         end
     end
 
@@ -245,23 +251,72 @@ function get_graph_state_data(
         println("\r100% ($counter) completed in $erase$(elapsed)s")
     end
 
-    # get rid of excess space in the data structures
-    resize!(lco, curr_qubits[1])
-    resize!(adj, curr_qubits[1])
+    # add teleportations at end so we can connect to next buffer
+    nodes_to_remove = Set([])
+    if gives_graph_output
+        add_output_nodes!(asg, pauli_tracker, nodes_to_remove)
+    end
+    if takes_graph_input
+        prune_buffer!(asg, pauli_tracker, n_qubits, nodes_to_remove)
+    end
 
-    return lco, adj, 1
+    calculate_layering!(pauli_tracker, asg, nodes_to_remove)
+
+    println("nodes to remove (first): ", nodes_to_remove)
+
+    delete_excess_asg_space!(asg)
+    asg, pauli_tracker = minimize_node_labels!(asg, pauli_tracker, nodes_to_remove)
+
+    println(pauli_tracker)
+    println()
+    println(asg)
+    println()
+    println()
+    return asg, pauli_tracker
 end
 
-"""Unpacks the values in the cz table and updates the lco values)"""
-@inline function update_lco(table, lco, vertex_1, vertex_2)
-    # Get the packed value from the table
-    val = table[lco[vertex_1], lco[vertex_2]]
-    # The code for the first vertex is stored in the top nibble
-    # and the second in the bottom nibble
-    lco[vertex_1] = (val >> 4) & 0x7
-    lco[vertex_2] = val & 0x7
-    # return if the top bit is set, which indicates if it is isolated or connected
-    (val & 0x80) != 0x00
+"""
+Implement non-clifford gates via gate teleportation as described in
+https://arxiv.org/abs/1509.02004. This is commonly reffered to as the ICM
+format.
+"""
+function apply_non_clifford_gate!(asg, pauli_tracker, op, hyperparams)
+    original_qubit = op.qubit1 # qubit the T gate was originally acting on before ICM
+    asg.n_nodes += 1
+    # println(compiled_qubit, " -> ", asg.n_nodes, " ")
+    # TODO: implement different decomposition_strategies with new tracker
+    original_node = Qubit(asg.stitching_properties.gate_output_nodes[original_qubit])
+    compiled_node = Qubit(asg.n_nodes)
+    # add new qubit to be tracked
+    add_new_qubit_to_pauli_tracker!(pauli_tracker)
+    # apply CX
+    multiply_h_from_left(asg, pauli_tracker, compiled_node)
+    cz_no_teleport(asg, original_node, compiled_node, pauli_tracker, hyperparams)
+    # update original_node to the new qubit if that cz teleported it
+    original_node = Qubit(asg.stitching_properties.gate_output_nodes[original_qubit])
+    multiply_h_from_left(asg, pauli_tracker, compiled_node)
+    # mark compiled qubit as where the data is being stored
+    if hyperparams.decomposition_strategy == 0
+        asg.stitching_properties.gate_output_nodes[original_qubit] = compiled_node
+    end
+    # Update pauli Tracker
+    add_z_to_pauli_tracker!(pauli_tracker.cond_paulis, original_node, compiled_node)
+    if op.code == RZ_code
+        add_measurement!(pauli_tracker.measurements, op.code, original_node, op.angle)
+    else
+        add_measurement!(pauli_tracker.measurements, op.code, original_node)
+    end
+end
+
+"""
+Delete excess parts of the ASG to save space once we have completed
+the computation. This is done by resizing the vectors to only contain
+the nodes which are actually used in the graph state.
+"""
+function delete_excess_asg_space!(asg)
+    resize!(asg.edge_data, asg.n_nodes)
+    resize!(asg.sqs, asg.n_nodes)
+    resize!(asg.sqp, asg.n_nodes)
 end
 
 """
@@ -284,126 +339,127 @@ end
 Apply a CZ gate to the graph on the given vertices.
 
 Args:
-    lco::Vector{UInt8}      local clifford operation on each node
+    sqs::Vector{UInt8}      single qubit clifford operation on each node
     adj::Vector{AdjList}  adjacency list describing the graph state
     vertex_1::Int         vertex to enact the CZ gate on
     vertex_2::Int         vertex to enact the CZ gate on
 """
-function cz(lco, adj, vertex_1, vertex_2, data_qubits, curr_qubits, hyperparams)
-    lst1, lst2 = adj[vertex_1], adj[vertex_2]
+function cz(asg, vertex_1, vertex_2, pauli_tracker, hyperparams)
+    # println("\nStarting applying cz on qubits $(vertex_1) and $(vertex_2)! the prepared graph state is:\n edge data   $(asg.edge_data)\n symplectics $(asg.sqs)\n pauli       $(asg.sqp)!")
+    # println(asg.stitching_properties.gate_output_nodes)
 
-    if length(adj[vertex_1]) >= hyperparams.teleportation_threshold
-        vertex_1 = teleportation!(
-            lco,
-            adj,
-            vertex_1,
-            data_qubits,
-            curr_qubits,
-            hyperparams,
-            hyperparams.teleportation_distance,
-        )
+    adj1, adj2 = asg.edge_data[vertex_1], asg.edge_data[vertex_2]
+
+    if length(asg.edge_data[vertex_1]) >= hyperparams.teleportation_threshold
+        distance = hyperparams.teleportation_distance
+        vertex_1 = teleportation!(asg, vertex_1, pauli_tracker, hyperparams, distance)
     end
-    if length(adj[vertex_2]) >= hyperparams.teleportation_threshold
-        vertex_2 = teleportation!(
-            lco,
-            adj,
-            vertex_2,
-            data_qubits,
-            curr_qubits,
-            hyperparams,
-            hyperparams.teleportation_distance,
-        )
+    if length(asg.edge_data[vertex_2]) >= hyperparams.teleportation_threshold
+        distance = hyperparams.teleportation_distance
+        vertex_2 = teleportation!(asg, vertex_2, pauli_tracker, hyperparams, distance)
     end
 
+    if !check_almost_isolated(adj1, vertex_2)
+        remove_sqs!(asg, vertex_1, vertex_2, pauli_tracker, hyperparams)
+    end
+    if !check_almost_isolated(adj2, vertex_1)
+        remove_sqs!(asg, vertex_2, vertex_1, pauli_tracker, hyperparams)
+    end
+    if !check_almost_isolated(adj1, vertex_2)
+        remove_sqs!(asg, vertex_1, vertex_2, pauli_tracker, hyperparams)
+    end
 
-    if check_almost_isolated(lst1, vertex_2)
-        check_almost_isolated(lst2, vertex_1) ||
-            remove_lco!(lco, adj, vertex_2, vertex_1, data_qubits, curr_qubits, hyperparams)
-        # if you don't remove vertex_2 from lst1, then you don't need to check again
-    else
-        remove_lco!(lco, adj, vertex_1, vertex_2, data_qubits, curr_qubits, hyperparams)
-        if !check_almost_isolated(lst2, vertex_1)
-            remove_lco!(lco, adj, vertex_2, vertex_1, data_qubits, curr_qubits, hyperparams)
-            # recheck the adjacency list of vertex_1, because it might have been removed
-            check_almost_isolated(lst1, vertex_2) || remove_lco!(
-                lco,
-                adj,
-                vertex_1,
-                vertex_2,
-                data_qubits,
-                curr_qubits,
-                hyperparams,
-            )
-        end
-    end
-    if vertex_2 in lst1
-        update_lco(cz_connected, lco, vertex_1, vertex_2) ||
-            remove_edge!(adj, vertex_1, vertex_2)
-    else
-        update_lco(cz_isolated, lco, vertex_1, vertex_2) &&
-            add_edge!(adj, vertex_1, vertex_2)
-    end
+    apply_cz_to_prepared_state(asg, vertex_1, vertex_2, pauli_tracker)
 end
 
-function cz_no_teleport(lco, adj, vertex_1, vertex_2, data_qubits, curr_qubits, hyperparams)
-    lst1, lst2 = adj[vertex_1], adj[vertex_2]
+function cz_no_teleport(asg, vertex_1, vertex_2, pauli_tracker, hyperparams)
+    # println("\nStarting applying cz_no_teleport! on qubits $(vertex_1) and $(vertex_2)! the prepared graph state is:\n edge data   $(asg.edge_data)\n symplectics $(asg.sqs)\n pauli       $(asg.sqp)!")
 
-    if check_almost_isolated(lst1, vertex_2)
-        check_almost_isolated(lst2, vertex_1) || remove_lco_no_teleport!(
-            lco,
-            adj,
-            vertex_2,
-            vertex_1,
-            data_qubits,
-            curr_qubits,
-            hyperparams,
-        )
-        # if you don't remove vertex_2 from lst1, then you don't need to check again
-    else
-        remove_lco_no_teleport!(
-            lco,
-            adj,
-            vertex_1,
-            vertex_2,
-            data_qubits,
-            curr_qubits,
-            hyperparams,
-        )
-        if !check_almost_isolated(lst2, vertex_1)
-            remove_lco_no_teleport!(
-                lco,
-                adj,
-                vertex_2,
-                vertex_1,
-                data_qubits,
-                curr_qubits,
-                hyperparams,
-            )
-            # recheck the adjacency list of vertex_1, because it might have been removed
-            check_almost_isolated(lst1, vertex_2) || remove_lco_no_teleport!(
-                lco,
-                adj,
-                vertex_1,
-                vertex_2,
-                data_qubits,
-                curr_qubits,
-                hyperparams,
-            )
-        end
+    adj1, adj2 = asg.edge_data[vertex_1], asg.edge_data[vertex_2]
+
+    if !check_almost_isolated(adj1, vertex_2)
+        remove_sqs_no_teleport!(asg, vertex_1, vertex_2, hyperparams)
+    end
+    if !check_almost_isolated(adj2, vertex_1)
+        remove_sqs_no_teleport!(asg, vertex_2, vertex_1, hyperparams)
+    end
+    if !check_almost_isolated(adj1, vertex_2)
+        remove_sqs_no_teleport!(asg, vertex_1, vertex_2, hyperparams)
     end
 
-    if vertex_2 in lst1
-        update_lco(cz_connected, lco, vertex_1, vertex_2) ||
-            remove_edge!(adj, vertex_1, vertex_2)
-    else
-        update_lco(cz_isolated, lco, vertex_1, vertex_2) &&
-            add_edge!(adj, vertex_1, vertex_2)
-    end
+    apply_cz_to_prepared_state(asg, vertex_1, vertex_2, pauli_tracker)
+end
+
+"""
+Assuming that the verticies CZ is acting on are either isolated or have sqs = I or S,
+apply a CZ gate between those two gates. Only requires using lookup table.
+"""
+function apply_cz_to_prepared_state(asg, vertex_1, vertex_2, pauli_tracker)
+    track_conditional_paulis_through_cz(pauli_tracker.cond_paulis, vertex_1, vertex_2)
+
+    # println("\nFinally applying cz on qubits $(vertex_1) and $(vertex_2)! the prepared graph state is:\n edge data   $(asg.edge_data)\n symplectics $(asg.sqs)\n paulis      $(asg.sqp)!")
+
+    connected = vertex_1 in asg.edge_data[vertex_2] || vertex_2 in asg.edge_data[vertex_1]
+
+    clifford_1_table_code = asg.sqp[vertex_1] + 4 * (asg.sqs[vertex_1] - 1)
+    clifford_2_table_code = asg.sqp[vertex_2] + 4 * (asg.sqs[vertex_2] - 1)
+    table_tuple = cz_table[connected+1][clifford_1_table_code, clifford_2_table_code]
+
+    # print("table_tuple is $(table_tuple)!\n")
+    # print("table_tuple input was $(connected) and $clifford_1_table_code and $clifford_2_table_code \n")
+
+    connected != table_tuple[1] && toggle_edge!(asg.edge_data, vertex_1, vertex_2)
+    asg.sqp[vertex_1] = table_tuple[2][1]
+    asg.sqs[vertex_1] = table_tuple[2][2]
+    asg.sqp[vertex_2] = table_tuple[3][1]
+    asg.sqs[vertex_2] = table_tuple[3][2]
+
+    # println("After applying cz the prepared graph state is:\n edge data   $(asg.edge_data)\n symplectics $(asg.sqs)\n paulis      $(asg.sqp)!")
 end
 
 
 """
-Select a neighbor to use when removing a local clifford operation.
+Remove all single qubit clifford operations on a vertex v that do not
+commute with CZ. Needs use of a neighbor of v, but if we wish to avoid
+using a particular neighbor, we can specify it.
+
+Args:
+    sqs::Vector{UInt8}      single qubit clifford operations on each node
+    adj::Vector{AdjList}  adjacency list describing the graph state
+    v::Int                index of the vertex to remove single qubit clifford operations from
+    avoid::Int            index of a neighbor of v to avoid using
+"""
+function remove_sqs!(asg, v, avoid, pauli_tracker, hyperparams)
+    # println("remove_sqs at node $v ! to remove $(asg.sqs[v]) with pauli $(asg.sqp[v])!")
+    # println("remove_sqs at node $v ! the prepared graph state is:\n edge data $(asg.edge_data)\n symplectics $(asg.sqs)\n pauli $(asg.sqp)!")
+    code = asg.sqs[v]
+    if code == I_code || code == S_code
+    elseif code == SQRT_X_code || code == HS_code
+        local_complement_no_teleport!(asg, v)
+    else # code == H_code || code == SH_code
+        # almost all calls to remove_sqs!() will end up here
+        neighbor = get_neighbor(asg.edge_data, v, avoid, hyperparams)
+        local_complement_no_teleport!(asg, neighbor)
+        local_complement_no_teleport!(asg, v)
+    end
+    # println("sqs at node $v is now $(asg.sqs[v]) with pauli $(asg.sqp[v])!")
+end
+
+function remove_sqs_no_teleport!(asg, v, avoid, hyperparams)
+    code = asg.sqs[v]
+    if code == I_code || code == S_code
+    elseif code == SQRT_X_code || code == HS_code
+        local_complement_no_teleport!(asg, v)
+    else # code == H_code || code == SH_code
+        # almost all calls to remove_sqs!() will end up here
+        neighbor = get_neighbor(asg.edge_data, v, avoid, hyperparams)
+        local_complement_no_teleport!(asg, neighbor)
+        local_complement_no_teleport!(asg, v)
+    end
+end
+
+"""
+Select a neighbor to use when removing a single qubit clifford operation.
 
 The return value be set to avoid if there are no neighbors or avoid is the only neighbor,
 otherwise it returns the neighbor with the fewest neighbors (or the first one that
@@ -426,9 +482,10 @@ function get_neighbor(adj, v, avoid, hyperparams)
             replace=false
         )
     end
+
     for neighbor in neighbors_to_search
         if neighbor != avoid
-            # stop search if  super small neighborhood is found
+            # stop search if super small neighborhood is found
             num_neighbors = length(adj[neighbor])
             num_neighbors < hyperparams.min_neighbors && return neighbor
             # search for smallest neighborhood
@@ -441,98 +498,38 @@ function get_neighbor(adj, v, avoid, hyperparams)
     return neighbor_with_smallest_neighborhood
 end
 
-"""
-Remove all local clifford operations on a vertex v that do not commute
-with CZ. Needs use of a neighbor of v, but if we wish to avoid using
-a particular neighbor, we can specify it.
-
-Args:
-    lco::Vector{UInt8}      local clifford operations on each node
-    adj::Vector{AdjList}  adjacency list describing the graph state
-    v::Int                index of the vertex to remove local clifford operations from
-    avoid::Int            index of a neighbor of v to avoid using
-"""
-function remove_lco!(lco, adj, v, avoid, data_qubits, curr_qubits, hyperparams)
-    code = lco[v]
-    if code == Pauli_code || code == S_code
-    elseif code == SQRT_X_code
-        local_complement!(lco, adj, v, data_qubits, curr_qubits, hyperparams)
-    else
-        if code == SH_code
-            local_complement!(lco, adj, v, data_qubits, curr_qubits, hyperparams)
-            vb = get_neighbor(adj, v, avoid, hyperparams)
-            # Cannot use teleportation becase vb wouldn't be a neighbor of v
-            local_complement_no_teleport!(lco, adj, vb, data_qubits, curr_qubits)
-        else # code == H_code || code == HS_code
-            # almost all calls to remove_lco!() will end up here
-            vb = get_neighbor(adj, v, avoid, hyperparams)
-            local_complement_no_teleport!(lco, adj, vb, data_qubits, curr_qubits)
-            local_complement_no_teleport!(lco, adj, v, data_qubits, curr_qubits)
-        end
-    end
-end
-
-function remove_lco_no_teleport!(lco, adj, v, avoid, data_qubits, curr_qubits, hyperparams)
-    code = lco[v]
-    if code == Pauli_code || code == S_code
-    elseif code == SQRT_X_code
-        local_complement_no_teleport!(lco, adj, v, data_qubits, curr_qubits)
-    else
-        if code == SH_code
-            local_complement_no_teleport!(lco, adj, v, data_qubits, curr_qubits)
-            vb = get_neighbor(adj, v, avoid, hyperparams)
-            # Cannot use teleportation becase vb wouldn't be a neighbor of v
-            local_complement_no_teleport!(lco, adj, vb, data_qubits, curr_qubits)
-        else # code == H_code || code == HS_code
-            # almost all calls to remove_lco!() will end up here
-            vb = get_neighbor(adj, v, avoid, hyperparams)
-            local_complement_no_teleport!(lco, adj, vb, data_qubits, curr_qubits)
-            local_complement_no_teleport!(lco, adj, v, data_qubits, curr_qubits)
-        end
-    end
-end
-
 
 """
 Take the local complement of a vertex v.
 
 Args:
-    lco::Vector{UInt8}      local clifford operations on each node
+    sqs::Vector{UInt8}      single qubit clifford operations on each node
     adj::Vector{AdjList}  adjacency list describing the graph state
     v::Int                index node to take the local complement of
 """
-function local_complement!(lco, adj, v, data_qubits, curr_qubits, hyperparams)
-
-    if length(adj[v]) >= hyperparams.teleportation_threshold
-        v = teleportation!(
-            lco,
-            adj,
-            v,
-            data_qubits,
-            curr_qubits,
-            hyperparams,
-            hyperparams.teleportation_distance,
-        )
+function local_complement!(asg, v, pauli_tracker, hyperparams)
+    if length(asg.edge_data[v]) >= hyperparams.teleportation_threshold
+        distance = hyperparams.teleportation_distance
+        v = teleportation!(asg, v, pauli_tracker, hyperparams, distance)
     end
 
-    local_complement_no_teleport!(lco, adj, v, data_qubits, curr_qubits)
+    local_complement_no_teleport!(asg, v)
 end
 
-function local_complement_no_teleport!(lco, adj, v, data_qubits, curr_qubits)
-    neighbors = collect(adj[v])
+function local_complement_no_teleport!(asg, v)
+    # println("Before local complement on $(v) the prepared graph state is:\n edge data   $(asg.edge_data)\n symplectics $(asg.sqs)\n paulis      $(asg.sqp)!")
+    neighbors = collect(asg.edge_data[v])
     len = length(neighbors)
+    multiply_sqrt_x_from_right(asg, v)
     for i = 1:len
         neighbor = neighbors[i]
+        multiply_s_dagger_from_right(asg, neighbor)
         for j = i+1:len
-            toggle_edge!(adj, neighbor, neighbors[j])
+            toggle_edge!(asg.edge_data, neighbor, neighbors[j])
         end
     end
-    lco[v] = multiply_by_sqrt_x(lco[v])
-    for i in adj[v]
-        lco[i] = multiply_by_s(lco[i])
-    end
+    # println("After local complement on $(v) the prepared graph state is:\n edge data   $(asg.edge_data)\n symplectics $(asg.sqs)\n paulis      $(asg.sqp)!")
 end
-
 
 
 """Add an edge between the two vertices given"""
@@ -557,7 +554,6 @@ Args:
     vertex_2::Int         index of vertex to be connected or disconnected
 """
 function toggle_edge!(adj, vertex_1, vertex_2)
-    # if insorted(vertex_2, adj[vertex_1])
     if vertex_2 in adj[vertex_1]
         remove_edge!(adj, vertex_1, vertex_2)
     else
@@ -570,64 +566,56 @@ Teleport your "oz qubit" with high degree to a "kansas qubit" with degree 1.
 Speeds up computation by avoiding performing local complements on high degree nodes.
 
 Args:
-    lco::Vector{UInt8}      local clifford operations on each node
+    sqs::Vector{UInt8}      single qubit clifford operations on each node
     adj::Vector{AdjList}  adjacency list describing the graph state
     oz_qubit::Int         index of the qubit to teleport
     data_qubits::Dict       map from qubit indices to vertex indices
-    curr_qubits::Int      number of qubits in the graph state
 """
 function teleportation!(
-    lco,
-    adj,
+    asg,
     oz_qubit,
-    data_qubits,
-    curr_qubits,
+    pauli_tracker,
     hyperparams,
     curr_teleportation_distance,
 )
-    slippers_qubit = Qubit(curr_qubits[1] + 1) # facilitates teleportation
-    kansas_qubit = Qubit(curr_qubits[1] + 2) # qubit we teleport to
-    curr_qubits[1] += 2
+    # println("\n\n\nThere's no place like home! There's no place like home! There's no place like home!")
+    slippers_qubit = Qubit(asg.n_nodes + 1) # facilitates teleportation
+    kansas_qubit = Qubit(asg.n_nodes + 2) # qubit we teleport to
+    asg.n_nodes += 2
+    # println("oz_qubit is $(oz_qubit) and slippers_qubit is $(slippers_qubit) and kansas_qubit is $(kansas_qubit)!\n\n\n")
+    add_new_qubit_to_pauli_tracker!(pauli_tracker)
+    add_new_qubit_to_pauli_tracker!(pauli_tracker)
 
-    # prepare bell state
-    adj[slippers_qubit] = AdjList([kansas_qubit])
-    adj[kansas_qubit] = AdjList([slippers_qubit])
-    lco[slippers_qubit] = SH_code
-    lco[kansas_qubit] = S_code
+    # output state of H(slippers_qubit) * CX(slippers_qubit, kansas_qubit_qubit) * H(slippers_qubit)
+    asg.sqs[slippers_qubit] = I_code
+    asg.sqs[kansas_qubit] = I_code
+    asg.edge_data[slippers_qubit] = AdjList(kansas_qubit)
+    asg.edge_data[kansas_qubit] = AdjList(slippers_qubit)
 
-    # teleport
-    lco[slippers_qubit] = multiply_h(lco[slippers_qubit])
-    cz_no_teleport(
-        lco,
-        adj,
-        oz_qubit,
-        slippers_qubit,
-        data_qubits,
-        curr_qubits,
-        hyperparams,
-    )
-    lco[slippers_qubit] = multiply_h(lco[slippers_qubit])
-    lco[oz_qubit] = multiply_h(lco[oz_qubit])
+    cz_no_teleport(asg, oz_qubit, slippers_qubit, pauli_tracker, hyperparams)
+    multiply_h_from_left(asg, pauli_tracker, slippers_qubit)
+    multiply_h_from_left(asg, pauli_tracker, oz_qubit)
+
+    add_z_to_pauli_tracker!(pauli_tracker.cond_paulis, oz_qubit, kansas_qubit)
+    add_measurement!(pauli_tracker.measurements, H_code, oz_qubit)
+    add_x_to_pauli_tracker!(pauli_tracker.cond_paulis, slippers_qubit, kansas_qubit)
+    add_measurement!(pauli_tracker.measurements, H_code, slippers_qubit)
 
 
     # update qubit map if needed
-    for (i, qubit) in enumerate(data_qubits)
+    for (i, qubit) in enumerate(asg.stitching_properties.gate_output_nodes)
+        # println(qubit, " ", oz_qubit, " ", kansas_qubit)
         if qubit == oz_qubit
-            data_qubits[i] = kansas_qubit
+            asg.stitching_properties.gate_output_nodes[i] = kansas_qubit
         end
     end
 
+    # println(asg.stitching_properties.gate_output_nodes)
+
     # peform multiple teleportations if we need distance > 2
     if curr_teleportation_distance > 2
-        return teleportation!(
-            lco,
-            adj,
-            kansas_qubit,
-            data_qubits,
-            curr_qubits,
-            hyperparams,
-            curr_teleportation_distance - 2,
-        )
+        distance = curr_teleportation_distance - 2
+        return teleportation!(asg, kansas_qubit, pauli_tracker, hyperparams, distance)
     end
 
     return kansas_qubit
@@ -650,14 +638,7 @@ get_op_list() = pylist(op_list)
 """Get index of operation name"""
 get_op_index(op_list, op) = pyconvert(Int, op_list.index(op.gate.name)) + 1
 
-pauli_op(index) = 0 <= index < 5 # i.e. I, X, Y, Z
-single_qubit_op(index) = index < 8   # Paulis, H, S, S_Dagger
-double_qubit_op(index) = 7 < index < 10  # CZ, CNOT
-decompose_op(index) = index > 9 # T, T_Dagger, RX, RY, RZ
-
-"""
-Destructively convert this to a Python adjacency list
-"""
-function python_adjlist!(adj)
-    pylist([pylist(adj[i] .- 1) for i = 1:length(adj)])
-end
+pauli_op(index) = 0 <= index < 7 # i.e. I, X, Y, Z
+single_qubit_op(index) = index < 10   # Paulis, H, S, S_Dagger
+double_qubit_op(index) = 10 <= index < 12  # CZ, CNOT
+decompose_op(index) = index >= 12 # T, T_Dagger, RX, RY, RZ
