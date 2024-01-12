@@ -45,6 +45,17 @@ struct ICMOp
 end
 RZOp(qubit1, angle) = ICMOp(RZ_code, qubit1, 0, angle)
 
+function get_op_from_orquestra_operation(op, supported_ops=get_op_list())
+    op_index = get_op_index(supported_ops, op)
+    if double_qubit_op(op_index)
+        return ICMOp(op_index, get_qubit_1(op), get_qubit_2(op))
+    elseif decompose_op(op_index)
+        return ICMOp(op_index, get_qubit_1(op), get_qubit_2(op), op.angle)
+    else
+        return ICMOp(op_index, get_qubit_1(op))
+    end
+end    
+
 struct RubySlippersHyperparams
     teleportation_threshold::UInt16
     teleportation_distance::UInt8
@@ -211,7 +222,8 @@ function get_graph_state_data(
             data_qubits[get_qubit_1(op)] = asg.n_nodes
             continue
         else
-            op = get_op_from_orquestra_gate(op)
+            # TODO: write this function
+            op = get_op_from_orquestra_operation(op)
 
             # println("applying operation ", op, " with data nodes ", asg.stitching_properties.gate_output_nodes)
             if op.code in non_clifford_gate_codes
@@ -638,7 +650,8 @@ get_op_list() = pylist(op_list)
 """Get index of operation name"""
 get_op_index(op_list, op) = pyconvert(Int, op_list.index(op.gate.name)) + 1
 
-pauli_op(index) = 0 <= index < 7 # i.e. I, X, Y, Z
-single_qubit_op(index) = index < 10   # Paulis, H, S, S_Dagger
-double_qubit_op(index) = 10 <= index < 12  # CZ, CNOT
+# TODO: double check nums in graph_sim_data
+pauli_op(index) = 1 <= index <= 4 # i.e. I, X, Y, Z
+single_qubit_op(index) = 1 <= index <= 9   # Paulis, H, S, S_Dagger
+double_qubit_op(index) = 10 <= index <= 11  # CZ, CNOT
 decompose_op(index) = index >= 12 # T, T_Dagger, RX, RY, RZ

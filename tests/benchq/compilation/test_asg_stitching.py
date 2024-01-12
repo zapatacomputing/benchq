@@ -4,6 +4,8 @@ import os
 import pathlib
 from benchq.visualization_tools.plot_graph_state import plot_graph_state
 import pytest
+from benchq.compilation import icmop_to_circuit
+
 
 jl.include(
     os.path.join(
@@ -58,18 +60,20 @@ def check_correctness_for_stiched_circuits(
 
 
 def get_graph(circuit, hyperparams, connection_type, optimization):
-    n_qubits = 0
-    for code, qubit_1, qubit_2, angle in circuit:
-        n_qubits = max(n_qubits, qubit_1 + 1, qubit_2 + 1)
+    # # TODO: get qubit count from orq circuit
+    # for code, qubit_1, qubit_2, angle in circuit:
+    #     n_qubits = max(n_qubits, qubit_1 + 1, qubit_2 + 1)
+    n_qubits = circuit._n_qubits
 
-    jabalized_circuit = [
-        jl.ICMOp(code, qubit_1 + 1, qubit_2 + 1, angle)
-        for code, qubit_1, qubit_2, angle in circuit
-    ]
+    # TODO: delete
+    # jabalized_circuit = [
+    #     jl.ICMOp(code, qubit_1 + 1, qubit_2 + 1, angle)
+    #     for code, qubit_1, qubit_2, angle in circuit
+    # ]
 
     if connection_type == "input":
         asg, pauli_tracker = jl.get_graph_state_data(
-            jabalized_circuit,
+            circuit,
             n_qubits,
             True,
             False,
@@ -81,7 +85,7 @@ def get_graph(circuit, hyperparams, connection_type, optimization):
         )
     elif connection_type == "output":
         asg, pauli_tracker = jl.get_graph_state_data(
-            jabalized_circuit,
+            circuit,
             n_qubits,
             False,
             True,
@@ -93,7 +97,7 @@ def get_graph(circuit, hyperparams, connection_type, optimization):
         )
     elif connection_type == "both":
         asg, pauli_tracker = jl.get_graph_state_data(
-            jabalized_circuit,
+            circuit,
             n_qubits,
             True,
             True,
@@ -105,7 +109,7 @@ def get_graph(circuit, hyperparams, connection_type, optimization):
         )
     elif connection_type == "neither":
         asg, pauli_tracker = jl.get_graph_state_data(
-            jabalized_circuit,
+            circuit,
             n_qubits,
             False,
             False,
@@ -154,51 +158,63 @@ def to_python(asg, pauli_tracker):
     [
         (
             # test rotations work as expected
-            [
-                (8, 2, -1, 0),
-                (8, 2, -1, 0),
-                (11, 1, 0, 0),
-                (7, 1, -1, 0),
-                (14, 2, -1, 1.3856216182779741),
-            ],
-            [
-                (14, 1, -1, 3.9206180253660037),
-                (10, 2, 0, 0),
-                (8, 1, -1, 0),
-                (11, 0, 1, 0),
-                (3, 2, -1, 0),
-            ],
-            [
-                (7, 1, -1, 0),
-                (3, 2, -1, 0),
-                (12, 1, -1, 0),
-                (14, 1, -1, 1.8024498348644822),
-                (7, 2, -1, 0),
-            ],
+            icmop_to_circuit(
+                [
+                    (8, 2, -1, 0),
+                    (8, 2, -1, 0),
+                    (11, 1, 0, 0),
+                    (7, 1, -1, 0),
+                    (14, 2, -1, 1.3856216182779741),
+                ]
+            ),
+            icmop_to_circuit(
+                [
+                    (14, 1, -1, 3.9206180253660037),
+                    (10, 2, 0, 0),
+                    (8, 1, -1, 0),
+                    (11, 0, 1, 0),
+                    (3, 2, -1, 0),
+                ]
+            ),
+            icmop_to_circuit(
+                [
+                    (7, 1, -1, 0),
+                    (3, 2, -1, 0),
+                    (12, 1, -1, 0),
+                    (14, 1, -1, 1.8024498348644822),
+                    (7, 2, -1, 0),
+                ]
+            ),
         ),
         (
             # test T gates work as expected
-            [
-                (13, 2, -1, 0),
-                (12, 2, -1, 0),
-                (12, 2, -1, 0),
-                (7, 1, -1, 0),
-                (9, 1, -1, 0),
-            ],
-            [
-                (9, 1, -1, 0),
-                (12, 2, -1, 0),
-                (11, 1, 2, 0),
-                (9, 1, -1, 0),
-                (8, 2, -1, 0),
-            ],
-            [
-                (3, 1, -1, 0),
-                (2, 1, -1, 0),
-                (2, 1, -1, 0),
-                (9, 1, -1, 0),
-                (11, 0, 1, 0),
-            ],
+            icmop_to_circuit(
+                [
+                    (13, 2, -1, 0),
+                    (12, 2, -1, 0),
+                    (12, 2, -1, 0),
+                    (7, 1, -1, 0),
+                    (9, 1, -1, 0),
+                ]
+            ),
+            icmop_to_circuit(
+                [
+                    (9, 1, -1, 0),
+                    (12, 2, -1, 0),
+                    (11, 1, 2, 0),
+                    (9, 1, -1, 0),
+                    (8, 2, -1, 0),
+                ]
+            ),
+            icmop_to_circuit(
+                [
+                    (3, 1, -1, 0),
+                    (2, 1, -1, 0),
+                    (2, 1, -1, 0),
+                    (9, 1, -1, 0),
+                    (11, 0, 1, 0),
+                ]
+            ),
         ),
     ],
 )
