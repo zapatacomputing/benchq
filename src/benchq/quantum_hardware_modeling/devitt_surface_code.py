@@ -1,6 +1,9 @@
+################################################################################
+# © Copyright 2022 Zapata Computing Inc.
+################################################################################
 from decimal import Decimal, getcontext
 
-from ..quantum_hardware_modeling import BasicArchitectureModel
+from . import BasicArchitectureModel
 
 getcontext().prec = 100
 

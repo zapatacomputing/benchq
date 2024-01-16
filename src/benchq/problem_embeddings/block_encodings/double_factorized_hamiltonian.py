@@ -7,22 +7,22 @@ from typing import Tuple
 import numpy as np
 from openfermion.resource_estimates import df
 
-from benchq.problem_ingestion.hamiltonians._compute_lambda import compute_lambda_df
+from benchq.problem_ingestion.molecule_hamiltonians import compute_lambda_df
 
-from .._qpe import _get_double_factorized_qpe_info
+from ..qpe import _get_double_factorized_qpe_info
 
 
-def get_double_factorized_block_encoding(
+def get_double_factorized_hamiltonian_block_encoding(
     h1: np.ndarray,
     eri: np.ndarray,
     threshold: float,
     bits_precision_state_prep: int = 10,
     bits_precision_rotation: int = 20,
 ) -> Tuple[int, int, float]:
-    """Get the Toffoli count, qubit cost, and the one-norm for the double factorized
-    block encoding as described in PRX Quantum 2, 030305. This function works by
-    getting the full cost of double factorized qpe and then deducing the cost of the
-    block encoding from that.
+    """Get the Toffoli count, qubit cost, and the one-norm for the block encoding of
+    double factorized hamiltonian as described in PRX Quantum 2, 030305. This function
+    works by getting the full cost of double factorized qpe and then deducing the cost
+    of the block encoding from that.
 
     Args:
         h1: Matrix elements of the one-body operator that includes kinetic

@@ -19,10 +19,10 @@ with warnings.catch_warnings():
 
     from openfermion.resource_estimates.molecule import pyscf_to_cas
 
-from benchq.problem_embeddings.block_encodings.double_factorized import (
-    get_double_factorized_block_encoding,
+from benchq.problem_embeddings.block_encodings.double_factorized_hamiltonian import (
+    get_double_factorized_hamiltonian_block_encoding,
 )
-from benchq.problem_ingestion.hamiltonians.molecule_instance_generation import (
+from benchq.problem_ingestion.molecule_hamiltonians import (
     generate_hydrogen_chain_instance,
 )
 
@@ -43,7 +43,7 @@ def test_df_block_encoding_logical_qubit_count_is_larger_than_number_of_spin_orb
     mean_field_object = instance.get_active_space_meanfield_object()
     h1, eri_full, _, _, _ = pyscf_to_cas(mean_field_object)
 
-    (num_toffoli, num_qubits, lam) = get_double_factorized_block_encoding(
+    (num_toffoli, num_qubits, lam) = get_double_factorized_hamiltonian_block_encoding(
         h1, eri_full, 1e-6
     )
     assert num_qubits > 2 * eri_full.shape[0]
@@ -68,7 +68,7 @@ def test_df_block_encoding_lambda_scales_with_hamiltonian(
     threshold = 1e-6
     scale_factor = 10
 
-    (num_toffoli, num_qubits, lam) = get_double_factorized_block_encoding(
+    (num_toffoli, num_qubits, lam) = get_double_factorized_hamiltonian_block_encoding(
         h1, eri_full, threshold
     )
 
@@ -76,7 +76,7 @@ def test_df_block_encoding_lambda_scales_with_hamiltonian(
         scaled_num_toffoli,
         scaled_num_qubits,
         scaled_lam,
-    ) = get_double_factorized_block_encoding(
+    ) = get_double_factorized_hamiltonian_block_encoding(
         scale_factor * h1, scale_factor * eri_full, scale_factor * threshold
     )
 
@@ -98,4 +98,4 @@ def _get_asymmetric_hamiltonian():
 def test_double_factorized_block_encoding_raises_exception_for_invalid_eri():
     h1, eri_full = _get_asymmetric_hamiltonian()
     with pytest.raises(ValueError):
-        get_double_factorized_block_encoding(h1, eri_full, 1e-6)
+        get_double_factorized_hamiltonian_block_encoding(h1, eri_full, 1e-6)

@@ -1,3 +1,6 @@
+################################################################################
+# © Copyright 2022-2023 Zapata Computing Inc.
+################################################################################
 import random
 
 import networkx as nx
@@ -10,7 +13,7 @@ from pyLIQTR.QSP.Hamiltonian import Hamiltonian as pyH
 from benchq.conversions import pyliqtr_to_openfermion
 
 
-def generate_kitaev_hamiltonian(lattice_size, weight_prob=1):
+def generate_ising_hamiltonian_on_kitaev_lattice(lattice_size, weight_prob=1):
     g = nx.generators.lattice.hexagonal_lattice_graph(lattice_size, lattice_size)
     assign_hexagon_labels(g)
     g = nx.convert_node_labels_to_integers(g)
@@ -21,7 +24,7 @@ def generate_kitaev_hamiltonian(lattice_size, weight_prob=1):
     return H_kitaev
 
 
-def generate_triangular_hamiltonian(
+def generate_ising_hamiltonian_on_triangular_lattice(
     lattice_size, longitudinal_weight_prob=1, transverse_weight_prob=1
 ):
     g = nx_triangle_lattice(lattice_size)
@@ -33,7 +36,7 @@ def generate_triangular_hamiltonian(
     return H_triangle
 
 
-def generate_cubic_hamiltonian(
+def generate_ising_hamiltonian_on_cubic_lattice(
     lattice_size, longitudinal_weight_prob=0.5, transverse_weight_prob=1
 ):
     g = nx.grid_graph(dim=(lattice_size, lattice_size, lattice_size))

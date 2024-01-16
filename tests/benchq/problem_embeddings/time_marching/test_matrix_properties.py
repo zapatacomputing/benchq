@@ -1,6 +1,6 @@
 import pytest
 
-from benchq.problem_ingestion.time_marching_matrix_properties import get_degree
+from benchq.problem_embeddings.time_marching.matrix_properties import get_degree
 
 
 @pytest.mark.parametrize(

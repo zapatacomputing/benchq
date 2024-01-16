@@ -22,7 +22,7 @@ from ...quantum_hardware_modeling import (
     BasicArchitectureModel,
     DetailedArchitectureModel,
 )
-from ...quantum_hardware_modeling.devitt_surface_code_model import (
+from ...quantum_hardware_modeling.devitt_surface_code import (
     get_total_logical_failure_rate,
     logical_cell_error_rate,
     physical_qubits_per_logical_qubit,

@@ -8,33 +8,33 @@ from typing import Literal
 
 from benchq.algorithms.time_evolution import qsp_time_evolution_algorithm
 from benchq.compilation import get_ruby_slippers_compiler
-from benchq.quantum_hardware_modeling import DETAILED_ION_TRAP_ARCHITECTURE_MODEL
 from benchq.decoder_modeling import DecoderModel
-from benchq.problem_ingestion.hamiltonians.ising_hamiltonians import (
-    generate_cubic_hamiltonian,
-    generate_kitaev_hamiltonian,
-    generate_triangular_hamiltonian,
+from benchq.problem_ingestion.solid_state_hamiltonians.ising import (
+    generate_ising_hamiltonian_on_cubic_lattice,
+    generate_ising_hamiltonian_on_kitaev_lattice,
+    generate_ising_hamiltonian_on_triangular_lattice,
+)
+from benchq.quantum_hardware_modeling import DETAILED_ION_TRAP_ARCHITECTURE_MODEL
+from benchq.resource_estimators.footprint_estimators.openfermion_estimator import (
+    footprint_estimator,
 )
 from benchq.resource_estimators.graph_estimators import (
     ExtrapolationResourceEstimator,
     create_big_graph_from_subcircuits,
+    get_custom_extrapolated_estimate,
     remove_isolated_nodes,
-    run_custom_extrapolation_pipeline,
     transpile_to_native_gates,
-)
-from benchq.resource_estimators.footprint_estimators.openfermion_estimator import (
-    footprint_estimator,
 )
 
 
 def get_resources(lattice_type: str, size: int, decoder_data_file: str):
     print(f"Getting operator for size {size} {lattice_type} lattice...")
     if lattice_type == "triangular":
-        operator = generate_triangular_hamiltonian(size)
+        operator = generate_ising_hamiltonian_on_triangular_lattice(size)
     elif lattice_type == "kitaev":
-        operator = generate_kitaev_hamiltonian(size)
+        operator = generate_ising_hamiltonian_on_kitaev_lattice(size)
     elif lattice_type == "cubic":
-        operator = generate_cubic_hamiltonian(size)
+        operator = generate_ising_hamiltonian_on_cubic_lattice(size)
     else:
         raise ValueError(f"Lattice type {lattice_type} not supported")
 
@@ -68,7 +68,7 @@ def get_resources(lattice_type: str, size: int, decoder_data_file: str):
         raise ValueError(f"Lattice type {lattice_type} not supported")
 
     print("Estimating resources via graph state compilation...")
-    gsc_resources = run_custom_extrapolation_pipeline(
+    gsc_resources = get_custom_extrapolated_estimate(
         algorithm_implementation,
         my_estimator,
         transformers=[
@@ -84,11 +84,12 @@ def get_resources(lattice_type: str, size: int, decoder_data_file: str):
         algorithm_implementation.error_budget.transpilation_failure_tolerance,
     )
 
+    hw_tolerance = algorithm_implementation.error_budget.hardware_failure_tolerance
     footprint_resources = footprint_estimator(
         algorithm_implementation.program.num_data_qubits,
         num_t=total_t_gates,
         architecture_model=my_estimator.hw_model,
-        hardware_failure_tolerance=algorithm_implementation.error_budget.hardware_failure_tolerance,
+        hardware_failure_tolerance=hw_tolerance,
         decoder_model=decoder_model,
     )
     return gsc_resources, footprint_resources

@@ -1,6 +1,10 @@
 """
+Here we provide code showing how to leverege the orquestra platform
+in order to produce resource estimates for a qsp algorithm.
+
 Prerequisites:
-1. Log in to the remote Orquestra cluster with ``orq login -s https://prod-d.orquestra.io``
+1. Login to the remote Orquestra cluster with
+   ``orq login -s https://prod-d.orquestra.io``
 
 Running:
 1. Comment/uncomment "in_process"/"prod-d" lines to select the runtime to use.

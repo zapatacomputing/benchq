@@ -1,11 +1,10 @@
-from functools import wraps
 from typing import Optional
 from unittest.mock import ANY, patch
 
 import pytest
 
-from benchq.data_logging import create_mlflow_scf_callback
-from benchq.problem_ingestion.hamiltonians.molecule_instance_generation import (
+from benchq.mlflow.data_logging import create_mlflow_scf_callback
+from benchq.problem_ingestion.molecule_hamiltonians.instances import (
     ChemistryApplicationInstance,
     SCFConvergenceError,
     generate_hydrogen_chain_instance,
@@ -139,8 +138,8 @@ def test_get_active_space_meanfield_object_raises_scf_convergence_error(method):
 @pytest.fixture
 def patch_sdk_token():
     with patch(
-        "benchq.problem_ingestion.hamiltonians.molecule_instance_generation"
-        ".sdk.mlflow.get_tracking_token",
+        "benchq.problem_ingestion.molecule_hamiltonians.instances."
+        "sdk.mlflow.get_tracking_token",
         autospec=True,
         return_value="fake",
     ) as patched_token:
@@ -150,8 +149,8 @@ def patch_sdk_token():
 @pytest.fixture
 def patch_sdk_uri():
     with patch(
-        "benchq.problem_ingestion.hamiltonians.molecule_instance_generation"
-        ".sdk.mlflow.get_tracking_uri",
+        "benchq.problem_ingestion.molecule_hamiltonians.instances."
+        "sdk.mlflow.get_tracking_uri",
         autospec=True,
         return_value=None,
     ) as patched_uri:
@@ -161,7 +160,7 @@ def patch_sdk_uri():
 @pytest.fixture
 def patch_log_metric():
     with patch(
-        "benchq.problem_ingestion.hamiltonians.molecule_instance_generation."
+        "benchq.problem_ingestion.molecule_hamiltonians.instances."
         "MlflowClient.log_metric",
         autospec=True,
     ) as patched_log_metric:
@@ -171,7 +170,7 @@ def patch_log_metric():
 @pytest.fixture
 def patch_log_param():
     with patch(
-        "benchq.problem_ingestion.hamiltonians.molecule_instance_generation."
+        "benchq.problem_ingestion.molecule_hamiltonians.instances."
         "MlflowClient.log_param",
         autospec=True,
     ) as patched_log_param:

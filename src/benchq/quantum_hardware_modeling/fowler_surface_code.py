@@ -1,3 +1,6 @@
+################################################################################
+# © Copyright 2022 Zapata Computing Inc.
+################################################################################
 """
 Surface code model based on the numbers used in openfermion:
 https://github.com/quantumlib/OpenFermion/tree/master/src/openfermion/resource_estimates

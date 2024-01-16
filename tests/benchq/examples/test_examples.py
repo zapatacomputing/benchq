@@ -8,7 +8,6 @@ import pytest
 from orquestra.sdk.schema.workflow_run import State
 from qiskit.circuit import QuantumCircuit
 
-import examples.data.get_icm as icm
 from benchq.algorithms.data_structures import (
     AlgorithmImplementation,
     ErrorBudget,
@@ -18,19 +17,15 @@ from benchq.compilation import (
     get_algorithmic_graph_from_Jabalizer,
     pyliqtr_transpile_to_clifford_t,
 )
-from benchq.conversions import import_circuit
-from benchq.magic_state_distillation import MagicStateFactory
 from benchq.magic_state_distillation.litinski_factories import iter_litinski_factories
 from benchq.problem_embeddings.quantum_program import QuantumProgram
 from benchq.quantum_hardware_modeling import BASIC_SC_ARCHITECTURE_MODEL
-from benchq.resource_estimators.default_estimators import run_precise_graph_estimate
-from benchq.resource_estimators.graph_estimators import (
-    GraphResourceEstimator,
-    graph_estimator,
-)
+from benchq.resource_estimators.default_estimators import get_precise_graph_estimate
+from benchq.resource_estimators.graph_estimators import GraphResourceEstimator
 
 MAIN_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.dirname(MAIN_DIR))
+from examples.data.get_icm import get_icm  # noqa: E402
 from examples.ex_1_from_qasm import main as from_qasm_main  # noqa: E402
 from examples.ex_2_time_evolution import main as time_evolution_main  # noqa: E402
 from examples.ex_3_packages_comparison import (  # noqa: E402
@@ -118,11 +113,11 @@ def test_toy_example_notebook():
     # only allow a failure to occur 1% of the time
     budget = ErrorBudget.from_even_split(1e-2)
     implementation = AlgorithmImplementation.from_circuit(demo_circuit, budget, 1)
-    run_precise_graph_estimate(implementation, architecture_model)
+    get_precise_graph_estimate(implementation, architecture_model)
 
     get_algorithmic_graph_from_Jabalizer(clifford_t_circuit)
 
-    icm.get_icm(clifford_t_circuit)
+    get_icm(clifford_t_circuit)
 
     graph_partition = GraphPartition(program, [circuit_graph])
 

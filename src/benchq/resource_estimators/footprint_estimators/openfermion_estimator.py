@@ -24,7 +24,7 @@ from ...quantum_hardware_modeling import (
     BASIC_SC_ARCHITECTURE_MODEL,
     BasicArchitectureModel,
 )
-from ...quantum_hardware_modeling.fowler_surface_code_model import (
+from ...quantum_hardware_modeling.fowler_surface_code import (
     logical_cell_error_rate,
     physical_qubits_per_logical_qubit,
 )

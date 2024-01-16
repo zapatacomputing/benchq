@@ -12,8 +12,8 @@ from ..quantum_hardware_modeling.hardware_architecture_models import (
 )
 from .footprint_estimators.openfermion_estimator import footprint_estimator
 from .graph_estimators.customizable_pipelines import (
-    run_custom_extrapolation_pipeline,
-    run_custom_resource_estimation_pipeline,
+    get_custom_extrapolated_estimate,
+    get_custom_resource_estimation,
 )
 from .graph_estimators.extrapolation_estimator import ExtrapolationResourceEstimator
 from .graph_estimators.graph_estimator import GraphResourceEstimator
@@ -27,7 +27,7 @@ from .resource_info import ExtrapolatedGraphResourceInfo, ResourceInfo
 DEFAULT_STEPS_TO_EXTRAPOLATE_FROM = [1, 2, 3]
 
 
-def run_precise_graph_estimate(
+def get_precise_graph_estimate(
     algorithm_implementation: AlgorithmImplementation,
     hardware_model: BasicArchitectureModel,
     decoder_model: Optional[DecoderModel] = None,
@@ -53,7 +53,7 @@ def run_precise_graph_estimate(
     """
     estimator = GraphResourceEstimator(hardware_model, decoder_model=decoder_model)
 
-    return run_custom_resource_estimation_pipeline(
+    return get_custom_resource_estimation(
         algorithm_implementation,
         estimator,
         transformers=[
@@ -64,7 +64,7 @@ def run_precise_graph_estimate(
     )
 
 
-def run_fast_graph_estimate(
+def get_fast_graph_estimate(
     algorithm_implementation: AlgorithmImplementation,
     hardware_model: BasicArchitectureModel,
     decoder_model: Optional[DecoderModel] = None,
@@ -91,7 +91,7 @@ def run_fast_graph_estimate(
     """
     estimator = GraphResourceEstimator(hardware_model, decoder_model=decoder_model)
 
-    return run_custom_resource_estimation_pipeline(
+    return get_custom_resource_estimation(
         algorithm_implementation,
         estimator,
         transformers=[
@@ -103,7 +103,7 @@ def run_fast_graph_estimate(
     )
 
 
-def run_precise_extrapolation_estimate(
+def get_precise_extrapolation_estimate(
     algorithm_implementation: AlgorithmImplementation,
     hardware_model: BasicArchitectureModel,
     steps_to_extrapolate_from: List[int],
@@ -136,7 +136,7 @@ def run_precise_extrapolation_estimate(
         n_measurement_steps_fit_type=n_measurement_steps_fit_type,
     )
 
-    return run_custom_extrapolation_pipeline(
+    return get_custom_extrapolated_estimate(
         algorithm_implementation,
         estimator,
         transformers=[
@@ -147,7 +147,7 @@ def run_precise_extrapolation_estimate(
     )
 
 
-def run_fast_extrapolation_estimate(
+def get_fast_extrapolation_estimate(
     algorithm_implementation: AlgorithmImplementation,
     hardware_model: BasicArchitectureModel,
     steps_to_extrapolate_from: List[int],
@@ -180,7 +180,7 @@ def run_fast_extrapolation_estimate(
         n_measurement_steps_fit_type=n_measurement_steps_fit_type,
     )
 
-    return run_custom_extrapolation_pipeline(
+    return get_custom_extrapolated_estimate(
         algorithm_implementation,
         estimator,
         transformers=[
@@ -192,7 +192,7 @@ def run_fast_extrapolation_estimate(
     )
 
 
-def run_footprint_estimate(
+def get_footprint_estimate(
     algorithm_implementation: AlgorithmImplementation,
     hardware_model: BasicArchitectureModel,
     decoder_model: Optional[DecoderModel] = None,
@@ -273,25 +273,25 @@ def automatic_resource_estimator(
     algorithm_implementation.program.steps = initial_number_of_steps
 
     if graph_size < 1e7:
-        pipeline = run_precise_graph_estimate
+        pipeline = get_precise_graph_estimate
         print("Using precise graph estimator")
     elif extrapolaed_graph_size < 1e7:
         pipeline = partial(
-            run_precise_extrapolation_estimate,
+            get_precise_extrapolation_estimate,
             steps_to_extrapolate_from=DEFAULT_STEPS_TO_EXTRAPOLATE_FROM,
         )
         print("Using precise extrapolation graph estimator")
     elif reduced_graph_size < 1e7:
-        pipeline = run_fast_graph_estimate
+        pipeline = get_fast_graph_estimate
         print("Using fast graph estimator")
     elif small_extrapolated_graph_size < 1e7:
         pipeline = partial(
-            run_fast_extrapolation_estimate,
+            get_fast_extrapolation_estimate,
             steps_to_extrapolate_from=DEFAULT_STEPS_TO_EXTRAPOLATE_FROM,
         )
         print("Using fast extrapolation graph estimator")
     else:
-        pipeline = run_footprint_estimate
+        pipeline = get_footprint_estimate
         print("Using footprint analysis estimator")
 
     return pipeline(

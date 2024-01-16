@@ -1,9 +1,6 @@
 ################################################################################
 # © Copyright 2022 Zapata Computing Inc.
 ################################################################################
-
-
-import warnings
 from dataclasses import dataclass
 from typing import Protocol, runtime_checkable
 

@@ -14,7 +14,7 @@ from .extrapolation_estimator import ExtrapolationResourceEstimator
 from .graph_estimator import GraphData, GraphPartition
 
 
-def run_custom_resource_estimation_pipeline(
+def get_custom_resource_estimation(
     algorithm_implementation: AlgorithmImplementation,
     estimator,
     transformers,
@@ -28,7 +28,7 @@ def run_custom_resource_estimation_pipeline(
     return estimator.estimate(algorithm_implementation)
 
 
-def _create_extrapolated_graph_data(
+def _get_extrapolated_graph_data(
     algorithm_implementation: AlgorithmImplementation,
     estimator: ExtrapolationResourceEstimator,
     transformers,
@@ -79,7 +79,7 @@ def _create_extrapolated_graph_data(
     )
 
 
-def create_extrapolated_graph_data_pipeline(
+def get_extrapolated_graph_data(
     algorithm_implementation: AlgorithmImplementation,
     steps_to_extrapolate_from,
     decoder_model,
@@ -91,19 +91,19 @@ def create_extrapolated_graph_data_pipeline(
         steps_to_extrapolate_from,
         decoder_model=decoder_model,
     )
-    return _create_extrapolated_graph_data(
+    return _get_extrapolated_graph_data(
         algorithm_implementation,
         estimator=dummy_extrapolation_estimator,
         transformers=transformers,
     )
 
 
-def run_custom_extrapolation_pipeline(
+def get_custom_extrapolated_estimate(
     algorithm_implementation: AlgorithmImplementation,
     estimator: ExtrapolationResourceEstimator,
     transformers,
 ) -> ExtrapolatedGraphResourceInfo:
-    extrapolated_graph_data = _create_extrapolated_graph_data(
+    extrapolated_graph_data = _get_extrapolated_graph_data(
         algorithm_implementation, estimator, transformers
     )
 

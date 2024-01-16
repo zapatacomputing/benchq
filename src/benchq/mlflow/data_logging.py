@@ -7,12 +7,12 @@ from logging import getLogger
 from numbers import Number
 from typing import Any, Callable, Dict, Optional
 
-import mlflow
+import mlflow  # type: ignore
 
-from .algorithms.data_structures import AlgorithmImplementation
-from .decoder_modeling import DecoderModel
-from .quantum_hardware_modeling import BasicArchitectureModel
-from .resource_estimators.resource_info import ResourceInfo
+from ..algorithms.data_structures import AlgorithmImplementation
+from ..decoder_modeling import DecoderModel
+from ..quantum_hardware_modeling import BasicArchitectureModel
+from ..resource_estimators.resource_info import ResourceInfo
 
 
 def log_input_objects_to_mlflow(

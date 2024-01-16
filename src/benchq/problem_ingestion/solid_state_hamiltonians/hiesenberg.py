@@ -1,3 +1,6 @@
+################################################################################
+# © Copyright 2022-2023 Zapata Computing Inc.
+################################################################################
 import numpy as np
 import pyLIQTR.sim_methods.quantum_ops as qops
 from orquestra.integrations.cirq.conversions import from_openfermion

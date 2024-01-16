@@ -8,19 +8,17 @@ import os
 
 from orquestra import sdk
 
-from benchq.algorithms.time_evolution import qsp_time_evolution_algorithm
 from benchq.algorithms.data_structures import ErrorBudget
+from benchq.algorithms.time_evolution import qsp_time_evolution_algorithm
+from benchq.problem_ingestion import get_vlasov_hamiltonian
 from benchq.quantum_hardware_modeling.hardware_architecture_models import (
     BASIC_SC_ARCHITECTURE_MODEL,
 )
-from benchq.problem_ingestion import get_vlasov_hamiltonian
-from benchq.resource_estimators.azure_estimator import (
-    AzureResourceEstimator,
-)
+from benchq.resource_estimators.azure_estimator import AzureResourceEstimator
 from benchq.resource_estimators.graph_estimators import (
     GraphResourceEstimator,
     create_big_graph_from_subcircuits,
-    run_custom_resource_estimation_pipeline,
+    get_custom_resource_estimation,
     transpile_to_native_gates,
 )
 
@@ -66,7 +64,7 @@ def get_operator(problem_size):
 
 @task_with_julia
 def gsc_estimates(algorithm, architecture_model):
-    return run_custom_resource_estimation_pipeline(
+    return get_custom_resource_estimation(
         algorithm,
         estimator=GraphResourceEstimator(hw_model=architecture_model),
         transformers=[
@@ -106,7 +104,7 @@ def azure_estimates(algorithm, architecture_model):
         )
         print("Original error message:", e)
 
-    return run_custom_resource_estimation_pipeline(
+    return get_custom_resource_estimation(
         algorithm,
         estimator=AzureResourceEstimator(),
         transformers=[],

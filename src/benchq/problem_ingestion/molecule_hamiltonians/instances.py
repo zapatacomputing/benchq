@@ -36,7 +36,7 @@ from openfermionpyscf._run_pyscf import compute_integrals
 from orquestra import sdk
 from pyscf import gto, mp, scf
 
-from ...data_logging import _flatten_dict, create_mlflow_scf_callback
+from ...mlflow.data_logging import _flatten_dict, create_mlflow_scf_callback
 
 
 def truncate_with_avas(

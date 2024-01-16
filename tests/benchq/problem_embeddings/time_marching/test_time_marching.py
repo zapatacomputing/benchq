@@ -22,7 +22,7 @@ from benchq.problem_embeddings.time_marching._time_marching import (
     inverse_block_encoding,
     matrix_exponentiation,
 )
-from benchq.problem_ingestion.time_marching_matrix_properties import (
+from benchq.problem_embeddings.time_marching.matrix_properties import (
     get_degree,
     get_kappa,
     get_num_of_grid_points,

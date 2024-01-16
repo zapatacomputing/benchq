@@ -10,13 +10,13 @@ import pytest
 from benchq.algorithms.data_structures.algorithm_implementation import (
     AlgorithmImplementation,
 )
-from benchq.data_logging import (
+from benchq.decoder_modeling.decoder import DecoderModel
+from benchq.mlflow.data_logging import (
     _flatten_dict,
     create_mlflow_scf_callback,
     log_input_objects_to_mlflow,
     log_resource_info_to_mlflow,
 )
-from benchq.decoder_modeling.decoder import DecoderModel
 from benchq.quantum_hardware_modeling.hardware_architecture_models import IONTrapModel
 from benchq.resource_estimators.resource_info import ResourceInfo
 
@@ -67,7 +67,7 @@ def test__flatten_dict(input_dict, expected):
     assert _flatten_dict(input_dict) == expected
 
 
-@patch("benchq.data_logging.mlflow", autospec=True)
+@patch("benchq.mlflow.data_logging.mlflow", autospec=True)
 def test_log_input_objects_to_mlflow(mock_mlflow):
     # Given
     test_algo_descrip = AlgorithmImplementation(None, None, 10)
@@ -103,7 +103,7 @@ def test_log_input_objects_to_mlflow(mock_mlflow):
     )  # from DecoderModel
 
 
-@patch("benchq.data_logging.mlflow", autospec=True)
+@patch("benchq.mlflow.data_logging.mlflow", autospec=True)
 def test_log_resource_info_to_mlflow(mock_mlflow):
     # Given
     test_resource_info = ResourceInfo(

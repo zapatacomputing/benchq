@@ -15,12 +15,12 @@ to install the extra.
 from pprint import pprint
 
 from benchq.algorithms.time_evolution import qsp_time_evolution_algorithm
-from benchq.quantum_hardware_modeling import DETAILED_ION_TRAP_ARCHITECTURE_MODEL
 from benchq.decoder_modeling import DecoderModel
-from benchq.problem_ingestion.hamiltonians.ising_hamiltonians import (
-    generate_triangular_hamiltonian,
+from benchq.problem_ingestion.solid_state_hamiltonians.ising import (
+    generate_ising_hamiltonian_on_triangular_lattice,
 )
-from benchq.resource_estimators.default_estimators import run_fast_graph_estimate
+from benchq.quantum_hardware_modeling import DETAILED_ION_TRAP_ARCHITECTURE_MODEL
+from benchq.resource_estimators.default_estimators import get_fast_graph_estimate
 from benchq.timing import measure_time
 
 
@@ -29,7 +29,7 @@ def main():
 
     with measure_time() as t_info:
         lattice_size = 3
-        operator = generate_triangular_hamiltonian(lattice_size)
+        operator = generate_ising_hamiltonian_on_triangular_lattice(lattice_size)
 
     print("Operator generation time:", t_info.total)
 
@@ -45,7 +45,7 @@ def main():
     print("Circuit generation time:", t_info.total)
 
     with measure_time() as t_info:
-        fast_gsc_resources = run_fast_graph_estimate(algorithm, architecture_model)
+        fast_gsc_resources = get_fast_graph_estimate(algorithm, architecture_model)
 
     print("Resource estimation time with GSC:", t_info.total)
     pprint(fast_gsc_resources)

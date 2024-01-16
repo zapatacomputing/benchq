@@ -15,14 +15,10 @@ from orquestra.integrations.qiskit.conversions import (
 from orquestra.quantum.circuits import PHASE, RZ, SX, Circuit, X
 from qiskit import QuantumCircuit, transpile
 
-from ...problem_ingestion.time_marching_matrix_properties import (
-    get_degree,
-    get_kappa,
-    get_num_of_grid_points,
-)
 from ..qsp._lin_and_dong_qsp import build_qsp_circuit
 from ..quantum_program import QuantumProgram
 from .compression_gadget import get_add_dagger, get_add_l
+from .matrix_properties import get_degree, get_kappa, get_num_of_grid_points
 
 
 def get_prep(grid_point: int, k: int, beta: float) -> Tuple[Circuit, Circuit]:

@@ -5,7 +5,7 @@ To run this on Orquestra see the ``run.py`` script in the same directory.
 """
 from orquestra import sdk
 
-from benchq.problem_ingestion.hamiltonians.molecule_instance_generation import (
+from benchq.problem_ingestion.molecule_hamiltonians import (
     generate_hydrogen_chain_instance,
 )
 

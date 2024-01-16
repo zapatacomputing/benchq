@@ -14,16 +14,14 @@ from pathlib import Path
 from pprint import pprint
 
 from benchq.algorithms.time_evolution import qsp_time_evolution_algorithm
-from benchq.quantum_hardware_modeling import BASIC_SC_ARCHITECTURE_MODEL
 from benchq.decoder_modeling import DecoderModel
 from benchq.problem_ingestion import get_vlasov_hamiltonian
-from benchq.resource_estimators.azure_estimator import (
-    AzureResourceEstimator,
-)
+from benchq.quantum_hardware_modeling import BASIC_SC_ARCHITECTURE_MODEL
+from benchq.resource_estimators.azure_estimator import AzureResourceEstimator
 from benchq.resource_estimators.graph_estimators import (
     GraphResourceEstimator,
     create_big_graph_from_subcircuits,
-    run_custom_resource_estimation_pipeline,
+    get_custom_resource_estimation,
     transpile_to_native_gates,
 )
 from benchq.timing import measure_time
@@ -52,7 +50,7 @@ def main():
     # In this example we do not transpile to a clifford + T circuit, as this is more
     # similar to how Azure QRE works.
     with measure_time() as t_info:
-        gsc_resource_estimates = run_custom_resource_estimation_pipeline(
+        gsc_resource_estimates = get_custom_resource_estimation(
             algorithm,
             estimator=GraphResourceEstimator(
                 hw_model=architecture_model, decoder_model=decoder_model
@@ -72,7 +70,7 @@ def main():
     # Azure QRE takes in quantum circuits as input and performs compilation internally,
     # so there's no need for using any transformers.
     with measure_time() as t_info:
-        azure_resource_estimates = run_custom_resource_estimation_pipeline(
+        azure_resource_estimates = get_custom_resource_estimation(
             algorithm,
             estimator=AzureResourceEstimator(),
             transformers=[],

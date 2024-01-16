@@ -1,6 +1,6 @@
 from .customizable_pipelines import (
-    run_custom_extrapolation_pipeline,
-    run_custom_resource_estimation_pipeline,
+    get_custom_extrapolated_estimate,
+    get_custom_resource_estimation,
 )
 from .extrapolation_estimator import ExtrapolationResourceEstimator
 from .graph_estimator import GraphResourceEstimator, substrate_scheduler
@@ -13,8 +13,8 @@ from .transformers import (
 )
 
 __all__ = [
-    "run_custom_resource_estimation_pipeline",
-    "run_custom_extrapolation_pipeline",
+    "get_custom_resource_estimation",
+    "get_custom_extrapolated_estimate",
     "synthesize_clifford_t",
     "transpile_to_native_gates",
     "create_big_graph_from_subcircuits",

@@ -20,7 +20,7 @@ from benchq.quantum_hardware_modeling import (
 from benchq.resource_estimators.graph_estimators import (
     GraphResourceEstimator,
     create_big_graph_from_subcircuits,
-    run_custom_resource_estimation_pipeline,
+    get_custom_resource_estimation,
     synthesize_clifford_t,
     transpile_to_native_gates,
 )
@@ -74,7 +74,7 @@ def test_resource_estimations_returns_results_for_different_architectures(
     algorithm_implementation = AlgorithmImplementation(quantum_program, error_budget, 1)
 
     transformers = _get_transformers(use_delayed_gate_synthesis, error_budget)
-    gsc_resource_estimates = run_custom_resource_estimation_pipeline(
+    gsc_resource_estimates = get_custom_resource_estimation(
         algorithm_implementation,
         estimator=GraphResourceEstimator(architecture_model),
         transformers=transformers,
@@ -132,7 +132,7 @@ def test_get_resource_estimations_for_program_gives_correct_results(
     algorithm_implementation = AlgorithmImplementation(quantum_program, error_budget, 1)
 
     transformers = _get_transformers(use_delayed_gate_synthesis, error_budget)
-    gsc_resource_estimates = run_custom_resource_estimation_pipeline(
+    gsc_resource_estimates = get_custom_resource_estimation(
         algorithm_implementation,
         estimator=GraphResourceEstimator(architecture_model),
         transformers=transformers,
@@ -174,7 +174,7 @@ def test_better_architecture_does_not_require_more_resources(
         Circuit([H(0), RZ(np.pi / 4)(0), CNOT(0, 1)])
     )
     algorithm_implementation = AlgorithmImplementation(quantum_program, error_budget, 1)
-    low_noise_resource_estimates = run_custom_resource_estimation_pipeline(
+    low_noise_resource_estimates = get_custom_resource_estimation(
         algorithm_implementation,
         estimator=GraphResourceEstimator(
             low_noise_architecture_model, optimization=optimization
@@ -182,7 +182,7 @@ def test_better_architecture_does_not_require_more_resources(
         transformers=transformers,
     )
 
-    high_noise_resource_estimates = run_custom_resource_estimation_pipeline(
+    high_noise_resource_estimates = get_custom_resource_estimation(
         algorithm_implementation,
         estimator=GraphResourceEstimator(
             high_noise_architecture_model, optimization=optimization
@@ -233,13 +233,13 @@ def test_higher_error_budget_does_not_require_more_resources(
         quantum_program, high_error_budget, 1
     )
 
-    low_error_resource_estimates = run_custom_resource_estimation_pipeline(
+    low_error_resource_estimates = get_custom_resource_estimation(
         algorithm_implementation_low_error_budget,
         estimator=GraphResourceEstimator(architecture_model, optimization=optimization),
         transformers=low_error_transformers,
     )
 
-    high_error_resource_estimates = run_custom_resource_estimation_pipeline(
+    high_error_resource_estimates = get_custom_resource_estimation(
         algorithm_implementation_high_error_budget,
         estimator=GraphResourceEstimator(architecture_model, optimization=optimization),
         transformers=high_error_transformers,
@@ -269,7 +269,7 @@ def test_get_resource_estimations_for_program_accounts_for_decoder(optimization)
     algorithm_implementation = AlgorithmImplementation(quantum_program, error_budget, 1)
 
     transformers = _get_transformers(True, error_budget)
-    gsc_resource_estimates_no_decoder = run_custom_resource_estimation_pipeline(
+    gsc_resource_estimates_no_decoder = get_custom_resource_estimation(
         algorithm_implementation,
         estimator=GraphResourceEstimator(architecture_model, decoder_model=None),
         transformers=transformers,
@@ -280,7 +280,7 @@ def test_get_resource_estimations_for_program_accounts_for_decoder(optimization)
     )
 
     decoder = DecoderModel.from_csv(file_path)
-    gsc_resource_estimates_with_decoder = run_custom_resource_estimation_pipeline(
+    gsc_resource_estimates_with_decoder = get_custom_resource_estimation(
         algorithm_implementation,
         estimator=GraphResourceEstimator(architecture_model, decoder_model=decoder),
         transformers=transformers,
