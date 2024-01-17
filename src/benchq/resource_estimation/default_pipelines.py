@@ -25,7 +25,6 @@ from .graph.transformers import (
 )
 from .openfermion_re import get_physical_cost
 
-LARGEST_GRAPH_TOLERANCE = 1e8
 DEFAULT_STEPS_TO_EXTRAPOLATE_FROM = [1, 2, 3]
 
 
@@ -233,83 +232,86 @@ def automatic_resource_estimator(
 ) -> ResourceInfo:
     """Pick the appropriate resource estimator based on the size of the program.
 
-    Currently chooses between GraphResourceEstimator and
-    ExtrapolationResourceEstimator and whether or not to use delayed gate synthesis
+    Currently, chooses between GraphResourceEstimator and
+    ExtrapolationResourceEstimator and whether to use delayed gate synthesis
     in the following order:
         1. GraphResourceEstimator without delayed gate synthesis
-        2. GraphResourceEstimator with delayed gate synthesis
-        3. ExtrapolationResourceEstimator without delayed gate synthesis
+        2. ExtrapolationResourceEstimator without delayed gate synthesis
+        3. GraphResourceEstimator with delayed gate synthesis
         4. ExtrapolationResourceEstimator with delayed gate synthesis
+        5. Footprint estimator as a last-ditch effort
 
+    Decision is based on graph complexity, which is roughly the number
+    of remove_sqs operations one needs to do. Check out Ruby slippers compiler
+    for more details on remove_sqs.
 
     Args:
-        program (QuantumProgram): program to estimate resources for
-        error_budget (ErrorBudget): budget for the error the program can tolerate
-        delayed_gate_synthesis (bool, optional): whether or not to decompose.
-            The gates into clifford + T before creating graph. Defaults to False.
-
-    Raises:
-        ValueError: if the problem is too big to estimate resources for
+        algorithm_implementation (AlgorithmImplementation): The algorithm to estimate
+            resources for.
+        hardware_model (BasicArchitectureModel): The hardware model to estimate
+            resources for.
+        decoder_model (Optional[DecoderModel], optional): The decoder model to
+            run the algorithm with. Defaults to None and returns no estimate in
+            that case.
 
     Returns:
-        GraphResourceEstimator: an appropriate resource estimator for the problem
+        ResourceInfo: The resources required to run the algorithm.
     """
-    pipeline: Any = None
     assert isinstance(algorithm_implementation.program, QuantumProgram)
+    initial_number_of_steps = algorithm_implementation.program.steps
 
-    prev_steps = algorithm_implementation.program.steps
+    graph_size = estimate_full_graph_size(algorithm_implementation, False)
+    reduced_graph_size = estimate_full_graph_size(algorithm_implementation, True)
+
+    # Changing number of steps impacts estimated graph size for extrapolation
     algorithm_implementation.program.steps = max(DEFAULT_STEPS_TO_EXTRAPOLATE_FROM)
-    if (
-        estimate_full_graph_size(algorithm_implementation, True)
-        < LARGEST_GRAPH_TOLERANCE
-    ):
-        pipeline = partial(
-            run_fast_extrapolation_estimate,
-            steps_to_extrapolate_from=DEFAULT_STEPS_TO_EXTRAPOLATE_FROM,
-        )
-    elif (
-        estimate_full_graph_size(algorithm_implementation, False)
-        < LARGEST_GRAPH_TOLERANCE
-    ):
+
+    extrapolaed_graph_size = estimate_full_graph_size(algorithm_implementation, False)
+    small_extrapolated_graph_size = estimate_full_graph_size(
+        algorithm_implementation, True
+    )
+
+    algorithm_implementation.program.steps = initial_number_of_steps
+
+    if graph_size < 1e7:
+        pipeline = run_precise_graph_estimate
+        print("Using precise graph estimator")
+    elif extrapolaed_graph_size < 1e7:
         pipeline = partial(
             run_precise_extrapolation_estimate,
             steps_to_extrapolate_from=DEFAULT_STEPS_TO_EXTRAPOLATE_FROM,
         )
-
-    algorithm_implementation.program.steps = prev_steps
-    if (
-        estimate_full_graph_size(algorithm_implementation, True)
-        < LARGEST_GRAPH_TOLERANCE
-    ):
+        print("Using precise extrapolation graph estimator")
+    elif reduced_graph_size < 1e7:
         pipeline = run_fast_graph_estimate
-    if (
-        estimate_full_graph_size(algorithm_implementation, False)
-        < LARGEST_GRAPH_TOLERANCE
-    ):
-        pipeline = run_precise_graph_estimate
-
-    if pipeline is not None:
-        return pipeline(
-            algorithm_implementation,
-            hardware_model,
-            decoder_model=decoder_model,
+        print("Using fast graph estimator")
+    elif small_extrapolated_graph_size < 1e7:
+        pipeline = partial(
+            run_fast_extrapolation_estimate,
+            steps_to_extrapolate_from=DEFAULT_STEPS_TO_EXTRAPOLATE_FROM,
         )
+        print("Using fast extrapolation graph estimator")
     else:
-        raise ValueError(
-            "Problem size too large for resource estimation. "
-            "Try reducing the size of each of your steps in the program. "
-            "If you are creating a program from a circuit, consider breaking "
-            "the program up into steps."
-        )
+        pipeline = run_footprint_analysis_pipeline
+        print("Using footprint analysis estimator")
+
+    return pipeline(
+        algorithm_implementation,
+        hardware_model,
+        decoder_model=decoder_model,
+    )
 
 
 def estimate_full_graph_size(
     algorithm_implementation: AlgorithmImplementation, delayed_gate_synthesis=False
 ) -> int:
-    full_graph_size = algorithm_implementation.program.n_t_gates
+    graph_complexity = (
+        algorithm_implementation.program.n_t_gates
+        + algorithm_implementation.program.n_c_gates * 2
+    )
 
     if not delayed_gate_synthesis:
-        full_graph_size += (
+        graph_complexity += (
             algorithm_implementation.program.n_rotation_gates
             * GraphResourceEstimator.SYNTHESIS_SCALING
             * np.log2(
@@ -318,6 +320,6 @@ def estimate_full_graph_size(
             )
         )
     else:
-        full_graph_size += algorithm_implementation.program.n_rotation_gates
+        graph_complexity += algorithm_implementation.program.n_rotation_gates
 
-    return full_graph_size
+    return graph_complexity

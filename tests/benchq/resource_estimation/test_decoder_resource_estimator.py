@@ -35,15 +35,15 @@ def test_decoder_model_produces_none_and_throws_warning_for_distance_too_high(
     distance, expected_warning_message, decoder_data
 ):
     decoder_model = DecoderModel.from_csv(file_path(decoder_data + ".csv"))
-    with warnings.catch_warnings(record=True) as w:
+    with pytest.warns(RuntimeWarning) as record:
         assert (
             get_decoder_info(BASIC_SC_ARCHITECTURE_MODEL, decoder_model, distance, 2, 3)
             is None
         )
 
-        assert len(w) == 1
-        assert issubclass(w[0].category, RuntimeWarning)
-        assert expected_warning_message in str(w[0].message)
+    assert len(record) == 1
+    assert issubclass(record[0].category, RuntimeWarning)
+    assert expected_warning_message in str(record[0].message)
 
 
 def test_if_decoder_equations_have_changed():

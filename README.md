@@ -1,69 +1,62 @@
-# benchq
+# Bench-Q
+Bench-Q provides tools for estimating the hardware resources required for fault-tolerant quantum computation. It includes a graph-state compiler, distillation factory models, decoder performance models, an ion-trap architecture model, implementations of selected quantum algorithms, and more.
 
-## What is it?
-
-`benchq` estimates the required resources for performing a fault-tolerant computation using surface codes. It works with various inputs, such as circuits, openfermion QubitOperators, and pyscf files. Given correct input, `benchq` will return a list of resources required to perform the selected algorithm such as the required number of physical qubits, error rate, wall time, etc.
-
-`benchq` was developed as a part of [DARPA Quantum Benchmarking program](https://www.darpa.mil/program/quantum-benchmarking).
+Bench-Q was developed as a part of [DARPA Quantum Benchmarking program](https://www.darpa.mil/program/quantum-benchmarking).
 
 ## Installation
 
-To install `benchq` run `pip install .` from the main directory.
-It's been tested with Python 3.8-3.9 on macOS and Linux. Requires Jabalizer 0.4.3.
+To install the latest released version of Bench-Q run `pip install benchq`.
+It is tested with Python 3.9-3.11 on Linux and may or may not work with other Python versions or operating systems.
 
-Known limitation: installation can fail because of a problem with `pyscf`, one of our transitive dependencies.
-If you're a Windows user, please consider using [WSL](https://learn.microsoft.com/en-us/windows/wsl/install). On other systems you can try installing `pyscf` directly from its git repo: `pip install git+https://github.com/pyscf/pyscf@v2.0.1`.
+To use the development version of Bench-Q, clone this repository and run `pip install .` from the top-level directory.
 
 ### Extra dependencies
 
-Graph compilation requires non-Python dependencies to be installed.
-Either:
-1. Install a recent Julia version from the [Julia website](https://julialang.org/downloads/).
-2. Make sure `julia` executable is on your `$PATH`. You can test it by running `julia` in a new terminal window.
-3. Install Julia dependencies: open `julia` REPL, press `]`, run `add Jabalizer`.
+#### Julia
+Although the Graph State Compilation pipeline requires Julia, you do not need to manually install it: benchq will install Julia automatically whenever it is needed if you do not already have a version of Julia that is compatible with Bench-Q installed.
 
-Or:
-1. Run `python setup_julia.py` in repo root.
+Note that running `julia` from the terminal may not give you access to the version of Julia installed by Bench-Q. This is because JuliaPkg will install Julia in an isolated environment in order to avoid any potential conflicts with other versions of Julia that are already installed. See the [JuliaPkg documentation](https://github.com/JuliaPy/pyjuliapkg/blob/main/README.md) for more information about how Bench-Q installs Julia.
 
+#### PySCF
 If you plan to use PySCF to generate Hamiltonians, use the `pyscf` install extra:
 ```bash
 pip install '.[pyscf]'
 ```
 
-To run resource estimation using Azure Quantum Resource Estimation (QRE) tool, one needs to have Azure QRE package configured, please see [this tutorial](https://learn.microsoft.com/en-us/azure/quantum/intro-to-resource-estimation).
+On some systems, the installation of PySCF can be problematic. If you're a Windows user, consider using [WSL](https://learn.microsoft.com/en-us/windows/wsl/install). You might also consider installing PySCF directly from its git repo: `pip install git+https://github.com/pyscf/pyscf@v2.2.1`.
+
+
+#### Azure Quantum Resource Estimation
+To run resource estimation using Azure Quantum Resource Estimation (QRE) tool, one needs to have Azure QRE package configure. See [this tutorial](https://learn.microsoft.com/en-us/azure/quantum/intro-to-resource-estimation) for more information.
 
 ## Usage
-
-Please take a look at the `examples` directory.
-We have multiple examples there:
-- `h_chain_trotter.py` shows how to use graph state compilation on a simple hydrogen chain example. (Requires `pyscf` install extra.)
-- `resource_estimate_from_qasm.py` shows how to use graph state compilation when the circuit is loaded from QASM.
-- `qsp_vlasov.py` shows how to perform resource estimation.
+See the [`examples`](examples) directory to learn more about how to use Bench-Q.
 
 ## Running benchmarks
 
-To run the benchmarks run
+Because quantum compilation and resource estimation can be compute intensive, Bench-Q includes tools for benchmarking components that are potential bottlenecks. To run the benchmarks, execute the command
 
 ``` bash
 pytest benchmarks/
 ```
 
-from the top-level directory of this repo. By default, this will skip some benchmarks that run extremely low. If you want to run
+from the top-level directory of this repo.
+
+By default, this will skip some benchmarks that are extremely slow. If you want to run
 those too, set environmental variable `SLOW_BENCHMARKS` to any value, e.g.:
 
 ``` bash
 SLOW_BENCHMARKS=1 pytest benchmarks/
 ```
 
-Our benchmarks are run automatically on each release. You can see the performance of benchq over time on [benchq's benchmark page](https://zapatacomputing.github.io/benchq/dev/bench/).
+These benchmarks are run automatically on each release. You can see the performance of benchq over time on [benchq's benchmark page](https://zapatacomputing.github.io/benchq/dev/bench/).
 
 ## Development and Contribution
 
-To install the development version, run `pip install -e '.[dev]'` from the main directory. (if using MacOS, you will need single quotes around the []. If using windows, or Linux, you might not need the quotes).
+To install the development version, run `pip install -e '.[dev]'` from the main directory.
 
-We use [Google-style](https://sphinxcontrib-napoleon.readthedocs.io/en/latest/example_google.html) docstring format. If you'd like to specify types please use [PEP 484](https://www.python.org/dev/peps/pep-0484/) type hints instead adding them to docstrings.
-
-There are codestyle-related [Github Actions](.github/workflows/style.yml) running for PRs. (TODO)
+We use [Google-style](https://sphinxcontrib-napoleon.readthedocs.io/en/latest/example_google.html) docstring format. If you'd like to specify types, please use [PEP 484](https://www.python.org/dev/peps/pep-0484/) type hints instead adding them to docstrings.
+[Style checks](.github/workflows/style.yml) will automatically be run on pull requests.
 
 - If you'd like to report a bug/issue please create a new issue in this repository.
 - If you'd like to contribute, please create a pull request to `main`.

@@ -2,6 +2,7 @@
 # © Copyright 2023 Zapata Computing Inc.
 ################################################################################
 """Unit tests for benchq.problem_embeddings._qsp."""
+import warnings
 from collections import Counter
 from typing import Mapping
 
@@ -56,14 +57,16 @@ class TestGetQSPCircuit:
         np.random.seed(42)
 
         # When
-        circuit = _qsp.get_qsp_circuit(
-            operator=operator,
-            required_precision=required_precision,
-            dt=dt,
-            tmax=tmax,
-            sclf=sclf,
-            use_random_angles=use_random_angles,
-        )
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=RuntimeWarning)
+            circuit = _qsp.get_qsp_circuit(
+                operator=operator,
+                required_precision=required_precision,
+                dt=dt,
+                tmax=tmax,
+                sclf=sclf,
+                use_random_angles=use_random_angles,
+            )
 
         # Then
         # We expect this many gates being applied in the circuit

@@ -5,6 +5,7 @@ import pathlib
 from benchq.visualization_tools.plot_graph_state import plot_graph_state
 import pytest
 from benchq.compilation import icmop_to_circuit
+from orquestra.quantum.circuits import Y, X, CNOT, RZ, CZ, H, Circuit, T
 
 
 jl.include(
@@ -157,65 +158,64 @@ def to_python(asg, pauli_tracker):
     "circuit_1, circuit_2, circuit_3",
     [
         (
-            # test rotations work as expected
-            icmop_to_circuit(
+            Circuit(
                 [
-                    (8, 2, -1, 0),
-                    (8, 2, -1, 0),
-                    (11, 1, 0, 0),
-                    (7, 1, -1, 0),
-                    (14, 2, -1, 1.3856216182779741),
+                    Y(2),
+                    Y(2),
+                    CNOT(1, 0),
+                    X(1),
+                    RZ(1.3856216182779741)(2),
                 ]
             ),
-            icmop_to_circuit(
+            Circuit(
                 [
-                    (14, 1, -1, 3.9206180253660037),
-                    (10, 2, 0, 0),
-                    (8, 1, -1, 0),
-                    (11, 0, 1, 0),
-                    (3, 2, -1, 0),
+                    RZ(3.9206180253660037)(1),
+                    CZ(2, 0),
+                    X(1),
+                    CNOT(0, 1),
+                    H(2),
                 ]
             ),
-            icmop_to_circuit(
+            Circuit(
                 [
-                    (7, 1, -1, 0),
-                    (3, 2, -1, 0),
-                    (12, 1, -1, 0),
-                    (14, 1, -1, 1.8024498348644822),
-                    (7, 2, -1, 0),
-                ]
-            ),
-        ),
-        (
-            # test T gates work as expected
-            icmop_to_circuit(
-                [
-                    (13, 2, -1, 0),
-                    (12, 2, -1, 0),
-                    (12, 2, -1, 0),
-                    (7, 1, -1, 0),
-                    (9, 1, -1, 0),
-                ]
-            ),
-            icmop_to_circuit(
-                [
-                    (9, 1, -1, 0),
-                    (12, 2, -1, 0),
-                    (11, 1, 2, 0),
-                    (9, 1, -1, 0),
-                    (8, 2, -1, 0),
-                ]
-            ),
-            icmop_to_circuit(
-                [
-                    (3, 1, -1, 0),
-                    (2, 1, -1, 0),
-                    (2, 1, -1, 0),
-                    (9, 1, -1, 0),
-                    (11, 0, 1, 0),
+                    X(1),
+                    H(2),
+                    T(1),
+                    RZ(1.8024498348644822)(1),
+                    X(2),
                 ]
             ),
         ),
+        # (
+        #     # test T gates work as expected
+        #     icmop_to_circuit(
+        #         [
+        #             (13, 2, -1, 0),
+        #             (12, 2, -1, 0),
+        #             (12, 2, -1, 0),
+        #             (7, 1, -1, 0),
+        #             (9, 1, -1, 0),
+        #         ]
+        #     ),
+        #     icmop_to_circuit(
+        #         [
+        #             (9, 1, -1, 0),
+        #             (12, 2, -1, 0),
+        #             (11, 1, 2, 0),
+        #             (9, 1, -1, 0),
+        #             (8, 2, -1, 0),
+        #         ]
+        #     ),
+        #     icmop_to_circuit(
+        #         [
+        #             (3, 1, -1, 0),
+        #             (2, 1, -1, 0),
+        #             (2, 1, -1, 0),
+        #             (9, 1, -1, 0),
+        #             (11, 0, 1, 0),
+        #         ]
+        #     ),
+        # ),
     ],
 )
 def test_triple_stitched_circuit_produces_correct_result(

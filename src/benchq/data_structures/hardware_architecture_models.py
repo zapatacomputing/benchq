@@ -39,7 +39,7 @@ class BasicArchitectureModel(Protocol):
 @runtime_checkable
 class DetailedArchitectureModel(BasicArchitectureModel, Protocol):
     """DetailedArchitectureModel extends basic one, with the ability to
-    calculate detailed hardware estimates"""
+    calculate detailed hardware estimates."""
 
     def get_hardware_resource_estimates(self, resource_info: ResourceInfo):
         pass
@@ -142,7 +142,7 @@ class DetailedIonTrapModel:
         # Value reported by IonQ
         return 5.0
 
-    def num_communication_qubits_per_ELU(self, code_distance):
+    def num_communication_qubits_per_ELU(self, code_distance: int):
         # Lookup table generated from simulations of the 3-3-9s protocol by
         # Hudson Leone of UTS
         qubit_count_lookup_table = {
@@ -193,7 +193,7 @@ class DetailedIonTrapModel:
                 f"Distance should be between 3 and 35. Got {code_distance}"
             )
 
-    def num_communication_ports_per_ELU(self, code_distance):
+    def num_communication_ports_per_ELU(self, code_distance: int):
         # Computes the number of physical ports (optical fibers) going from the
         # ELU to the quantum switch.
         num_communication_ions_per_elu = self.num_communication_qubits_per_ELU(
@@ -209,7 +209,7 @@ class DetailedIonTrapModel:
 
         return num_ports, second_switch_per_elu_necessary
 
-    def functional_designation_of_chains_within_ELU(self, code_distance):
+    def functional_designation_of_chains_within_ELU(self, code_distance: int):
         # Functional designation of chains within the ELU
         memory_qubits = code_distance
         computational_qubits = 2 * code_distance**2
@@ -218,9 +218,9 @@ class DetailedIonTrapModel:
 
     def num_optical_cross_connect_layers(
         self,
-        num_elus,
-        num_communication_qubits_per_elu,
-        num_communication_ports_per_elu,
+        num_elus: int,
+        num_communication_qubits_per_elu: int,
+        num_communication_ports_per_elu: int,
     ):
         # Description of accounting of optical cross-connect and switch architecture:
         # Need to ensure that each ELU can be connected with its nearest neighbor in
@@ -234,18 +234,15 @@ class DetailedIonTrapModel:
         # must be used for connecting to connector switches
         # Each switch has 1000 ports
         # Each group of ELU + neighbor has at most 4 ELUs
-        warnings.warn("This output parameter has yet to be implemented.")
 
-        num_OXC_layers = None
-
-        return num_OXC_layers
+        # Not yet implemented
+        return -1
 
     def num_ELUs_per_optical_cross_connect(
-        self, code_distance, num_communication_qubits
+        self, code_distance: int, num_communication_qubits: int
     ):
-        warnings.warn("This output parameter has yet to be implemented.")
-        num_ELUs_per_OXC = None
-        return num_ELUs_per_OXC
+        # Not yet implemented
+        return -1
 
 
 DETAILED_ION_TRAP_ARCHITECTURE_MODEL = DetailedIonTrapModel()

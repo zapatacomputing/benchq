@@ -7,13 +7,7 @@ from orquestra.quantum.circuits import Circuit, GateOperation, ResetOperation
 
 
 class QuantumProgram:
-    """Simple structure describing a quantum program consisting of multiple circuits
-
-    Params:
-        circuits: a sequence of circuits, each representing
-        steps: number of steps in the circuit.
-
-    """
+    """A quantum circuit represented as a sequence of subroutine invocations."""
 
     def __init__(
         self,
@@ -21,16 +15,17 @@ class QuantumProgram:
         steps: int,
         calculate_subroutine_sequence: Callable[[int], Sequence[int]],
     ) -> None:
-        """An object which abbreviates repeated subcircuits within a quantum circuit.
-        Each one of these subcircuits is called a subroutine and the subroutine_sequence
-        is a list of indices which specify the order in which the subroutines.
+        """Initializer for the QuantumProgram class.
 
         Args:
-            subroutines (Sequence[Circuit]): a list of integers labeled 0 through the
-                number of subroutines showing how the subroutines are ordered.
-            subroutine_sequence (Sequence[int]): _description_
-            steps (int): _description_
-            calculate_multiplicities (Callable[[int], Sequence[int]]): _description_
+            subroutines: The circuits which are used in the program. All subroutines
+                must act on the same number of qubits.
+            steps: The number of repetitions of the main repeated part of the circuit.
+            calculate_subroutine_sequence: A function which takes the number of steps
+                and returns a list containing the indices of the subroutines to be used.
+
+        Raises:
+            ValueError: If the subroutines do not all act on the same number of qubits.
         """
         if not all(
             subroutine.n_qubits == subroutines[0].n_qubits for subroutine in subroutines
@@ -62,6 +57,10 @@ class QuantumProgram:
     @property
     def n_rotation_gates(self) -> int:
         return self.count_operations_in_program(["RX", "RY", "RZ"])
+
+    @property
+    def n_c_gates(self) -> int:
+        return self.count_operations_in_program(["CZ", "CNOT"])
 
     @property
     def n_t_gates(self) -> int:
@@ -106,7 +105,7 @@ class QuantumProgram:
         )
 
 
-def get_program_from_circuit(circuit):
+def get_program_from_circuit(circuit: Circuit):
     return QuantumProgram(
         [circuit], steps=1, calculate_subroutine_sequence=lambda x: [0]
     )

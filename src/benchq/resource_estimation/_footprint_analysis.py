@@ -29,6 +29,8 @@ class MagicStateFactory:
 @dataclasses.dataclass(frozen=True, unsafe_hash=True)
 class CostEstimate:
     physical_qubit_count: int
+    physical_computation_qubit_count: int
+    physical_distillation_qubit_count: int
     duration: float
     algorithm_failure_probability: float
     widget_name: str
@@ -64,7 +66,7 @@ class AlgorithmParameters:
                 * (1 + self.routing_overhead_proportion)
             )
         )
-        n_physical_qubits_used_for_clifford_circuit = (
+        n_physical_qubits_used_for_computation = (
             n_logical_qubits_used_for_computation
             * _physical_qubits_per_logical_qubit(self.logical_data_qubit_distance)
         )
@@ -84,7 +86,7 @@ class AlgorithmParameters:
 
         V_computation = (
             self.proportion_of_bounding_box
-            * n_physical_qubits_used_for_clifford_circuit
+            * n_physical_qubits_used_for_computation
             * total_distillation_cycles
         )
         data_failure = (
@@ -96,8 +98,10 @@ class AlgorithmParameters:
         )
 
         return CostEstimate(
-            physical_qubit_count=n_physical_qubits_used_for_clifford_circuit
+            physical_qubit_count=n_physical_qubits_used_for_computation
             + n_physical_qubits_used_for_distillation,
+            physical_computation_qubit_count=n_physical_qubits_used_for_computation,
+            physical_distillation_qubit_count=n_physical_qubits_used_for_distillation,
             duration=total_distillation_cycles * self.surface_code_cycle_time,
             algorithm_failure_probability=min(1.0, data_failure + distillation_failure),
             widget_name=self.widget.details,
@@ -235,6 +239,7 @@ def cost_estimator(
     portion_of_bounding_box=1.0,
     routing_overhead_proportion=0.5,
     hardware_failure_tolerance=1e-3,
+    factory_count: int = 4,
 ):
     """
     Produce best cost in terms of physical qubits and real run time based on
@@ -255,7 +260,7 @@ def cost_estimator(
                 toffoli_count=num_toffoli,
                 t_count=num_t,
                 max_allocated_logical_qubits=num_logical_qubits,
-                factory_count=4,
+                factory_count=factory_count,
                 routing_overhead_proportion=routing_overhead_proportion,
                 proportion_of_bounding_box=portion_of_bounding_box,
             )

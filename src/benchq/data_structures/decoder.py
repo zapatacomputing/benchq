@@ -118,5 +118,4 @@ def find_next_highest_distance(distances, d):
 
 def invalid_code_distance():
     """Returns the delay for invalid code distance."""
-    warnings.warn("Code distance is too high to be decoded.", RuntimeWarning)
     return np.infty
