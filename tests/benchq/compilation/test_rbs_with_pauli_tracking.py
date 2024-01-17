@@ -9,7 +9,8 @@ import random
 from juliacall import Main as jl
 from qiskit.transpiler.passes import RemoveBarriers
 from benchq.visualization_tools.plot_graph_state import plot_graph_state
-
+from benchq.conversions import export_circuit
+from orquestra.quantum.circuits import Circuit, I, X, Y, Z, H, S, CNOT, CZ, RZ, T
 
 jl.include(
     os.path.join(
@@ -26,28 +27,28 @@ def test_random_circuit(n_qubits, depth, hyperparams):
 
     check_correctness_for_single_init(
         circuit,
-        [(3, 0, -1, 0), (3, 1, -1, 0), (3, 2, -1, 0)],
+        Circuit([H(0), H(1), H(2)]),
         hyperparams,
-        show_circuit=False,
+        show_circuit=True,
         throw_error_on_incorrect_result=True,
     )
 
 
 def generate_random_circuit(n_qubits, depth):
     # Generate a random circuit, but make sure
-    ops = [2, 3, 7, 8, 9, 10, 11, 12, 13, 14]
+    ops = [I, X, Y, Z, H, S, RZ, T, T.dagger, CNOT, CZ]
 
-    circuit = []
-    for op_code in random.choices(ops, k=depth):
-        if op_code in [10, 11]:
+    circuit = Circuit([])
+    for gate in random.choices(ops, k=depth):
+        if gate in [CNOT, CZ]:
             qubit_1, qubit_2 = random.sample(range(n_qubits), 2)
-            circuit += [(op_code, qubit_1, qubit_2, 0)]
+            circuit += gate(qubit_1, qubit_2)
         else:
-            qubit = random.choice(list(range(1, n_qubits)))
-            if op_code == 14:
-                circuit += [(op_code, qubit, -1, random.uniform(0, 2 * np.pi))]
+            qubit = random.choice(list(range(n_qubits)))
+            if gate == RZ:
+                circuit += gate(random.uniform(0, 2 * np.pi))(qubit)
             else:
-                circuit += [(op_code, qubit, -1, 0)]
+                circuit += gate(qubit)
 
     return circuit
 
@@ -60,21 +61,10 @@ def check_correctness_for_single_init(
     show_graph_state=False,
     throw_error_on_incorrect_result=True,
 ):
-    n_qubits = 0
-    for op_code, qubit_1, qubit_2, angle in init + circuit:
-        n_qubits = max(n_qubits, qubit_1 + 1, qubit_2 + 1)
-
     full_circuit = init + circuit
 
-    # create the graph
-    jabalized_circuit = [
-        jl.ICMOp(code, qubit_1 + 1, qubit_2 + 1, angle)
-        for code, qubit_1, qubit_2, angle in full_circuit
-    ]
-
     asg, pauli_tracker = jl.get_graph_state_data(
-        jabalized_circuit,
-        n_qubits,
+        full_circuit,
         False,
         False,
         False,
@@ -95,7 +85,10 @@ def check_correctness_for_single_init(
     binary_distribution = {}
     n = len(pdf)
 
-    all_bitstrings = [format(i, f"0{n_qubits}b") for i in range(2**n_qubits)]
+    all_bitstrings = [
+        format(i, f"0{full_circuit.n_qubits}b")
+        for i in range(2**full_circuit.n_qubits)
+    ]
 
     for i in range(n):
         binary_distribution[all_bitstrings[i]] = pdf[i]
@@ -105,7 +98,7 @@ def check_correctness_for_single_init(
         reversed_prob_density[reversed_binary_str] = probability
 
     correct_pdf = {
-        bitstring: 1.0 if bitstring == "0" * n_qubits else 0.0
+        bitstring: 1.0 if bitstring == "0" * full_circuit.n_qubits else 0.0
         for bitstring in all_bitstrings
     }
     if reversed_prob_density != correct_pdf:
@@ -208,7 +201,7 @@ def simulate(circuit, init, asg, pauli_tracker, show_circuit=True):
             elif pauli_tracker["measurements"][node][0] == jl.T_Dagger_code:
                 c.tdg(node)
             elif pauli_tracker["measurements"][node][0] == jl.RZ_code:
-                c.rz(-pauli_tracker["measurements"][node][1], node)
+                c.rz(pauli_tracker["measurements"][node][1], node)
             else:
                 measurement = pauli_tracker["measurements"][node][0]
                 raise Exception(f"Unknown measurement type: {measurement}")
@@ -264,11 +257,11 @@ def simulate(circuit, init, asg, pauli_tracker, show_circuit=True):
 
     c.barrier(label="inv circ")
 
-    append_inverse_qiskit_circuit(circuit, c, asg["data_nodes"])
+    c &= get_reversed_qiskit_circuit(circuit, asg["data_nodes"])
 
     c.barrier(label="inv init")
 
-    append_inverse_qiskit_circuit(init, c, asg["data_nodes"])
+    c &= get_reversed_qiskit_circuit(init, asg["data_nodes"])
 
     c.barrier(label="output")
 
@@ -286,6 +279,15 @@ def simulate(circuit, init, asg, pauli_tracker, show_circuit=True):
     result = simulator.run(cc, shots=10000).result().get_counts()
 
     return counts_to_pdf(asg["data_nodes"], result)
+
+
+def get_reversed_qiskit_circuit(circuit, data_qubits):
+    shifted_orquestra_circuit = Circuit([])
+    for op in circuit.inverse()._operations:
+        shifted_qubits = (data_qubits[index] for index in op.qubit_indices)
+        shifted_orquestra_circuit += op.gate(*shifted_qubits)
+
+    return export_circuit(QuantumCircuit, shifted_orquestra_circuit)
 
 
 # create function which implements the reverse of the circuit in qiskit
@@ -434,6 +436,25 @@ if __name__ == "__main__":
     #         (12, 1, -1, 0),
     #     ],
     #     [],
+    #     hyperparams,
+    #     show_circuit=True,
+    #     show_graph_state=True,
+    #     throw_error_on_incorrect_result=True,
+    # )
+
+    # check RZ has right sign
+    # check_correctness_for_single_init(
+    #     Circuit([Z(0), Y(0), RZ(1.0730313816602475)(2), X(1)]),
+    #     Circuit([H(0), H(1), H(2)]),
+    #     hyperparams,
+    #     show_circuit=True,
+    #     show_graph_state=True,
+    #     throw_error_on_incorrect_result=True,
+    # )
+
+    # check_correctness_for_single_init(
+    #     Circuit([Z(0), Y(0), RZ(1.0730313816602475)(2), X(1)]),
+    #     Circuit([H(0), H(1), H(2)]),
     #     hyperparams,
     #     show_circuit=True,
     #     show_graph_state=True,

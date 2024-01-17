@@ -19,12 +19,8 @@ from .transpile_to_native_gates import transpile_to_native_gates
 jl.include(
     os.path.join(pathlib.Path(__file__).parent.resolve(), "jabalizer_wrapper.jl"),
 )
-<<<<<<< HEAD
 jl.include(
     os.path.join(
         pathlib.Path(__file__).parent.resolve(), "ruby_slippers/ruby_slippers.jl"
     )
 )
-=======
-jl.include(os.path.join(pathlib.Path(__file__).parent.resolve(), "ruby_slippers.jl"))
->>>>>>> origin

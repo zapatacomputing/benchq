@@ -23,7 +23,7 @@ const X_code = UInt8(7)
 const Y_code = UInt8(8)
 const Z_code = UInt8(9)
 
-# Internal codes for the paulis. Allows for faster manipulation and simplifies debugging
+# Internal codes for the paulis. Allows for faster manipulation and simplifies debugging.
 const I_code_internal = UInt8(1)
 const X_code_internal = UInt8(2)
 const Y_code_internal = UInt8(3)

@@ -45,16 +45,20 @@ struct ICMOp
 end
 RZOp(qubit1, angle) = ICMOp(RZ_code, qubit1, 0, angle)
 
-function get_op_from_orquestra_operation(op, supported_ops=get_op_list())
+function get_icm_op_from_orquestra_operation(op, supported_ops=get_op_list())
     op_index = get_op_index(supported_ops, op)
     if double_qubit_op(op_index)
         return ICMOp(op_index, get_qubit_1(op), get_qubit_2(op))
     elseif decompose_op(op_index)
-        return ICMOp(op_index, get_qubit_1(op), get_qubit_2(op), op.angle)
+        if op_index == RZ_code
+            return RZOp(get_qubit_1(op), pyconvert(Float64, op.params[0]))
+        else # T or T_Dagger
+            return ICMOp(op_index, get_qubit_1(op))
+        end
     else
         return ICMOp(op_index, get_qubit_1(op))
     end
-end    
+end
 
 struct RubySlippersHyperparams
     teleportation_threshold::UInt16
@@ -175,7 +179,6 @@ Returns:
 """
 function get_graph_state_data(
     orquestra_circuit,
-    n_qubits,
     takes_graph_input::Bool=true,
     gives_graph_output::Bool=true,
     verbose::Bool=true,
@@ -184,6 +187,7 @@ function get_graph_state_data(
     layering_optimization::String="ST-Volume",
     hyperparams::RubySlippersHyperparams=default_hyperparams,
 )
+    n_qubits = pyconvert(Int, orquestra_circuit.n_qubits)
     println("First n_qubits: ", n_qubits)
     if takes_graph_input
         asg, pauli_tracker = initialize_for_graph_input(max_graph_size, n_qubits, layering_optimization)
@@ -192,13 +196,14 @@ function get_graph_state_data(
         pauli_tracker = PauliTracker(n_qubits, layering_optimization)
     end
 
+
     # Convert the Python iterable to a Julia iterable
     total_length = length(orquestra_circuit.operations)
     counter = dispcnt = 0
     erase = "        \b\b\b\b\b\b\b\b"
     start_time = time()
 
-    for (counter, op) in enumerate(orquestra_circuit.operations)
+    for (counter, orquestra_op) in enumerate(orquestra_circuit.operations)
         elapsed_time = time() - start_time
         # End early if we have exceeded the max time
         if elapsed_time >= max_time
@@ -218,14 +223,14 @@ function get_graph_state_data(
         end
 
         # Apply current operation
-        if occursin("ResetOperation", pyconvert(String, op.__str__())) # reset operation
+        if occursin("ResetOperation", pyconvert(String, orquestra_op.__str__())) # reset operation
             asg.n_nodes += 1
-            data_qubits[get_qubit_1(op)] = asg.n_nodes
+            data_qubits[get_qubit_1(orquestra_op)] = asg.n_nodes
             continue
         else
-            # TODO: write this function
-            op = get_op_from_orquestra_operation(op)
+            op = get_icm_op_from_orquestra_operation(orquestra_op)
 
+            println("applying orquestra operation ", orquestra_op, " with icm_op ", op)
             # println("applying operation ", op, " with data nodes ", asg.stitching_properties.gate_output_nodes)
             if op.code in non_clifford_gate_codes
                 apply_non_clifford_gate!(asg, pauli_tracker, op, hyperparams)
@@ -646,8 +651,7 @@ get_qubit_1(op) = pyconvert(Int, op.qubit_indices[0]) + 1 # +1 because Julia is 
 get_qubit_2(op) = pyconvert(Int, op.qubit_indices[1]) + 1
 
 """Get Python version of op_list of to speed up getting index"""
-# TODO: make this consistent with the mapping in graph_sim_data.jl
-get_op_list() = pylist(["I","X","Y","Z","N","N","X","Y","Z","CZ","CNOT","T","T_Dagger","RZ",])
+get_op_list() = pylist(["I", "S", "H", "N", "N", "N", "X", "Y", "Z", "CZ", "CNOT", "T", "T_Dagger", "RZ",])
 
 """Get index of operation name"""
 get_op_index(op_list, op) = pyconvert(Int, op_list.index(op.gate.name)) + 1

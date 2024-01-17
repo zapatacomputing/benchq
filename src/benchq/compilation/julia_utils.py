@@ -94,33 +94,3 @@ def create_graph_from_stabilizers(svec):
 def get_algorithmic_graph_and_icm_output(circuit):
     svec, op_seq, icm_output, data_qubits_map = jl.run_jabalizer(circuit)
     return create_graph_from_stabilizers(svec), op_seq, icm_output, data_qubits_map
-
-
-def icmop_to_circuit(icmop):
-    """Converts an ICMOp to an Orquestra Circuit"""
-    gate_map = {
-        1: I,
-        2: X,
-        3: Y,
-        4: Z,
-        7: X,
-        8: Y,
-        9: Z,
-        10: CZ,
-        11: CNOT,
-        12: T,
-        13: Dagger(T),
-        14: RZ,
-    }
-
-    circuit = Circuit()
-    for op in icmop:
-        gate_type = gate_map[op[0]]
-        qubits = (
-            [op[1], op[2]] if op[2] != 0 else [op[1]]
-        )  # Check if there's a second qubit
-        params = [op[3]] if op[3] != 0 else []  # Check if there's an angle parameter
-        gate = gate_type(*qubits, *params)
-        circuit.operations.append(gate)
-
-    return circuit
