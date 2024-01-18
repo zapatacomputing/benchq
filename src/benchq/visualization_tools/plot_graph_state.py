@@ -156,7 +156,8 @@ def plot_graph_state(asg, pauli_tracker):
     x_pauli_flow = nx.DiGraph()
     z_pauli_flow = nx.DiGraph()
 
-    # Add nodes and edges from the adjacency list
+    # Add node
+    # s and edges from the adjacency list
     colors = []
     for node, neighbors in enumerate(pauli_tracker["cond_paulis"]):
         x_pauli_flow.add_node(node)

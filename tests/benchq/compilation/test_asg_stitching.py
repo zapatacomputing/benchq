@@ -58,8 +58,6 @@ def check_correctness_for_stiched_circuits(
 
 
 def get_graph(circuit, hyperparams, connection_type, optimization):
-    n_qubits = circuit._n_qubits
-
     if connection_type == "input":
         asg, pauli_tracker = jl.get_graph_state_data(
             circuit,
@@ -137,7 +135,7 @@ def to_python(asg, pauli_tracker):
     return jl.python_asg(asg), jl.python_pauli_tracker(pauli_tracker)
 
 
-ghz_circuit = Circuit([H(0), CNOT(0, 1)])
+ghz_circuit = Circuit([H(0), CNOT(0, 1), CNOT(0, 2)])
 
 
 @pytest.mark.parametrize("optimization", ["ST-Volume", "Space", "Time"])
@@ -210,8 +208,11 @@ def test_triple_stitched_circuit_produces_correct_result(
     optimization, circuit_1, circuit_2, circuit_3
 ):
     hyperparams = jl.RubySlippersHyperparams(3, 2, 6, 1e5, 0)
+    init = Circuit([H(0), H(1), H(2)])
 
-    asg_1, pauli_tracker_1 = get_graph(circuit_1, hyperparams, "output", optimization)
+    asg_1, pauli_tracker_1 = get_graph(
+        init + circuit_1, hyperparams, "output", optimization
+    )
     # plot_graph_state(*to_python(asg_1, pauli_tracker_1))
     asg_2, pauli_tracker_2 = get_graph(circuit_2, hyperparams, "both", optimization)
     # plot_graph_state(*to_python(asg_2, pauli_tracker_2))
@@ -234,8 +235,8 @@ def test_triple_stitched_circuit_produces_correct_result(
         circuit_1 + circuit_2 + circuit_3,
         asg,
         pauli_tracker,
-        Circuit([H(0), H(1), H(2)]),
-        show_graph=True,
+        init,
+        show_graph=False,
         show_circuit=True,
     )
 

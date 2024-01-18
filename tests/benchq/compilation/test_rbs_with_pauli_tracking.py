@@ -70,7 +70,7 @@ def check_correctness_for_single_init(
         False,
         200,
         1e8,
-        "Space",
+        "Time",
         hyperparams,
     )
 
@@ -290,45 +290,6 @@ def get_reversed_qiskit_circuit(circuit, data_qubits):
     return export_circuit(QuantumCircuit, shifted_orquestra_circuit)
 
 
-# create function which implements the reverse of the circuit in qiskit
-def append_inverse_qiskit_circuit(circuit, c: QuantumCircuit, bits):
-    for gate in reversed(circuit):
-        if gate[0] == 1:
-            continue
-        elif gate[0] == 2:
-            c.sdg(bits[gate[1]])
-        elif gate[0] == 3:
-            c.h(bits[gate[1]])
-        elif gate[0] == 4:
-            c.h(bits[gate[1]])
-            c.sdg(bits[gate[1]])
-            c.h(bits[gate[1]])
-        elif gate[0] == 5:
-            c.sdg(bits[gate[1]])
-            c.h(bits[gate[1]])
-        elif gate[0] == 6:
-            c.h(bits[gate[1]])
-            c.sdg(bits[gate[1]])
-        elif gate[0] == 7:
-            c.x(bits[gate[1]])
-        elif gate[0] == 8:
-            c.y(bits[gate[1]])
-        elif gate[0] == 9:
-            c.z(bits[gate[1]])
-        elif gate[0] == 10:
-            c.cz(bits[gate[1]], bits[gate[2]])
-        elif gate[0] == 11:
-            c.cx(bits[gate[1]], bits[gate[2]])
-        elif gate[0] == 12:
-            c.tdg(bits[gate[1]])
-        elif gate[0] == 13:
-            c.t(bits[gate[1]])
-        elif gate[0] == 14:
-            c.rz(gate[3], bits[gate[1]])
-        else:
-            raise Exception(f"Unrecognized gate: {gate}")
-
-
 # transformed the counts from the qiskit simulation into a real pdf; some really ugly
 # bit shifting (and similar) is necessary here
 def counts_to_pdf(bits, counts):
@@ -374,18 +335,18 @@ def topological_sort(layer, cond_paulis):
 
 if __name__ == "__main__":
     hyperparams = jl.RubySlippersHyperparams(3, 2, 6, 1e5, 0)
-    for n_circuits_checked in range(1000):
-        print(
-            "\033[92m"
-            + f"{n_circuits_checked} circuits checked successfully!"
-            + "\033[0m"
-        )
-        test_random_circuit(
-            n_qubits=10,
-            depth=50,
-            hyperparams=hyperparams,
-        )
-        n_circuits_checked += 1
+    # for n_circuits_checked in range(1000):
+    #     print(
+    #         "\033[92m"
+    #         + f"{n_circuits_checked} circuits checked successfully!"
+    #         + "\033[0m"
+    #     )
+    #     test_random_circuit(
+    #         n_qubits=10,
+    #         depth=50,
+    #         hyperparams=hyperparams,
+    #     )
+    #     n_circuits_checked += 1
 
     # check_correctness_for_single_init(
     #     [
@@ -442,21 +403,12 @@ if __name__ == "__main__":
     #     throw_error_on_incorrect_result=True,
     # )
 
-    # check RZ has right sign
-    # check_correctness_for_single_init(
-    #     Circuit([Z(0), Y(0), RZ(1.0730313816602475)(2), X(1)]),
-    #     Circuit([H(0), H(1), H(2)]),
-    #     hyperparams,
-    #     show_circuit=True,
-    #     show_graph_state=True,
-    #     throw_error_on_incorrect_result=True,
-    # )
-
-    # check_correctness_for_single_init(
-    #     Circuit([Z(0), Y(0), RZ(1.0730313816602475)(2), X(1)]),
-    #     Circuit([H(0), H(1), H(2)]),
-    #     hyperparams,
-    #     show_circuit=True,
-    #     show_graph_state=True,
-    #     throw_error_on_incorrect_result=True,
-    # )
+    #  check RZ has right sign
+    check_correctness_for_single_init(
+        Circuit([Z(0), Y(0), RZ(1.0730313816602475)(2), X(1)]),
+        Circuit([H(0), H(1), H(2)]),
+        hyperparams,
+        show_circuit=True,
+        show_graph_state=True,
+        throw_error_on_incorrect_result=True,
+    )
