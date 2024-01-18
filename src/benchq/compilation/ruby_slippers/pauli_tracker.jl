@@ -41,13 +41,13 @@ mutable struct PauliTracker
     layering_optimization::String
     layer_width::Int
 
-    PauliTracker(n_qubits, layering_optimization) = new(
+    PauliTracker(n_qubits, layering_optimization, layer_width) = new(
         [[[], []] for _ in range(1, n_qubits)],
         [[H_code, 0.0] for _ in range(1, n_qubits)],
         n_qubits,
         [],
         layering_optimization,
-        3,
+        layer_width,
     )
 end
 

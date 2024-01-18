@@ -334,7 +334,7 @@ def topological_sort(layer, cond_paulis):
 
 
 if __name__ == "__main__":
-    hyperparams = jl.RubySlippersHyperparams(3, 2, 6, 1e5, 0)
+    hyperparams = jl.RbSHyperparams(3, 2, 6, 1e5, 0)
     # for n_circuits_checked in range(1000):
     #     print(
     #         "\033[92m"

@@ -33,6 +33,9 @@ end
 include("graph_sim_data.jl")
 include("pauli_tracker.jl")
 
+"""
+Contains all the information requir
+"""
 struct ICMOp
     code::UInt8
     qubit1::Qubit
@@ -45,7 +48,7 @@ struct ICMOp
 end
 RZOp(qubit1, angle) = ICMOp(RZ_code, qubit1, 0, angle)
 
-function get_icm_op_from_orquestra_operation(op, supported_ops=get_op_list())
+function convert_orquestra_op_to_icm_op(op, supported_ops=get_op_list())
     op_index = get_op_index(supported_ops, op)
     if double_qubit_op(op_index)
         return ICMOp(op_index, get_qubit_1(op), get_qubit_2(op))
@@ -60,7 +63,21 @@ function get_icm_op_from_orquestra_operation(op, supported_ops=get_op_list())
     end
 end
 
-struct RubySlippersHyperparams
+"""
+Hyperparameters which can be used to speed up the compilation.
+
+Attributes:
+    teleportation_threshold::Int      max node degree allowed before state is teleported
+    teleportation_distance::Int       number of teleportations to do when state is teleported
+    min_neighbors::Int                stop searching for neighbor with low degree if
+                                        neighbor has at least this many neighbors
+    max_num_neighbors_to_search::Int  max number of neighbors to search through when finding
+                                        a neighbor with low degree
+    decomposition_strategy::Int       strategy for decomposing non-clifford gate
+                                        0: keep current qubit as data qubit
+                                        1: teleport data to new qubit which becomes data qubit
+"""
+struct RbSHyperparams
     teleportation_threshold::UInt16
     teleportation_distance::UInt8
     min_neighbors::UInt8
@@ -68,8 +85,10 @@ struct RubySlippersHyperparams
     decomposition_strategy::UInt8 # TODO: make pauli tracker work witn decomposition_strategy=1
 end
 
-default_hyperparams = RubySlippersHyperparams(3, 4, 6, 1e5, 0)
-graphsim_hyperparams(min_neighbors, max_num_neighbors_to_search) = RubySlippersHyperparams(65535, 2, min_neighbors, max_num_neighbors_to_search, 0)
+default_hyperparams = RbSHyperparams(40, 4, 6, 1e5, 0)
+
+# Hyperparameter choices which disallow teleportation in the compilation
+graphsim_hyperparams(min_neighbors, max_num_neighbors_to_search) = RbSHyperparams(65535, 2, min_neighbors, max_num_neighbors_to_search, 0)
 default_graphsim_hyperparams = graphsim_hyperparams(6, 1e5)
 
 include("algorithm_specific_graph.jl")
@@ -83,8 +102,15 @@ teleportation_threshold, min_neighbors, teleportation_distance, and  max_num_nei
 are metaparameters which can be optimized to speed up the simulation.
 
 Args:
-    circuit::Circuit                  circuit to be simulated
-    max_graph_size::Int               maximum number of nodes in the graph state
+    orquestra_circuit::Circuit        circuit to be simulated
+    verbose::Bool                     whether to print progress
+    takes_graph_input::Bool           whether the circuit takes a graph state as input and thus
+                                        can be stitched to a previous graph state.
+    gives_graph_output::Bool          whether the circuit gives a graph state as output and thus
+                                        can be stitched to a future graph state.
+    layering_optimization::String     which layering optimization to use in the pauli tracker.
+                                        Options are "ST-Volume", "Time", "Space", "Variable"
+    layer_width::Int                  how many gates to put in each layer in the case of "Variable"
     teleportation_threshold::Int      max node degree allowed before state is teleported
     teleportation_distance::Int       number of teleportations to do when state is teleported
     min_neighbors::Int                stop searching for neighbor with low degree if
@@ -94,24 +120,33 @@ Args:
     decomposition_strategy::Int       strategy for decomposing non-clifford gate
                                         0: keep current qubit as data qubit
                                         1: teleport data to new qubit which becomes data qubit
+    max_graph_size::Int               maximum number of nodes in the graph state
+    max_time::Float64                 maximum time to spend compiling the circuit
+
 
 Returns:
-    adj::Vector{AdjList}              adjacency list describing the graph state
-    sqs::Vector{UInt8}                  single qubit clifford operations on each node
+    edge_data::python List[List[int]] adjacency list describing the graph state
+    num_consumption_tocks::Int        number of tocks used to consume the graph
+    num_logical_qubits::Int           number of logical qubits in the graph state
+    proportion::Float64               proportion of the circuit that was compiled
 """
 function run_ruby_slippers(
-    circuit,
-    verbose=false,
+    orquestra_circuit;
+    verbose::Bool=true,
+    takes_graph_input::Bool=true,
+    gives_graph_output::Bool=true,
+    layering_optimization::String="ST-Volume",
+    layer_width::Int64=1,
+    teleportation_threshold::UInt16=40,
+    teleportation_distance::UInt8=4,
+    min_neighbors::UInt8=6,
+    max_num_neighbors_to_search::UInt32=1e5,
+    decomposition_strategy::UInt8=0,
+    max_time::Float64=1e8,
     max_graph_size=nothing,
-    teleportation_threshold=40,
-    teleportation_distance=4,
-    min_neighbors=6,
-    max_num_neighbors_to_search=1e5,
-    decomposition_strategy=1,
-    max_time=1e8
 )
     # params which can be optimized to speed up computation
-    hyperparams = RubySlippersHyperparams(
+    hyperparams = RbSHyperparams(
         teleportation_threshold,
         teleportation_distance,
         min_neighbors,
@@ -120,27 +155,57 @@ function run_ruby_slippers(
     )
 
     if max_graph_size === nothing
-        max_graph_size = get_max_n_nodes(circuit, hyperparams.teleportation_distance)
+        max_graph_size = get_max_n_nodes(orquestra_circuit, hyperparams.teleportation_distance)
     else
         max_graph_size = pyconvert(UInt32, max_graph_size)
     end
 
     if verbose
-        # print("get_graph_state_data:\t")
-        (sqc, adj, proportion) = @time get_graph_state_data(circuit, true, max_graph_size, hyperparams, max_time)
+        (asg, pauli_tracker, proportion) =
+            @time get_graph_state_data(
+                orquestra_circuit;
+                verbose=verbose,
+                takes_graph_input=takes_graph_input,
+                gives_graph_output=gives_graph_output,
+                layering_optimization=layering_optimization,
+                layer_width=layer_width,
+                hyperparams=hyperparams,
+                max_graph_size=max_graph_size,
+                max_time=max_time,
+            )
     else
-        (sqc, adj, proportion) = get_graph_state_data(circuit, false, max_graph_size, hyperparams, max_time)
+        (asg, pauli_tracker, proportion) =
+            get_graph_state_data(
+                orquestra_circuit;
+                verbose=verbose,
+                takes_graph_input=takes_graph_input,
+                gives_graph_output=gives_graph_output,
+                layering_optimization=layering_optimization,
+                layer_width=layer_width,
+                hyperparams=hyperparams,
+                max_graph_size=max_graph_size,
+                max_time=max_time,
+            )
     end
-    return pylist(sqc), python_adjlist!(adj), proportion
+
+    num_logical_qubits = get_n_logical_qubits(pauli_tracker, asg)
+    num_consumption_tocks = length(pauli_tracker.layering)
+
+    return python_adjlist(asg.edge_data), num_consumption_tocks, num_logical_qubits, proportion
 end
 
-function get_max_n_nodes(circuit, teleportation_distance)
+
+"""
+Get the maximum number of nodes that the graph could possibly need. Helps to reduce
+memory usage when creating the graph state and the pauli tracker.
+"""
+function get_max_n_nodes(orquestra_circuit, teleportation_distance)
     supported_ops = get_op_list()
 
     n_magic_state_injection_teleports = 0
     n_ruby_slippers_teleports = 0
 
-    for op in circuit.operations
+    for op in orquestra_circuit.operations
         if occursin("ResetOperation", pyconvert(String, op.__str__()))
             n_magic_state_injection_teleports += 1
             continue
@@ -157,7 +222,7 @@ function get_max_n_nodes(circuit, teleportation_distance)
 
     return convert(UInt32, n_magic_state_injection_teleports +
                            n_ruby_slippers_teleports * teleportation_distance +
-                           pyconvert(Int, circuit.n_qubits))
+                           pyconvert(Int, orquestra_circuit.n_qubits))
 end
 
 """
@@ -165,10 +230,18 @@ Get the vertices of a graph state corresponding to enacting the given circuit
 on the |0> state. Also gives the single qubit clifford operation on each node.
 
 Args:
-    circuit (Circuit): orquestra circuit circuit to get the graph state for
-    verbose (Bool): whether to print progress
-    hyperparams (Dict): metaparameters for the ruby slippers algorithm see
-                        description in run_ruby_slippers for more details
+    orquestra_circuit::Circuit   circuit to be simulated
+    verbose::Bool                whether to print progress
+    takes_graph_input::Bool      whether the circuit takes a graph state as input and thus
+                                   can be stitched to a previous graph state.
+    gives_graph_output::Bool     whether the circuit gives a graph state as output and thus
+                                   can be stitched to a future graph state.
+    layering_optimization::Stringwhich layering optimization to use in the pauli tracker.
+                                   Options are "ST-Volume", "Time", "Space", "Variable"
+    layer_width::Int             how many gates to put in each layer in the case of "Variable"
+    hyperparams::RbSHyperparams  metaparameters which can be optimized to speed up the compilation.
+    max_graph_size::Int          maximum number of nodes in the graph state
+    max_time::Float64            maximum time to spend compiling the circuit
 
 Raises:
     ValueError: if an unsupported gate is encountered
@@ -178,22 +251,23 @@ Returns:
     Vector{AdjList}:   the adjacency list describing the graph corresponding to the graph state
 """
 function get_graph_state_data(
-    orquestra_circuit,
+    orquestra_circuit;
+    verbose::Bool=true,
     takes_graph_input::Bool=true,
     gives_graph_output::Bool=true,
-    verbose::Bool=true,
+    layering_optimization::String="ST-Volume",
+    layer_width::Int64=1,
+    hyperparams::RbSHyperparams=default_hyperparams,
     max_graph_size::Int64=1e7,
     max_time::Float64=1e8,
-    layering_optimization::String="ST-Volume",
-    hyperparams::RubySlippersHyperparams=default_hyperparams,
 )
     n_qubits = pyconvert(Int, orquestra_circuit.n_qubits)
     println("First n_qubits: ", n_qubits)
     if takes_graph_input
-        asg, pauli_tracker = initialize_for_graph_input(max_graph_size, n_qubits, layering_optimization)
+        asg, pauli_tracker = initialize_for_graph_input(max_graph_size, n_qubits, layering_optimization, layer_width)
     else
         asg = AlgorithmSpecificGraphAllZero(max_graph_size, n_qubits)
-        pauli_tracker = PauliTracker(n_qubits, layering_optimization)
+        pauli_tracker = PauliTracker(n_qubits, layering_optimization, layer_width)
     end
 
 
@@ -228,7 +302,7 @@ function get_graph_state_data(
             data_qubits[get_qubit_1(orquestra_op)] = asg.n_nodes
             continue
         else
-            op = get_icm_op_from_orquestra_operation(orquestra_op)
+            op = convert_orquestra_op_to_icm_op(orquestra_op)
 
             println("applying orquestra operation ", orquestra_op, " with icm_op ", op)
             # println("applying operation ", op, " with data nodes ", asg.stitching_properties.gate_output_nodes)
@@ -285,12 +359,7 @@ function get_graph_state_data(
     delete_excess_asg_space!(asg)
     asg, pauli_tracker = minimize_node_labels!(asg, pauli_tracker, nodes_to_remove)
 
-    println(pauli_tracker)
-    println()
-    println(asg)
-    println()
-    println()
-    return asg, pauli_tracker
+    return asg, pauli_tracker, _
 end
 
 """

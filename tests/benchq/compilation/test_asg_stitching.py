@@ -4,7 +4,7 @@ import os
 import pathlib
 from benchq.visualization_tools.plot_graph_state import plot_graph_state
 import pytest
-from orquestra.quantum.circuits import Y, X, CNOT, RZ, CZ, H, Circuit, T
+from orquestra.quantum.circuits import Y, X, CNOT, RZ, CZ, H, Circuit, T, Z, S
 
 
 jl.include(
@@ -143,71 +143,71 @@ ghz_circuit = Circuit([H(0), CNOT(0, 1), CNOT(0, 2)])
     "circuit_1, circuit_2, circuit_3",
     [
         (ghz_circuit, ghz_circuit, ghz_circuit),
-        # (
-        #     Circuit(
-        #         [
-        #             Y(2),
-        #             Y(2),
-        #             CNOT(1, 0),
-        #             X(1),
-        #             RZ(1.3856216182779741)(2),
-        #         ]
-        #     ),
-        #     Circuit(
-        #         [
-        #             RZ(3.9206180253660037)(1),
-        #             CZ(2, 0),
-        #             X(1),
-        #             CNOT(0, 1),
-        #             H(2),
-        #         ]
-        #     ),
-        #     Circuit(
-        #         [
-        #             X(1),
-        #             H(2),
-        #             T(1),
-        #             RZ(1.8024498348644822)(1),
-        #             X(2),
-        #         ]
-        #     ),
-        # ),
-        # (
-        #     # test T gates work as expected
-        #     icmop_to_circuit(
-        #         [
-        #             T.dagger(2),
-        #             T(2),
-        #             T(2),
-        #             X(1),
-        #             Z(1),
-        #         ]
-        #     ),
-        #     icmop_to_circuit(
-        #         [
-        #             Z(1),
-        #             T(2),
-        #             CZ(1, 2),
-        #             Z(1),
-        #             Y(2),
-        #         ]
-        #     ),
-        #     icmop_to_circuit(
-        #         [
-        #             H(1),
-        #             S(1),
-        #             S(1),
-        #             Z(1),
-        #             CZ(0, 1),
-        #         ]
-        #     ),
-        # ),
+        (
+            Circuit(
+                [
+                    Y(2),
+                    Y(2),
+                    CNOT(1, 0),
+                    X(1),
+                    RZ(1.3856216182779741)(2),
+                ]
+            ),
+            Circuit(
+                [
+                    RZ(3.9206180253660037)(1),
+                    CZ(2, 0),
+                    X(1),
+                    CNOT(0, 1),
+                    H(2),
+                ]
+            ),
+            Circuit(
+                [
+                    X(1),
+                    H(2),
+                    T(1),
+                    RZ(1.8024498348644822)(1),
+                    X(2),
+                ]
+            ),
+        ),
+        (
+            # test T gates work as expected
+            Circuit(
+                [
+                    T.dagger(2),
+                    T(2),
+                    T(2),
+                    X(1),
+                    Z(1),
+                ]
+            ),
+            Circuit(
+                [
+                    Z(1),
+                    T(2),
+                    CZ(1, 2),
+                    Z(1),
+                    Y(2),
+                ]
+            ),
+            Circuit(
+                [
+                    H(1),
+                    S(1),
+                    S(1),
+                    Z(1),
+                    CZ(0, 1),
+                ]
+            ),
+        ),
     ],
 )
 def test_triple_stitched_circuit_produces_correct_result(
     optimization, circuit_1, circuit_2, circuit_3
 ):
-    hyperparams = jl.RubySlippersHyperparams(3, 2, 6, 1e5, 0)
+    hyperparams = jl.RbSHyperparams(3, 2, 6, 1e5, 0)
     init = Circuit([H(0), H(1), H(2)])
 
     asg_1, pauli_tracker_1 = get_graph(
@@ -284,7 +284,7 @@ def test_triple_stitched_circuit_produces_correct_result(
 # def test_double_stitched_circuit_produces_correct_result(
 #     optimization, circuit_1, circuit_2
 # ):
-#     hyperparams = jl.RubySlippersHyperparams(3, 2, 6, 1e5, 0)
+#     hyperparams = jl.RbSHyperparams(3, 2, 6, 1e5, 0)
 
 #     asg_1, pauli_tracker_1 = get_graph(circuit_1, hyperparams, "output", optimization)
 #     # plot_graph_state(*to_python(asg_1, pauli_tracker_1))

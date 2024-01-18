@@ -15,9 +15,9 @@ Returns:
     asg (AlgorithmSpecificGraph): graph after initialization
     pauli_tracker (PauliTracker): pauli tracker for the graph
 """
-function initialize_for_graph_input(max_graph_size, n_qubits, layering_optimization)
+function initialize_for_graph_input(max_graph_size, n_qubits, layering_optimization, layer_width)
     asg = AlgorithmSpecificGraphAllZero(max_graph_size, 0)
-    pauli_tracker = PauliTracker(0, layering_optimization)
+    pauli_tracker = PauliTracker(0, layering_optimization, layer_width)
     for _ = 1:n_qubits
         # create start to next buffer
         asg.n_nodes += 1
