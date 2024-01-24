@@ -17,7 +17,7 @@ from benchq.compilation import (
     pyliqtr_transpile_to_clifford_t,
     transpile_to_native_gates,
 )
-from benchq.data_structures import QuantumProgram
+from benchq.problem_embeddings.quantum_program import QuantumProgram
 
 
 @pytest.mark.parametrize(

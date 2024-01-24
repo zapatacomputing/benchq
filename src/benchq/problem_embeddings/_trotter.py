@@ -6,7 +6,7 @@ from typing import List
 from orquestra.quantum.evolution import time_evolution
 from orquestra.quantum.operators._pauli_operators import PauliRepresentation
 
-from ..data_structures import QuantumProgram
+from .quantum_program import QuantumProgram
 
 
 def get_trotter_circuit(hamiltonian, evolution_time, number_of_steps):

@@ -7,23 +7,24 @@ from typing import List
 
 from orquestra import sdk
 
-from benchq.algorithms.time_evolution import qsp_time_evolution_algorithm
-from benchq.data_structures import (
-    BASIC_ION_TRAP_ARCHITECTURE_MODEL,
-    BASIC_SC_ARCHITECTURE_MODEL,
+from benchq.algorithms.data_structures import (
     AlgorithmImplementation,
-    BasicArchitectureModel,
     ErrorBudget,
     GraphPartition,
-    GraphResourceInfo,
-    QuantumProgram,
 )
+from benchq.algorithms.time_evolution import qsp_time_evolution_algorithm
 from benchq.problem_ingestion import get_vlasov_hamiltonian
-from benchq.resource_estimation.graph import (
+from benchq.quantum_hardware_modeling import (
+    BASIC_ION_TRAP_ARCHITECTURE_MODEL,
+    BASIC_SC_ARCHITECTURE_MODEL,
+    BasicArchitectureModel,
+)
+from benchq.resource_estimators.graph_estimators import (
     GraphResourceEstimator,
     create_big_graph_from_subcircuits,
     transpile_to_native_gates,
 )
+from benchq.resource_estimators.resource_info import GraphResourceInfo
 
 task_deps = [
     sdk.PythonImports(
@@ -59,9 +60,9 @@ def get_algorithm_implementation(
 
 
 @task
-def transpile(
-    algorithm_implementation: AlgorithmImplementation[QuantumProgram],
-) -> AlgorithmImplementation[GraphPartition]:
+def compile(
+    algorithm_implementation: AlgorithmImplementation,
+) -> AlgorithmImplementation:
     """Transpile algorithm implementation into a graph representationp.
 
     The transpilation has two steps:
@@ -69,12 +70,20 @@ def transpile(
     1. Simplifying rotations
     2. Converting the QuantumProgram of the algorithm into a graph representation.
     """
-    return replace(
+    compiled_algorithm = replace(
         algorithm_implementation,
         program=create_big_graph_from_subcircuits()(
             transpile_to_native_gates(algorithm_implementation.program)
         ),
     )
+
+    if not isinstance(compiled_algorithm.program, GraphPartition):
+        raise TypeError(
+            f"Expected AlgorithmImplementation[GraphPartition],"
+            f"got {type(compiled_algorithm)}"
+        )
+
+    return compiled_algorithm
 
 
 @task
@@ -111,13 +120,13 @@ def estimation_workflow() -> List[GraphResourceInfo]:
         error_budget=ErrorBudget.from_even_split(total_failure_tolerance=1e-3),
     )
 
-    architecture_models = [
+    architecture_models: List[BasicArchitectureModel] = [
         BASIC_SC_ARCHITECTURE_MODEL,
         BASIC_ION_TRAP_ARCHITECTURE_MODEL,
     ]
 
-    transpiled_algorithm = transpile(algorithm)
+    compiled_algorithm = compile(algorithm)
 
     return [
-        estimate_resources(transpiled_algorithm, model) for model in architecture_models
+        estimate_resources(compiled_algorithm, model) for model in architecture_models
     ]

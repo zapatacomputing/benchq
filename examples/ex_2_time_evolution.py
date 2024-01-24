@@ -17,15 +17,15 @@ to install the extra.
 from pprint import pprint
 
 from benchq.algorithms.time_evolution import qsp_time_evolution_algorithm
-from benchq.data_structures import BASIC_SC_ARCHITECTURE_MODEL
 from benchq.problem_ingestion import get_vlasov_hamiltonian
-from benchq.problem_ingestion.hamiltonian_generation import (
+from benchq.problem_ingestion.solid_state_hamiltonians.heisenberg import (
     generate_1d_heisenberg_hamiltonian,
 )
-from benchq.resource_estimation.graph import (
+from benchq.quantum_hardware_modeling import BASIC_SC_ARCHITECTURE_MODEL
+from benchq.resource_estimators.graph_estimators import (
     GraphResourceEstimator,
     create_big_graph_from_subcircuits,
-    run_custom_resource_estimation_pipeline,
+    get_custom_resource_estimation,
     synthesize_clifford_t,
     transpile_to_native_gates,
 )
@@ -64,7 +64,7 @@ def main():
     # Then we perform resource estimation with gate synthesis during the measurement,
     # which we call "delayed gate synthesis".
     with measure_time() as t_info:
-        gsc_resource_estimates = run_custom_resource_estimation_pipeline(
+        gsc_resource_estimates = get_custom_resource_estimation(
             algorithm,
             estimator=GraphResourceEstimator(architecture_model),
             transformers=[
@@ -77,7 +77,7 @@ def main():
     pprint(gsc_resource_estimates)
 
     with measure_time() as t_info:
-        gsc_resource_estimates = run_custom_resource_estimation_pipeline(
+        gsc_resource_estimates = get_custom_resource_estimation(
             algorithm,
             estimator=GraphResourceEstimator(architecture_model),
             transformers=[

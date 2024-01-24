@@ -5,29 +5,37 @@
 from typing import Iterable
 
 import numpy as np
-from orquestra.quantum.circuits import GateOperation, load_circuit, save_circuit
+from orquestra.quantum.circuits import (
+    ControlledGate,
+    GateOperation,
+    load_circuit,
+    save_circuit,
+)
 from orquestra.quantum.decompositions._decomposition import DecompositionRule
 
-from benchq.algorithms.block_encodings.offset_tridiagonal import (
-    get_offset_tridagonal_block_encoding,
-)
-from benchq.algorithms.lde_solver import get_kappa, long_time_propagator
-from benchq.algorithms.utils.convex_optimization import optimize_chebyshev_coeff
-from benchq.algorithms.utils.qsp_solver import qsp_solver
 from benchq.compilation import (
     pyliqtr_transpile_to_clifford_t,
     transpile_to_native_gates,
 )
 from benchq.compilation.transpile_to_native_gates import decompose_benchq_circuit
-from benchq.data_structures import get_program_from_circuit
+from benchq.problem_embeddings.block_encodings.offset_tridiagonal import (
+    get_offset_tridagonal_block_encoding,
+)
+from benchq.problem_embeddings.qsp.get_qsp_phases import get_qsp_phases
+from benchq.problem_embeddings.qsp.get_qsp_polynomial import optimize_chebyshev_coeff
+from benchq.problem_embeddings.time_marching._time_marching import (
+    get_time_marching_program,
+)
+from benchq.problem_embeddings.time_marching.matrix_properties import get_kappa
 
 
 class Remove_Multicontrol(DecompositionRule[GateOperation]):
     """Dummy gates decomposition for the multirotation gates."""
 
     def predicate(self, operation: GateOperation) -> bool:
-        if operation.gate.name == "Control" and operation.gate.num_control_qubits > 1:
-            return True
+        if isinstance(operation.gate, ControlledGate):
+            if operation.gate.num_control_qubits > 1:
+                return True
         return False
 
     def production(self, operation: GateOperation) -> Iterable[GateOperation]:
@@ -120,9 +128,9 @@ def run_time_marching():
     except AssertionError:
         print("Not possible to construct a block encoding for the given entries")
         exit()
-    phases, _ = qsp_solver(chev_coeff, parity=1, options={"criteria": 1e-3})
+    phases, _ = get_qsp_phases(chev_coeff, parity=1, options={"criteria": 1e-3})
     # construct a time-marching circuit for the given parameters set
-    time_marching_cir = long_time_propagator(
+    time_marching_cir = get_time_marching_program(
         phases,
         de_parameters["steps_number"],
         n,
@@ -131,7 +139,7 @@ def run_time_marching():
         delta_t,
         de_parameters["beta_contour_integral"],
         de_parameters["epsilon_matrix_inversion"],
-    )
+    ).full_circuit
 
     # Save the time-marching circuit once it has been generated and load from file
     # to speed up the resource estimates.
@@ -144,5 +152,5 @@ def run_time_marching():
     )
     native_gates = transpile_to_native_gates(decomposed_cir)
     clifford_t = pyliqtr_transpile_to_clifford_t(native_gates, 1e-2)
-    quantum_program = get_program_from_circuit(clifford_t)
+    quantum_program = clifford_t
     print(f"Number of T and T_dag gates: {quantum_program.n_t_gates}")
