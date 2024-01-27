@@ -1,8 +1,8 @@
 import warnings
 
 import numpy as np
-from orquestra.integrations.cirq.conversions import (  # pyright: ignore[reportPrivateImportUsage] # noqa: E501
-    to_openfermion,
+from orquestra.integrations.cirq.conversions import (
+    to_openfermion,  # pyright: ignore[reportPrivateImportUsage]
 )
 from orquestra.quantum.operators import PauliRepresentation
 

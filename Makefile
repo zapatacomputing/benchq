@@ -18,7 +18,7 @@ style-fix:
 	isort --profile=black src tests examples benchmarks
 
 pyright:
-	$(PYTHON) -m pyright src
+	$(PYTHON) -m pyright src --verbose
 
 style: flake8p mypy pyright black isort
 	@echo This project passes style!
