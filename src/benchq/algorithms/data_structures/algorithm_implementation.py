@@ -15,8 +15,9 @@ class AlgorithmImplementation(Generic[T]):
     error_budget: ErrorBudget
     n_shots: int
 
+    @classmethod
     def from_circuit(
-        circuit: SUPPORTED_CIRCUITS, error_budget: ErrorBudget, n_shots: int = 1
+        cls, circuit: SUPPORTED_CIRCUITS, error_budget: ErrorBudget, n_shots: int = 1
     ):
         program = get_program_from_circuit(import_circuit(circuit))
         return AlgorithmImplementation(program, error_budget, n_shots)
