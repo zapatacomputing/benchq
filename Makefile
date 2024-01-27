@@ -17,6 +17,12 @@ style-fix:
 	black src tests examples benchmarks benchmarks
 	isort --profile=black src tests examples benchmarks
 
+pyright:
+	$(PYTHON) -m pyright src
+
+style: flake8p mypy pyright black isort
+	@echo This project passes style!
+
 test:
 	$(PYTHON) -m pytest -W error tests
 

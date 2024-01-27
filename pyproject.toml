@@ -67,3 +67,14 @@ log_level="INFO"
 [tool.flake8]
 ignore = ['E203', 'E266', 'F401', 'W605']
 max-line-length = 88
+
+[tool.pyright]
+exclude = [
+    "src/benchq/compilation",
+    "src/benchq/conversions",
+    "src/benchq/mlflow",
+    "src/benchq/problem_embeddings",
+    "src/benchq/problem_ingestion",
+    "src/benchq/resource_estimators",
+    "src/benchq/visualization_tools.py",
+]
