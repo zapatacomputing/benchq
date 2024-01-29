@@ -11,6 +11,9 @@ from qiskit.transpiler.passes import RemoveBarriers
 from benchq.visualization_tools.plot_graph_state import plot_graph_state
 from benchq.conversions import export_circuit
 from orquestra.quantum.circuits import Circuit, I, X, Y, Z, H, S, CNOT, CZ, RZ, T
+import pytest
+from orquestra.integrations.qiskit.conversions import import_from_qiskit
+
 
 jl.include(
     os.path.join(
@@ -20,7 +23,7 @@ jl.include(
 )
 
 
-def test_random_circuit(n_qubits, depth, hyperparams):
+def verify_random_circuit(n_qubits, depth, hyperparams):
     # test that a single random circuit works for |0> initialization
 
     circuit = generate_random_circuit(n_qubits, depth)
@@ -60,18 +63,19 @@ def check_correctness_for_single_init(
     show_circuit=False,
     show_graph_state=False,
     throw_error_on_incorrect_result=True,
+    layering_optimization="Time",
+    layer_width=3,
 ):
     full_circuit = init + circuit
 
-    asg, pauli_tracker = jl.get_graph_state_data(
+    asg, pauli_tracker, _ = jl.get_graph_state_data(
         full_circuit,
-        False,
-        False,
-        False,
-        200,
-        1e8,
-        "Time",
-        hyperparams,
+        verbose=False,
+        takes_graph_input=False,
+        gives_graph_output=False,
+        layering_optimization=layering_optimization,
+        layer_width=layer_width,
+        hyperparams=hyperparams,
     )
 
     asg, pauli_tracker = jl.python_asg(asg), jl.python_pauli_tracker(pauli_tracker)
@@ -333,82 +337,151 @@ def topological_sort(layer, cond_paulis):
     return result
 
 
-if __name__ == "__main__":
-    hyperparams = jl.RbSHyperparams(3, 2, 6, 1e5, 0)
-    # for n_circuits_checked in range(1000):
-    #     print(
-    #         "\033[92m"
-    #         + f"{n_circuits_checked} circuits checked successfully!"
-    #         + "\033[0m"
-    #     )
-    #     test_random_circuit(
-    #         n_qubits=10,
-    #         depth=50,
-    #         hyperparams=hyperparams,
-    #     )
-    #     n_circuits_checked += 1
-
-    # check_correctness_for_single_init(
-    #     [
-    #         (14, 1, -1, 2.448088786866598),
-    #         (14, 1, -1, 5.711008414454667),
-    #     ],
-    #     [(3, 0, -1, 0), (3, 1, -1, 0), (3, 2, -1, 0)],
-    #     hyperparams,
-    #     show_circuit=True,
-    #     show_graph_state=True,
-    #     throw_error_on_incorrect_result=True,
-    # )
-
-    # check_correctness_for_single_init(
-    #     [
-    #         (3, 0, -1, 0),
-    #         (3, 1, -1, 0),
-    #         (3, 4, -1, 0),
-    #         (12, 1, -1, 0),
-    #         (10, 0, 4, 0),
-    #         (11, 1, 0, 0),
-    #         (3, 1, -1, 0),
-    #         (11, 3, 0, 0),
-    #         (12, 1, -1, 0),
-    #         (11, 4, 1, 0),
-    #         (12, 4, -1, 0),
-    #         (3, 4, -1, 0),
-    #         (12, 4, -1, 0),
-    #     ],
-    #     [],
-    #     hyperparams,
-    #     show_circuit=True,
-    #     show_graph_state=True,
-    #     throw_error_on_incorrect_result=True,
-    # )
-
-    # check_correctness_for_single_init(
-    #     [
-    #         (3, 0, -1, 0),
-    #         (10, 0, 2, 0),
-    #         (12, 1, -1, 0),
-    #         (3, 1, -1, 0),
-    #         (12, 1, -1, 0),
-    #         (12, 1, -1, 0),
-    #         (11, 0, 1, 0),
-    #         (10, 1, 2, 0),
-    #         (11, 2, 1, 0),
-    #         (12, 1, -1, 0),
-    #     ],
-    #     [],
-    #     hyperparams,
-    #     show_circuit=True,
-    #     show_graph_state=True,
-    #     throw_error_on_incorrect_result=True,
-    # )
-
-    #  check RZ has right sign
-    check_correctness_for_single_init(
-        Circuit([Z(0), Y(0), RZ(1.0730313816602475)(2), X(1)]),
+@pytest.mark.parametrize("optimization", ["Space", "Time", "ST-Volume", "Variable"])
+@pytest.mark.parametrize(
+    "init",
+    [
+        Circuit([]),
+        Circuit([H(0), H(1)]),
         Circuit([H(0), H(1), H(2)]),
+        Circuit([H(0), S(0), H(1), S(1), H(2), S(2)]),
+    ],
+)
+@pytest.mark.parametrize(
+    "circuit",
+    [
+        # T gates work alone
+        Circuit([T(0), T(0)]),
+        # rotations work alone
+        Circuit([RZ(2.44)(0), RZ(5.71)(0)]),
+        # rotations work in circuit
+        Circuit([Z(0), Y(0), RZ(1.07)(2), X(1)]),
+        Circuit([X(0)]),
+        Circuit([H(0)]),
+        Circuit([S(0)]),
+        Circuit([H(0), S(0), H(0)]),
+        Circuit([H(0), S(0)]),
+        Circuit([S(0), H(0)]),
+        Circuit([H(2)]),
+        Circuit([H(0), CNOT(0, 1)]),
+        Circuit([CZ(0, 1), H(2)]),
+        Circuit([H(0), S(0), CNOT(0, 1), H(2)]),
+        Circuit([CNOT(0, 1), CNOT(1, 2)]),
+        Circuit(
+            [
+                H(0),
+                S(0),
+                H(1),
+                CZ(0, 1),
+                H(2),
+                CZ(1, 2),
+            ]
+        ),
+        Circuit(
+            [
+                H(0),
+                H(1),
+                H(3),
+                CZ(0, 3),
+                CZ(1, 4),
+                H(3),
+                H(4),
+                CZ(3, 4),
+            ]
+        ),
+        import_from_qiskit(QuantumCircuit.from_qasm_file("single_rotation.qasm")),
+        import_from_qiskit(QuantumCircuit.from_qasm_file("example_circuit.qasm")),
+    ],
+)
+def test_particular_circuits_give_correct_results(circuit, init, optimization):
+    hyperparams = jl.RbSHyperparams(3, 2, 6, 1e5, 0)
+    check_correctness_for_single_init(
+        circuit,
+        init,
         hyperparams,
         show_circuit=True,
-        show_graph_state=True,
         throw_error_on_incorrect_result=True,
+        layering_optimization=optimization,
+        layer_width=3,
     )
+
+
+# if __name__ == "__main__":
+#     hyperparams = jl.RbSHyperparams(3, 2, 6, 1e5, 0)
+#     for n_circuits_checked in range(1000):
+#         print(
+#             "\033[92m"
+#             + f"{n_circuits_checked} circuits checked successfully!"
+#             + "\033[0m"
+#         )
+#         test_random_circuit(
+#             n_qubits=10,
+#             depth=50,
+#             hyperparams=hyperparams,
+#         )
+#         n_circuits_checked += 1
+
+# check_correctness_for_single_init(
+#     [
+#         (14, 1, -1, 2.448088786866598),
+#         (14, 1, -1, 5.711008414454667),
+#     ],
+#     [(3, 0, -1, 0), (3, 1, -1, 0), (3, 2, -1, 0)],
+#     hyperparams,
+#     show_circuit=True,
+#     show_graph_state=True,
+#     throw_error_on_incorrect_result=True,
+# )
+
+# check_correctness_for_single_init(
+#     [
+#         (3, 0, -1, 0),
+#         (3, 1, -1, 0),
+#         (3, 4, -1, 0),
+#         (12, 1, -1, 0),
+#         (10, 0, 4, 0),
+#         (11, 1, 0, 0),
+#         (3, 1, -1, 0),
+#         (11, 3, 0, 0),
+#         (12, 1, -1, 0),
+#         (11, 4, 1, 0),
+#         (12, 4, -1, 0),
+#         (3, 4, -1, 0),
+#         (12, 4, -1, 0),
+#     ],
+#     [],
+#     hyperparams,
+#     show_circuit=True,
+#     show_graph_state=True,
+#     throw_error_on_incorrect_result=True,
+# )
+
+# check_correctness_for_single_init(
+#     [
+#         (3, 0, -1, 0),
+#         (10, 0, 2, 0),
+#         (12, 1, -1, 0),
+#         (3, 1, -1, 0),
+#         (12, 1, -1, 0),
+#         (12, 1, -1, 0),
+#         (11, 0, 1, 0),
+#         (10, 1, 2, 0),
+#         (11, 2, 1, 0),
+#         (12, 1, -1, 0),
+#     ],
+#     [],
+#     hyperparams,
+#     show_circuit=True,
+#     show_graph_state=True,
+#     throw_error_on_incorrect_result=True,
+# )
+
+# #  check RZ has right sign
+# check_correctness_for_single_init(
+#     Circuit([Z(0), Y(0), RZ(1.0730313816602475)(2), X(1)]),
+#     Circuit([H(0), H(1), H(2)]),
+#     hyperparams,
+#     show_circuit=True,
+#     show_graph_state=True,
+#     throw_error_on_incorrect_result=True,
+# )

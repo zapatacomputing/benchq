@@ -11,6 +11,7 @@ from numba import njit
 from orquestra.integrations.qiskit.conversions import import_from_qiskit
 from orquestra.quantum.circuits import CNOT, CZ, Circuit, H, S, T, X
 from qiskit import QuantumCircuit
+import pathlib
 
 from benchq.compilation import (
     jl,
@@ -18,6 +19,14 @@ from benchq.compilation import (
     transpile_to_native_gates,
 )
 from benchq.data_structures import QuantumProgram
+
+
+jl.include(
+    os.path.join(
+        pathlib.Path(__file__).parent.resolve(),
+        "../../../src/benchq/compilation/ruby_slippers/ruby_slippers.jl",
+    ),
+)
 
 
 @pytest.mark.parametrize(
@@ -62,15 +71,54 @@ from benchq.data_structures import QuantumProgram
 def test_stabilizer_states_are_the_same_for_simple_circuits(circuit):
     target_tableau = get_target_tableau(circuit)
 
-    loc, adj, _ = jl.run_ruby_slippers(circuit, False, 999)
+    asg, num_consumption_tocks, num_logical_qubits, _ = jl.run_ruby_slippers(
+        circuit,
+        takes_graph_input=False,
+        gives_graph_output=False,
+        verbose=False,
+        teleportation_threshold=jl.UInt16(999),
+    )
 
-    vertices = list(zip(loc, adj))
+    vertices = list(zip(asg["sqs"], asg["edge_data"]))
 
     graph_tableau = get_stabilizer_tableau_from_vertices(vertices)
 
+    assert num_consumption_tocks == 1
+    assert num_logical_qubits == circuit.n_qubits
     assert_tableaus_correspond_to_the_same_stabilizer_state(
         graph_tableau, target_tableau
     )
+
+
+@pytest.mark.parametrize(
+    "circuit, target_tocks, target_qubits, layering_optimization, width",
+    [
+        (Circuit([H(0), CNOT(0, 1)]), 1, 2, "ST-Volume", -1),
+        (Circuit([H(0)] + [CNOT(0, i) for i in range(4)]), 1, 4, "Time", -1),
+        (Circuit([H(0)] + [CNOT(0, i) for i in range(4)]), 4, 2, "Space", -1),
+        (Circuit([H(0)] + [CNOT(0, i) for i in range(4)]), 1, 4, "ST-Volume", -1),
+        (Circuit([H(0)] + [CNOT(0, i) for i in range(4)]), 2, 3, "Variable", 2),
+        (Circuit([H(0), T(0)] * 3), 3, 2, "Time", -1),
+        (Circuit([H(0), T(0)] * 3), 4, 2, "Space", -1),
+        (Circuit([H(0), T(0)] * 3), 4, 2, "ST-Volume", -1),
+        (Circuit([H(0), T(0)] * 3), 3, 3, "Variable", 2),
+    ],
+)
+def test_tocks_and_qubits_are_correct(
+    circuit, target_tocks, target_qubits, layering_optimization, width
+):
+    asg, num_consumption_tocks, num_logical_qubits, _ = jl.run_ruby_slippers(
+        circuit,
+        takes_graph_input=False,
+        gives_graph_output=False,
+        layering_optimization=layering_optimization,
+        verbose=False,
+        teleportation_threshold=jl.UInt16(999),
+        layer_width=width,
+    )
+
+    assert num_consumption_tocks == target_tocks
+    assert num_logical_qubits == target_qubits
 
 
 @pytest.mark.parametrize(
@@ -94,8 +142,14 @@ def test_stabilizer_states_are_the_same_for_circuits(filename):
 
     target_tableau = get_target_tableau(test_circuit)
 
-    loc, adj, _ = jl.run_ruby_slippers(test_circuit, False, 999)
-    vertices = list(zip(loc, adj))
+    asg, _, _, _ = jl.run_ruby_slippers(
+        circuit,
+        takes_graph_input=False,
+        gives_graph_output=False,
+        verbose=False,
+        teleportation_threshold=999,
+    )
+    vertices = list(zip(asg["sqs"], asg["edge_data"]))
     graph_tableau = get_stabilizer_tableau_from_vertices(vertices)
 
     assert_tableaus_correspond_to_the_same_stabilizer_state(
@@ -129,12 +183,19 @@ def test_stabilizer_states_are_the_same_for_circuits_with_decomposed_rotations(
             qiskit_circuit, circuit_precision=10**-2
         )
         test_circuit = get_icm(clifford_t)
+        test_circuit = transpile_to_native_gates(test_circuit)
 
         target_tableau = get_target_tableau(test_circuit)
 
         # ensure state does not teleport
-        loc, adj, _ = jl.run_ruby_slippers(test_circuit, True, 9999, 9999)
-        vertices = list(zip(loc, adj))
+        asg, _, _, _ = jl.run_ruby_slippers(
+            test_circuit,
+            takes_graph_input=False,
+            gives_graph_output=False,
+            verbose=False,
+            teleportation_threshold=9999,
+        )
+        vertices = list(zip(asg["sqs"], asg["edge_data"]))
 
         graph_tableau = get_stabilizer_tableau_from_vertices(vertices)
 
@@ -164,15 +225,17 @@ def test_stabilizer_states_are_the_same_for_circuits_with_decomposed_rotations(
         (Circuit([H(0), *[CNOT(0, i) for i in range(1, 15)]]), 4, 4, 4),
         # test gates that must be decomposed
         (Circuit([H(0), *[T(0) for _ in range(1, 5)]]), 4, 4, 0),
-        # test single teleporatation
-        (Circuit([H(0), *[T(0) for _ in range(1, 6)]]), 4, 4, 1),
-        (Circuit([H(0), *[T(0) for _ in range(1, 8)]]), 4, 4, 1),
-        # test multiple teleportations:
-        (Circuit([H(0), *[T(0) for _ in range(1, 9)]]), 4, 4, 2),
-        (Circuit([H(0), *[T(0) for _ in range(1, 11)]]), 4, 4, 2),
-        (Circuit([H(0), *[T(0) for _ in range(1, 12)]]), 4, 4, 3),
-        (Circuit([H(0), *[T(0) for _ in range(1, 14)]]), 4, 4, 3),
-        (Circuit([H(0), *[T(0) for _ in range(1, 15)]]), 4, 4, 4),
+        # commenting out these test for now as they are only relevant for
+        # decomposition strategy 1.
+        # # test single teleporatation
+        # (Circuit([H(0), *[T(0) for _ in range(1, 6)]]), 4, 4, 1),
+        # (Circuit([H(0), *[T(0) for _ in range(1, 8)]]), 4, 4, 1),
+        # # test multiple teleportations with gates that must be decomposed
+        # (Circuit([H(0), *[T(0) for _ in range(1, 9)]]), 4, 4, 2),
+        # (Circuit([H(0), *[T(0) for _ in range(1, 11)]]), 4, 4, 2),
+        # (Circuit([H(0), *[T(0) for _ in range(1, 12)]]), 4, 4, 3),
+        # (Circuit([H(0), *[T(0) for _ in range(1, 14)]]), 4, 4, 3),
+        # (Circuit([H(0), *[T(0) for _ in range(1, 15)]]), 4, 4, 4),
     ],
 )
 def test_teleportation_produces_correct_number_of_nodes_for_small_circuits(
@@ -182,18 +245,17 @@ def test_teleportation_produces_correct_number_of_nodes_for_small_circuits(
     n_t_gates = quantum_program.n_t_gates
     n_rotations = quantum_program.n_rotation_gates
 
-    loc, adj, _ = jl.run_ruby_slippers(
+    asg, _, _, _ = jl.run_ruby_slippers(
         circuit,
-        True,
-        9999,
-        teleportation_threshold,
-        teleportation_distance,
-        6,
-        99999,
-        1,
+        takes_graph_input=False,
+        gives_graph_output=False,
+        verbose=True,
+        max_graph_size=9999,
+        teleportation_threshold=teleportation_threshold,
+        teleportation_distance=teleportation_distance,
     )
 
-    n_nodes = len(loc)
+    n_nodes = len(asg["sqp"])
 
     assert (
         n_nodes
@@ -232,9 +294,11 @@ def test_teleportation_produces_correct_node_parity_for_large_circuits(
         quantum_program = QuantumProgram.from_circuit(clifford_t)
         n_t_gates = quantum_program.n_t_gates
 
-        loc, adj, _ = jl.run_ruby_slippers(clifford_t, False, 9999)
+        asg, _, _, _ = jl.run_ruby_slippers(
+            clifford_t, takes_graph_input=False, gives_graph_output=False, verbose=False
+        )
 
-        n_nodes = len(loc)
+        n_nodes = len(asg["sqp"])
 
         assert n_nodes >= n_t_gates
         # teleportation only adds 2 nodes at a time.
@@ -256,8 +320,15 @@ def test_teleportation_produces_correct_node_parity_for_large_circuits(
 )
 def test_rbs_gives_reasonable_prop(circuit, rbs_iteration_time, expected_prop_range):
     # when
-    _, _, prop = jl.run_ruby_slippers(
-        circuit, True, 9999, 40, 4, 6, 99999, 1, rbs_iteration_time
+    _, _, _, prop = jl.run_ruby_slippers(
+        circuit,
+        takes_graph_input=False,
+        gives_graph_output=False,
+        verbose=True,
+        max_graph_size=9999,
+        teleportation_threshold=40,
+        teleportation_distance=9,
+        max_time=rbs_iteration_time,
     )
 
     # then

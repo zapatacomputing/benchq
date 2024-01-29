@@ -1,3 +1,6 @@
+################################################################################
+# © Copyright 2022-2023 Zapata Computing Inc.
+################################################################################
 """
 Holds data for tracking conditional Pauli operators through a circuit.
 
@@ -283,16 +286,13 @@ function get_sparse_measurement_dag(
         end
     end
 
-    println("dag: ", new_dag)
-    println("nodes to include: ", nodes_to_include)
-
     return new_dag
 end
 
 """
 A simple function for creating a measurement DAG. This DAG is not nearly as
-efficient as the one created by get_measurement_dag, but it is much easier
-to understand and thus is good for debugging stitching. It also preserves
+efficient as the one created by get_sparse_measurement_dag, but it is much
+easier to understand and thus is good for debugging stitching. It also preserves
 the order in which qubits are created in the circuit, so it can be useful
 for Space optimal layerings.
 
@@ -348,29 +348,14 @@ function calculate_layering!(pauli_tracker::PauliTracker, asg, ignored_nodes)
         measurement_dag =
             get_sparse_measurement_dag(pauli_tracker, output_nodes, nodes_to_include)
         pauli_tracker.layering =
-            variable_width(measurement_dag, asg, typemax(Int), nodes_to_include)
+            longest_path_layering(measurement_dag, asg.n_nodes, nodes_to_include)
     elseif pauli_tracker.layering_optimization == "Space"
         measurement_dag = get_simple_measurement_dag(pauli_tracker, nodes_to_include)
-        pauli_tracker.layering = variable_width(
-            measurement_dag,
-            asg,
-            maximum(length, asg.edge_data) + 1,
-            nodes_to_include,
-        )
+        pauli_tracker.layering =
+            variable_width(measurement_dag, asg, 1, nodes_to_include)
     elseif pauli_tracker.layering_optimization == "Variable"
         @warn "Variable layering optimization is unstable. May produce incorrect results."
         measurement_dag = get_simple_measurement_dag(pauli_tracker, nodes_to_include)
-        min_num_logical_qubits = maximum(length, asg.edge_data)
-        if pauli_tracker.layer_width < min_num_logical_qubits
-            if pauli_tracker.layer_width != -1
-                println(
-                    "Warning: Required number of logical qubits is too small " *
-                    "for the circuit given. Using $(min_num_logical_qubits) " *
-                    "logical qubits instead.",
-                )
-            end
-            pauli_tracker.layer_width = min_num_logical_qubits
-        end
         pauli_tracker.layering = variable_width(
             measurement_dag,
             asg,
@@ -378,9 +363,8 @@ function calculate_layering!(pauli_tracker::PauliTracker, asg, ignored_nodes)
             nodes_to_include,
         )
     else
-        error("Invalid layering optimization")
+        error("Invalid layering optimization.")
     end
-
 end
 
 function gansner_layering(measurement_dag, n_nodes, nodes_to_include)
@@ -424,7 +408,7 @@ function topological_sort(measurement_dag, n_nodes, nodes_to_include)
 
     function dfs(node)
         visited[node] = true
-        for neighbor in measurement_dag[node]
+        for neighbor in sort(measurement_dag[node], by=x -> length(asg.edge_data[x]))
             if !visited[neighbor]
                 dfs(neighbor)
             end
@@ -432,6 +416,7 @@ function topological_sort(measurement_dag, n_nodes, nodes_to_include)
         push!(ordering, node)
     end
 
+    # tarverse the nodes with the smallest neighborhoods first
     for node in nodes_to_include
         if !visited[node]
             dfs(node)
@@ -441,30 +426,109 @@ function topological_sort(measurement_dag, n_nodes, nodes_to_include)
     return ordering
 end
 
+function kahns_algorithm(measurement_dag, n_nodes, nodes_to_include, asg)
+    in_degree = zeros(Int, n_nodes)
+    for node in nodes_to_include
+        for neighbor in measurement_dag[node]
+            in_degree[neighbor] += 1
+        end
+    end
+
+    queue = []
+    for node in nodes_to_include
+        if in_degree[node] == 0
+            push!(queue, node)
+        end
+    end
+    # start with nodes that require the smallest neighborhoods
+    sort!(queue, by=x -> length(asg.edge_data[x]))
+
+    ordering = []
+    while length(queue) > 0
+        node = popfirst!(queue)
+        push!(ordering, node)
+        nodes_to_add_to_queue = []
+        for neighbor in measurement_dag[node]
+            in_degree[neighbor] -= 1
+            if in_degree[neighbor] == 0
+                push!(nodes_to_add_to_queue, neighbor)
+            end
+            # add nodes with the smallest neighborhoods first
+            for node in sort(nodes_to_add_to_queue, by=x -> length(asg.edge_data[x]))
+                push!(queue, node)
+            end
+        end
+    end
+
+    return ordering
+end
+
+"""
+Create the layering based on the longest path in the DAG. This is done by
+finding the longest path from a source to each node. The layer of each node
+is then determined by the longest path from a source.
+
+Attributes:
+    measurement_dag (Vector{Vector{Qubit}}): A dependency graph of which qubits
+        need to be measured before which other qubits. The first index
+        is the qubit which needs to be measured, and the vector contained
+        in that index is the qubits which need to be measured before it.
+    n_nodes (Qubit): The number of qubits in the circuit.
+    nodes_to_include (Vector{Qubit}): The nodes which should be included
+        in the DAG.
+
+Returns:
+    longest_path (Vector{Vector{Qubit}}): The layer of each node in the DAG.
+"""
+function longest_path_layering(measurement_dag, n_nodes, nodes_to_include)
+    longest_path = zeros(Qubit, n_nodes)
+    sorted_nodes = reverse(topological_sort(measurement_dag, n_nodes, nodes_to_include))
+
+    # find longest path for each node in reverse
+    final_layer = 0
+    for u in sorted_nodes
+        for v in measurement_dag[u]
+            longest_path[v] = max(longest_path[v], longest_path[u] + 1)
+        end
+        final_layer = max(final_layer, longest_path[u])
+    end
+
+    # Create layers based on longest paths
+    layers = [[] for _ in range(1, final_layer + 1)]
+    for node in 1:n_nodes
+        # correct for reverse layering given by above
+        corrected_layer = final_layer - longest_path[node] + 1
+        append!(layers[corrected_layer], node)
+    end
+
+    return layers
+end
+
+
+"""
+Given a DAG, finds  layering in the dag which minimizes the width due to
+the ASG adding nodes to the DAG. This is done by finding the first layer in
+the graph that can accommodate each node as it is created.
+"""
 function variable_width(measurement_dag, asg, max_width::Int, nodes_to_include)
     layering = [[] for _ in range(1, asg.n_nodes)]
     inv_layering = zeros(UInt, asg.n_nodes)
-    nodes_in_layer = fill(Set([]), asg.n_nodes)
-
+    sorted_nodes = kahns_algorithm(measurement_dag, asg.n_nodes, nodes_to_include, asg)
     max_layer = 1
-    for node in topological_sort(measurement_dag, asg.n_nodes, nodes_to_include)
+    for node in sorted_nodes
         # Find the maximum layer of the neighbors
         min_layer = 1
         for neighbor in measurement_dag[node]
-            min_layer = max(min_layer, inv_layering[neighbor] + 1)
+            min_layer = max(min_layer, inv_layering[neighbor])
         end
 
         # Find the first layer with enough remaining width for the node
         for layer = min_layer:asg.n_nodes
-            bigger_layer = Set([node]) ∪ nodes_in_layer[layer]
-            size = length(get_neighborhood(bigger_layer, asg))
-            if size <= max_width
+            if length(layering[layer]) + 1 <= max_width
                 # Update the rank of the node
                 push!(layering[layer], node)
                 inv_layering[node] = layer
                 max_layer = max(max_layer, layer)
-                # Update remaining width for the chosen layer
-                nodes_in_layer[layer] = bigger_layer
                 break
             end
         end
@@ -474,7 +538,7 @@ function variable_width(measurement_dag, asg, max_width::Int, nodes_to_include)
 end
 
 function get_neighborhood(centers, asg)
-    neighborhood = Set([])
+    neighborhood = Set{Qubit}([])
     for center in centers
         for neighbor in asg.edge_data[center]
             push!(neighborhood, neighbor)
@@ -484,19 +548,41 @@ function get_neighborhood(centers, asg)
     return union(neighborhood, centers)
 end
 
-function get_n_logical_qubits(pauli_tracker::PauliTracker, asg)
-    active_nodes = pauli_tracker.layering[1]
-    n_logical_qubits = length(active_nodes)
 
-    for layer in pauli_tracker.layering
-        setdiff!(active_nodes, layer)
-        union!(active_nodes, get_neighborhood(layer, asg))
-        n_logical_qubits = maximum(n_logical_qubits, length(active_nodes))
+"""
+Get the number of logical qubits in the circuit. This is done by finding
+the maximum number of physical qubits which are connected to each other
+through the conditional Pauli operators at each layer of the pauli tracker.
+"""
+function get_n_logical_qubits(pauli_tracker::PauliTracker, asg)
+    curr_physical_nodes = get_neighborhood(pauli_tracker.layering[1], asg)
+    n_logical_qubits = length(curr_physical_nodes)
+    measured_nodes = Set{Qubit}([])
+
+    # iterate through every pair of consecutive layers
+    for i in 1:length(pauli_tracker.layering)-1
+        union!(measured_nodes, pauli_tracker.layering[i])
+        added_nodes = pauli_tracker.layering[i+1]
+
+        setdiff!(curr_physical_nodes, measured_nodes)
+        new_nodes_to_add = setdiff(get_neighborhood(added_nodes, asg), measured_nodes)
+        union!(curr_physical_nodes, new_nodes_to_add)
+
+        n_logical_qubits = max(n_logical_qubits, length(curr_physical_nodes))
     end
 
     return n_logical_qubits
 end
 
+"""
+If we add a layer with the nodes in new_layer, then how many qubits will we need?
+"""
+function n_qubits_after_new_layer(curr_physical_nodes, new_layer, asg)
+    temp_new_nodes_to_add = setdiff(get_neighborhood(new_layer, asg), measured_nodes)
+    temp_curr_physical_qubits = union(curr_physical_nodes, temp_curr_physical_qubits)
+
+    return temp_curr_physical_qubits, temp_new_nodes_to_add, measured_nodes
+end
 
 function get_n_measurement_steps(pauli_tracker::PauliTracker)
     return length(pauli_tracker.layering)

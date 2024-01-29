@@ -8,6 +8,58 @@ the results of certain small calculations which are performed repeatedly.
 =#
 
 
+# Contains all the information required to implement a gate in the ICM format.
+struct ICMOp
+    code::UInt8
+    qubit1::Qubit
+    qubit2::Qubit
+    angle::Float64
+
+    ICMOp(code, qubit) = new(code, qubit, 0, 0)
+    ICMOp(code, qubit1, qubit2) = new(code, qubit1, qubit2, 0)
+    ICMOp(code, qubit1, qubit2, angle) = new(code, qubit1, qubit2, angle)
+end
+RZOp(qubit1, angle) = ICMOp(RZ_code, qubit1, 0, angle)
+
+"""Get qubit index of python operation"""
+get_qubit_1(op) = pyconvert(Int, op.qubit_indices[0]) + 1 # +1 because Julia is 1-indexed
+get_qubit_2(op) = pyconvert(Int, op.qubit_indices[1]) + 1
+
+"""Get Python version of op_list of to speed up getting index"""
+get_op_list() = pylist(["I", "S", "H", "N", "N", "N", "X", "Y", "Z", "CZ", "CNOT", "T", "T_Dagger", "RZ", "S_Dagger"])
+
+"""Get index of operation name"""
+get_op_index(op_list, op) = pyconvert(Int, op_list.index(op.gate.name)) + 1
+
+pauli_op(index) = 1 <= index <= 4 # i.e. I, X, Y, Z
+single_qubit_op(index) = 1 <= index <= 9   # Paulis, H, S, S_Dagger
+double_qubit_op(index) = 10 <= index <= 11  # CZ, CNOT
+non_clifford_op(index) = 12 <= index < 15 # T, T_Dagger, RX, RY, RZ
+decompose_op(index) = index >= 15
+
+
+function convert_orquestra_op_to_icm_ops(op, supported_ops=get_op_list())
+    op_index = get_op_index(supported_ops, op)
+    if single_qubit_op(op_index)
+        return [ICMOp(op_index, get_qubit_1(op))]
+    elseif double_qubit_op(op_index)
+        return [ICMOp(op_index, get_qubit_1(op), get_qubit_2(op))]
+    elseif non_clifford_op(op_index)
+        if op_index == RZ_code
+            return [RZOp(get_qubit_1(op), pyconvert(Float64, op.params[0]))]
+        else # T or T_Dagger
+            return [ICMOp(op_index, get_qubit_1(op))]
+        end
+    elseif decompose_op(op_index)
+        if op_index == 15
+            qubit = get_qubit_1(op)
+            return [ICMOp(Z_code, qubit), ICMOp(S_code, qubit)]
+        end
+    else
+        error("Unsupported gate: $(op.code)")
+    end
+end
+
 # numbers which correspond to each of the gates in multiply_sqs
 const I_code = UInt8(1)
 const S_code = UInt8(2)

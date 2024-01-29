@@ -1,3 +1,6 @@
+################################################################################
+# © Copyright 2022-2023 Zapata Computing Inc.
+################################################################################
 BUFFER_SIZE = 100
 if BUFFER_SIZE % 2 != 0
     error("Buffer size must be even.")
@@ -178,9 +181,6 @@ function minimize_node_labels!(asg::AlgorithmSpecificGraph, pauli_tracker, nodes
     nodes_to_remove = sort(collect(nodes_to_remove))
     nodes_to_keep = setdiff(1:asg.n_nodes, nodes_to_remove)
 
-    println("nodes to remove nodes: $nodes_to_remove")
-    println("nodes to keep: $nodes_to_keep")
-
 
     # relabel nodes to skip isolated nodes
     for (new_node_index, old_node_index) in enumerate(nodes_to_keep)
@@ -223,8 +223,6 @@ function minimize_node_labels!(asg::AlgorithmSpecificGraph, pauli_tracker, nodes
         end
     end
 
-
-    println("layering: $(pauli_tracker.layering)")
     for i = 1:length(pauli_tracker.layering)
         sublist = pauli_tracker.layering[i]
         for j = 1:length(sublist)

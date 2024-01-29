@@ -1,3 +1,6 @@
+################################################################################
+# © Copyright 2022-2023 Zapata Computing Inc.
+################################################################################
 """
 The current stitching properties of an ASG. This is used to keep track of
 whether the ASG can be concatenated with other ASGs or if one can add gates
@@ -48,6 +51,32 @@ function python_stitching_properties(stitching_properties::StitchingProperties)
     )
 end
 
+"""
+Hyperparameters which can be used to speed up the compilation.
+
+Attributes:
+    teleportation_threshold::Int      max node degree allowed before state is teleported
+    teleportation_distance::Int       number of teleportations to do when state is teleported
+    min_neighbors::Int                stop searching for neighbor with low degree if
+                                        neighbor has at least this many neighbors
+    max_num_neighbors_to_search::Int  max number of neighbors to search through when finding
+                                        a neighbor with low degree
+    decomposition_strategy::Int       strategy for decomposing non-clifford gate
+                                        0: keep current qubit as data qubit
+                                        1: teleport data to new qubit which becomes data qubit
+"""
+struct RbSHyperparams
+    teleportation_threshold::UInt16
+    teleportation_distance::UInt8
+    min_neighbors::UInt8
+    max_num_neighbors_to_search::UInt32
+    decomposition_strategy::UInt8 # TODO: make pauli tracker work witn decomposition_strategy=1
+end
+default_hyperparams = RbSHyperparams(40, 4, 6, 1e5, 0)
+# Hyperparameter choices which disallow teleportation in the compilation
+graphsim_hyperparams(min_neighbors, max_num_neighbors_to_search) = RbSHyperparams(65535, 2, min_neighbors, max_num_neighbors_to_search, 0)
+default_graphsim_hyperparams = graphsim_hyperparams(6, 1e5)
+
 
 """
 Data on the aglortihm specific graph state. During computation, this
@@ -79,6 +108,12 @@ AlgorithmSpecificGraphAllZero(max_graph_size, n_qubits) = AlgorithmSpecificGraph
     StitchingProperties(false, false, n_qubits),
 )
 
+"""
+Destructively convert edge_data to python adjacency list format.
+"""
+function python_adjlist!(adj::Vector{AdjList})
+    pylist([pylist(adj[i] .- 1) for i = 1:length(adj)])
+end
 
 function python_asg(asg)
     python_asg = Dict(

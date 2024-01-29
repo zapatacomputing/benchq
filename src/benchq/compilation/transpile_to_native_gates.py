@@ -35,7 +35,14 @@ def transpile_to_native_gates(circuit) -> Circuit:
     return Circuit(
         decompose_benchq_circuit(
             circuit,
-            [CCZtoT(), CCXtoT(), U3toRZ(), RXtoRZ(), RYtoRZ(), DecomposeStandardRZ()],
+            [
+                CCZtoT(),
+                CCXtoT(),
+                U3toRZ(),
+                RXtoRZ(),
+                RYtoRZ(),
+                DecomposeStandardRZ(),
+            ],
         ).operations,
         n_qubits=circuit.n_qubits,
     )
