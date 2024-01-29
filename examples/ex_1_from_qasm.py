@@ -12,16 +12,13 @@ import os
 from orquestra.integrations.qiskit.conversions import import_from_qiskit
 from qiskit.circuit import QuantumCircuit
 
-from benchq.data_structures import (
-    BASIC_SC_ARCHITECTURE_MODEL,
-    AlgorithmImplementation,
-    ErrorBudget,
-    get_program_from_circuit,
-)
-from benchq.resource_estimation.graph import (
+from benchq.algorithms.data_structures import AlgorithmImplementation, ErrorBudget
+from benchq.problem_embeddings import get_program_from_circuit
+from benchq.quantum_hardware_modeling import BASIC_SC_ARCHITECTURE_MODEL
+from benchq.resource_estimators.graph_estimators import (
     GraphResourceEstimator,
     create_big_graph_from_subcircuits,
-    run_custom_resource_estimation_pipeline,
+    get_custom_resource_estimation,
     synthesize_clifford_t,
     transpile_to_native_gates,
 )
@@ -33,9 +30,6 @@ def main(file_name):
 
     # We can load a circuit from a QASM file using qiskit
     qiskit_circuit = QuantumCircuit.from_qasm_file(file_name)
-    # In order to perform resource estimation we need to translate it to a
-    # benchq program.
-    quantum_program = get_program_from_circuit(import_from_qiskit(qiskit_circuit))
 
     # Error budget is used to define what should be the failure rate of running
     # the whole calculation. It also allows to set relative weights for different
@@ -45,7 +39,9 @@ def main(file_name):
     # algorithm implementation encapsulates the how the algorithm is implemented
     # including the program, the number of times the program must be repeated,
     # and the error budget which will be used in the circuit.
-    algorithm_implementation = AlgorithmImplementation(quantum_program, error_budget, 1)
+    algorithm_implementation = AlgorithmImplementation.from_circuit(
+        qiskit_circuit, error_budget, 1
+    )
 
     # Architecture model is used to define the hardware model.
     architecture_model = BASIC_SC_ARCHITECTURE_MODEL
@@ -60,7 +56,7 @@ def main(file_name):
     # a graph from subcircuits. It is needed to perform resource estimation using
     # the graph resource estimator. In this case we use delayed gate synthesis, as
     # we have already performed gate synthesis in the previous step.
-    gsc_resource_estimates = run_custom_resource_estimation_pipeline(
+    gsc_resource_estimates = get_custom_resource_estimation(
         algorithm_implementation,
         estimator=GraphResourceEstimator(architecture_model),
         transformers=[

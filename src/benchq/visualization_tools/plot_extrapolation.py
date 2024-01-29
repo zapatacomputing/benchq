@@ -6,8 +6,10 @@ from typing import List, Optional
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.optimize import minimize
-
-from ..data_structures import ExtrapolatedGraphResourceInfo, ResourceInfo
+from ..resource_estimators.resource_info import (
+    ExtrapolatedGraphResourceInfo,
+    ResourceInfo,
+)
 
 
 def plot_extrapolations(
@@ -21,7 +23,7 @@ def plot_extrapolations(
     exact values for the problem size in green. The extrapolated point is plotted
     in black. The points used to extrapolate are plotted in blue. The fit is plotted
     in red. If the green or black dot is below the red line on the "n_nodes" plot,
-    then we are using a 20-to-4 magic state distillation widget and the "n_nodes"
+    then we are using a 20-to-4 magic state distillation factory and the "n_nodes"
     was cut in 4 to compensate. This is fine because the original number of nodes
     (without the division by 4) will always follow the red line.
     """

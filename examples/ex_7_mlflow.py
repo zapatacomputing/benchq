@@ -9,17 +9,17 @@ import mlflow
 from orquestra.integrations.qiskit.conversions import import_from_qiskit
 from qiskit.circuit import QuantumCircuit
 
-from benchq.data_structures import (
-    BASIC_SC_ARCHITECTURE_MODEL,
-    AlgorithmImplementation,
-    ErrorBudget,
-    get_program_from_circuit,
+from benchq.algorithms.data_structures import AlgorithmImplementation, ErrorBudget
+from benchq.mlflow.data_logging import (
+    log_input_objects_to_mlflow,
+    log_resource_info_to_mlflow,
 )
-from benchq.mlflow import log_input_objects_to_mlflow, log_resource_info_to_mlflow
-from benchq.resource_estimation.graph import (
+from benchq.problem_embeddings.quantum_program import get_program_from_circuit
+from benchq.quantum_hardware_modeling import BASIC_SC_ARCHITECTURE_MODEL
+from benchq.resource_estimators.graph_estimators import (
     GraphResourceEstimator,
     create_big_graph_from_subcircuits,
-    run_custom_resource_estimation_pipeline,
+    get_custom_resource_estimation,
     synthesize_clifford_t,
     transpile_to_native_gates,
 )
@@ -60,7 +60,7 @@ def main(file_name, total_failure_tolerance=1e-3):
     # a graph from subcircuits. It is needed to perform resource estimation using
     # the graph resource estimator. In this case we use delayed gate synthesis, as
     # we have already performed gate synthesis in the previous step.
-    gsc_resource_estimates = run_custom_resource_estimation_pipeline(
+    gsc_resource_estimates = get_custom_resource_estimation(
         algorithm_implementation,
         estimator=GraphResourceEstimator(architecture_model),
         transformers=[

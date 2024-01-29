@@ -4,7 +4,8 @@ Synopsis:
 usage: run.py [-h] target
 
 positional arguments:
-  target      where to run the workflow (e.g. in_process or name of the orquestra cluster). This argument is passed to Workflow.run method.
+  target      where to run the workflow (e.g. in_process or name of the orquestra
+              cluster). This argument is passed to Workflow.run method.
 
 options:
   -h, --help  show this help message and exit
@@ -27,8 +28,8 @@ def main():
     parser.add_argument(
         "target",
         help=(
-            "where to run the workflow (e.g. in_process or name of the orquestra cluster). "
-            "This argument is passed to Workflow.run method."
+            "where to run the workflow (e.g. in_process or name of the orquestra "
+            "cluster). This argument is passed to Workflow.run method."
         ),
         type=str,
     )

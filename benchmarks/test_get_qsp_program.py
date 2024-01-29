@@ -6,12 +6,8 @@ import pytest
 
 from benchq.algorithms.time_evolution import _n_block_encodings_for_time_evolution
 from benchq.problem_embeddings import get_qsp_program
-from benchq.problem_ingestion import (
-    generate_jw_qubit_hamiltonian_from_mol_data,
-    get_hamiltonian_from_file,
-    get_vlasov_hamiltonian,
-)
-from benchq.problem_ingestion.molecule_instance_generation import (
+from benchq.problem_ingestion import get_hamiltonian_from_file, get_vlasov_hamiltonian
+from benchq.problem_ingestion.molecule_hamiltonians import (
     generate_hydrogen_chain_instance,
 )
 
@@ -44,9 +40,9 @@ def jw_test_case():
     failure_tolerance = 1e-3
     n_hydrogens = 2
 
-    operator = generate_jw_qubit_hamiltonian_from_mol_data(
-        generate_hydrogen_chain_instance(n_hydrogens)
-    )
+    operator = generate_hydrogen_chain_instance(
+        n_hydrogens
+    ).get_active_space_hamiltonian()
 
     n_block_encodings = _n_block_encodings_for_time_evolution(
         operator, evolution_time, failure_tolerance

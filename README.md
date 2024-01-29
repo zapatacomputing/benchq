@@ -32,6 +32,25 @@ To run resource estimation using Azure Quantum Resource Estimation (QRE) tool, o
 ## Usage
 See the [`examples`](examples) directory to learn more about how to use Bench-Q.
 
+### Terminology Disambiguation
+
+As fault-tolerant quantum computing is a relatively new field, there is no for several concepts which are crucial for resource estimation. We will try to clarify them here.
+
+#### Problem Ingestion vs Problem Embedding vs Algorithm Implementation
+
+`benchq` splits up the process of specifying a problem into three steps. The purpose of this is to split up the more complex parts of the process into more digestable, modular parts. The three steps are:
+
+##### Problem ingestion
+
+Take an input representing a problem instance and outputs data that needs to be loaded into the quantum computer. (e.g. the Hamiltonian we are simulating)
+
+##### Problem embedding
+Take the data from the problem ingestion step and embed it into a quantum circuit. (e.g. the block encoding circuit.) This can be a complicated process involving arithmetic and specialized compilation.
+
+##### Algorithm implementation
+Take the circuit from the problem embedding step and implement the algorithm. Also requires information from the problem instance to determine how to budget errors throughout the computation. (e.g. the required accuracy of the algorithm.)
+
+
 ## Running benchmarks
 
 Because quantum compilation and resource estimation can be compute intensive, Bench-Q includes tools for benchmarking components that are potential bottlenecks. To run the benchmarks, execute the command
