@@ -308,7 +308,7 @@ class GraphResourceEstimator:
         magic_state_factory_iterator = iter(self.magic_state_factory_iterator)
 
         # Approximate the number of logical qubits for the bus architecture
-        # TODO: We should update this to accommodate the space vs time optimal compilation
+        # TODO: Update to accommodate the space vs time optimal compilation
         # once we have the substrate scheduler properly implemented.
         n_logical_qubits = 2 * graph_data.max_graph_degree
 
