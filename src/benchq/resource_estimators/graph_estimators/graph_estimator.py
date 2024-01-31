@@ -307,6 +307,11 @@ class GraphResourceEstimator:
 
         magic_state_factory_iterator = iter(self.magic_state_factory_iterator)
 
+        # Approximate the number of logical qubits for the bus architecture
+        # TODO: Update to accommodate the space vs time optimal compilation
+        # once we have the substrate scheduler properly implemented.
+        n_logical_qubits = 2 * graph_data.max_graph_degree
+
         while True:
             magic_state_factory_found = False
             for magic_state_factory in magic_state_factory_iterator:
@@ -352,8 +357,7 @@ class GraphResourceEstimator:
                 return GraphResourceInfo(
                     code_distance=-1,
                     logical_error_rate=1.0,
-                    # estimate the number of logical qubits using max node degree
-                    n_logical_qubits=graph_data.max_graph_degree,
+                    n_logical_qubits=n_logical_qubits,
                     total_time_in_seconds=0.0,
                     n_physical_qubits=0,
                     magic_state_factory_name="No MagicStateFactory Found",
@@ -426,14 +430,13 @@ class GraphResourceEstimator:
             self.decoder_model,
             code_distance,
             space_time_volume,
-            graph_data.max_graph_degree,
+            n_logical_qubits,
         )
 
         return GraphResourceInfo(
             code_distance=code_distance,
             logical_error_rate=total_logical_error_rate,
-            # estimate the number of logical qubits using max node degree
-            n_logical_qubits=graph_data.max_graph_degree,
+            n_logical_qubits=n_logical_qubits,
             total_time_in_seconds=total_time_in_seconds,
             n_physical_qubits=n_physical_qubits,
             magic_state_factory_name=magic_state_factory.name,
