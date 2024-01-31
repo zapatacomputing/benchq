@@ -1,5 +1,7 @@
 import numpy as np
-from orquestra.integrations.cirq.conversions import to_openfermion
+from orquestra.integrations.cirq.conversions import (
+    to_openfermion,  # pyright: ignore[reportPrivateImportUsage]
+)
 from orquestra.quantum.operators import PauliRepresentation
 from pyLIQTR.QSP import gen_qsp
 

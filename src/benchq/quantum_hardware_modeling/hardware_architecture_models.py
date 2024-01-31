@@ -28,11 +28,11 @@ class BasicArchitectureModel(Protocol):
 
     @property
     def physical_qubit_error_rate(self) -> float:
-        pass
+        ...
 
     @property
     def surface_code_cycle_time_in_seconds(self) -> float:
-        pass
+        ...
 
 
 @runtime_checkable

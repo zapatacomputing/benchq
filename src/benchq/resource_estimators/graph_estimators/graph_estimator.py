@@ -57,11 +57,15 @@ def substrate_scheduler(graph: nx.Graph, preset: str) -> TwoRowSubstrateSchedule
             cleaned_graph,
             stabilizer_scheduler=greedy_stabilizer_measurement_scheduler,
         )
-    if preset == "optimized":
+    elif preset == "optimized":
         compiler = TwoRowSubstrateScheduler(
             cleaned_graph,
             pre_mapping_optimizer=fast_maximal_independent_set_stabilizer_reduction,
             stabilizer_scheduler=greedy_stabilizer_measurement_scheduler,
+        )
+    else:
+        raise ValueError(
+            f"Unknown preset: {preset}. Should be either 'fast' or 'optimized'."
         )
     compiler.run()
     end = time.time()
