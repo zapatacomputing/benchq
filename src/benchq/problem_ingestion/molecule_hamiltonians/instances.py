@@ -486,8 +486,8 @@ class MolecularHamiltonianGenerator:
     """Class for generating molecular Hamiltonians.
 
     A class for generating a fermionic Hamiltonian for a given molecular geometry and
-    choice of active space. Note that the active space can be specified in one of the following
-    ways:
+    choice of active space. Note that the active space can be specified in one of the
+    following ways:
 
     1. the use of Atomic Valence Active Space (AVAS),
 
@@ -505,6 +505,11 @@ class MolecularHamiltonianGenerator:
 
         If freeze_core option is True, chemical frozen core orbitals
         are choosen for occuped_indicies.
+
+    To log PySCF progress after each SCF cycle to MLflow, set mlflow_experiment_name and
+    orq_workspace_id. The workspace must have MLflow enabled, and you must be either
+    logged in to the cluster or running a remote workflow on the cluster. See the
+    `Orquestra documentation <https://docs.orquestra.io/>`_ for more information.
 
 
     Args:
@@ -524,9 +529,10 @@ class MolecularHamiltonianGenerator:
         fno_threshold: Threshold on NO occupation numbers.
         fno_n_virtual_natural_orbitals: Number of virtual NOs to keep.
         scf_options: dictionary with parameters for PySCF calculations.
-        mlflow_experiment_name: if supplied, PySCF calculations will be logged to
-            MLflow. See also orq_workspace_id.
-        orq_workspace_id: Orquestra workspace ID. Required to log info to MLflow.
+        mlflow_experiment_name: The name of the MLflow experiment to log PySCF progress
+            to. If a value is provided, then orq_workspace_id also must be provided.
+        orq_workspace_id: The ID of the Orquestra workspace to log PySCF progress to.
+            If a value is provided, then mlflow_experiment_name also must be provided.
     """
 
     mol_spec: MoleculeSpecification
