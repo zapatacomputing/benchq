@@ -6,7 +6,7 @@ To run this on Orquestra see the ``run.py`` script in the same directory.
 from orquestra import sdk
 
 from benchq.problem_ingestion.molecule_hamiltonians import (
-    generate_hydrogen_chain_instance,
+    get_hydrogen_chain_hamiltonian_generator,
 )
 
 
@@ -24,7 +24,7 @@ from benchq.problem_ingestion.molecule_hamiltonians import (
     ],
 )
 def hydrogen_get_active_space_meanfield_object(number_of_hydrogens):
-    instance = generate_hydrogen_chain_instance(
+    instance = get_hydrogen_chain_hamiltonian_generator(
         number_of_hydrogens=number_of_hydrogens,
         mlflow_experiment_name=f"chain of {number_of_hydrogens} hydrogens",
         orq_workspace_id="mlflow-benchq-testing-dd0cb1",

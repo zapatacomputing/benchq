@@ -4,16 +4,16 @@ from unittest.mock import ANY, patch
 import pytest
 
 from benchq.mlflow.data_logging import create_mlflow_scf_callback
-from benchq.problem_ingestion.molecule_hamiltonians.instances import (
+from benchq.problem_ingestion.molecular_hamiltonians import (
     MolecularHamiltonianGenerator,
     SCFConvergenceError,
-    generate_hydrogen_chain_instance,
     _get_molecular_data,
+    get_hydrogen_chain_hamiltonian_generator,
 )
 
 
 def _generate_avas_hydrogen_chain_instance(n_hydrogens):
-    avas_hydrogen_chain_instance = generate_hydrogen_chain_instance(
+    avas_hydrogen_chain_instance = get_hydrogen_chain_hamiltonian_generator(
         n_hydrogens,
         avas_atomic_orbitals=["H 1s"],
         avas_minao="sto-3g",
@@ -24,8 +24,8 @@ def _generate_avas_hydrogen_chain_instance(n_hydrogens):
 @pytest.mark.parametrize(
     "instance,expected_number_of_qubits",
     [
-        (generate_hydrogen_chain_instance(2), 2 * 2 * 2),
-        (generate_hydrogen_chain_instance(13, basis="STO-3G"), 2 * 1 * 13),
+        (get_hydrogen_chain_hamiltonian_generator(2), 2 * 2 * 2),
+        (get_hydrogen_chain_hamiltonian_generator(13, basis="STO-3G"), 2 * 1 * 13),
         (_generate_avas_hydrogen_chain_instance(2), 4),
     ],
 )
@@ -38,7 +38,7 @@ def test_hamiltonian_has_correct_number_of_qubits(
 
 def test_active_space_mean_field_object_has_valid_number_of_orbitals_with_avas_():
     number_of_hydrogens = 2
-    instance = generate_hydrogen_chain_instance(
+    instance = get_hydrogen_chain_hamiltonian_generator(
         number_of_hydrogens=number_of_hydrogens,
         avas_atomic_orbitals=["H 1s", "H 2s"],
         avas_minao="sto-3g",
@@ -50,7 +50,7 @@ def test_active_space_mean_field_object_has_valid_number_of_orbitals_with_avas_(
 
 
 def test_get_active_space_meanfield_object_raises_error_for_unsupported_instance():
-    instance = generate_hydrogen_chain_instance(
+    instance = get_hydrogen_chain_hamiltonian_generator(
         2,
         active_indices=[1, 2],
         occupied_indices=[0],
@@ -60,7 +60,7 @@ def test_get_active_space_meanfield_object_raises_error_for_unsupported_instance
 
 
 def test_mean_field_object_has_valid_scf_options():
-    instance = generate_hydrogen_chain_instance(
+    instance = get_hydrogen_chain_hamiltonian_generator(
         2, scf_options={"conv_tol": 1e-08, "level_shift": 0.4}
     )
     mean_field_object = instance.get_active_space_meanfield_object()
@@ -69,7 +69,7 @@ def test_mean_field_object_has_valid_scf_options():
 
 
 def test_mean_field_object_has_valid_default_scf_options():
-    instance = generate_hydrogen_chain_instance(2)
+    instance = get_hydrogen_chain_hamiltonian_generator(2)
     mean_field_object = instance.get_active_space_meanfield_object()
     assert mean_field_object.conv_tol == 1e-09
     assert mean_field_object.level_shift == 0
@@ -135,7 +135,7 @@ def test_get_molecular_data_with_fno_no_frozen_core():
     "method", ["get_active_space_meanfield_object", "get_active_space_hamiltonian"]
 )
 def test_get_active_space_meanfield_object_raises_scf_convergence_error(method):
-    instance = generate_hydrogen_chain_instance(2, scf_options={"max_cycle": 1})
+    instance = get_hydrogen_chain_hamiltonian_generator(2, scf_options={"max_cycle": 1})
     with pytest.raises(SCFConvergenceError):
         getattr(instance, method)()
 
@@ -200,7 +200,7 @@ def test_get_active_space_hamiltonian_logs_to_mlflow_no_specified_callback(
     patch_sdk_uri,
 ):
     # Given
-    new_hydrogen_chain_instance = generate_hydrogen_chain_instance(
+    new_hydrogen_chain_instance = get_hydrogen_chain_hamiltonian_generator(
         2,
         mlflow_experiment_name="pytest",
         orq_workspace_id="testing",
@@ -239,7 +239,7 @@ def test_get_active_space_hamiltonian_logs_to_mlflow_with_specified_callback(
     run_id = patch_local_client.create_run(experiment.experiment_id).info.run_id
     scf_callback = create_mlflow_scf_callback(patch_local_client, run_id)
     scf_options = {"callback": scf_callback}
-    new_hydrogen_chain_instance = generate_hydrogen_chain_instance(
+    new_hydrogen_chain_instance = get_hydrogen_chain_hamiltonian_generator(
         2,
         mlflow_experiment_name="pytest",
         scf_options=scf_options,
@@ -264,7 +264,7 @@ def test_get_active_space_hamiltonian_logs_to_mlflow_with_scf_options_no_callbac
     patch_sdk_uri,
 ):
     # Given
-    new_hydrogen_chain_instance = generate_hydrogen_chain_instance(
+    new_hydrogen_chain_instance = get_hydrogen_chain_hamiltonian_generator(
         2,
         mlflow_experiment_name="pytest",
         orq_workspace_id="testing",
@@ -298,7 +298,7 @@ def test_get_active_space_meanfield_object_logs_to_mlflow_no_specified_callback(
     patch_sdk_uri,
 ):
     # Given
-    new_hydrogen_chain_instance = generate_hydrogen_chain_instance(
+    new_hydrogen_chain_instance = get_hydrogen_chain_hamiltonian_generator(
         2,
         mlflow_experiment_name="pytest",
         orq_workspace_id="testing",
@@ -337,7 +337,7 @@ def test_get_active_space_meanfield_object_logs_to_mlflow_with_specified_callbac
     run_id = patch_local_client.create_run(experiment.experiment_id).info.run_id
     scf_callback = create_mlflow_scf_callback(patch_local_client, run_id)
     scf_options = {"callback": scf_callback}
-    new_hydrogen_chain_instance = generate_hydrogen_chain_instance(
+    new_hydrogen_chain_instance = get_hydrogen_chain_hamiltonian_generator(
         2,
         mlflow_experiment_name="pytest",
         orq_workspace_id="testing",
@@ -362,7 +362,7 @@ def test_get_active_space_meanfield_object_logs_to_mlflow_with_scf_options_no_ca
     patch_sdk_uri,
 ):
     # Given
-    new_hydrogen_chain_instance = generate_hydrogen_chain_instance(
+    new_hydrogen_chain_instance = get_hydrogen_chain_hamiltonian_generator(
         2,
         mlflow_experiment_name="pytest",
         orq_workspace_id="testing",

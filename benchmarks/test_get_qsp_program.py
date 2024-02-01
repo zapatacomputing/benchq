@@ -8,7 +8,7 @@ from benchq.algorithms.time_evolution import _n_block_encodings_for_time_evoluti
 from benchq.problem_embeddings import get_qsp_program
 from benchq.problem_ingestion import get_hamiltonian_from_file, get_vlasov_hamiltonian
 from benchq.problem_ingestion.molecule_hamiltonians import (
-    generate_hydrogen_chain_instance,
+    get_hydrogen_chain_hamiltonian_generator,
 )
 
 SKIP_SLOW = pytest.mark.skipif(
@@ -40,7 +40,7 @@ def jw_test_case():
     failure_tolerance = 1e-3
     n_hydrogens = 2
 
-    operator = generate_hydrogen_chain_instance(
+    operator = get_hydrogen_chain_hamiltonian_generator(
         n_hydrogens
     ).get_active_space_hamiltonian()
 

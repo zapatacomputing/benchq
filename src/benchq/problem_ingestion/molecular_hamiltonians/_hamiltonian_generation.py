@@ -7,7 +7,6 @@ from copy import deepcopy
 from dataclasses import asdict, dataclass
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
-import numpy as np
 import openfermion
 import urllib3
 from mlflow import MlflowClient
@@ -191,9 +190,9 @@ def _get_pyscf_molecule(mol_spec: MoleculeSpecification) -> gto.Mole:
 def _run_pyscf(
     mol_spec: MoleculeSpecification,
     active_space_spec: ActiveSpaceSpecification,
-    scf_options: Optional[Dict[str, Any]]=None,
-    mlflow_experiment_name: Optional[str]=None,
-    orq_workspace_id: Optional[str]=None,
+    scf_options: Optional[Dict[str, Any]] = None,
+    mlflow_experiment_name: Optional[str] = None,
+    orq_workspace_id: Optional[str] = None,
 ) -> Tuple[gto.Mole, scf.hf.SCF]:
     """Run an SCF calculation using PySCF and return the results as a meanfield
     object.
@@ -203,7 +202,7 @@ def _run_pyscf(
 
     Args:
         mol_spec: The molecule specification.
-        active_space_spec: The active space specification. 
+        active_space_spec: The active space specification.
         scf_options: Dictionary with optional parameters to pass to PySCF.
         mlflow_experiment_name: See MolecularHamiltonianGenerator.
         orq_workspace_id: See MolecularHamiltonianGenerator.
@@ -328,9 +327,9 @@ def _run_pyscf(
 def get_active_space_hamiltonian(
     mol_spec: MoleculeSpecification,
     active_space_spec: ActiveSpaceSpecification,
-    scf_options: Optional[Dict[str, Any]]=None,
-    mlflow_experiment_name: Optional[str]=None,
-    orq_workspace_id: Optional[str]=None,
+    scf_options: Optional[Dict[str, Any]] = None,
+    mlflow_experiment_name: Optional[str] = None,
+    orq_workspace_id: Optional[str] = None,
 ) -> openfermion.InteractionOperator:
     """Generate the fermionic Hamiltonian corresponding to the instance's
     active space.
@@ -342,7 +341,7 @@ def get_active_space_hamiltonian(
 
     Args:
         mol_spec: The molecule specification.
-        active_space_spec: The active space specification. 
+        active_space_spec: The active space specification.
         scf_options: Dictionary with optional parameters to pass to PySCF.
         mlflow_experiment_name: See MolecularHamiltonianGenerator.
         orq_workspace_id: See MolecularHamiltonianGenerator.
@@ -379,9 +378,9 @@ def get_active_space_hamiltonian(
 def get_active_space_meanfield_object(
     mol_spec: MoleculeSpecification,
     active_space_spec: ActiveSpaceSpecification,
-    scf_options: Optional[Dict[str, Any]]=None,
-    mlflow_experiment_name: Optional[str]=None,
-    orq_workspace_id: Optional[str]=None,
+    scf_options: Optional[Dict[str, Any]] = None,
+    mlflow_experiment_name: Optional[str] = None,
+    orq_workspace_id: Optional[str] = None,
 ) -> scf.hf.SCF:
     """Run an SCF calculation using PySCF and return the results as a meanfield
     object.
@@ -392,7 +391,7 @@ def get_active_space_meanfield_object(
 
     Args:
     mol_spec: The molecule specification.
-    active_space_spec: The active space specification. 
+    active_space_spec: The active space specification.
     scf_options: Dictionary with optional parameters to pass to PySCF.
     mlflow_experiment_name: See MolecularHamiltonianGenerator.
     orq_workspace_id: See MolecularHamiltonianGenerator.
@@ -428,9 +427,9 @@ def get_active_space_meanfield_object(
 def _get_molecular_data(
     mol_spec: MoleculeSpecification,
     active_space_spec: ActiveSpaceSpecification,
-    scf_options: Optional[Dict[str, Any]]=None,
-    mlflow_experiment_name: Optional[str]=None,
-    orq_workspace_id: Optional[str]=None,
+    scf_options: Optional[Dict[str, Any]] = None,
+    mlflow_experiment_name: Optional[str] = None,
+    orq_workspace_id: Optional[str] = None,
 ) -> PyscfMolecularData:
     """Given a PySCF meanfield object and molecule, return a PyscfMolecularData
     object.
@@ -599,81 +598,3 @@ class MolecularHamiltonianGenerator:
             mlflow_experiment_name=self.mlflow_experiment_name,
             orq_workspace_id=self.orq_workspace_id,
         )
-
-
-def generate_hydrogen_chain_instance(
-    number_of_hydrogens: int,
-    basis: str = "6-31g",
-    bond_distance: float = 1.3,
-    active_indices: Optional[List[int]] = None,
-    occupied_indices: Optional[List[int]] = None,
-    avas_atomic_orbitals: Optional[List[str]] = None,
-    avas_minao: Optional[str] = None,
-    scf_options: Optional[dict] = None,
-    mlflow_experiment_name: Optional[str] = None,
-    orq_workspace_id: Optional[str] = None,
-) -> MolecularHamiltonianGenerator:
-    """Generate a hydrogen chain application instance.
-
-    Args:
-        number_of_hydrogens: The number of hydrogen atoms in the chain.
-        basis: The basis set to use for the calculation.
-        bond_distance: The distance between the hydrogen atoms (Angstrom).
-        active_indices: A list of molecular orbitals to include in the active space.
-        occupied_indices: A list of molecular orbitals not in the active space that
-            should be assumed to be fully occupied.
-        avas_atomic_orbitals: A list of atomic orbitals to use for (AVAS).
-        avas_minao: The minimum active orbital to use for AVAS.
-        scf_options: dictionary with parameters for pySCF calculations
-        mlflow_experiment_name: if supplied, pySCF calculations will be logged to
-            mlflow. See orq_workspace_id also
-        orq_workspace_id: orquestra workspace ID. Required to log mlflow info
-    """
-    return MolecularHamiltonianGenerator(
-        geometry=[("H", (0, 0, i * bond_distance)) for i in range(number_of_hydrogens)],
-        basis=basis,
-        charge=0,
-        multiplicity=number_of_hydrogens % 2 + 1,
-        active_indices=active_indices,
-        occupied_indices=occupied_indices,
-        avas_atomic_orbitals=avas_atomic_orbitals,
-        avas_minao=avas_minao,
-        scf_options=scf_options,
-        mlflow_experiment_name=mlflow_experiment_name,
-        orq_workspace_id=orq_workspace_id,
-    )
-
-
-WATER_MOLECULE = MolecularHamiltonianGenerator(
-    geometry=[
-        ("O", (0.000000, -0.075791844, 0.000000)),
-        ("H", (0.866811829, 0.601435779, 0.000000)),
-        ("H", (-0.866811829, 0.601435779, 0.000000)),
-    ],
-    basis="6-31g",
-    charge=0,
-    multiplicity=1,
-    avas_atomic_orbitals=["H 1s", "O 2s", "O 2p", "O 3s", "O 3p"],
-    avas_minao="STO-3G",
-)
-
-
-def get_cyclic_ozone_geometry() -> List[Tuple[str, Tuple[float, float, float]]]:
-    """Get the geometry of a cyclic ozone molecule."""
-    bond_len = 1.465  # Angstroms
-    bond_angle = np.deg2rad(59.9)
-
-    x = bond_len * np.sin(bond_angle / 2)
-    y = bond_len * np.cos(bond_angle / 2)
-
-    return [("O", (x, -y / 2, 0)), ("O", (-x, -y / 2, 0)), ("O", (0, y / 2, 0))]
-
-
-CYCLIC_OZONE_MOLECULE = MolecularHamiltonianGenerator(
-    geometry=get_cyclic_ozone_geometry(),
-    basis="cc-pvtz",
-    multiplicity=3,
-    charge=0,
-    occupied_indices=range(3),
-    active_indices=range(3, 15),
-)
