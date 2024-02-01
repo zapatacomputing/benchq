@@ -8,6 +8,7 @@ from benchq.problem_ingestion.molecule_hamiltonians.instances import (
     ChemistryApplicationInstance,
     SCFConvergenceError,
     generate_hydrogen_chain_instance,
+    _get_molecular_data,
 )
 
 
@@ -102,26 +103,30 @@ def _water_instance(
 
 def test_get_molecular_data_with_FNO_frozen_core():
     standard_water_instance = _water_instance()
-    n_orbitals_no_fno_no_fzc = (
-        standard_water_instance.active_space_gen._get_molecular_data().n_orbitals
-    )
+    n_orbitals_no_fno_no_fzc = _get_molecular_data(
+        standard_water_instance.mol_spec, standard_water_instance.active_space_spec
+    ).n_orbitals
 
     fno_water_instance = _water_instance(fno_percentage_occupation_number=0.9)
     fno_water_instance.freeze_core = True
 
-    molecular_data = fno_water_instance.active_space_gen._get_molecular_data()
+    molecular_data = _get_molecular_data(
+        fno_water_instance.mol_spec, fno_water_instance.active_space_spec
+    )
 
     assert molecular_data.n_orbitals < n_orbitals_no_fno_no_fzc
 
 
 def test_get_molecular_data_with_fno_no_frozen_core():
     standard_water_instance = _water_instance()
-    n_orbitals_no_fno_no_fzc = (
-        standard_water_instance.active_space_gen._get_molecular_data().n_orbitals
-    )
+    n_orbitals_no_fno_no_fzc = _get_molecular_data(
+        standard_water_instance.mol_spec, standard_water_instance.active_space_spec
+    ).n_orbitals
 
     fno_water_instance = _water_instance(fno_percentage_occupation_number=0.9)
-    molecular_data = fno_water_instance.active_space_gen._get_molecular_data()
+    molecular_data = _get_molecular_data(
+        fno_water_instance.mol_spec, fno_water_instance.active_space_spec
+    )
 
     assert molecular_data.n_orbitals < n_orbitals_no_fno_no_fzc
 

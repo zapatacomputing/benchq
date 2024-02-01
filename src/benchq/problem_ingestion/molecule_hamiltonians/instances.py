@@ -5,7 +5,7 @@ import os
 import warnings
 from copy import deepcopy
 from dataclasses import asdict, dataclass
-from typing import Iterable, List, Optional, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 import numpy as np
 import openfermion
@@ -114,15 +114,6 @@ class ActiveSpaceSpecification:
     fno_n_virtual_natural_orbitals: Optional[int] = None
 
 
-@dataclass(frozen=True)
-class SCFInfo:
-    mol_spec: MoleculeSpecification
-    active_space_spec: ActiveSpaceSpecification
-    scf_options: Optional[dict] = None
-    mlflow_experiment_name: Optional[str] = None
-    orq_workspace_id: Optional[str] = None
-
-
 def _truncate_with_fno(
     active_space_spec,
     molecule: gto.Mole,
@@ -196,7 +187,13 @@ def _get_pyscf_molecule(mol_spec: MoleculeSpecification) -> gto.Mole:
     return pyscf_molecule
 
 
-def _run_pyscf(scf_info: SCFInfo) -> Tuple[gto.Mole, scf.hf.SCF]:
+def _run_pyscf(
+    mol_spec: MoleculeSpecification,
+    active_space_spec: ActiveSpaceSpecification,
+    scf_options: Optional[Dict[str, Any]]=None,
+    mlflow_experiment_name: Optional[str]=None,
+    orq_workspace_id: Optional[str]=None,
+) -> Tuple[gto.Mole, scf.hf.SCF]:
     """Run an SCF calculation using PySCF and return the results as a meanfield
     object.
 
@@ -214,23 +211,21 @@ def _run_pyscf(scf_info: SCFInfo) -> Tuple[gto.Mole, scf.hf.SCF]:
     Raises:
         SCFConvergenceError: If the SCF calculation does not converge.
     """
-    molecule = _get_pyscf_molecule(scf_info.mol_spec)
-    mean_field_object = (scf.RHF if scf_info.mol_spec.multiplicity == 1 else scf.ROHF)(
-        molecule
-    )
+    molecule = _get_pyscf_molecule(mol_spec)
+    mean_field_object = (scf.RHF if mol_spec.multiplicity == 1 else scf.ROHF)(molecule)
     mean_field_object.max_memory = 1e6  # set allowed memory high so tests pass
 
     run_id = None
 
-    if scf_info.mlflow_experiment_name is not None:
+    if mlflow_experiment_name is not None:
         os.environ["MLFLOW_TRACKING_TOKEN"] = sdk.mlflow.get_tracking_token()
         urllib3.disable_warnings()
 
-        flat_mol_dict = _flatten_dict(asdict(scf_info.mol_spec))
-        flat_active_dict = _flatten_dict(asdict(scf_info.active_space_spec))
+        flat_mol_dict = _flatten_dict(asdict(mol_spec))
+        flat_active_dict = _flatten_dict(asdict(active_space_spec))
 
-        if scf_info.scf_options is not None:
-            if "callback" in scf_info.scf_options:
+        if scf_options is not None:
+            if "callback" in scf_options:
                 # we want to log to mlflow, AND we've defined the
                 # callback in scf_options
                 with warnings.catch_warnings():
@@ -238,26 +233,26 @@ def _run_pyscf(scf_info: SCFInfo) -> Tuple[gto.Mole, scf.hf.SCF]:
                         "ignore",
                         message="The 'sym_pos' keyword is deprecated and should be",
                     )
-                    mean_field_object.run(**scf_info.scf_options)
+                    mean_field_object.run(**scf_options)
             else:
                 # we want to log to mlflow, BUT haven't defined the
                 # callback in scf_options
-                if not isinstance(scf_info.orq_workspace_id, str):
+                if not isinstance(orq_workspace_id, str):
                     raise TypeError(
                         "orq_workspace_id is not a str, it is "
-                        + str(type(scf_info.orq_workspace_id))
+                        + str(type(orq_workspace_id))
                         + " Did you remember to pass that in "
                         "to the ChemistryApplicationInstance?"
                     )
                 client, run_id = _create_mlflow_setup(
-                    scf_info.mlflow_experiment_name, scf_info.orq_workspace_id
+                    mlflow_experiment_name, orq_workspace_id
                 )
 
                 for key, val in flat_mol_dict.items():
                     client.log_param(run_id, key, val)
                 for key, val in flat_active_dict.items():
                     client.log_param(run_id, key, val)
-                temp_options = deepcopy(scf_info.scf_options)
+                temp_options = deepcopy(scf_options)
                 temp_options["callback"] = create_mlflow_scf_callback(client, run_id)
                 with warnings.catch_warnings():
                     warnings.filterwarnings(
@@ -267,15 +262,15 @@ def _run_pyscf(scf_info: SCFInfo) -> Tuple[gto.Mole, scf.hf.SCF]:
                     mean_field_object.run(**temp_options)
         else:
             # we want to log to mlflow, but haven't defined scf_options
-            if not isinstance(scf_info.orq_workspace_id, str):
+            if not isinstance(orq_workspace_id, str):
                 raise TypeError(
                     "orq_workspace_id is not a str, it is "
-                    + str(type(scf_info.orq_workspace_id))
+                    + str(type(orq_workspace_id))
                     + " Did you remember to pass that in "
                     "to the ChemistryApplicationInstance?"
                 )
             client, run_id = _create_mlflow_setup(
-                scf_info.mlflow_experiment_name, scf_info.orq_workspace_id
+                mlflow_experiment_name, orq_workspace_id
             )
 
             for key, val in flat_mol_dict.items():
@@ -290,14 +285,14 @@ def _run_pyscf(scf_info: SCFInfo) -> Tuple[gto.Mole, scf.hf.SCF]:
                 )
                 mean_field_object.run(**temp_options)
     else:
-        if scf_info.scf_options is not None:
+        if scf_options is not None:
             # we don't want to run on mlflow, but we've specified scf_options
             with warnings.catch_warnings():
                 warnings.filterwarnings(
                     "ignore",
                     message="The 'sym_pos' keyword is deprecated and should be",
                 )
-                mean_field_object.run(**scf_info.scf_options)
+                mean_field_object.run(**scf_options)
         else:
             # we don't want to run on mlflow, and haven't specified scf_options
             with warnings.catch_warnings():
@@ -310,140 +305,164 @@ def _run_pyscf(scf_info: SCFInfo) -> Tuple[gto.Mole, scf.hf.SCF]:
     if not mean_field_object.converged:
         raise SCFConvergenceError()
 
-    if (
-        scf_info.active_space_spec.avas_atomic_orbitals
-        or scf_info.active_space_spec.avas_minao
-    ):
+    if active_space_spec.avas_atomic_orbitals or active_space_spec.avas_minao:
         molecule, mean_field_object = truncate_with_avas(
             mean_field_object,
-            scf_info.active_space_spec.avas_atomic_orbitals,
-            scf_info.active_space_spec.avas_minao,
+            active_space_spec.avas_atomic_orbitals,
+            active_space_spec.avas_minao,
         )
     if (
-        scf_info.active_space_spec.fno_percentage_occupation_number
-        or scf_info.active_space_spec.fno_threshold
-        or scf_info.active_space_spec.fno_n_virtual_natural_orbitals
+        active_space_spec.fno_percentage_occupation_number
+        or active_space_spec.fno_threshold
+        or active_space_spec.fno_n_virtual_natural_orbitals
     ):
         molecule, mean_field_object = _truncate_with_fno(
-            scf_info.active_space_spec, molecule, mean_field_object
+            active_space_spec, molecule, mean_field_object
         )
     return molecule, mean_field_object
 
 
-class ActiveSpaceGenerator:
-    def __init__(
-        self,
-        scf_info: SCFInfo,
+def get_active_space_hamiltonian(
+    mol_spec: MoleculeSpecification,
+    active_space_spec: ActiveSpaceSpecification,
+    scf_options: Optional[Dict[str, Any]]=None,
+    mlflow_experiment_name: Optional[str]=None,
+    orq_workspace_id: Optional[str]=None,
+) -> openfermion.InteractionOperator:
+    """Generate the fermionic Hamiltonian corresponding to the instance's
+    active space.
+
+    The active space will be reduced with AVAS if the instance has AVAS
+    attributes set, and further reduced to the orbitals specified by
+    occupied_indices and active_indices attributes. Alternatively, the active
+    space will be reduced with FNO if the FNO attribute is set.
+
+    Returns:
+        The fermionic Hamiltonian corresponding to the instance's active space. Note
+            that the active space will account for both AVAS and the
+            occupied_indices/active_indices attributes.
+
+    Raises:
+        SCFConvergenceError: If the SCF calculation does not converge.
+    """
+
+    molecular_data = _get_molecular_data(
+        mol_spec=mol_spec,
+        active_space_spec=active_space_spec,
+        scf_options=scf_options,
+        mlflow_experiment_name=mlflow_experiment_name,
+        orq_workspace_id=orq_workspace_id,
+    )
+    occupied_idx = active_space_spec.occupied_indices
+
+    if active_space_spec.freeze_core:
+        n_frozen_core = mp.MP2(molecular_data._pyscf_data["scf"]).set_frozen().frozen
+        if n_frozen_core > 0:
+            occupied_idx = list(range(n_frozen_core))
+
+    return molecular_data.get_molecular_hamiltonian(
+        occupied_indices=occupied_idx,
+        active_indices=active_space_spec.active_indices,
+    )
+
+
+def get_active_space_meanfield_object(
+    mol_spec: MoleculeSpecification,
+    active_space_spec: ActiveSpaceSpecification,
+    scf_options: Optional[Dict[str, Any]]=None,
+    mlflow_experiment_name: Optional[str]=None,
+    orq_workspace_id: Optional[str]=None,
+) -> scf.hf.SCF:
+    """Run an SCF calculation using PySCF and return the results as a meanfield
+    object.
+
+    Currently, this method does not support the occupied_indices and active_indices
+    attributes, as well as the FNO attributes and will raise an exception if they
+    are set.
+
+    Returns:
+        A meanfield object corresponding to the instance's active space, accounting
+            for AVAS.
+
+    Raises:
+        SCFConvergenceError: If the SCF calculation does not converge.
+    """
+    if (
+        active_space_spec.active_indices
+        or active_space_spec.occupied_indices
+        or active_space_spec.fno_percentage_occupation_number
+        or active_space_spec.fno_threshold
+        or active_space_spec.fno_n_virtual_natural_orbitals
     ):
-        self.scf_info = scf_info
-
-    def get_active_space_hamiltonian(self) -> openfermion.InteractionOperator:
-        """Generate the fermionic Hamiltonian corresponding to the instance's
-        active space.
-
-        The active space will be reduced with AVAS if the instance has AVAS
-        attributes set, and further reduced to the orbitals specified by
-        occupied_indices and active_indices attributes. Alternatively, the active
-        space will be reduced with FNO if the FNO attribute is set.
-
-        Returns:
-            The fermionic Hamiltonian corresponding to the instance's active space. Note
-                that the active space will account for both AVAS and the
-                occupied_indices/active_indices attributes.
-
-        Raises:
-            SCFConvergenceError: If the SCF calculation does not converge.
-        """
-
-        molecular_data = self._get_molecular_data()
-        occupied_idx = self.scf_info.active_space_spec.occupied_indices
-
-        if self.scf_info.active_space_spec.freeze_core:
-            n_frozen_core = (
-                mp.MP2(molecular_data._pyscf_data["scf"]).set_frozen().frozen
-            )
-            if n_frozen_core > 0:
-                occupied_idx = list(range(n_frozen_core))
-
-        return molecular_data.get_molecular_hamiltonian(
-            occupied_indices=occupied_idx,
-            active_indices=self.scf_info.active_space_spec.active_indices,
+        raise ValueError(
+            "Generating the meanfield object for application instances with "
+            "active and occupied indices, as well as with the FNO approach  "
+            " is not currently supported."
         )
+    return _run_pyscf(
+        mol_spec=mol_spec,
+        active_space_spec=active_space_spec,
+        scf_options=scf_options,
+        mlflow_experiment_name=mlflow_experiment_name,
+        orq_workspace_id=orq_workspace_id,
+    )[1]
 
-    def get_active_space_meanfield_object(
-        self,
-    ) -> scf.hf.SCF:
-        """Run an SCF calculation using PySCF and return the results as a meanfield
-        object.
 
-        Currently, this method does not support the occupied_indices and active_indices
-        attributes, as well as the FNO attributes and will raise an exception if they
-        are set.
+def _get_molecular_data(
+    mol_spec: MoleculeSpecification,
+    active_space_spec: ActiveSpaceSpecification,
+    scf_options: Optional[Dict[str, Any]]=None,
+    mlflow_experiment_name: Optional[str]=None,
+    orq_workspace_id: Optional[str]=None,
+) -> PyscfMolecularData:
+    """Given a PySCF meanfield object and molecule, return a PyscfMolecularData
+    object.
 
-        Returns:
-            A meanfield object corresponding to the instance's active space, accounting
-                for AVAS.
+    Returns:
+        A PyscfMolecularData object corresponding to the meanfield object and
+            molecule.
 
-        Raises:
-            SCFConvergenceError: If the SCF calculation does not converge.
-        """
-        if (
-            self.scf_info.active_space_spec.active_indices
-            or self.scf_info.active_space_spec.occupied_indices
-            or self.scf_info.active_space_spec.fno_percentage_occupation_number
-            or self.scf_info.active_space_spec.fno_threshold
-            or self.scf_info.active_space_spec.fno_n_virtual_natural_orbitals
-        ):
-            raise ValueError(
-                "Generating the meanfield object for application instances with "
-                "active and occupied indices, as well as with the FNO approach  "
-                " is not currently supported."
-            )
-        return _run_pyscf(self.scf_info)[1]
+    Raises:
+        SCFConvergenceError: If the SCF calculation does not converge.
+    """
+    molecular_data = MolecularData(
+        geometry=mol_spec.geometry,
+        basis=mol_spec.basis,
+        multiplicity=mol_spec.multiplicity,
+        charge=mol_spec.charge,
+    )
 
-    def _get_molecular_data(self):
-        """Given a PySCF meanfield object and molecule, return a PyscfMolecularData
-        object.
+    molecule, mean_field_object = _run_pyscf(
+        mol_spec=mol_spec,
+        active_space_spec=active_space_spec,
+        scf_options=scf_options,
+        orq_workspace_id=orq_workspace_id,
+        mlflow_experiment_name=mlflow_experiment_name,
+    )
+    molecular_data.n_orbitals = int(molecule.nao)
+    molecular_data.n_qubits = 2 * molecular_data.n_orbitals
+    molecular_data.nuclear_repulsion = float(molecule.energy_nuc())
 
-        Returns:
-            A PyscfMolecularData object corresponding to the meanfield object and
-                molecule.
+    molecular_data.hf_energy = float(mean_field_object.e_tot)
 
-        Raises:
-            SCFConvergenceError: If the SCF calculation does not converge.
-        """
-        molecular_data = MolecularData(
-            geometry=self.scf_info.mol_spec.geometry,
-            basis=self.scf_info.mol_spec.basis,
-            multiplicity=self.scf_info.mol_spec.multiplicity,
-            charge=self.scf_info.mol_spec.charge,
-        )
+    molecular_data._pyscf_data = pyscf_data = {}
+    pyscf_data["mol"] = molecule
+    pyscf_data["scf"] = mean_field_object
 
-        molecule, mean_field_object = _run_pyscf(self.scf_info)
-        molecular_data.n_orbitals = int(molecule.nao)
-        molecular_data.n_qubits = 2 * molecular_data.n_orbitals
-        molecular_data.nuclear_repulsion = float(molecule.energy_nuc())
+    molecular_data.canonical_orbitals = mean_field_object.mo_coeff.astype(float)
+    molecular_data.orbital_energies = mean_field_object.mo_energy.astype(float)
 
-        molecular_data.hf_energy = float(mean_field_object.e_tot)
+    one_body_integrals, two_body_integrals = compute_integrals(
+        mean_field_object._eri, mean_field_object
+    )
+    molecular_data.one_body_integrals = one_body_integrals
+    molecular_data.two_body_integrals = two_body_integrals
+    molecular_data.overlap_integrals = mean_field_object.get_ovlp()
 
-        molecular_data._pyscf_data = pyscf_data = {}
-        pyscf_data["mol"] = molecule
-        pyscf_data["scf"] = mean_field_object
+    pyscf_molecular_data = PyscfMolecularData.__new__(PyscfMolecularData)
+    pyscf_molecular_data.__dict__.update(molecule.__dict__)
 
-        molecular_data.canonical_orbitals = mean_field_object.mo_coeff.astype(float)
-        molecular_data.orbital_energies = mean_field_object.mo_energy.astype(float)
-
-        one_body_integrals, two_body_integrals = compute_integrals(
-            mean_field_object._eri, mean_field_object
-        )
-        molecular_data.one_body_integrals = one_body_integrals
-        molecular_data.two_body_integrals = two_body_integrals
-        molecular_data.overlap_integrals = mean_field_object.get_ovlp()
-
-        pyscf_molecular_data = PyscfMolecularData.__new__(PyscfMolecularData)
-        pyscf_molecular_data.__dict__.update(molecule.__dict__)
-
-        return molecular_data
+    return molecular_data
 
 
 class ChemistryApplicationInstance:
@@ -488,16 +507,17 @@ class ChemistryApplicationInstance:
         fno_percentage_occupation_number: Percentage of total occupation number.
         fno_threshold: Threshold on NO occupation numbers.
         fno_n_virtual_natural_orbitals: Number of virtual NOs to keep.
-        scf_options: dictionary with parameters for pySCF calculations
-        mlflow_experiment_name: if supplied, pySCF calculations will be logged to
-            mlflow. See orq_workspace_id also
-        orq_workspace_id: orquestra workspace ID. Required to log mlflow info
+        scf_options: dictionary with parameters for PySCF calculations
+        mlflow_experiment_name: if supplied, PySCF calculations will be logged to
+            MLflow. See also orq_workspace_id.
+        orq_workspace_id: Orquestra workspace ID. Required to log info to MLflow.
     """
 
     mol_spec: MoleculeSpecification
     active_space_spec: ActiveSpaceSpecification
-    scf_info: SCFInfo
-    active_space_gen: ActiveSpaceGenerator
+    scf_options: Optional[Dict[str, Any]]
+    mlflow_experiment_name: Optional[str]
+    orq_workspace_id: Optional[str]
 
     def __init__(
         self,
@@ -533,23 +553,30 @@ class ChemistryApplicationInstance:
             fno_threshold=fno_threshold,
             fno_n_virtual_natural_orbitals=fno_n_virtual_natural_orbitals,
         )
-        self.scf_info = SCFInfo(
-            mol_spec=self.mol_spec,
-            active_space_spec=self.active_space_spec,
-            scf_options=scf_options,
-            mlflow_experiment_name=mlflow_experiment_name,
-            orq_workspace_id=orq_workspace_id,
-        )
-        self.active_space_gen = ActiveSpaceGenerator(scf_info=self.scf_info)
+        self.scf_options = scf_options
+        self.mlflow_experiment_name = mlflow_experiment_name
+        self.orq_workspace_id = orq_workspace_id
 
     def get_pyscf_molecule(self) -> gto.Mole:
         return _get_pyscf_molecule(self.mol_spec)
 
     def get_active_space_hamiltonian(self) -> openfermion.InteractionOperator:
-        return self.active_space_gen.get_active_space_hamiltonian()
+        return get_active_space_hamiltonian(
+            mol_spec=self.mol_spec,
+            active_space_spec=self.active_space_spec,
+            scf_options=self.scf_options,
+            mlflow_experiment_name=self.mlflow_experiment_name,
+            orq_workspace_id=self.orq_workspace_id,
+        )
 
     def get_active_space_meanfield_object(self) -> scf.hf.SCF:
-        return self.active_space_gen.get_active_space_meanfield_object()
+        return get_active_space_meanfield_object(
+            mol_spec=self.mol_spec,
+            active_space_spec=self.active_space_spec,
+            scf_options=self.scf_options,
+            mlflow_experiment_name=self.mlflow_experiment_name,
+            orq_workspace_id=self.orq_workspace_id,
+        )
 
 
 def generate_hydrogen_chain_instance(
