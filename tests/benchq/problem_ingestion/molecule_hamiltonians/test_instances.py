@@ -5,7 +5,7 @@ import pytest
 
 from benchq.mlflow.data_logging import create_mlflow_scf_callback
 from benchq.problem_ingestion.molecule_hamiltonians.instances import (
-    ChemistryApplicationInstance,
+    MolecularHamiltonianGenerator,
     SCFConvergenceError,
     generate_hydrogen_chain_instance,
     _get_molecular_data,
@@ -30,7 +30,7 @@ def _generate_avas_hydrogen_chain_instance(n_hydrogens):
     ],
 )
 def test_hamiltonian_has_correct_number_of_qubits(
-    instance: ChemistryApplicationInstance, expected_number_of_qubits: int
+    instance: MolecularHamiltonianGenerator, expected_number_of_qubits: int
 ):
     hamiltonian = instance.get_active_space_hamiltonian()
     assert hamiltonian.n_qubits == expected_number_of_qubits
@@ -82,7 +82,7 @@ def _water_instance(
     mlflow_experiment_name=None,
     orq_workspace_id=None,
 ):
-    water_instance = ChemistryApplicationInstance(
+    water_instance = MolecularHamiltonianGenerator(
         geometry=[
             ("O", (0.000000, -0.075791844, 0.000000)),
             ("H", (0.866811829, 0.601435779, 0.000000)),

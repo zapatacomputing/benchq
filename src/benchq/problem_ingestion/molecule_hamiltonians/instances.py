@@ -115,7 +115,7 @@ class ActiveSpaceSpecification:
 
 
 def _truncate_with_fno(
-    active_space_spec,
+    active_space_spec: ActiveSpaceSpecification,
     molecule: gto.Mole,
     mean_field_object: scf.hf.SCF,
 ) -> Tuple[gto.Mole, scf.hf.SCF]:
@@ -123,6 +123,7 @@ def _truncate_with_fno(
     the frozen natural orbital (FNO) method.
 
     Args:
+        active_space_spec: The active space specification.
         molecule: The PySCF molecule object.
         mean_field_object: The meanfield object to be truncated.
 
@@ -201,7 +202,11 @@ def _run_pyscf(
     and active_indices.
 
     Args:
-        log_to_mlflow: if supplied, will log metrics from SCF calculation to mlflow
+        mol_spec: The molecule specification.
+        active_space_spec: The active space specification. 
+        scf_options: Dictionary with optional parameters to pass to PySCF.
+        mlflow_experiment_name: See MolecularHamiltonianGenerator.
+        orq_workspace_id: See MolecularHamiltonianGenerator.
 
     Returns:
         Tuple whose first element is the PySCF molecule object after AVAS or FNO
@@ -242,7 +247,7 @@ def _run_pyscf(
                         "orq_workspace_id is not a str, it is "
                         + str(type(orq_workspace_id))
                         + " Did you remember to pass that in "
-                        "to the ChemistryApplicationInstance?"
+                        "to the MolecularHamiltonianGenerator?"
                     )
                 client, run_id = _create_mlflow_setup(
                     mlflow_experiment_name, orq_workspace_id
@@ -266,8 +271,6 @@ def _run_pyscf(
                 raise TypeError(
                     "orq_workspace_id is not a str, it is "
                     + str(type(orq_workspace_id))
-                    + " Did you remember to pass that in "
-                    "to the ChemistryApplicationInstance?"
                 )
             client, run_id = _create_mlflow_setup(
                 mlflow_experiment_name, orq_workspace_id
@@ -337,6 +340,13 @@ def get_active_space_hamiltonian(
     occupied_indices and active_indices attributes. Alternatively, the active
     space will be reduced with FNO if the FNO attribute is set.
 
+    Args:
+        mol_spec: The molecule specification.
+        active_space_spec: The active space specification. 
+        scf_options: Dictionary with optional parameters to pass to PySCF.
+        mlflow_experiment_name: See MolecularHamiltonianGenerator.
+        orq_workspace_id: See MolecularHamiltonianGenerator.
+
     Returns:
         The fermionic Hamiltonian corresponding to the instance's active space. Note
             that the active space will account for both AVAS and the
@@ -379,6 +389,13 @@ def get_active_space_meanfield_object(
     Currently, this method does not support the occupied_indices and active_indices
     attributes, as well as the FNO attributes and will raise an exception if they
     are set.
+
+    Args:
+    mol_spec: The molecule specification.
+    active_space_spec: The active space specification. 
+    scf_options: Dictionary with optional parameters to pass to PySCF.
+    mlflow_experiment_name: See MolecularHamiltonianGenerator.
+    orq_workspace_id: See MolecularHamiltonianGenerator.
 
     Returns:
         A meanfield object corresponding to the instance's active space, accounting
@@ -465,12 +482,11 @@ def _get_molecular_data(
     return molecular_data
 
 
-class ChemistryApplicationInstance:
-    """Class for representing chemistry application instances.
+class MolecularHamiltonianGenerator:
+    """Class for generating molecular Hamiltonians.
 
-    A chemistry application instance is a specification of how to generate a fermionic
-    Hamiltonian, including information such as the molecular geometry and choice of
-    active space. Note that the active space can be specified in one of the following
+    A class for generating a fermionic Hamiltonian for a given molecular geometry and
+    choice of active space. Note that the active space can be specified in one of the following
     ways:
 
     1. the use of Atomic Valence Active Space (AVAS),
@@ -507,7 +523,7 @@ class ChemistryApplicationInstance:
         fno_percentage_occupation_number: Percentage of total occupation number.
         fno_threshold: Threshold on NO occupation numbers.
         fno_n_virtual_natural_orbitals: Number of virtual NOs to keep.
-        scf_options: dictionary with parameters for PySCF calculations
+        scf_options: dictionary with parameters for PySCF calculations.
         mlflow_experiment_name: if supplied, PySCF calculations will be logged to
             MLflow. See also orq_workspace_id.
         orq_workspace_id: Orquestra workspace ID. Required to log info to MLflow.
@@ -590,7 +606,7 @@ def generate_hydrogen_chain_instance(
     scf_options: Optional[dict] = None,
     mlflow_experiment_name: Optional[str] = None,
     orq_workspace_id: Optional[str] = None,
-) -> ChemistryApplicationInstance:
+) -> MolecularHamiltonianGenerator:
     """Generate a hydrogen chain application instance.
 
     Args:
@@ -607,7 +623,7 @@ def generate_hydrogen_chain_instance(
             mlflow. See orq_workspace_id also
         orq_workspace_id: orquestra workspace ID. Required to log mlflow info
     """
-    return ChemistryApplicationInstance(
+    return MolecularHamiltonianGenerator(
         geometry=[("H", (0, 0, i * bond_distance)) for i in range(number_of_hydrogens)],
         basis=basis,
         charge=0,
@@ -622,7 +638,7 @@ def generate_hydrogen_chain_instance(
     )
 
 
-WATER_MOLECULE = ChemistryApplicationInstance(
+WATER_MOLECULE = MolecularHamiltonianGenerator(
     geometry=[
         ("O", (0.000000, -0.075791844, 0.000000)),
         ("H", (0.866811829, 0.601435779, 0.000000)),
@@ -647,7 +663,7 @@ def get_cyclic_ozone_geometry() -> List[Tuple[str, Tuple[float, float, float]]]:
     return [("O", (x, -y / 2, 0)), ("O", (-x, -y / 2, 0)), ("O", (0, y / 2, 0))]
 
 
-CYCLIC_OZONE_MOLECULE = ChemistryApplicationInstance(
+CYCLIC_OZONE_MOLECULE = MolecularHamiltonianGenerator(
     geometry=get_cyclic_ozone_geometry(),
     basis="cc-pvtz",
     multiplicity=3,
