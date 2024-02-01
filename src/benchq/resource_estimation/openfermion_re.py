@@ -246,6 +246,7 @@ def get_physical_cost(
     routing_overhead_proportion=0.5,
     hardware_failure_tolerance=1e-3,
     decoder_model=None,
+    scalability=1000000,
 ) -> OpenFermionResourceInfo:
     """Get the estimated resources for single factorized QPE as described in PRX Quantum
     2, 030305.
@@ -265,6 +266,7 @@ def get_physical_cost(
         surface_code_cycle_time=architecture_model.surface_code_cycle_time_in_seconds,
         routing_overhead_proportion=routing_overhead_proportion,
         hardware_failure_tolerance=hardware_failure_tolerance,
+        scalability=scalability
     )
 
     decoder_info = get_decoder_info(

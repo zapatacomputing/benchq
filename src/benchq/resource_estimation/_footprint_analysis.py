@@ -15,26 +15,35 @@
 
 import dataclasses
 import math
-from typing import Iterator, Tuple
+from typing import Tuple, Iterator
+import warnings
+
+l0_max = 151
+l1_max = 101
+l2_max = 101
 
 
-@dataclasses.dataclass(frozen=True, unsafe_hash=True)
+@dataclasses.dataclass(frozen=False, unsafe_hash=True)
 class MagicStateFactory:
     details: str
     physical_qubit_footprint: int
     distillation_time_in_cycles: int
     failure_rate: float
+    l1_distance: int
+    l2_distance: int
 
 
-@dataclasses.dataclass(frozen=True, unsafe_hash=True)
+@dataclasses.dataclass(frozen=False, unsafe_hash=True)
 class CostEstimate:
     physical_qubit_count: int
     duration: float
+    distillation_failure_probability: float
+    data_failure: float
     algorithm_failure_probability: float
     widget_name: str
 
 
-@dataclasses.dataclass(frozen=True, unsafe_hash=True)
+@dataclasses.dataclass(frozen=False, unsafe_hash=True)
 class AlgorithmParameters:
     physical_error_rate: float
     surface_code_cycle_time: float
@@ -47,7 +56,7 @@ class AlgorithmParameters:
     t_count: int = 0
     proportion_of_bounding_box: float = 1
 
-    def estimate_cost(self) -> CostEstimate:
+    def estimate_cost(self, scalability) -> CostEstimate:
         """Determine algorithm single-shot layout and costs for given params.
 
         ASSUMES:
@@ -73,6 +82,23 @@ class AlgorithmParameters:
             self.factory_count * self.widget.physical_qubit_footprint
         )
 
+        physical_qubit_count = (
+            n_physical_qubits_used_for_clifford_circuit
+            + n_physical_qubits_used_for_distillation
+        )
+
+        scaled_physical_error_rate = self.physical_error_rate * (
+            physical_qubit_count ** (1 / scalability)
+        )
+
+        # recalculate widget failure rate now that we know how many qubits are used
+        # for the clifford part of the circuit.
+        self.widget.failure_rate = _compute_autoccz_distillation_error(
+            self.widget.l1_distance,
+            self.widget.l2_distance,
+            scaled_physical_error_rate,
+        )
+
         n_total_distillations = self.toffoli_count + math.ceil(self.t_count / 2)
 
         total_distillation_cycles = int(
@@ -87,25 +113,31 @@ class AlgorithmParameters:
             * n_physical_qubits_used_for_clifford_circuit
             * total_distillation_cycles
         )
+
         data_failure = (
             _logical_cell_error_rate(
                 self.logical_data_qubit_distance,
-                physical_qubit_error_rate=self.physical_error_rate,
+                scaled_physical_error_rate,
             )
             * V_computation
         )
 
+        # print("data failure", data_failure)
+        # print("distillation failure", distillation_failure)
+
         return CostEstimate(
-            physical_qubit_count=n_physical_qubits_used_for_clifford_circuit
-            + n_physical_qubits_used_for_distillation,
+            physical_qubit_count=physical_qubit_count,
             duration=total_distillation_cycles * self.surface_code_cycle_time,
-            algorithm_failure_probability=min(1.0, data_failure + distillation_failure),
+            algorithm_failure_probability=data_failure + distillation_failure,
+            distillation_failure_probability=distillation_failure,
+            data_failure=data_failure,
             widget_name=self.widget.details,
         )
 
 
 def _logical_cell_error_rate(
-    code_distance: int, physical_qubit_error_rate: float
+    code_distance: int,
+    physical_qubit_error_rate: float,
 ) -> float:
     return 0.1 * (100 * physical_qubit_error_rate) ** ((code_distance + 1) / 2)
 
@@ -115,29 +147,6 @@ def _get_total_logical_failure_rate(
 ) -> float:
     return logical_st_volume * _logical_cell_error_rate(
         code_distance, physical_qubit_error_rate
-    )
-
-
-def iter_known_factories(
-    physical_error_rate: float, num_toffoli: int, num_t: int
-) -> Iterator[MagicStateFactory]:
-    if num_t == 0 and num_toffoli == 0:
-        raise ValueError("Circuit must contain T gates and/or Toffoli gates.")
-
-    if physical_error_rate == 0.001:
-        yield _two_level_t_state_factory_1p1000(physical_error_rate=physical_error_rate)
-    yield from iter_auto_ccz_factories(physical_error_rate)
-
-
-def _two_level_t_state_factory_1p1000(physical_error_rate: float) -> MagicStateFactory:
-    assert physical_error_rate == 0.001
-    return MagicStateFactory(
-        details="https://arxiv.org/abs/1808.06709",
-        failure_rate=4 * 9 * 1e-17,
-        physical_qubit_footprint=(12 * 8)
-        * (4)
-        * _physical_qubits_per_logical_qubit(31),
-        distillation_time_in_cycles=6 * 31,
     )
 
 
@@ -166,30 +175,10 @@ def _autoccz_or_t_factory_dimensions(
     return width, height, depth
 
 
-def iter_auto_ccz_factories(physical_error_rate: float) -> Iterator[MagicStateFactory]:
-    for l1_distance in range(5, 25, 2):
-        for l2_distance in range(l1_distance + 2, 41, 2):
-            w, h, d = _autoccz_or_t_factory_dimensions(
-                l1_distance=l1_distance, l2_distance=l2_distance
-            )
-            f_ccz = _compute_autoccz_distillation_error(
-                l1_distance=l1_distance,
-                l2_distance=l2_distance,
-                physical_error_rate=physical_error_rate,
-            )
-
-            yield MagicStateFactory(
-                details=f"AutoCCZ({physical_error_rate}, {l1_distance}, {l2_distance})",
-                physical_qubit_footprint=w
-                * h
-                * _physical_qubits_per_logical_qubit(l2_distance),
-                distillation_time_in_cycles=int(d * l2_distance),
-                failure_rate=float(f_ccz),
-            )
-
-
 def _compute_autoccz_distillation_error(
-    l1_distance: int, l2_distance: int, physical_error_rate: float
+    l1_distance: int,
+    l2_distance: int,
+    physical_error_rate: float,
 ) -> float:
     # Level 0
     L0_distance = l1_distance // 2
@@ -226,6 +215,63 @@ def _physical_qubits_per_logical_qubit(code_distance: int) -> int:
     return (code_distance + 1) ** 2 * 2
 
 
+def _create_auto_ccz_factory(
+    l1_distance: int, l2_distance: int, physical_error_rate: float
+):
+    w, h, d = _autoccz_or_t_factory_dimensions(
+        l1_distance=l1_distance, l2_distance=l2_distance
+    )
+    f_ccz = _compute_autoccz_distillation_error(
+        l1_distance=l1_distance,
+        l2_distance=l2_distance,
+        physical_error_rate=physical_error_rate,
+    )
+    name = f"AutoCCZ({physical_error_rate}, {l1_distance}, {l2_distance})"
+    factory = MagicStateFactory(
+        details=name,
+        physical_qubit_footprint=_physical_qubits_per_logical_qubit(l2_distance)
+        * w
+        * h,
+        distillation_time_in_cycles=int(d * l2_distance),
+        failure_rate=float(f_ccz),
+        l1_distance=l1_distance,
+        l2_distance=l2_distance,
+    )
+    return factory
+
+
+def iter_auto_ccz_factories(physical_error_rate: float) -> Iterator[MagicStateFactory]:
+    for l1_distance in range(5, l1_max, 2):
+        for l2_distance in range(l1_distance + 2, l2_max, 2):
+            w, h, d = _autoccz_or_t_factory_dimensions(
+                l1_distance=l1_distance, l2_distance=l2_distance
+            )
+            f_ccz = _compute_autoccz_distillation_error(
+                l1_distance=l1_distance,
+                l2_distance=l2_distance,
+                physical_error_rate=physical_error_rate,
+            )
+
+            yield MagicStateFactory(
+                details=f"AutoCCZ({physical_error_rate}, {l1_distance}, {l2_distance})",
+                physical_qubit_footprint=w
+                * h
+                * _physical_qubits_per_logical_qubit(l2_distance),
+                distillation_time_in_cycles=int(d * l2_distance),
+                failure_rate=float(f_ccz),
+                l1_distance=l1_distance,
+                l2_distance=l2_distance
+            )
+
+
+def iter_known_factories(
+    physical_error_rate: float, num_toffoli: int, num_t: int
+) -> Iterator[MagicStateFactory]:
+    if num_t == 0 and num_toffoli == 0:
+        raise ValueError("Circuit must contain T gates and/or Toffoli gates.")
+    yield from iter_auto_ccz_factories(physical_error_rate)
+
+
 def cost_estimator(
     num_logical_qubits,
     num_toffoli=0,
@@ -235,18 +281,20 @@ def cost_estimator(
     portion_of_bounding_box=1.0,
     routing_overhead_proportion=0.5,
     hardware_failure_tolerance=1e-3,
+    scalability=1000,
 ):
     """
     Produce best cost in terms of physical qubits and real run time based on
     number of toffoli, number of logical qubits, and physical error rate.
+    Searches all viable distances an only uses AutoCCZ distillation widgets.
     """
-
     best_cost = None
     best_params = None
     for factory in iter_known_factories(
         physical_error_rate=physical_error_rate, num_toffoli=num_toffoli, num_t=num_t
     ):
-        for logical_data_qubit_distance in range(7, 101, 2):
+        for logical_data_qubit_distance in range(7, l0_max, 2):
+            # perform cost estimate
             params = AlgorithmParameters(
                 physical_error_rate=physical_error_rate,
                 surface_code_cycle_time=surface_code_cycle_time,
@@ -259,7 +307,9 @@ def cost_estimator(
                 routing_overhead_proportion=routing_overhead_proportion,
                 proportion_of_bounding_box=portion_of_bounding_box,
             )
-            cost = params.estimate_cost()
+            cost = params.estimate_cost(scalability)
+
+            # determine if this is the best cost so far
             if cost.algorithm_failure_probability <= hardware_failure_tolerance:
                 # optimize for smallest spacetime volume
                 if (
@@ -270,13 +320,12 @@ def cost_estimator(
                     best_cost = cost
                     best_params = params
 
-    print("   ")
-    print(best_cost)
-    print(best_params)
     if best_cost is None:
-        raise RuntimeError(
+        warnings.warn(
             "Failed to find parameters that yield an acceptable failure probability. "
             "You must decrease the number of T gates and/or Toffolis in your circuit"
         )
+        cost.physical_qubit_count = -1
+        return cost, params
 
     return best_cost, best_params

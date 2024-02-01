@@ -57,8 +57,15 @@ class SCModel:
     surface_code_cycle_time_in_seconds: float = 1e-7
 
 
+@dataclass(frozen=True)
+class MajoranaModel:
+    physical_qubit_error_rate: float = 1e-4
+    surface_code_cycle_time_in_seconds: float = 1e-4
+
+
 BASIC_ION_TRAP_ARCHITECTURE_MODEL = IONTrapModel()
 BASIC_SC_ARCHITECTURE_MODEL = SCModel()
+BASIC_MAJORANA_ARCHITECTURE_MODEL = MajoranaModel()
 
 
 class DetailedIonTrapModel:
