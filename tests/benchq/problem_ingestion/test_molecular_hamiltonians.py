@@ -141,13 +141,14 @@ def test_get_active_space_meanfield_object_raises_scf_convergence_error(method):
     with pytest.raises(SCFConvergenceError):
         getattr(instance, method)()
 
+
 SRC = "benchq.problem_ingestion.molecular_hamiltonians._hamiltonian_generation"
+
 
 @pytest.fixture
 def patch_sdk_token():
     with patch(
-        SRC,
-        "sdk.mlflow.get_tracking_token",
+        SRC + ".sdk.mlflow.get_tracking_token",
         autospec=True,
         return_value="fake",
     ) as patched_token:
@@ -157,8 +158,7 @@ def patch_sdk_token():
 @pytest.fixture
 def patch_sdk_uri():
     with patch(
-        SRC,
-        "sdk.mlflow.get_tracking_uri",
+        SRC + ".sdk.mlflow.get_tracking_uri",
         autospec=True,
         return_value=None,
     ) as patched_uri:
@@ -168,8 +168,7 @@ def patch_sdk_uri():
 @pytest.fixture
 def patch_log_metric():
     with patch(
-        SRC,
-        "MlflowClient.log_metric",
+        SRC + ".MlflowClient.log_metric",
         autospec=True,
     ) as patched_log_metric:
         yield patched_log_metric
@@ -178,8 +177,7 @@ def patch_log_metric():
 @pytest.fixture
 def patch_log_param():
     with patch(
-        SRC,
-        "MlflowClient.log_param",
+        SRC + ".MlflowClient.log_param",
         autospec=True,
     ) as patched_log_param:
         yield patched_log_param
