@@ -77,13 +77,6 @@ def create_graphs_for_subcircuits(
     project_id="migration",
 ) -> Callable[[QuantumProgram], GraphPartition]:
     def _transformer(program: QuantumProgram) -> GraphPartition:
-        @sdk.workflow(resources=sdk.Resources(cpu="3", memory="16Gi"))
-        def graph_wf(program: QuantumProgram) -> GraphPartition:
-            graphs_list = [
-                distributed_graph_creation(circuit) for circuit in program.subroutines
-            ]
-            return make_graph_partition(program, *graphs_list)
-
         # @sdk.task(
         #     dependency_imports=[sdk.PythonImports("benchq[dev]")],
         #     custom_image="hub.stage.nexus.orquestra.io/zapatacomputing/benchq-ce:3eec2c8-sdk0.60.0",
@@ -109,6 +102,13 @@ def create_graphs_for_subcircuits(
         )
         def make_graph_partition(program: QuantumProgram, *graphs_list):
             return GraphPartition(program, list(graphs_list))
+
+        @sdk.workflow(resources=sdk.Resources(cpu="3", memory="16Gi"))
+        def graph_wf(program: QuantumProgram) -> GraphPartition:
+            graphs_list = [
+                distributed_graph_creation(circuit) for circuit in program.subroutines
+            ]
+            return make_graph_partition(program, *graphs_list)
 
         if destination == "local":
             wf_run = graph_wf(program).run(
