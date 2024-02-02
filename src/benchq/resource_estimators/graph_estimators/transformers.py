@@ -14,6 +14,7 @@ from ...problem_embeddings.quantum_program import (
     QuantumProgram,
     get_program_from_circuit,
 )
+from orquestra import sdk
 
 
 def _distribute_transpilation_failure_tolerance(
@@ -72,10 +73,33 @@ def create_graphs_for_subcircuits(
     graph_production_method=get_algorithmic_graph_from_ruby_slippers,
 ) -> Callable[[QuantumProgram], GraphPartition]:
     def _transformer(program: QuantumProgram) -> GraphPartition:
-        graphs_list = [
-            graph_production_method(circuit) for circuit in program.subroutines
-        ]
-        return GraphPartition(program, graphs_list)
+        @sdk.workflow(resources=sdk.Resources(cpu="3", memory="16Gi"))
+        def graph_wf(program: QuantumProgram) -> GraphPartition:
+            graphs_list = [
+                distributed_graph_creation(circuit) for circuit in program.subroutines
+            ]
+            return make_graph_partition(program, *graphs_list)
+
+        @sdk.task(
+            dependency_imports=[sdk.PythonImports("benchq[dev]")],
+            custom_image="hub.stage.nexus.orquestra.io/zapatacomputing/benchq-ce:3eec2c8-sdk0.60.0",
+        )
+        def distributed_graph_creation(circuit):
+            return graph_production_method(circuit)
+
+        @sdk.task(dependency_imports=[sdk.PythonImports("benchq[dev]")])
+        def make_graph_partition(program: QuantumProgram, *graphs_list):
+            return GraphPartition(program, list(graphs_list))
+
+        wf_run = graph_wf(program).run(
+            "prod-d",
+            workspace_id="darpa-phase-2-resource-estimates-c2545f",
+            project_id="migration",
+            # "ray", # run locally
+        )
+        results = wf_run.get_results(wait=True)
+
+        return results
 
     return _transformer
 
@@ -84,7 +108,7 @@ def create_big_graph_from_subcircuits(
     graph_production_method=get_algorithmic_graph_from_ruby_slippers,
 ) -> Callable[[QuantumProgram], GraphPartition]:
     def _transformer(program: QuantumProgram) -> GraphPartition:
-        print("Creating big graph from subcircuits...")
+        print("Beginning compilation...")
         big_circuit = program.full_circuit
         new_program = get_program_from_circuit(big_circuit)
         graph = graph_production_method(big_circuit)
