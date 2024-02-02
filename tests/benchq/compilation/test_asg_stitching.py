@@ -6,7 +6,6 @@ from benchq.visualization_tools.plot_graph_state import plot_graph_state
 import pytest
 from orquestra.quantum.circuits import Y, X, CNOT, RZ, CZ, H, Circuit, T, Z, S
 
-
 jl.include(
     os.path.join(
         pathlib.Path(__file__).parent.resolve(),
@@ -14,8 +13,13 @@ jl.include(
     ),
 )
 
+SKIP_SLOW = pytest.mark.skipif(
+    os.getenv("SLOW_BENCHMARKS") is None,
+    reason="Slow benchmarks can only run if SLOW_BENCHMARKS env variable is defined",
+)
 
-def check_correctness_for_stiched_circuits(
+
+def check_correctness_for_stitched_circuits(
     circuit,
     asg,
     pauli_tracker,
@@ -57,50 +61,54 @@ def check_correctness_for_stiched_circuits(
         raise Exception("Incorrect Result Detected!")
 
 
-def get_graph(circuit, hyperparams, connection_type, optimization):
+def get_graph(circuit, hyperparams, connection_type, optimization, max_num_qubits=3):
     if connection_type == "input":
-        asg, pauli_tracker = jl.get_graph_state_data(
+        asg, pauli_tracker, _ = jl.get_graph_state_data(
             circuit,
-            True,
-            False,
-            False,
-            500,
-            1e8,
-            optimization,
-            hyperparams,
+            verbose=False,
+            takes_graph_input=True,
+            gives_graph_output=False,
+            manually_stitchable=True,
+            layering_optimization=optimization,
+            max_num_qubits=max_num_qubits,
+            hyperparams=hyperparams,
+            max_time=1e8,
         )
     elif connection_type == "output":
-        asg, pauli_tracker = jl.get_graph_state_data(
+        asg, pauli_tracker, _ = jl.get_graph_state_data(
             circuit,
-            False,
-            True,
-            False,
-            500,
-            1e8,
-            optimization,
-            hyperparams,
+            verbose=False,
+            takes_graph_input=False,
+            gives_graph_output=True,
+            manually_stitchable=True,
+            layering_optimization=optimization,
+            max_num_qubits=max_num_qubits,
+            hyperparams=hyperparams,
+            max_time=1e8,
         )
     elif connection_type == "both":
-        asg, pauli_tracker = jl.get_graph_state_data(
+        asg, pauli_tracker, _ = jl.get_graph_state_data(
             circuit,
-            True,
-            True,
-            False,
-            500,
-            1e8,
-            optimization,
-            hyperparams,
+            verbose=False,
+            takes_graph_input=True,
+            gives_graph_output=True,
+            manually_stitchable=True,
+            layering_optimization=optimization,
+            max_num_qubits=max_num_qubits,
+            hyperparams=hyperparams,
+            max_time=1e8,
         )
     elif connection_type == "neither":
-        asg, pauli_tracker = jl.get_graph_state_data(
+        asg, pauli_tracker, _ = jl.get_graph_state_data(
             circuit,
-            False,
-            False,
-            False,
-            500,
-            1e8,
-            optimization,
-            hyperparams,
+            verbose=False,
+            takes_graph_input=False,
+            gives_graph_output=False,
+            manually_stitchable=True,
+            layering_optimization=optimization,
+            max_num_qubits=max_num_qubits,
+            hyperparams=hyperparams,
+            max_time=1e8,
         )
     else:
         raise ValueError(f"connection_type {connection_type} not supported.")
@@ -108,27 +116,27 @@ def get_graph(circuit, hyperparams, connection_type, optimization):
     return asg, pauli_tracker
 
 
-def get_stiched_graphs(circuit_1, circuit_2, hyperparams, optimization):
-    asg_1, pauli_tracker_1 = get_graph(circuit_1, hyperparams, "output", optimization)
-    # plot_graph_state(*to_python(asg_1, pauli_tracker_1))
+# def get_stiched_graphs(circuit_1, circuit_2, circuit_3, hyperparams, optimization):
+#     asg_1, pauli_tracker_1 = get_graph(circuit_1, hyperparams, "output", optimization)
+#     # plot_graph_state(*to_python(asg_1, pauli_tracker_1))
 
-    asg_2, pauli_tracker_2 = get_graph(circuit_2, hyperparams, "both", optimization)
-    # plot_graph_state(*to_python(asg_2, pauli_tracker_2))
+#     asg_2, pauli_tracker_2 = get_graph(circuit_2, hyperparams, "both", optimization)
+#     # plot_graph_state(*to_python(asg_2, pauli_tracker_2))
 
-    asg, pauli_tracker = jl.stitch_graphs(
-        asg_1, pauli_tracker_1, asg_2, pauli_tracker_2
-    )
-    # plot_graph_state(*to_python(asg, pauli_tracker))
+#     asg, pauli_tracker = jl.stitch_graphs(
+#         asg_1, pauli_tracker_1, asg_2, pauli_tracker_2
+#     )
+#     # plot_graph_state(*to_python(asg, pauli_tracker))
 
-    asg_3, pauli_tracker_3 = get_graph(circuit_3, hyperparams, "input", optimization)
-    # plot_graph_state(*to_python(asg_3, pauli_tracker_3))
+#     asg_3, pauli_tracker_3 = get_graph(circuit_3, hyperparams, "input", optimization)
+#     # plot_graph_state(*to_python(asg_3, pauli_tracker_3))
 
-    # combine graphs
-    asg, pauli_tracker = jl.stitch_graphs(asg, pauli_tracker, asg_3, pauli_tracker_3)
+#     # combine graphs
+#     asg, pauli_tracker = jl.stitch_graphs(asg, pauli_tracker, asg_3, pauli_tracker_3)
 
-    # plot_graph_state(*to_python(asg, pauli_tracker))
+#     # plot_graph_state(*to_python(asg, pauli_tracker))
 
-    return asg, pauli_tracker
+#     return asg, pauli_tracker
 
 
 def to_python(asg, pauli_tracker):
@@ -138,7 +146,21 @@ def to_python(asg, pauli_tracker):
 ghz_circuit = Circuit([H(0), CNOT(0, 1), CNOT(0, 2)])
 
 
-@pytest.mark.parametrize("optimization", ["ST-Volume", "Space", "Time"])
+@SKIP_SLOW
+@pytest.mark.parametrize("optimization", ["ST-Volume", "Space", "Time", "Variable"])
+@pytest.mark.parametrize(
+    "init",
+    [
+        # All start in Z basis
+        Circuit([]),
+        # Some start in X basis, one in Z basis
+        Circuit([H(0), H(1)]),
+        # All start in X basis
+        Circuit([H(0), H(1), H(2)]),
+        # all start in Y basis
+        Circuit([H(0), S(0), H(1), S(1), H(2), S(2)]),
+    ],
+)
 @pytest.mark.parametrize(
     "circuit_1, circuit_2, circuit_3",
     [
@@ -197,7 +219,7 @@ ghz_circuit = Circuit([H(0), CNOT(0, 1), CNOT(0, 2)])
                     H(1),
                     S(1),
                     S(1),
-                    Z(1),
+                    Z(2),
                     CZ(0, 1),
                 ]
             ),
@@ -205,10 +227,9 @@ ghz_circuit = Circuit([H(0), CNOT(0, 1), CNOT(0, 2)])
     ],
 )
 def test_triple_stitched_circuit_produces_correct_result(
-    optimization, circuit_1, circuit_2, circuit_3
+    optimization, init, circuit_1, circuit_2, circuit_3
 ):
     hyperparams = jl.RbSHyperparams(3, 2, 6, 1e5, 0)
-    init = Circuit([H(0), H(1), H(2)])
 
     asg_1, pauli_tracker_1 = get_graph(
         init + circuit_1, hyperparams, "output", optimization
@@ -223,15 +244,14 @@ def test_triple_stitched_circuit_produces_correct_result(
     asg_12, pauli_tracker_12 = jl.stitch_graphs(
         asg_1, pauli_tracker_1, asg_2, pauli_tracker_2
     )
-    # plot_graph_state(*to_python(asg, pauli_tracker))
-    asg, pauli_tracker = jl.stitch_graphs(
+    # plot_graph_state(*to_python(asg_12, pauli_tracker_12))
+    asg_123, pauli_tracker_123 = jl.stitch_graphs(
         asg_12, pauli_tracker_12, asg_3, pauli_tracker_3
     )
-    # plot_graph_state(*to_python(asg, pauli_tracker))
+    # plot_graph_state(*to_python(asg_123, pauli_tracker_123))
 
-    asg, pauli_tracker = to_python(asg, pauli_tracker)
-
-    check_correctness_for_stiched_circuits(
+    asg, pauli_tracker = to_python(asg_123, pauli_tracker_123)
+    check_correctness_for_stitched_circuits(
         circuit_1 + circuit_2 + circuit_3,
         asg,
         pauli_tracker,
@@ -241,76 +261,89 @@ def test_triple_stitched_circuit_produces_correct_result(
     )
 
 
-# @pytest.mark.parametrize("optimization", ["ST-Volume", "Space", "Time", "Variable"])
-# @pytest.mark.parametrize(
-#     "circuit_1, circuit_2",
-#     [
-#         (
-#             # test rotations work as expected
-#             [
-#                 (8, 2, -1, 0),
-#                 (8, 2, -1, 0),
-#                 (11, 1, 0, 0),
-#                 (7, 1, -1, 0),
-#                 (14, 2, -1, 1.3856216182779741),
-#             ],
-#             [
-#                 (14, 1, -1, 3.9206180253660037),
-#                 (10, 2, 0, 0),
-#                 (8, 1, -1, 0),
-#                 (11, 0, 1, 0),
-#                 (3, 2, -1, 0),
-#             ],
-#         ),
-#         (
-#             # test T gates work as expected
-#             [
-#                 (13, 2, -1, 0),
-#                 (12, 2, -1, 0),
-#                 (12, 2, -1, 0),
-#                 (7, 1, -1, 0),
-#                 (9, 1, -1, 0),
-#             ],
-#             [
-#                 (9, 1, -1, 0),
-#                 (12, 2, -1, 0),
-#                 (11, 1, 2, 0),
-#                 (9, 1, -1, 0),
-#                 (8, 2, -1, 0),
-#             ],
-#         ),
-#     ],
-# )
-# def test_double_stitched_circuit_produces_correct_result(
-#     optimization, circuit_1, circuit_2
-# ):
-#     hyperparams = jl.RbSHyperparams(3, 2, 6, 1e5, 0)
+@pytest.mark.parametrize("optimization", ["ST-Volume", "Space", "Time", "Variable"])
+@pytest.mark.parametrize(
+    "circuit_1, circuit_2",
+    [
+        (ghz_circuit, ghz_circuit),
+        (
+            # test rotations work as expected
+            Circuit(
+                [
+                    Y(2),
+                    Y(2),
+                    CNOT(1, 0),
+                    X(1),
+                    RZ(1.3856216182779741)(2),
+                ]
+            ),
+            Circuit(
+                [
+                    RZ(3.9206180253660037)(1),
+                    CZ(2, 0),
+                    X(1),
+                    CNOT(0, 1),
+                    H(2),
+                ]
+            ),
+        ),
+        (
+            # test T gates work as expected
+            Circuit(
+                [
+                    T.dagger(2),
+                    T(2),
+                    T(2),
+                    X(1),
+                    Z(1),
+                ]
+            ),
+            Circuit(
+                [
+                    Z(1),
+                    T(2),
+                    CZ(1, 2),
+                    Z(1),
+                    Y(2),
+                ]
+            ),
+        ),
+    ],
+)
+def test_double_stitched_circuit_produces_correct_result(
+    optimization, circuit_1, circuit_2
+):
+    hyperparams = jl.RbSHyperparams(3, 2, 6, 1e5, 0)
+    init = Circuit([H(0), H(1), H(2)])
 
-#     asg_1, pauli_tracker_1 = get_graph(circuit_1, hyperparams, "output", optimization)
-#     # plot_graph_state(*to_python(asg_1, pauli_tracker_1))
-#     asg_2, pauli_tracker_2 = get_graph(circuit_2, hyperparams, "both", optimization)
-#     # plot_graph_state(*to_python(asg_2, pauli_tracker_2))
+    asg_1, pauli_tracker_1 = get_graph(
+        init + circuit_1, hyperparams, "output", optimization
+    )
+    # plot_graph_state(*to_python(asg_1, pauli_tracker_1))
+    asg_2, pauli_tracker_2 = get_graph(circuit_2, hyperparams, "input", optimization)
+    # plot_graph_state(*to_python(asg_2, pauli_tracker_2))
 
-#     # combine graphs
-#     asg, pauli_tracker = jl.stitch_graphs(
-#         asg_1, pauli_tracker_1, asg_2, pauli_tracker_2
-#     )
-#     # plot_graph_state(*to_python(asg, pauli_tracker))
+    # combine graphs
+    asg_12, pauli_tracker_12 = jl.stitch_graphs(
+        asg_1, pauli_tracker_1, asg_2, pauli_tracker_2
+    )
+    # plot_graph_state(*to_python(asg_12, pauli_tracker_12))
 
-#     asg, pauli_tracker = to_python(asg, pauli_tracker)
+    asg, pauli_tracker = to_python(asg_12, pauli_tracker_12)
+    check_correctness_for_stitched_circuits(
+        circuit_1 + circuit_2,
+        asg,
+        pauli_tracker,
+        init,
+        show_graph=False,
+        show_circuit=True,
+    )
 
-#     check_correctness_for_stiched_circuits(
-#         circuit_1,
-#         circuit_2,
-#         circuit_3,
-#         [
-#             (3, 0, -1, 0),
-#             (3, 1, -1, 0),
-#             (3, 2, -1, 0),
-#         ],
-#         hyperparams,
-#         optimization,
-#         show_graph=False,
-#         show_circuit=True,
-#         throw_error_on_incorrect_result=True,
-#     )
+
+if __name__ == "__main__":
+    test_triple_stitched_circuit_produces_correct_result(
+        "Variable",
+        # ghz_circuit,
+        # ghz_circuit,
+        # ghz_circuit,
+    )

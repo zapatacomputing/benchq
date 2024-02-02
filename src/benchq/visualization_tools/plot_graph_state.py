@@ -42,7 +42,7 @@ def plot_graph_state(asg, pauli_tracker):
     # graph.remove_nodes_from(isolated_nodes)
 
     # Create a legend for node colors
-    node_colors = {
+    spacial_node_colors = {
         "I": "grey",
         "S": "lime",
         "H": "red",
@@ -51,24 +51,25 @@ def plot_graph_state(asg, pauli_tracker):
         "SH": "orange",
     }
     legend_patches = [
-        mpatches.Patch(color=color, label=node) for node, color in node_colors.items()
+        mpatches.Patch(color=color, label=node)
+        for node, color in spacial_node_colors.items()
     ]
 
     # Plot a graph with lco labels
     color_map = []
     for node, lco in enumerate(lco):
         if lco == 1:
-            color_map.append(node_colors["I"])
+            color_map.append(spacial_node_colors["I"])
         elif lco == 2:
-            color_map.append(node_colors["S"])
+            color_map.append(spacial_node_colors["S"])
         elif lco == 3:
-            color_map.append(node_colors["H"])
+            color_map.append(spacial_node_colors["H"])
         elif lco == 4:
-            color_map.append(node_colors["HSH"])
+            color_map.append(spacial_node_colors["HSH"])
         elif lco == 5:
-            color_map.append(node_colors["HS"])
+            color_map.append(spacial_node_colors["HS"])
         elif lco == 6:
-            color_map.append(node_colors["SH"])
+            color_map.append(spacial_node_colors["SH"])
         else:
             raise ValueError(f"lco {lco} not supported.")
 
@@ -158,7 +159,6 @@ def plot_graph_state(asg, pauli_tracker):
 
     # Add node
     # s and edges from the adjacency list
-    colors = []
     for node, neighbors in enumerate(pauli_tracker["cond_paulis"]):
         x_pauli_flow.add_node(node)
         z_pauli_flow.add_node(node)
@@ -167,8 +167,12 @@ def plot_graph_state(asg, pauli_tracker):
         for neighbor in neighbors[1]:
             z_pauli_flow.add_edge(neighbor, node, color="blue")
 
-    x_colors = [x_pauli_flow[u][v]["color"] for u, v in x_pauli_flow.edges()]
-    z_colors = [z_pauli_flow[u][v]["color"] for u, v in z_pauli_flow.edges()]
+    x_temporal_edge_colors = [
+        x_pauli_flow[u][v]["color"] for u, v in x_pauli_flow.edges()
+    ]
+    z_temporal_edge_colors = [
+        z_pauli_flow[u][v]["color"] for u, v in z_pauli_flow.edges()
+    ]
 
     # Create positions based on layering
     pos = {}
@@ -183,7 +187,7 @@ def plot_graph_state(asg, pauli_tracker):
     nx.draw(
         x_pauli_flow,
         pos,
-        edge_color=x_colors,
+        edge_color=x_temporal_edge_colors,
         with_labels=True,
         arrows=True,
         connectionstyle="arc3,rad=0.2",
@@ -191,7 +195,7 @@ def plot_graph_state(asg, pauli_tracker):
     nx.draw(
         z_pauli_flow,
         pos,
-        edge_color=z_colors,
+        edge_color=z_temporal_edge_colors,
         with_labels=True,
         arrows=True,
         connectionstyle="arc3,rad=-0.2",

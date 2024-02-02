@@ -71,6 +71,10 @@ def transpile_to_native_gates(program: QuantumProgram) -> QuantumProgram:
 
 def create_graphs_for_subcircuits(
     graph_production_method=get_algorithmic_graph_from_ruby_slippers,
+    destination="local",
+    config_name="darpa-ta1",
+    workspace_id="darpa-phase-ii-gsc-resource-estimates-8a7c3b",
+    project_id="migration",
 ) -> Callable[[QuantumProgram], GraphPartition]:
     def _transformer(program: QuantumProgram) -> GraphPartition:
         @sdk.workflow(resources=sdk.Resources(cpu="3", memory="16Gi"))
@@ -82,7 +86,7 @@ def create_graphs_for_subcircuits(
 
         @sdk.task(
             dependency_imports=[sdk.PythonImports("benchq[dev]")],
-            custom_image="hub.stage.nexus.orquestra.io/zapatacomputing/benchq-ce:3eec2c8-sdk0.60.0",
+            custom_image="hub.nexus.orquestra.io/zapatacomputing/benchq-ce:3eec2c8-sdk0.60.0",
         )
         def distributed_graph_creation(circuit):
             return graph_production_method(circuit)
@@ -91,12 +95,16 @@ def create_graphs_for_subcircuits(
         def make_graph_partition(program: QuantumProgram, *graphs_list):
             return GraphPartition(program, list(graphs_list))
 
-        wf_run = graph_wf(program).run(
-            "prod-d",
-            workspace_id="darpa-phase-2-resource-estimates-c2545f",
-            project_id="migration",
-            # "ray", # run locally
-        )
+        if destination == "local":
+            wf_run = graph_wf(program).run(
+                "ray",  # run locally
+            )
+        if destination == "remote":
+            wf_run = graph_wf(program).run(
+                config_name,
+                workspace_id=workspace_id,
+                project_id=project_id,
+            )
         results = wf_run.get_results(wait=True)
 
         return results

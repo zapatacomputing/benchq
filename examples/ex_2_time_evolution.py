@@ -30,6 +30,7 @@ from benchq.resource_estimators.graph_estimators import (
     transpile_to_native_gates,
 )
 from benchq.timing import measure_time
+from benchq.compilation.julia_utils import get_ruby_slippers_compiler
 
 
 def main():
@@ -42,12 +43,12 @@ def main():
     # measure_time is a utility tool which measures the execution time of
     # the code inside the with statement.
     with measure_time() as t_info:
-        N = 2  # Problem size
-        operator = get_vlasov_hamiltonian(N=N, k=2.0, alpha=0.6, nu=0)
+        # N = 2  # Problem size
+        # operator = get_vlasov_hamiltonian(N=N, k=2.0, alpha=0.6, nu=0)
 
         # Alternative operator: 1D Heisenberg model
-        # N = 100
-        # operator = generate_1d_heisenberg_hamiltonian(N)
+        N = 2
+        operator = generate_1d_heisenberg_hamiltonian(N)
 
     print("Operator generation time:", t_info.total)
 
@@ -63,18 +64,22 @@ def main():
     # in terms of runtime and memory usage.
     # Then we perform resource estimation with gate synthesis during the measurement,
     # which we call "delayed gate synthesis".
-    with measure_time() as t_info:
-        gsc_resource_estimates = get_custom_resource_estimation(
-            algorithm,
-            estimator=GraphResourceEstimator(architecture_model),
-            transformers=[
-                synthesize_clifford_t(algorithm.error_budget),
-                create_big_graph_from_subcircuits(),
-            ],
-        )
 
-    print("Resource estimation time with synthesis:", t_info.total)
-    pprint(gsc_resource_estimates)
+    compiler = get_ruby_slippers_compiler(
+        layering_optimization="Time",
+    )
+    # with measure_time() as t_info:
+    #     gsc_resource_estimates = get_custom_resource_estimation(
+    #         algorithm,
+    #         estimator=GraphResourceEstimator(architecture_model),
+    #         transformers=[
+    #             synthesize_clifford_t(algorithm.error_budget),
+    #             create_big_graph_from_subcircuits(compiler),
+    #         ],
+    #     )
+
+    # print("Resource estimation time with synthesis:", t_info.total)
+    # pprint(gsc_resource_estimates)
 
     with measure_time() as t_info:
         gsc_resource_estimates = get_custom_resource_estimation(
@@ -82,7 +87,7 @@ def main():
             estimator=GraphResourceEstimator(architecture_model),
             transformers=[
                 transpile_to_native_gates,
-                create_big_graph_from_subcircuits(),
+                create_big_graph_from_subcircuits(compiler),
             ],
         )
 

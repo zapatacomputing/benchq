@@ -75,7 +75,7 @@ def main():
             estimator=GraphResourceEstimator(architecture_model),
             transformers=[
                 transpile_to_native_gates,
-                create_graphs_for_subcircuits(compiler),
+                create_graphs_for_subcircuits(compiler, destination="local"),
             ],
         )
 

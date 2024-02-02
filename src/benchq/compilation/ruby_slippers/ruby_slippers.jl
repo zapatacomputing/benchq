@@ -17,8 +17,9 @@ using StatsBase
 
 const Qubit = UInt32
 const AdjList = Set{Qubit}
+const erase_line = "        \b\b\b\b\b\b\b\b"
 
-
+include("verbose_iterator.jl")
 include("graph_sim_data.jl")
 include("pauli_tracker.jl")
 include("algorithm_specific_graph.jl")
@@ -28,8 +29,9 @@ include("asg_stitching.jl")
 Converts a given circuit in Clifford + T form to icm form and simulates the icm
 circuit using the graph sim mini simulator. Returns the adjacency list of the graph
 state created by the icm circuit along with the single qubit operations on each vertex.
-teleportation_threshold, min_neighbors, teleportation_distance, and  max_num_neighbors_to_search
-are metaparameters which can be optimized to speed up the simulation.
+teleportation_threshold, min_neighbor_degree, teleportation_distance, and  max_num_neighbors_to_search
+are metaparameters which can be optimized to speed up the simulation. This function
+serves as the primary entry point for the Ruby Slippers algorithm via pythoncall.
 
 Args:
     orquestra_circuit::Circuit        circuit to be simulated
@@ -40,10 +42,10 @@ Args:
                                         can be stitched to a future graph state.
     layering_optimization::String     which layering optimization to use in the pauli tracker.
                                         Options are "ST-Volume", "Time", "Space", "Variable"
-    layer_width::Int                  how many gates to put in each layer in the case of "Variable"
+    max_num_qubits::Int                  how many gates to put in each layer in the case of "Variable"
     teleportation_threshold::Int      max node degree allowed before state is teleported
     teleportation_distance::Int       number of teleportations to do when state is teleported
-    min_neighbors::Int                stop searching for neighbor with low degree if
+    min_neighbor_degree::Int                stop searching for neighbor with low degree if
                                         neighbor has at least this many neighbors
     max_num_neighbors_to_search::Int  max number of neighbors to search through when finding
                                         a neighbor with low degree
@@ -66,10 +68,10 @@ function run_ruby_slippers(
     takes_graph_input::Bool=true,
     gives_graph_output::Bool=true,
     layering_optimization::String="ST-Volume",
-    layer_width::Int64=1,
+    max_num_qubits::Int64=1,
     teleportation_threshold::Int64=40,
     teleportation_distance::Int64=4,
-    min_neighbors::Int64=6,
+    min_neighbor_degree::Int64=6,
     max_num_neighbors_to_search::Int64=100000,
     decomposition_strategy::Int64=0,
     max_time::Float64=1e8,
@@ -82,7 +84,7 @@ function run_ruby_slippers(
     hyperparams = RbSHyperparams(
         teleportation_threshold,
         teleportation_distance,
-        min_neighbors,
+        min_neighbor_degree,
         max_num_neighbors_to_search,
         decomposition_strategy,
     )
@@ -106,7 +108,7 @@ function run_ruby_slippers(
                 takes_graph_input=takes_graph_input,
                 gives_graph_output=gives_graph_output,
                 layering_optimization=layering_optimization,
-                layer_width=layer_width,
+                max_num_qubits=max_num_qubits,
                 hyperparams=hyperparams,
                 max_graph_size=max_graph_size,
                 max_time=max_time,
@@ -119,7 +121,7 @@ function run_ruby_slippers(
                 takes_graph_input=takes_graph_input,
                 gives_graph_output=gives_graph_output,
                 layering_optimization=layering_optimization,
-                layer_width=layer_width,
+                max_num_qubits=max_num_qubits,
                 hyperparams=hyperparams,
                 max_graph_size=max_graph_size,
                 max_time=max_time,
@@ -127,8 +129,11 @@ function run_ruby_slippers(
     end
 
     if proportion == 1.0
-        num_logical_qubits = get_n_logical_qubits(pauli_tracker, asg)
+        num_logical_qubits = get_num_logical_qubits(pauli_tracker.layering, asg)
         num_consumption_tocks = length(pauli_tracker.layering)
+        println("Number of consumption tocks: ", num_consumption_tocks)
+        println("Number of logical qubits: ", num_logical_qubits)
+        println("Max graph degree: ", maximum([length(adj) for adj in asg.edge_data]) - 1)
         return python_asg(asg), num_consumption_tocks, num_logical_qubits, proportion
     else
         # if we did not finish compiling the circuit, return the proportion of the circuit
@@ -195,9 +200,9 @@ Args:
                                    can be stitched to a future graph state.
     layering_optimization::Stringwhich layering optimization to use in the pauli tracker.
                                    Options are "ST-Volume", "Time", "Space", "Variable"
-    layer_width::Int             how many gates to put in each layer in the case of "Variable"
+    max_num_qubits::Int             how many gates to put in each layer in the case of "Variable"
     hyperparams::RbSHyperparams  metaparameters which can be optimized to speed up the compilation.
-    max_graph_size::Int          maximum number of nodes in the graph state
+    max_graph_size::UInt32       maximum number of nodes in the graph state
     max_time::Float64            maximum time to spend compiling the circuit
 
 Raises:
@@ -214,9 +219,9 @@ function get_graph_state_data(
     gives_graph_output::Bool=true,
     manually_stitchable::Bool=false,
     layering_optimization::String="ST-Volume",
-    layer_width::Int64=1,
+    max_num_qubits::Int64=1,
     hyperparams::RbSHyperparams=default_hyperparams,
-    max_graph_size::UInt32=UInt32(10000000),
+    max_graph_size::UInt32=UInt32(100000),
     max_time::Float64=1e8,
 )
     if hyperparams.decomposition_strategy == 1
@@ -224,21 +229,26 @@ function get_graph_state_data(
     end
 
     n_qubits = pyconvert(Int, orquestra_circuit.n_qubits)
+
     if takes_graph_input
-        asg, pauli_tracker = initialize_for_graph_input(max_graph_size, n_qubits, layering_optimization, layer_width)
+        asg, pauli_tracker = initialize_for_graph_input(max_graph_size, n_qubits, layering_optimization, max_num_qubits)
     else
         asg = AlgorithmSpecificGraphAllZero(max_graph_size, n_qubits)
-        pauli_tracker = PauliTracker(n_qubits, layering_optimization, layer_width)
+        pauli_tracker = PauliTracker(n_qubits, layering_optimization, max_num_qubits)
     end
 
-
-    # Convert the Python iterable to a Julia iterable
     total_length = length(orquestra_circuit.operations)
-    counter = dispcnt = 0
-    erase = "        \b\b\b\b\b\b\b\b"
+    counter = 0
     start_time = time()
 
-    for (counter, orquestra_op) in enumerate(orquestra_circuit.operations)
+    for (counter, orquestra_op) in enumerate(
+        VerboseIterator(
+            orquestra_circuit.operations,
+            verbose,
+            "Compiling graph state using Ruby Slippers...",
+            true,
+        )
+    )
         elapsed_time = time() - start_time
         # End early if we have exceeded the max time
         if elapsed_time >= max_time
@@ -247,20 +257,11 @@ function get_graph_state_data(
             return asg, pauli_tracker, percent
         end
 
-        # Show progress of compilation in real time
-        if verbose
-            if (dispcnt += 1) >= 1000
-                percent = round(Int, 100 * counter / total_length)
-                display_elapsed = round(elapsed_time, digits=2)
-                print("\r$(percent)% ($counter) completed in $erase$(display_elapsed)s")
-                dispcnt = 0
-            end
-        end
-
         # Apply current operation
         if occursin("ResetOperation", pyconvert(String, orquestra_op.__str__())) # reset operation
             asg.n_nodes += 1
-            data_qubits[get_qubit_1(orquestra_op)] = asg.n_nodes
+            asg.stitching_properties.gate_output_nodes[get_qubit_1(orquestra_op)] = asg.n_nodes
+            add_new_qubit_to_pauli_tracker!(pauli_tracker)
             continue
         else
             icm_ops = convert_orquestra_op_to_icm_ops(orquestra_op)
@@ -298,13 +299,8 @@ function get_graph_state_data(
         end
     end
 
-    if verbose
-        elapsed = round(time() - start_time, digits=2)
-        println("\r100% ($counter) completed in $erase$(elapsed)s")
-    end
-
     # add teleportations at end so we can connect to next buffer
-    nodes_to_remove = Set([])
+    nodes_to_remove = Set{Qubit}([])
     if gives_graph_output
         add_output_nodes!(asg, pauli_tracker, nodes_to_remove)
     end
@@ -312,7 +308,10 @@ function get_graph_state_data(
         prune_buffer!(asg, pauli_tracker, n_qubits, nodes_to_remove)
     end
 
-    calculate_layering!(pauli_tracker, asg, nodes_to_remove)
+    if verbose
+        println("Scheduling single qubit measurements...")
+    end
+    calculate_layering!(pauli_tracker, asg, nodes_to_remove, verbose)
     delete_excess_asg_space!(asg)
 
     if manually_stitchable
@@ -464,7 +463,7 @@ Select a neighbor to use when removing a single qubit clifford operation.
 
 The return value be set to avoid if there are no neighbors or avoid is the only neighbor,
 otherwise it returns the neighbor with the fewest neighbors (or the first one that
-it finds with less than min_neighbors)
+it finds with less than min_neighbor_degree)
 """
 function get_neighbor(adj, v, avoid, hyperparams)
     neighbors_of_v = adj[v]
@@ -488,7 +487,7 @@ function get_neighbor(adj, v, avoid, hyperparams)
         if neighbor != avoid
             # stop search if super small neighborhood is found
             num_neighbors = length(adj[neighbor])
-            num_neighbors < hyperparams.min_neighbors && return neighbor
+            num_neighbors < hyperparams.min_neighbor_degree && return neighbor
             # search for smallest neighborhood
             if num_neighbors < smallest_neighborhood_size
                 smallest_neighborhood_size = num_neighbors
@@ -556,10 +555,12 @@ Teleport your "oz qubit" with high degree to a "kansas qubit" with degree 1.
 Speeds up computation by avoiding performing local complements on high degree nodes.
 
 Args:
-    sqs::Vector{UInt8}      single qubit clifford operations on each node
-    adj::Vector{AdjList}  adjacency list describing the graph state
-    oz_qubit::Int         index of the qubit to teleport
-    data_qubits::Dict       map from qubit indices to vertex indices
+    asg::AlgorithmSpecificGraph       graph state to teleport in
+    oz_qubit::Int                     index of the qubit to teleport
+    pauli_tracker::PauliTracker       tracker to update with teleportation
+    hyperparams::RbSHyperparams       metaparameters which can be optimized to speed up the compilation
+    curr_teleportation_distance::Int  number of teleportations to do when state is teleported
+                                        multiplied by 2
 """
 function teleportation!(
     asg,

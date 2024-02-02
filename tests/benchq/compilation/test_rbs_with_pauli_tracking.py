@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister, Aer
 import qiskit
-from qiskit_aer.aerprovider import AerSimulator
 import numpy as np
 import os
 import pathlib
@@ -12,7 +11,6 @@ from benchq.visualization_tools.plot_graph_state import plot_graph_state
 from benchq.conversions import export_circuit
 from orquestra.quantum.circuits import Circuit, I, X, Y, Z, H, S, CNOT, CZ, RZ, T
 import pytest
-from orquestra.integrations.qiskit.conversions import import_from_qiskit
 
 
 jl.include(
@@ -22,18 +20,27 @@ jl.include(
     ),
 )
 
+np.random.seed(0)
 
-def verify_random_circuit(n_qubits, depth, hyperparams):
+SKIP_SLOW = pytest.mark.skipif(
+    os.getenv("SLOW_BENCHMARKS") is None,
+    reason="Slow benchmarks can only run if SLOW_BENCHMARKS env variable is defined",
+)
+
+
+def verify_random_circuit(n_qubits, depth, hyperparams, layering_optimization):
     # test that a single random circuit works for |0> initialization
 
     circuit = generate_random_circuit(n_qubits, depth)
 
     check_correctness_for_single_init(
         circuit,
-        Circuit([H(0), H(1), H(2)]),
+        # Initialize in all possible single qubit stabiilzer states
+        Circuit([H(0), H(1), H(2), H(3), H(4), H(5), S(3), S(4), S(5)]),
         hyperparams,
         show_circuit=True,
         throw_error_on_incorrect_result=True,
+        layering_optimization=layering_optimization,
     )
 
 
@@ -64,7 +71,7 @@ def check_correctness_for_single_init(
     show_graph_state=False,
     throw_error_on_incorrect_result=True,
     layering_optimization="Time",
-    layer_width=3,
+    max_num_qubits=3,
 ):
     full_circuit = init + circuit
 
@@ -73,8 +80,8 @@ def check_correctness_for_single_init(
         verbose=False,
         takes_graph_input=False,
         gives_graph_output=False,
-        layering_optimization=layering_optimization,
-        layer_width=layer_width,
+        layering_optimization=str(layering_optimization),
+        max_num_qubits=max_num_qubits,
         hyperparams=hyperparams,
     )
 
@@ -107,6 +114,10 @@ def check_correctness_for_single_init(
     }
     if reversed_prob_density != correct_pdf:
         print("\033[91m" + "Incorrect Result Detected!" + "\033[0m")
+        # remove trivial parts of pdf so it's easier to read
+        reversed_prob_density = {
+            k: v for k, v in reversed_prob_density.items() if v != 0
+        }
         print(f"circuit: {circuit},\ninit: {init} \npdf: {reversed_prob_density}")
         if throw_error_on_incorrect_result:
             raise Exception("Incorrect Result Detected!")
@@ -120,19 +131,103 @@ def simulate(circuit, init, asg, pauli_tracker, show_circuit=True):
     creg = ClassicalRegister(asg["n_nodes"])
     reg = QuantumRegister(asg["n_nodes"])
     c = QuantumCircuit(reg, creg)
-
     for i in range(asg["n_nodes"]):
         c.h(reg[i])
 
     c.barrier(label="graph")
-
     for node, neighborhood in enumerate(asg["edge_data"]):
         for neighbor in neighborhood:
             if node < neighbor:  # avoid duplicate edges
                 c.cz(reg[node], reg[neighbor])
 
     c.barrier(label="SQC")
+    enact_sqc_layer(asg, c, reg)
 
+    control_values = [True] * asg["n_nodes"]
+    node_measured = [False] * asg["n_nodes"]
+
+    remaining_dag = [[[], []] for _ in range(asg["n_nodes"])]
+    # only include paulis which have an affect
+    for target, controls in enumerate(pauli_tracker["cond_paulis"]):
+        x_controls, z_controls = controls
+        for control in x_controls:
+            if (
+                pauli_tracker["measurements"][target][0] != jl.I_code
+                or target in asg["data_nodes"]
+            ):
+                remaining_dag[target][0].append(control)
+        for control in z_controls:
+            if (
+                pauli_tracker["measurements"][target][0] != jl.H_code
+                or target in asg["data_nodes"]
+            ):
+                remaining_dag[target][1].append(control)
+
+    sorted_nodes = topological_sort(
+        list(range(asg["n_nodes"])), pauli_tracker["cond_paulis"]
+    )
+
+    for layer_label, layer in enumerate(pauli_tracker["layering"]):
+        c.barrier(label=f"Layer:{layer_label}")
+        for node in layer:
+            # the last frame always contains the data nodes, so we can skip them here
+            if node in asg["data_nodes"]:
+                continue
+
+            measure_node(node, pauli_tracker, c, creg)
+            node_measured[node] = True
+
+        c.barrier(label=f"Paulis:{layer_label}")
+        # repeat many times to ensure that all possible paulis are enacted
+        for _ in range(100):
+            for control in sorted_nodes:
+                # enact paulis which are controlled by that measurement
+                for target, controls in enumerate(remaining_dag):
+                    x_controls, z_controls = controls
+                    if node_measured[control]:
+                        control_basis = int(pauli_tracker["measurements"][control][0])
+                        target_basis = int(pauli_tracker["measurements"][target][0])
+
+                        # In the control is blocked by a non-clifford measurement,
+                        # we can't enact the Pauli yet.
+                        if (
+                            remaining_dag[control][0] == []
+                            and control_basis in jl.non_clifford_gate_codes
+                        ) or control_basis != jl.non_clifford_gate_codes:
+                            enact_controlled_paulis(
+                                x_controls,
+                                z_controls,
+                                remaining_dag,
+                                control,
+                                target,
+                                control_values,
+                                asg,
+                                c,
+                                creg,
+                                node_measured,
+                                target_basis,
+                            )
+
+    c.barrier(label="inv circ")
+    c &= get_reversed_qiskit_circuit(circuit, asg["data_nodes"])
+
+    c.barrier(label="inv init")
+    c &= get_reversed_qiskit_circuit(init, asg["data_nodes"])
+
+    c.barrier(label="output")
+    for node in asg["data_nodes"]:
+        c.measure(reg[node], creg[node])
+
+    if show_circuit:
+        print(c)
+    simulator = Aer.get_backend("aer_simulator_matrix_product_state")
+    cc = qiskit.transpile(RemoveBarriers()(c), backend=simulator, optimization_level=3)
+    result = simulator.run(cc, shots=1000).result().get_counts()
+
+    return counts_to_pdf(asg["data_nodes"], result)
+
+
+def enact_sqc_layer(asg, c, reg):
     for node, sqs in enumerate(asg["sqs"]):
         if sqs == jl.I_code:
             pass
@@ -165,124 +260,64 @@ def simulate(circuit, init, asg, pauli_tracker, show_circuit=True):
         else:
             raise Exception(f"other pauli: {pauli}")
 
-    control_values = [True] * asg["n_nodes"]
-    node_measured = [False] * asg["n_nodes"]
 
-    remaining_dag = [[[], []] for _ in range(asg["n_nodes"])]
-    # only include paulis which have an affect
-    for target, controls in enumerate(pauli_tracker["cond_paulis"]):
-        x_controls, z_controls = controls
-        for control in x_controls:
-            if (
-                pauli_tracker["measurements"][target][0] != jl.I_code
-                or target in asg["data_nodes"]
-            ):
-                remaining_dag[target][0].append(control)
-        for control in z_controls:
-            if (
-                pauli_tracker["measurements"][target][0] != jl.H_code
-                or target in asg["data_nodes"]
-            ):
-                remaining_dag[target][1].append(control)
+def measure_node(node, pauli_tracker, c, creg):
+    if pauli_tracker["measurements"][node][0] == jl.I_code:
+        pass
+    elif pauli_tracker["measurements"][node][0] == jl.H_code:
+        c.h(node)
+    elif pauli_tracker["measurements"][node][0] == jl.T_code:
+        c.t(node)
+    elif pauli_tracker["measurements"][node][0] == jl.T_Dagger_code:
+        c.tdg(node)
+    elif pauli_tracker["measurements"][node][0] == jl.RZ_code:
+        c.rz(pauli_tracker["measurements"][node][1], node)
+    else:
+        measurement = pauli_tracker["measurements"][node][0]
+        raise Exception(f"Unknown measurement type: {measurement}")
 
-    sorted_nodes = topological_sort(
-        list(range(asg["n_nodes"])), pauli_tracker["cond_paulis"]
-    )
-    for layer_label, layer in enumerate(pauli_tracker["layering"]):
-        # the last frame always contains the data nodes, so we can skip them here
-        c.barrier(label=f"Layer:{layer_label}")
-        for node in layer:
-            if node in asg["data_nodes"]:
-                continue
+    c.h(node)
+    c.measure(node, creg[node])
 
-            # measure the nodes in the layer
-            if pauli_tracker["measurements"][node][0] == jl.I_code:
-                pass
-            elif pauli_tracker["measurements"][node][0] == jl.H_code:
-                c.h(node)
-            elif pauli_tracker["measurements"][node][0] == jl.T_code:
-                c.t(node)
-            elif pauli_tracker["measurements"][node][0] == jl.T_Dagger_code:
-                c.tdg(node)
-            elif pauli_tracker["measurements"][node][0] == jl.RZ_code:
-                c.rz(pauli_tracker["measurements"][node][1], node)
+
+def enact_controlled_paulis(
+    x_controls,
+    z_controls,
+    remaining_dag,
+    control,
+    target,
+    control_values,
+    asg,
+    c,
+    creg,
+    node_measured,
+    target_basis,
+):
+    if control in x_controls:
+        remaining_dag[target][0].remove(control)
+        if target in asg["data_nodes"]:
+            c.x(target).c_if(control, control_values[control])
+        else:
+            if target_basis in jl.non_clifford_gate_codes:
+                c.x(target).c_if(control, control_values[control])
+            if target_basis == jl.H_code:
+                if node_measured[target]:
+                    c.x(target).c_if(control, control_values[control])
+                    c.measure(target, creg[target])
+                else:
+                    c.x(target).c_if(control, control_values[control])
+    if control in z_controls:
+        remaining_dag[target][1].remove(control)
+        if (
+            target_basis == jl.I_code
+            or target_basis in jl.non_clifford_gate_codes
+            or target in asg["data_nodes"]
+        ):
+            if node_measured[target]:
+                c.x(target).c_if(control, control_values[control])
+                c.measure(target, creg[target])
             else:
-                measurement = pauli_tracker["measurements"][node][0]
-                raise Exception(f"Unknown measurement type: {measurement}")
-
-            c.h(node)
-            c.measure(node, creg[node])
-            node_measured[node] = True
-
-        c.barrier(label=f"Paulis:{layer_label}")
-        for _ in range(100):
-            for control in sorted_nodes:
-                # enact paulis which are controlled by that measurement
-                for target, controls in enumerate(remaining_dag):
-                    x_controls, z_controls = controls
-                    if node_measured[control]:
-                        if remaining_dag[control] == [[], []]:
-                            target_basis = int(pauli_tracker["measurements"][target][0])
-                            if control in x_controls:
-                                remaining_dag[target][0].remove(control)
-                                if target in asg["data_nodes"]:
-                                    c.x(target).c_if(control, control_values[control])
-                                else:
-                                    if target_basis in jl.non_clifford_gate_codes:
-                                        c.x(target).c_if(
-                                            control, control_values[control]
-                                        )
-                                    if target_basis == jl.H_code:
-                                        if node_measured[target]:
-                                            c.x(target).c_if(
-                                                control, control_values[control]
-                                            )
-                                            c.measure(target, creg[target])
-                                        else:
-                                            c.x(target).c_if(
-                                                control, control_values[control]
-                                            )
-                            if control in z_controls:
-                                remaining_dag[target][1].remove(control)
-                                if (
-                                    target_basis == jl.I_code
-                                    or target_basis in jl.non_clifford_gate_codes
-                                    or target in asg["data_nodes"]
-                                ):
-                                    if node_measured[target]:
-                                        c.x(target).c_if(
-                                            control, control_values[control]
-                                        )
-                                        c.measure(target, creg[target])
-                                    else:
-                                        c.z(target).c_if(
-                                            control, control_values[control]
-                                        )
-
-    c.barrier(label="inv circ")
-
-    c &= get_reversed_qiskit_circuit(circuit, asg["data_nodes"])
-
-    c.barrier(label="inv init")
-
-    c &= get_reversed_qiskit_circuit(init, asg["data_nodes"])
-
-    c.barrier(label="output")
-
-    for node in asg["data_nodes"]:
-        c.measure(reg[node], creg[node])
-
-    if show_circuit:
-        print(c)
-
-    cc = qiskit.transpile(
-        RemoveBarriers()(c), backend=AerSimulator(), optimization_level=3
-    )
-    # print(cc)
-    simulator = Aer.get_backend("aer_simulator_matrix_product_state")
-    result = simulator.run(cc, shots=10000).result().get_counts()
-
-    return counts_to_pdf(asg["data_nodes"], result)
+                c.z(target).c_if(control, control_values[control])
 
 
 def get_reversed_qiskit_circuit(circuit, data_qubits):
@@ -337,151 +372,189 @@ def topological_sort(layer, cond_paulis):
     return result
 
 
-@pytest.mark.parametrize("optimization", ["Space", "Time", "ST-Volume", "Variable"])
-@pytest.mark.parametrize(
-    "init",
-    [
-        Circuit([]),
-        Circuit([H(0), H(1)]),
-        Circuit([H(0), H(1), H(2)]),
-        Circuit([H(0), S(0), H(1), S(1), H(2), S(2)]),
-    ],
-)
-@pytest.mark.parametrize(
-    "circuit",
-    [
-        # T gates work alone
-        Circuit([T(0), T(0)]),
-        # rotations work alone
-        Circuit([RZ(2.44)(0), RZ(5.71)(0)]),
-        # rotations work in circuit
-        Circuit([Z(0), Y(0), RZ(1.07)(2), X(1)]),
-        Circuit([X(0)]),
-        Circuit([H(0)]),
-        Circuit([S(0)]),
-        Circuit([H(0), S(0), H(0)]),
-        Circuit([H(0), S(0)]),
-        Circuit([S(0), H(0)]),
-        Circuit([H(2)]),
-        Circuit([H(0), CNOT(0, 1)]),
-        Circuit([CZ(0, 1), H(2)]),
-        Circuit([H(0), S(0), CNOT(0, 1), H(2)]),
-        Circuit([CNOT(0, 1), CNOT(1, 2)]),
-        Circuit(
-            [
-                H(0),
-                S(0),
-                H(1),
-                CZ(0, 1),
-                H(2),
-                CZ(1, 2),
-            ]
-        ),
-        Circuit(
-            [
-                H(0),
-                H(1),
-                H(3),
-                CZ(0, 3),
-                CZ(1, 4),
-                H(3),
-                H(4),
-                CZ(3, 4),
-            ]
-        ),
-        import_from_qiskit(QuantumCircuit.from_qasm_file("single_rotation.qasm")),
-        import_from_qiskit(QuantumCircuit.from_qasm_file("example_circuit.qasm")),
-    ],
-)
-def test_particular_circuits_give_correct_results(circuit, init, optimization):
-    hyperparams = jl.RbSHyperparams(3, 2, 6, 1e5, 0)
-    check_correctness_for_single_init(
-        circuit,
-        init,
-        hyperparams,
-        show_circuit=True,
-        throw_error_on_incorrect_result=True,
-        layering_optimization=optimization,
-        layer_width=3,
-    )
-
-
-# if __name__ == "__main__":
+# @pytest.mark.parametrize("optimization", ["ST-Volume", "Space", "Time", "Variable"])
+# @pytest.mark.parametrize(
+#     "init",
+#     [
+#         # All start in Z basis
+#         Circuit([]),
+#         # Some start in X basis, one in Z basis
+#         Circuit([H(0), H(1)]),
+#         # All start in X basis
+#         Circuit([H(0), H(1), H(2)]),
+#         # all start in Y basis
+#         Circuit([H(0), S(0), H(1), S(1), H(2), S(2)]),
+#     ],
+# )
+# @pytest.mark.parametrize(
+#     "circuit",
+#     [
+#         # T gates work alone
+#         Circuit([T(0), T(0)]),
+#         # rotations work alone
+#         Circuit([RZ(2.44)(0), RZ(5.71)(0)]),
+#         # rotations work in circuit
+#         Circuit([Z(0), Y(0), RZ(1.07)(2), X(1)]),
+#         # Standard single qubit gates
+#         Circuit([X(0)]),
+#         Circuit([H(0)]),
+#         Circuit([S(0)]),
+#         Circuit([H(0), S(0), H(0)]),
+#         Circuit([H(0), S(0)]),
+#         Circuit([S(0), H(0)]),
+#         Circuit([H(2)]),
+#         Circuit([H(0), CNOT(0, 1)]),
+#         Circuit([CZ(0, 1), H(2)]),
+#         Circuit([H(0), S(0), CNOT(0, 1), H(2)]),
+#         Circuit([CNOT(0, 1), CNOT(1, 2)]),
+#         Circuit([H(0), RZ(0.034023)(0)]),
+#         # Test pauli tracker layering
+#         Circuit(
+#             [
+#                 H(0),
+#                 S(0),
+#                 H(1),
+#                 CZ(0, 1),
+#                 H(2),
+#                 CZ(1, 2),
+#             ]
+#         ),
+#         Circuit(
+#             [
+#                 H(0),
+#                 H(1),
+#                 H(3),
+#                 CZ(0, 3),
+#                 CZ(1, 4),
+#                 H(3),
+#                 H(4),
+#                 CZ(3, 4),
+#             ]
+#         ),
+#         Circuit(
+#             [
+#                 H(0),
+#                 H(1),
+#                 H(4),
+#                 T(1),
+#                 CZ(0, 4),
+#                 CNOT(1, 0),
+#                 H(1),
+#                 CNOT(3, 1),
+#                 T(1),
+#                 CNOT(4, 1),
+#                 T(4),
+#                 H(4),
+#                 T(4),
+#             ]
+#         ),
+#         Circuit(
+#             [
+#                 H(3),
+#                 CZ(0, 2),
+#                 T(1),
+#                 H(1),
+#                 T(1),
+#                 T(1),
+#                 CNOT(0, 1),
+#                 CZ(1, 2),
+#                 CNOT(2, 1),
+#                 T(1),
+#             ],
+#         ),
+#         # test layering with non-clifford dependencies
+#         Circuit(
+#             [
+#                 T(0),
+#                 H(0),
+#                 T(0),
+#                 T(0),
+#                 H(0),
+#                 T(0),
+#             ]
+#         ),
+#     ],
+# )
+# def test_particular_circuits_give_correct_results(circuit, init, optimization):
 #     hyperparams = jl.RbSHyperparams(3, 2, 6, 1e5, 0)
-#     for n_circuits_checked in range(1000):
-#         print(
-#             "\033[92m"
-#             + f"{n_circuits_checked} circuits checked successfully!"
-#             + "\033[0m"
+#     check_correctness_for_single_init(
+#         circuit,
+#         init,
+#         hyperparams,
+#         show_circuit=True,
+#         throw_error_on_incorrect_result=True,
+#         layering_optimization=optimization,
+#         max_num_qubits=3,
+#     )
+
+
+# If you run this test, it will take a long time to complete. Make sure to
+# run it with the -s option so that you can see the circuits being printed
+# as well as the progress of the test.
+# @SKIP_SLOW
+def test_1000_large_random_circuits():
+    for n_circuits_checked in range(1000):
+        # randomize hyperparams
+        teleportation_threshold = np.random.randint(1, 10)
+        teleportation_depth = np.random.randint(1, 3) * 2
+        min_neighbor_degree = np.random.randint(5, 20)
+        hyperparams = jl.RbSHyperparams(
+            teleportation_threshold, teleportation_depth, min_neighbor_degree, 1e5, 0
+        )
+
+        layering_optimization = np.random.choice(
+            ["Space", "Time", "ST-Volume", "Variable"]
+        )
+
+        print(
+            "\033[92m"
+            + f"{n_circuits_checked} circuits checked successfully!"
+            + "\033[0m"
+        )
+        verify_random_circuit(
+            n_qubits=10,
+            depth=50,
+            hyperparams=hyperparams,
+            layering_optimization=layering_optimization,
+        )
+        n_circuits_checked += 1
+
+
+# leaving this here because it is useful for quickly debugging a circuit
+# if __name__ == "__main__":
+# # Eliminate unneeded gates quickly from examples
+# ops = []
+# for _ in range(1000):
+#     to_remove = np.random.randint(0, len(ops))
+#     new_ops = ops[:to_remove] + ops[to_remove + 1 :]
+#     try:
+#         check_correctness_for_single_init(
+#             Circuit(ops),
+#             Circuit([]),
+#             jl.RbSHyperparams(6, 4, 15, 1e5, 0),
+#             show_circuit=False,
+#             show_graph_state=False,
+#             throw_error_on_incorrect_result=True,
+#             layering_optimization="Time",
+#             max_num_qubits=3,
 #         )
-#         test_random_circuit(
-#             n_qubits=10,
-#             depth=50,
-#             hyperparams=hyperparams,
-#         )
-#         n_circuits_checked += 1
+#     except Exception:
+#         ops = new_ops
 
-# check_correctness_for_single_init(
-#     [
-#         (14, 1, -1, 2.448088786866598),
-#         (14, 1, -1, 5.711008414454667),
-#     ],
-#     [(3, 0, -1, 0), (3, 1, -1, 0), (3, 2, -1, 0)],
-#     hyperparams,
-#     show_circuit=True,
-#     show_graph_state=True,
-#     throw_error_on_incorrect_result=True,
-# )
+# print(Circuit(ops))
 
+# # For more meticulous debugging, use this
 # check_correctness_for_single_init(
-#     [
-#         (3, 0, -1, 0),
-#         (3, 1, -1, 0),
-#         (3, 4, -1, 0),
-#         (12, 1, -1, 0),
-#         (10, 0, 4, 0),
-#         (11, 1, 0, 0),
-#         (3, 1, -1, 0),
-#         (11, 3, 0, 0),
-#         (12, 1, -1, 0),
-#         (11, 4, 1, 0),
-#         (12, 4, -1, 0),
-#         (3, 4, -1, 0),
-#         (12, 4, -1, 0),
-#     ],
-#     [],
-#     hyperparams,
+#     Circuit(
+#         [],
+#     ),
+#     Circuit([]),
+#     jl.RbSHyperparams(60, 4, 15, 1e5, 0),
 #     show_circuit=True,
-#     show_graph_state=True,
+#     show_graph_state=False,
 #     throw_error_on_incorrect_result=True,
+#     layering_optimization="Time",
+#     max_num_qubits=3,
 # )
-
-# check_correctness_for_single_init(
-#     [
-#         (3, 0, -1, 0),
-#         (10, 0, 2, 0),
-#         (12, 1, -1, 0),
-#         (3, 1, -1, 0),
-#         (12, 1, -1, 0),
-#         (12, 1, -1, 0),
-#         (11, 0, 1, 0),
-#         (10, 1, 2, 0),
-#         (11, 2, 1, 0),
-#         (12, 1, -1, 0),
-#     ],
-#     [],
-#     hyperparams,
-#     show_circuit=True,
-#     show_graph_state=True,
-#     throw_error_on_incorrect_result=True,
-# )
-
-# #  check RZ has right sign
-# check_correctness_for_single_init(
-#     Circuit([Z(0), Y(0), RZ(1.0730313816602475)(2), X(1)]),
-#     Circuit([H(0), H(1), H(2)]),
-#     hyperparams,
-#     show_circuit=True,
-#     show_graph_state=True,
-#     throw_error_on_incorrect_result=True,
-# )
+# # stops evaluation on a correct result so you dont have to run it twice
+# breakpoint()

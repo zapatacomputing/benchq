@@ -24,7 +24,7 @@ def space_time_cost_from_rbs(
     max_graph_size=None,
     teleportation_threshold=40,
     teleportation_distance=4,
-    min_neighbors=6,
+    min_neighbor_degree=6,
     max_num_neighbors_to_search=1e5,
     decomposition_strategy=1,
     circuit_prop_estimate=1.0,
@@ -46,7 +46,7 @@ def space_time_cost_from_rbs(
         max_graph_size (int): maximum number of nodes in the graph state
         teleportation_threshold (int): RBS hyperparam, see ruby_slippers.jl
         teleportation_distance (int): RBS hyperparam, see ruby_slippers.jl
-        min_neighbors (int): RBS hyperparam, see ruby_slippers.jl
+        min_neighbor_degree (int): RBS hyperparam, see ruby_slippers.jl
         max_num_neighbors_to_search (int): RBS hyperparam, see ruby_slippers.jl
         decomposition_strategy (int): RBS hyperparam, see ruby_slippers.jl
         circuit_prop_estimate (float): copying a large circuit to julia can take
@@ -69,7 +69,7 @@ def space_time_cost_from_rbs(
         max_graph_size,
         teleportation_threshold,
         teleportation_distance,
-        min_neighbors,
+        min_neighbor_degree,
         max_num_neighbors_to_search,
         decomposition_strategy,
         rbs_iteration_time,
@@ -129,7 +129,7 @@ def estimated_time_cost_from_rbs(
     max_graph_size=None,
     teleportation_threshold=40,
     teleportation_distance=4,
-    min_neighbors=6,
+    min_neighbor_degree=6,
     max_num_neighbors_to_search=1e5,
     decomposition_strategy=1,
     circuit_prop_estimate=1.0,
@@ -147,7 +147,7 @@ def estimated_time_cost_from_rbs(
         max_graph_size (int): maximum number of nodes in the graph state
         teleportation_threshold (int): RBS hyperparam, see ruby_slippers.jl
         teleportation_distance (int): RBS hyperparam, see ruby_slippers.jl
-        min_neighbors (int): RBS hyperparam, see ruby_slippers.jl
+        min_neighbor_degree (int): RBS hyperparam, see ruby_slippers.jl
         max_num_neighbors_to_search (int): RBS hyperparam, see ruby_slippers.jl
         decomposition_strategy (int): RBS hyperparam, see ruby_slippers.jl
         circuit_prop_estimate (float): copying a large circuit to julia can take
@@ -169,7 +169,7 @@ def estimated_time_cost_from_rbs(
         max_graph_size,
         teleportation_threshold,
         teleportation_distance,
-        min_neighbors,
+        min_neighbor_degree,
         max_num_neighbors_to_search,
         decomposition_strategy,
         rbs_iteration_time,
@@ -211,7 +211,7 @@ def create_space_time_objective_fn(
     def objective(trial):
         teleportation_threshold = trial.suggest_int("teleportation_threshold", 10, 70)
         teleportation_distance = trial.suggest_int("teleportation_distance", 1, 7)
-        min_neighbors = trial.suggest_int("min_neighbors", 1, 11)
+        min_neighbor_degree = trial.suggest_int("min_neighbor_degree", 1, 11)
         max_num_neighbors_to_search = trial.suggest_int(
             "max_num_neighbors_to_search", 10000, 100000
         )
@@ -228,7 +228,7 @@ def create_space_time_objective_fn(
             max_graph_size=None,
             teleportation_threshold=teleportation_threshold,
             teleportation_distance=teleportation_distance,
-            min_neighbors=min_neighbors,
+            min_neighbor_degree=min_neighbor_degree,
             max_num_neighbors_to_search=max_num_neighbors_to_search,
             decomposition_strategy=decomposition_strategy,
             circuit_prop_estimate=circuit_prop_estimate,
@@ -262,7 +262,7 @@ def create_estimated_rbs_time_objective_fn(
     def objective(trial):
         teleportation_threshold = trial.suggest_int("teleportation_threshold", 10, 70)
         teleportation_distance = trial.suggest_int("teleportation_distance", 1, 7)
-        min_neighbors = trial.suggest_int("min_neighbors", 1, 11)
+        min_neighbor_degree = trial.suggest_int("min_neighbor_degree", 1, 11)
         max_num_neighbors_to_search = trial.suggest_int(
             "max_num_neighbors_to_search", 10000, 100000
         )
@@ -277,7 +277,7 @@ def create_estimated_rbs_time_objective_fn(
             max_graph_size=None,
             teleportation_threshold=teleportation_threshold,
             teleportation_distance=teleportation_distance,
-            min_neighbors=min_neighbors,
+            min_neighbor_degree=min_neighbor_degree,
             max_num_neighbors_to_search=max_num_neighbors_to_search,
             decomposition_strategy=decomposition_strategy,
             circuit_prop_estimate=circuit_prop_estimate,

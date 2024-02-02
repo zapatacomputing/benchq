@@ -18,9 +18,9 @@ Returns:
     asg (AlgorithmSpecificGraph): graph after initialization
     pauli_tracker (PauliTracker): pauli tracker for the graph
 """
-function initialize_for_graph_input(max_graph_size, n_qubits, layering_optimization, layer_width)
+function initialize_for_graph_input(max_graph_size, n_qubits, layering_optimization, max_num_qubits)
     asg = AlgorithmSpecificGraphAllZero(max_graph_size, 0)
-    pauli_tracker = PauliTracker(0, layering_optimization, layer_width)
+    pauli_tracker = PauliTracker(0, layering_optimization, max_num_qubits)
     for _ = 1:n_qubits
         # create start to next buffer
         asg.n_nodes += 1
@@ -64,7 +64,7 @@ Attributes:
     pauli_tracker (PauliTracker): pauli tracker for the graph
     nodes_to_remove (Vector{UInt32}): nodes to be removed from the graph
 """
-function add_output_nodes!(asg, pauli_tracker, nodes_to_remove)
+function add_output_nodes!(asg, pauli_tracker, nodes_to_remove::Set{Qubit})
     data_nodes = collect(asg.stitching_properties.gate_output_nodes)
     for data_node in asg.stitching_properties.gate_output_nodes
         teleportation!(asg, data_node, pauli_tracker, default_hyperparams, 4)
@@ -107,7 +107,7 @@ Attributes:
     n_qubits (UInt32): number of qubits in the graph
     nodes_to_remove (Vector{UInt32}): nodes to be removed from the graph
 """
-function prune_buffer!(asg, pauli_tracker, n_qubits, nodes_to_remove)
+function prune_buffer!(asg, pauli_tracker, n_qubits, nodes_to_remove::Set{Qubit})
     for i = 1:n_qubits
         buffer_start = (i - 1) * (BUFFER_SIZE + 1) + 3
         buffer_end = i * (BUFFER_SIZE + 1) # +1 to include the data qubit
@@ -281,8 +281,10 @@ function stitch_graphs(asg_1, pauli_tracker_1, asg_2, pauli_tracker_2)
         asg_2.stitching_properties.takes_graph_input
     )
         error(
-            "Provided graphs don't have the correct types of " *
-            "inputs and outputs to be stitched",
+            """Provided graphs don't have the correct types of inputs and outputs to be stitched.
+            Graph 1 gives graph output: $(asg_1.stitching_properties.gives_graph_output)
+            Graph 2 takes graph input: $(asg_2.stitching_properties.takes_graph_input)
+            """,
         )
     end
     if (
@@ -290,8 +292,10 @@ function stitch_graphs(asg_1, pauli_tracker_1, asg_2, pauli_tracker_2)
         length(asg_2.stitching_properties.graph_input_nodes)
     )
         error(
-            "Provided graphs don't have the correct numbers inputs " *
-            "and outputs to be stitched",
+            """Provided graphs don't have the correct numbers of inputs and outputs to be stitched.
+            Outputs: $(asg_1.stitching_properties.graph_output_nodes)
+            Inputs: $(asg_2.stitching_properties.graph_input_nodes)
+            """,
         )
     end
 

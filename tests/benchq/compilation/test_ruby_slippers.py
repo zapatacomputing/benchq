@@ -91,7 +91,7 @@ def test_stabilizer_states_are_the_same_for_simple_circuits(circuit):
 
 
 @pytest.mark.parametrize(
-    "circuit, target_tocks, target_qubits, layering_optimization, width",
+    "circuit, target_tocks, target_qubits, layering_optimization, max_num_qubits",
     [
         (Circuit([H(0), CNOT(0, 1)]), 1, 2, "ST-Volume", -1),
         (Circuit([H(0)] + [CNOT(0, i) for i in range(4)]), 1, 4, "Time", -1),
@@ -105,7 +105,7 @@ def test_stabilizer_states_are_the_same_for_simple_circuits(circuit):
     ],
 )
 def test_tocks_and_qubits_are_correct(
-    circuit, target_tocks, target_qubits, layering_optimization, width
+    circuit, target_tocks, target_qubits, layering_optimization, max_num_qubits
 ):
     asg, num_consumption_tocks, num_logical_qubits, _ = jl.run_ruby_slippers(
         circuit,
@@ -114,7 +114,7 @@ def test_tocks_and_qubits_are_correct(
         layering_optimization=layering_optimization,
         verbose=False,
         teleportation_threshold=jl.UInt16(999),
-        layer_width=width,
+        max_num_qubits=max_num_qubits,
     )
 
     assert num_consumption_tocks == target_tocks

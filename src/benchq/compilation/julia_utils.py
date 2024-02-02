@@ -32,41 +32,46 @@ def get_nx_graph_from_rbs_adj_list(adj: list) -> nx.Graph:
 
 
 def get_algorithmic_graph_from_ruby_slippers(circuit: Circuit) -> nx.Graph:
-    lco, adj, _ = jl.run_ruby_slippers(circuit, True)
-
-    print("getting networkx graph from vertices")
-    start = time.time()
-    graph = get_nx_graph_from_rbs_adj_list(adj)
-    end = time.time()
-    print("time: ", end - start)
-
-    return graph
+    return get_ruby_slippers_compiler(True)(circuit)
 
 
 def get_ruby_slippers_compiler(
-    verbose=True,
-    max_graph_size=1e7,
-    teleportation_threshold=40,
-    min_neighbors=6,
-    teleportation_distance=4,
-    max_num_neighbors_to_search=1e5,
-    decomposition_strategy=1,
+    verbose: bool = True,
+    takes_graph_input: bool = True,
+    gives_graph_output: bool = True,
+    layering_optimization: str = "Time",
+    max_num_qubits: int = 1,
+    teleportation_threshold: int = 40,
+    teleportation_distance: int = 4,
+    min_neighbor_degree: int = 6,
+    max_num_neighbors_to_search: int = int(1e5),
+    decomposition_strategy: int = 0,
+    max_graph_size: int = 1e7,
 ):
     def _run_compiler(circuit: Circuit) -> nx.Graph:
-        lco, adj, _ = jl.run_ruby_slippers(
+        (
+            asg,
+            num_consumption_tocks,
+            num_logical_qubits,
+            _,
+        ) = jl.run_ruby_slippers(
             circuit,
-            verbose,
-            max_graph_size,
-            teleportation_threshold,
-            teleportation_distance,
-            min_neighbors,
-            max_num_neighbors_to_search,
-            decomposition_strategy,
+            verbose=verbose,
+            takes_graph_input=takes_graph_input,
+            gives_graph_output=gives_graph_output,
+            layering_optimization=layering_optimization,
+            max_num_qubits=max_num_qubits,
+            teleportation_threshold=teleportation_threshold,
+            teleportation_distance=teleportation_distance,
+            min_neighbor_degree=min_neighbor_degree,
+            max_num_neighbors_to_search=max_num_neighbors_to_search,
+            decomposition_strategy=decomposition_strategy,
+            max_graph_size=max_graph_size,
         )
 
         print("getting networkx graph from vertices")
         start = time.time()
-        graph = get_nx_graph_from_rbs_adj_list(adj)
+        graph = get_nx_graph_from_rbs_adj_list(asg["edge_data"])
         end = time.time()
         print("time: ", end - start)
 

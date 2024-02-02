@@ -209,7 +209,7 @@ def test_get_optimal_hyperparams_for_space(large_circuit):
     # on these numbers with the new, failed value and re-run
     assert 10 <= optimal_params["teleportation_threshold"] <= 70
     assert 1 <= optimal_params["teleportation_distance"] <= 7
-    assert 5 <= optimal_params["min_neighbors"] <= 11
+    assert 5 <= optimal_params["min_neighbor_degree"] <= 11
     assert 10064 <= optimal_params["max_num_neighbors_to_search"] <= 98798
     assert (
         optimal_params["decomposition_strategy"] == 0
@@ -234,7 +234,7 @@ def test_get_optimal_hyperparams_for_time(large_circuit):
     # on these numbers with the new, failed value and re-run
     assert 26 <= optimal_params["teleportation_threshold"] <= 69
     assert 1 <= optimal_params["teleportation_distance"] <= 6
-    assert 2 <= optimal_params["min_neighbors"] <= 11
+    assert 2 <= optimal_params["min_neighbor_degree"] <= 11
     assert 10323 <= optimal_params["max_num_neighbors_to_search"] <= 97971
     assert (
         optimal_params["decomposition_strategy"] == 0
@@ -259,7 +259,7 @@ def test_get_optimal_hyperparams_for_space_and_time(large_circuit):
     # on these numbers with the new, failed value and re-run
     assert 13 <= optimal_params["teleportation_threshold"] <= 70
     assert 1 <= optimal_params["teleportation_distance"] <= 7
-    assert 3 <= optimal_params["min_neighbors"] <= 11
+    assert 3 <= optimal_params["min_neighbor_degree"] <= 11
     assert 11991 <= optimal_params["max_num_neighbors_to_search"] <= 99154
     assert (
         optimal_params["decomposition_strategy"] == 0
@@ -283,7 +283,7 @@ def test_get_optimal_hyperparams_for_estimated_rbs_time(large_circuit):
     # on these numbers with the new, failed value and re-run
     assert 16 <= optimal_params["teleportation_threshold"] <= 70
     assert 1 <= optimal_params["teleportation_distance"] <= 7
-    assert 2 <= optimal_params["min_neighbors"] <= 11
+    assert 2 <= optimal_params["min_neighbor_degree"] <= 11
     assert 19544 <= optimal_params["max_num_neighbors_to_search"] <= 91836
     assert (
         optimal_params["decomposition_strategy"] == 0

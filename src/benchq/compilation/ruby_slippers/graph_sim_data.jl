@@ -26,7 +26,9 @@ get_qubit_1(op) = pyconvert(Int, op.qubit_indices[0]) + 1 # +1 because Julia is 
 get_qubit_2(op) = pyconvert(Int, op.qubit_indices[1]) + 1
 
 """Get Python version of op_list of to speed up getting index"""
-get_op_list() = pylist(["I", "S", "H", "N", "N", "N", "X", "Y", "Z", "CZ", "CNOT", "T", "T_Dagger", "RZ", "S_Dagger"])
+get_op_list() = pylist(
+    ["I", "S", "H", "N", "N", "N", "X", "Y", "Z", "CZ", "CNOT", "T", "T_Dagger", "RZ", "S_Dagger", "RX", "RY"]
+)
 
 """Get index of operation name"""
 get_op_index(op_list, op) = pyconvert(Int, op_list.index(op.gate.name)) + 1
@@ -35,7 +37,7 @@ pauli_op(index) = 1 <= index <= 4 # i.e. I, X, Y, Z
 single_qubit_op(index) = 1 <= index <= 9   # Paulis, H, S, S_Dagger
 double_qubit_op(index) = 10 <= index <= 11  # CZ, CNOT
 non_clifford_op(index) = 12 <= index < 15 # T, T_Dagger, RX, RY, RZ
-decompose_op(index) = index >= 15
+decompose_op(index) = index >= 15 # operations that must be decomposed to native gates
 
 
 function convert_orquestra_op_to_icm_ops(op, supported_ops=get_op_list())
@@ -51,9 +53,26 @@ function convert_orquestra_op_to_icm_ops(op, supported_ops=get_op_list())
             return [ICMOp(op_index, get_qubit_1(op))]
         end
     elseif decompose_op(op_index)
-        if op_index == 15
+        if op_index == 15 # S dagger
             qubit = get_qubit_1(op)
             return [ICMOp(Z_code, qubit), ICMOp(S_code, qubit)]
+        elseif op_index == 16 # RX
+            theta = pyconvert(Float64, op.params[0])
+            return [
+                ICMOp(H_code, get_qubit_1(op)),
+                RZOp(get_qubit_1(op), theta),
+                ICMOp(H_code, get_qubit_1(op)),
+            ]
+        elseif op_index == 17 # RY
+            theta = pyconvert(Float64, op.params[0])
+            return [
+                ICMOp(S_code, get_qubit_1(op)),
+                ICMOp(H_code, get_qubit_1(op)),
+                RZOp(get_qubit_1(op), theta),
+                ICMOp(H_code, get_qubit_1(op)),
+                ICMOp(S_code, get_qubit_1(op)),
+                ICMOp(Z_code, get_qubit_1(op)),
+            ]
         end
     else
         error("Unsupported gate: $(op.code)")
