@@ -7,7 +7,7 @@ import pytest
 from benchq.algorithms.time_evolution import _n_block_encodings_for_time_evolution
 from benchq.problem_embeddings import get_qsp_program
 from benchq.problem_ingestion import get_hamiltonian_from_file, get_vlasov_hamiltonian
-from benchq.problem_ingestion.molecule_hamiltonians import (
+from benchq.problem_ingestion.molecular_hamiltonians import (
     get_hydrogen_chain_hamiltonian_generator,
 )
 

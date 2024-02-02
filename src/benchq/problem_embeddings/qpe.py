@@ -7,7 +7,7 @@ from typing import Tuple
 import numpy as np
 from openfermion.resource_estimates import df, sf
 
-from benchq.problem_ingestion.molecule_hamiltonians import (
+from benchq.problem_ingestion.molecular_hamiltonians import (
     compute_lambda_df,
     compute_lambda_sf,
 )

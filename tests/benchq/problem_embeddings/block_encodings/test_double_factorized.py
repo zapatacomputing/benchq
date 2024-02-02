@@ -22,7 +22,7 @@ with warnings.catch_warnings():
 from benchq.problem_embeddings.block_encodings.double_factorized_hamiltonian import (
     get_double_factorized_hamiltonian_block_encoding,
 )
-from benchq.problem_ingestion.molecule_hamiltonians import (
+from benchq.problem_ingestion.molecular_hamiltonians import (
     get_hydrogen_chain_hamiltonian_generator,
 )
 

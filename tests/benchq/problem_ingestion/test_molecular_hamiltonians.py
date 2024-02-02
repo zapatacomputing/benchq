@@ -7,8 +7,10 @@ from benchq.mlflow.data_logging import create_mlflow_scf_callback
 from benchq.problem_ingestion.molecular_hamiltonians import (
     MolecularHamiltonianGenerator,
     SCFConvergenceError,
-    _get_molecular_data,
     get_hydrogen_chain_hamiltonian_generator,
+)
+from benchq.problem_ingestion.molecular_hamiltonians._hamiltonian_generation import (
+    _get_molecular_data,
 )
 
 
@@ -139,11 +141,12 @@ def test_get_active_space_meanfield_object_raises_scf_convergence_error(method):
     with pytest.raises(SCFConvergenceError):
         getattr(instance, method)()
 
+SRC = "benchq.problem_ingestion.molecular_hamiltonians._hamiltonian_generation"
 
 @pytest.fixture
 def patch_sdk_token():
     with patch(
-        "benchq.problem_ingestion.molecule_hamiltonians.instances."
+        SRC,
         "sdk.mlflow.get_tracking_token",
         autospec=True,
         return_value="fake",
@@ -154,7 +157,7 @@ def patch_sdk_token():
 @pytest.fixture
 def patch_sdk_uri():
     with patch(
-        "benchq.problem_ingestion.molecule_hamiltonians.instances."
+        SRC,
         "sdk.mlflow.get_tracking_uri",
         autospec=True,
         return_value=None,
@@ -165,7 +168,7 @@ def patch_sdk_uri():
 @pytest.fixture
 def patch_log_metric():
     with patch(
-        "benchq.problem_ingestion.molecule_hamiltonians.instances."
+        SRC,
         "MlflowClient.log_metric",
         autospec=True,
     ) as patched_log_metric:
@@ -175,7 +178,7 @@ def patch_log_metric():
 @pytest.fixture
 def patch_log_param():
     with patch(
-        "benchq.problem_ingestion.molecule_hamiltonians.instances."
+        SRC,
         "MlflowClient.log_param",
         autospec=True,
     ) as patched_log_param:

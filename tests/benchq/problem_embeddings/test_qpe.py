@@ -23,7 +23,7 @@ from benchq.problem_embeddings.qpe import (
     get_double_factorized_qpe_toffoli_and_qubit_cost,
     get_single_factorized_qpe_toffoli_and_qubit_cost,
 )
-from benchq.problem_ingestion.molecule_hamiltonians import (
+from benchq.problem_ingestion.molecular_hamiltonians import (
     get_hydrogen_chain_hamiltonian_generator,
 )
 from benchq.quantum_hardware_modeling import BasicArchitectureModel
