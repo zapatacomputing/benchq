@@ -136,6 +136,7 @@ def create_big_graph_from_subcircuits(
         big_circuit = program.full_circuit
         new_program = get_program_from_circuit(big_circuit)
         graph = graph_production_method(big_circuit)
+        print("Compilation complete.")
         return GraphPartition(new_program, [graph])
 
     return _transformer

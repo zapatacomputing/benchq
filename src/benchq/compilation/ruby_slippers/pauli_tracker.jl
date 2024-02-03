@@ -30,7 +30,7 @@ Holds data for tracking conditional Pauli operators through a circuit.
         index is the qubits in that layer. The qubits in each layer are
         measured in parallel.
     layering_optimization: String
-        The optimization used to calculate the layering. Can be "ST-Volume",
+        The optimization used to calculate the layering. Can be "Gansner",
         "Time", "Space", and "Variable".
     max_num_qubits: Int
         The width parameter used for the "Variable" optimization. Corresponds
@@ -439,22 +439,15 @@ Attributes:
         layering for a subgraph.
 """
 function calculate_layering!(pauli_tracker::PauliTracker, asg, ignored_nodes::Set{Qubit}, verbose::Bool=false)
+    verbose && println("Scheduling single qubit measurements...")
     nodes_to_include = Vector{Qubit}([node for node = 1:pauli_tracker.n_nodes if !(node in ignored_nodes)])
 
-    if pauli_tracker.layering_optimization == "ST-Volume"
-        verbose && println("Calculating Gansner layering...")
-        output_nodes = asg.stitching_properties.graph_output_nodes
-        measurement_dag =
-            get_sparse_measurement_dag(pauli_tracker, output_nodes, nodes_to_include, verbose)
-        pauli_tracker.layering =
-            gansner_layering(measurement_dag, pauli_tracker.n_nodes, nodes_to_include)
-    elseif pauli_tracker.layering_optimization == "Time"
+    if pauli_tracker.layering_optimization == "Time"
         verbose && println("Calculating time optimized layering...")
         output_nodes = asg.stitching_properties.graph_output_nodes
-        measurement_dag =
-            get_sparse_measurement_dag(pauli_tracker, output_nodes, nodes_to_include, verbose)
+        sparse_dag = get_sparse_measurement_dag(pauli_tracker, output_nodes, nodes_to_include, verbose)
         pauli_tracker.layering =
-            longest_path_layering(measurement_dag, asg.n_nodes, nodes_to_include, verbose)
+            unadjustable_coffman_grahm(sparse_dag, asg, nodes_to_include, verbose)
     elseif pauli_tracker.layering_optimization == "Space"
         verbose && println("Calculating space optimized layering...")
         output_nodes = asg.stitching_properties.graph_output_nodes
@@ -462,15 +455,16 @@ function calculate_layering!(pauli_tracker::PauliTracker, asg, ignored_nodes::Se
         measurement_dag = get_simple_measurement_dag(pauli_tracker, nodes_to_include, verbose)
         reverse_dag = reverseDAG(measurement_dag, verbose)
         sparse_dag = get_sparse_measurement_dag(pauli_tracker, output_nodes, nodes_to_include, verbose)
+
         pauli_tracker.layering =
             variable_width(measurement_dag, reverse_dag, sparse_dag, asg, 1, nodes_to_include, verbose)
     elseif pauli_tracker.layering_optimization == "Variable"
-        verbose && println("Calculating layering with $(pauli_tracker.max_num_qubits) ...")
+        verbose && println("Calculating layering with $(pauli_tracker.max_num_qubits) qubits...")
         output_nodes = asg.stitching_properties.graph_output_nodes
 
         measurement_dag = get_simple_measurement_dag(pauli_tracker, nodes_to_include, verbose)
-        reverse_dag = reverseDAG(measurement_dag)
         sparse_dag = get_sparse_measurement_dag(pauli_tracker, output_nodes, nodes_to_include, verbose)
+        reverse_dag = reverseDAG(sparse_dag)
 
         pauli_tracker.layering = variable_width(
             measurement_dag,
@@ -481,9 +475,26 @@ function calculate_layering!(pauli_tracker::PauliTracker, asg, ignored_nodes::Se
             nodes_to_include,
             verbose,
         )
+    elseif pauli_tracker.layering_optimization == "Gansner"
+        verbose && println("Calculating Gansner layering...")
+        output_nodes = asg.stitching_properties.graph_output_nodes
+        measurement_dag =
+            get_sparse_measurement_dag(pauli_tracker, output_nodes, nodes_to_include, verbose)
+        pauli_tracker.layering =
+            gansner_layering(measurement_dag, pauli_tracker.n_nodes, nodes_to_include)
+    elseif pauli_tracker.layering_optimization == "Longest Path"
+        verbose && println("Calculating longest path layering...")
+        output_nodes = asg.stitching_properties.graph_output_nodes
+        measurement_dag =
+            get_sparse_measurement_dag(pauli_tracker, output_nodes, nodes_to_include, verbose)
+        reverse_dag = reverseDAG(measurement_dag, verbose)
+        pauli_tracker.layering =
+            longest_path_layering(measurement_dag, reverse_dag, n_nodes, nodes_to_include, verbose)
     else
         error("Invalid layering optimization.")
     end
+
+    verbose && println("Layering complete.")
 end
 
 function gansner_layering(measurement_dag, n_nodes, nodes_to_include)
@@ -549,6 +560,39 @@ function depth_first_sort(measurement_dag, n_nodes, nodes_to_include)
 end
 
 """
+Given a DAG, finds  layering in the dag which minimizes the width due to
+the ASG adding nodes to the DAG. This is done by finding the first layer in
+the graph that can accommodate each node as it is created. If it cannot find
+a layer with sufficently small width, then it will increase the width of the
+layering to fit the node at the last layer currently being laid.
+"""
+function unadjustable_coffman_grahm(measurement_dag, asg, nodes_to_include, verbose)
+    layering = [[] for _ in range(1, asg.n_nodes)]
+    inv_layering = zeros(UInt, asg.n_nodes)
+
+    max_layer = 1
+    for node in VerboseIterator(
+        depth_first_sort(measurement_dag, asg.n_nodes, nodes_to_include),
+        verbose,
+        "Creating time optimal layering..."
+    )
+        # Find the maximum layer of the neighbors
+        min_layer = 1
+        for neighbor in measurement_dag[node]
+            min_layer = max(min_layer, inv_layering[neighbor] + 1)
+        end
+
+        # Update the rank of the node
+        push!(layering[min_layer], node)
+        inv_layering[node] = min_layer
+        max_layer = max(max_layer, min_layer)
+    end
+
+    println("max_layer: ", max_layer)
+    return resize!(layering, max_layer)
+end
+
+"""
 Create the layering based on the longest path in the DAG. This is done by
 finding the longest path from a source to each node. The layer of each node
 is then determined by the longest path from a source.
@@ -565,10 +609,10 @@ Attributes:
 Returns:
     longest_path (Vector{Vector{Qubit}}): The layer of each node in the DAG.
 """
-function longest_path_layering(measurement_dag, n_nodes, nodes_to_include::Vector{Qubit}, verbose::Bool=false)
+function longest_path_layering(measurement_dag, reverse_dag, n_nodes, nodes_to_include::Vector{Qubit}, verbose::Bool=false)
     longest_path = zeros(Qubit, n_nodes)
 
-    sorted_nodes = reverse(depth_first_sort(measurement_dag, n_nodes, nodes_to_include))
+    sorted_nodes = depth_first_sort(reverse_dag, n_nodes, nodes_to_include)
     nodes_to_include = Set(nodes_to_include)
 
     final_layer = 0
@@ -591,6 +635,8 @@ function longest_path_layering(measurement_dag, n_nodes, nodes_to_include::Vecto
 
     return layers
 end
+
+
 
 """
 Kahn's algorithm for topological sorting. This is used to find the layering
@@ -632,8 +678,7 @@ function kahns_algorithm(
         end
     end
     # start with nodes that require the smallest neighborhoods
-    sort!(queue, by=x -> length(asg.edge_data[x]))
-    remaining_node_degrees = [length(asg.edge_data[node]) for node in 1:n_nodes]
+    # sort!(queue, by=x -> length(asg.edge_data[x]))
 
     ordering = Vector{Qubit}([])
 
@@ -644,7 +689,8 @@ function kahns_algorithm(
         start_time = time()
     end
 
-    scheduled_nodes = Set{Qubit}([])
+    curr_physical_nodes = Set{Qubit}([])
+    measured_nodes = Set{Qubit}([])
 
     while !isempty(queue)
         # add nodes with the smallest neighborhoods first. This will help
@@ -653,20 +699,28 @@ function kahns_algorithm(
         # measure the large nodes.
         node = queue[1]
         min_pos = 1
-        min_remaining_degree = remaining_node_degrees[node]
+        min_node_cost = 1000000000
+        # Calculate which qubits would exist if we added this node
         for (pos, possible_node) in enumerate(queue)
-            if remaining_node_degrees[possible_node] < min_remaining_degree
+            new_nodes_to_add = setdiff(get_neighborhood(possible_node, asg), measured_nodes)
+            num_qubits_after_adding_node = length(union(curr_physical_nodes, new_nodes_to_add))
+            if num_qubits_after_adding_node < min_node_cost
                 node = possible_node
                 min_pos = pos
-                min_remaining_degree = remaining_node_degrees[possible_node]
+                min_node_cost = num_qubits_after_adding_node
             end
-            if min_remaining_degree == 0
+            if num_qubits_after_adding_node < 5
                 break
             end
         end
         deleteat!(queue, min_pos)
 
-        # add all nodes in the queue to the ordering
+        # update the current physical nodes to reflect the addition of the new node
+        new_nodes_to_add = setdiff(get_neighborhood([node], asg), measured_nodes)
+        union!(curr_physical_nodes, new_nodes_to_add)
+        push!(measured_nodes, node)
+        setdiff!(curr_physical_nodes, measured_nodes)
+
         push!(ordering, node)
         for neighbor in reverse_dag[node]
             in_degree[neighbor] -= 1
@@ -674,20 +728,16 @@ function kahns_algorithm(
                 push!(queue, neighbor)
             end
         end
-        for neighbor in asg.edge_data[node]
-            remaining_node_degrees[neighbor] -= 1
-        end
 
         # Show progress in real time
-        elapsed_time = time() - start_time
-        if verbose
-            counter += 1
-            if (dispcnt += 1) >= 1000
-                percent = round(Int, 100 * counter / total_length)
-                display_elapsed = round(elapsed_time, digits=2)
-                print("\r$(percent)% ($counter) completed in $erase_line$(display_elapsed)s")
-                dispcnt = 0
-            end
+        counter += 1
+        dispcnt += 1
+
+        if verbose && dispcnt >= 1000
+            percent = round(Int, 100 * counter / total_length)
+            elapsed_time = round(time() - start_time, digits=2)
+            print("\r$(percent)% ($counter) completed in $(elapsed_time)s")
+            dispcnt = 0  # Reset display counter
         end
     end
 
@@ -697,6 +747,11 @@ function kahns_algorithm(
     end
 
     return ordering
+end
+
+function get_new_num_node_after_adding_qubit(new_qubit, asg, curr_physical_nodes, measured_nodes)
+    new_nodes_to_add = setdiff(get_neighborhood(new_qubit, asg), measured_nodes)
+    return length(union(curr_physical_nodes, new_nodes_to_add))
 end
 
 """
@@ -768,17 +823,17 @@ Get the number of logical qubits in the circuit. This is done by finding
 the maximum number of physical qubits which are connected to each other
 through the conditional Pauli operators at each layer of the pauli tracker.
 """
-function get_num_logical_qubits(layering, asg)
+function get_num_logical_qubits(layering, asg, verbose=false)
     curr_physical_nodes = get_neighborhood(layering[1], asg)
     n_logical_qubits = length(curr_physical_nodes)
     measured_nodes = Set{Qubit}([])
 
     # iterate through every pair of consecutive layers
-    for i in 1:length(layering)-1
+    for i in VerboseIterator(1:length(layering)-1, verbose, "Calculating number of logical qubits...")
         union!(measured_nodes, layering[i])
         added_nodes = layering[i+1]
 
-        setdiff!(curr_physical_nodes, measured_nodes)
+        setdiff!(curr_physical_nodes, layering[i])
         new_nodes_to_add = setdiff(get_neighborhood(added_nodes, asg), measured_nodes)
         union!(curr_physical_nodes, new_nodes_to_add)
 

@@ -129,7 +129,7 @@ function run_ruby_slippers(
     end
 
     if proportion == 1.0
-        num_logical_qubits = get_num_logical_qubits(pauli_tracker.layering, asg)
+        num_logical_qubits = get_num_logical_qubits(pauli_tracker.layering, asg, verbose)
         num_consumption_tocks = length(pauli_tracker.layering)
         println("Number of consumption tocks: ", num_consumption_tocks)
         println("Number of logical qubits: ", num_logical_qubits)
@@ -308,13 +308,13 @@ function get_graph_state_data(
         prune_buffer!(asg, pauli_tracker, n_qubits, nodes_to_remove)
     end
 
-    if verbose
-        println("Scheduling single qubit measurements...")
-    end
     calculate_layering!(pauli_tracker, asg, nodes_to_remove, verbose)
+    verbose && println("Deleting excess space from data structures...")
     delete_excess_asg_space!(asg)
+    verbose && println("Minimizing node labels for manual stitching...")
 
     if manually_stitchable
+        verbose && println("Minimizing node labels for manual stitching...")
         asg, pauli_tracker = minimize_node_labels!(asg, pauli_tracker, nodes_to_remove)
     end
 

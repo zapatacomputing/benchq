@@ -47,7 +47,7 @@ def main():
         # operator = get_vlasov_hamiltonian(N=N, k=2.0, alpha=0.6, nu=0)
 
         # Alternative operator: 1D Heisenberg model
-        N = 2
+        N = 100
         operator = generate_1d_heisenberg_hamiltonian(N)
 
     print("Operator generation time:", t_info.total)
