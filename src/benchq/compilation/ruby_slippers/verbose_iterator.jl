@@ -36,8 +36,15 @@ function Base.iterate(vi::VerboseIterable, state=(1, time(), 0, 0, false))  # In
 
     item = iterable[idx]
     idx += 1
+    counter += 1
+    dispcnt += 1
 
-    update_verbose_iterator_display(counter, total_length, start_time, dispcnt, verbose)
+    if verbose && dispcnt >= 1000
+        percent = round(Int, 100 * counter / total_length)
+        elapsed_time = round(time() - start_time, digits=2)
+        print("\r$(percent)% ($counter) completed in $(elapsed_time)s")
+        dispcnt = 0  # Reset display counter
+    end
 
     return (item, (idx, start_time, counter, dispcnt, first_item_completed))
 end

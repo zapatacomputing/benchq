@@ -681,6 +681,7 @@ function kahns_algorithm(
     # sort!(queue, by=x -> length(asg.edge_data[x]))
 
     ordering = Vector{Qubit}([])
+    remaining_node_degrees = [length(asg.edge_data[node]) for node in 1:asg.n_nodes]
 
     if verbose
         println("Performing topological sort via Kahn's Algorithm...")
@@ -688,9 +689,6 @@ function kahns_algorithm(
         counter = dispcnt = 0
         start_time = time()
     end
-
-    curr_physical_nodes = Set{Qubit}([])
-    measured_nodes = Set{Qubit}([])
 
     while !isempty(queue)
         # add nodes with the smallest neighborhoods first. This will help
@@ -702,24 +700,17 @@ function kahns_algorithm(
         min_node_cost = 1000000000
         # Calculate which qubits would exist if we added this node
         for (pos, possible_node) in enumerate(queue)
-            new_nodes_to_add = setdiff(get_neighborhood(possible_node, asg), measured_nodes)
-            num_qubits_after_adding_node = length(union(curr_physical_nodes, new_nodes_to_add))
-            if num_qubits_after_adding_node < min_node_cost
+            possible_node_cost = remaining_node_degrees[possible_node]
+            if possible_node_cost < min_node_cost
                 node = possible_node
                 min_pos = pos
-                min_node_cost = num_qubits_after_adding_node
+                min_node_cost = possible_node_cost
             end
-            if num_qubits_after_adding_node < 5
+            if min_node_cost < 1
                 break
             end
         end
         deleteat!(queue, min_pos)
-
-        # update the current physical nodes to reflect the addition of the new node
-        new_nodes_to_add = setdiff(get_neighborhood([node], asg), measured_nodes)
-        union!(curr_physical_nodes, new_nodes_to_add)
-        push!(measured_nodes, node)
-        setdiff!(curr_physical_nodes, measured_nodes)
 
         push!(ordering, node)
         for neighbor in reverse_dag[node]
@@ -727,6 +718,9 @@ function kahns_algorithm(
             if in_degree[neighbor] == 0
                 push!(queue, neighbor)
             end
+        end
+        for neighbor in asg.edge_data[node]
+            remaining_node_degrees[neighbor] -= 1
         end
 
         # Show progress in real time

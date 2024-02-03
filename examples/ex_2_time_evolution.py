@@ -66,7 +66,7 @@ def main():
     # which we call "delayed gate synthesis".
 
     compiler = get_ruby_slippers_compiler(
-        layering_optimization="Time",
+        layering_optimization="Space",
     )
     # with measure_time() as t_info:
     #     gsc_resource_estimates = get_custom_resource_estimation(
