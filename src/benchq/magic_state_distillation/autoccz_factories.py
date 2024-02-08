@@ -10,9 +10,21 @@ from .magic_state_factory import MagicStateFactory
 
 def iter_auto_ccz_factories(
     physical_qubit_error_rate: float,
+    max_l1_distance: int = 24,
+    max_l2_distance: int = 40,
 ) -> Iterator[MagicStateFactory]:
-    for l1_distance in range(5, 25, 2):
-        for l2_distance in range(l1_distance + 2, 41, 2):
+    """Iterate over AutoCCZ factories with different code distances.
+
+    The minimum code distance for the first layer is 5 and the minimum code distance for
+    the second layer is the first layer distance plus 2.
+    
+    Args:
+        physical_qubit_error_rate: The physical qubit error rate.
+        max_l1_distance: The maximum code distance for the first layer. Defaults to 24.
+        max_l2_distance: The maximum code distance for the second layer.
+    """
+    for l1_distance in range(5, max_l1_distance + 1, 2):
+        for l2_distance in range(l1_distance + 2, max_l2_distance + 1, 2):
             w, h, d = _autoccz_or_t_factory_dimensions(
                 l1_distance=l1_distance, l2_distance=l2_distance
             )

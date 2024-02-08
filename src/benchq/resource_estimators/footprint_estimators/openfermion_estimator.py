@@ -124,6 +124,7 @@ def _cost_estimator(
     hardware_failure_tolerance: float = 1e-3,
     factory_count: int = 4,
     magic_state_factory_iterator: Optional[Iterable[MagicStateFactory]] = None,
+    max_logical_data_qubit_code_distance: int = 100,
 ):
     """
     Produce best cost in terms of physical qubits and real run time based on
@@ -139,7 +140,7 @@ def _cost_estimator(
     best_cost = None
     best_params = None
     for factory in magic_state_factory_iterator:
-        for logical_data_qubit_distance in range(7, 101, 2):
+        for logical_data_qubit_distance in range(7, max_logical_data_qubit_code_distance, 2):
             params = AlgorithmParameters(
                 physical_error_rate=physical_error_rate,
                 surface_code_cycle_time=surface_code_cycle_time,
@@ -183,6 +184,7 @@ def footprint_estimator(
     hardware_failure_tolerance=1e-3,
     factory_count: int = 4,
     magic_state_factory_iterator: Optional[Iterable[MagicStateFactory]] = None,
+    max_logical_data_qubit_code_distance: int = 100,
     decoder_model=None,
 ) -> OpenFermionResourceInfo:
     """Get the estimated resources for single factorized QPE as described in PRX Quantum
@@ -191,8 +193,24 @@ def footprint_estimator(
     Args:
         num_toffoli: The number of Toffoli gates required.
         num_logical_qubits: The number of logical qubits required.
+        num_t: The number of T gates required.
+        architecture_model: The architecture model.
+        routing_overhead_proportion: The proportion of routing overhead.
+        hardware_failure_tolerance: The hardware failure tolerance.
+        factory_count: The number of magic state distillation factories.
+        magic_state_factory_iterator: An iterator over candidate magic state
+            distillation factories.
+        max_logical_data_qubit_code_distance: The maximum logical data qubit code
+            distance.
+
     Returns:
-        The estimated physical qubits, runtime, and other resource estimation info.
+        The estimated minimum resources required in order to obtain a failure rate
+            below the specified tolerance.
+    
+    Raises:
+        RuntimeError: If none of the candidate factories and code distances yield a
+            failure probability below the hardware failure tolerance.
+        ValueError: If the circuit contains no T gates or Toffoli gates.
     """
 
     best_cost, best_params = _cost_estimator(
@@ -205,6 +223,7 @@ def footprint_estimator(
         hardware_failure_tolerance=hardware_failure_tolerance,
         factory_count=factory_count,
         magic_state_factory_iterator=magic_state_factory_iterator,
+        max_logical_data_qubit_code_distance=max_logical_data_qubit_code_distance,
     )
 
     decoder_info = get_decoder_info(
