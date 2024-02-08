@@ -3,7 +3,8 @@
 ################################################################################
 from typing import Callable, Sequence
 
-from orquestra.quantum.circuits import Circuit, GateOperation, ResetOperation
+from orquestra.quantum.circuits import Circuit, GateOperation, ResetOperation, I
+from copy import copy
 
 
 class QuantumProgram:
@@ -110,4 +111,41 @@ class QuantumProgram:
 def get_program_from_circuit(circuit: Circuit):
     return QuantumProgram(
         [circuit], steps=1, calculate_subroutine_sequence=lambda x: [0]
+    )
+
+
+def split_large_subroutines_into_smaller_subroutines(
+    program: QuantumProgram, max_size: int
+) -> QuantumProgram:
+    new_subroutines = []
+    subroutine_splits = [[] for _ in range(len(program.subroutines))]
+    num_new_subroutines = 0
+    n_qubits = program.subroutines[0].n_qubits
+    for i, sub in enumerate(program.subroutines):
+        if len(sub.operations) > max_size:
+            for j in range(0, len(sub.operations), max_size):
+                new_subroutines.append(
+                    Circuit(sub._operations[j : j + max_size] + [I(n_qubits - 1)])
+                )
+                subroutine_splits[i].append(
+                    len(program.subroutines) - 1 + num_new_subroutines
+                )
+                num_new_subroutines += 1
+        else:
+            new_subroutines.append(sub)
+            subroutine_splits[i] = [i]
+
+    old_calculate_subroutine_sequence = copy(program.calculate_subroutine_sequence)
+
+    def calculate_split_subroutine_sequence(steps: int) -> Sequence[int]:
+        new_sequence = []
+        for i in old_calculate_subroutine_sequence(steps):
+            for j in subroutine_splits[i]:
+                new_sequence.append(j)
+        return new_sequence
+
+    return QuantumProgram(
+        new_subroutines,
+        steps=program.steps,
+        calculate_subroutine_sequence=calculate_split_subroutine_sequence,
     )

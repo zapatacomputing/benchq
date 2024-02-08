@@ -20,7 +20,7 @@ def _get_steps(tau, req_prec):
 
 
 def _n_block_encodings_for_time_evolution(hamiltonian, time, failure_tolerance):
-    pyliqtr_operator = openfermion_to_pyliqtr(to_openfermion(hamiltonian))
+    pyliqtr_operator = hamiltonian
 
     tau = time * pyliqtr_operator.alpha
     steps = _get_steps(tau, failure_tolerance)

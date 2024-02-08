@@ -27,7 +27,7 @@ get_qubit_2(op) = pyconvert(Int, op.qubit_indices[1]) + 1
 
 """Get Python version of op_list of to speed up getting index"""
 get_op_list() = pylist(
-    ["I", "S", "H", "N", "N", "N", "X", "Y", "Z", "CZ", "CNOT", "T", "T_Dagger", "RZ", "S_Dagger", "RX", "RY"]
+    ["I", "S", "H", "N", "N", "N", "X", "Y", "Z", "CZ", "CNOT", "T", "T_Dagger", "RZ", "S_Dagger", "RX", "RY", "SX", "SX_Dagger"]
 )
 
 """Get index of operation name"""
@@ -72,6 +72,19 @@ function convert_orquestra_op_to_icm_ops(op, supported_ops=get_op_list())
                 ICMOp(H_code, get_qubit_1(op)),
                 ICMOp(S_code, get_qubit_1(op)),
                 ICMOp(Z_code, get_qubit_1(op)),
+            ]
+        elseif op_index == 18 # SX
+            return [
+                ICMOp(H_code, get_qubit_1(op)),
+                ICMOp(S_code, get_qubit_1(op)),
+                ICMOp(H_code, get_qubit_1(op)),
+            ]
+        elseif op_index == 19 # SX_Dagger
+            return [
+                ICMOp(H_code, get_qubit_1(op)),
+                ICMOp(S_code, get_qubit_1(op)),
+                ICMOp(Z_code, get_qubit_1(op)),
+                ICMOp(H_code, get_qubit_1(op)),
             ]
         end
     else
