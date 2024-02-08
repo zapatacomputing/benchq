@@ -147,7 +147,7 @@ ghz_circuit = Circuit([H(0), CNOT(0, 1), CNOT(0, 2)])
 
 
 @SKIP_SLOW
-@pytest.mark.parametrize("optimization", ["ST-Volume", "Space", "Time", "Variable"])
+@pytest.mark.parametrize("optimization", ["Gansner", "Space", "Time", "Variable"])
 @pytest.mark.parametrize(
     "init",
     [
@@ -261,7 +261,7 @@ def test_triple_stitched_circuit_produces_correct_result(
     )
 
 
-@pytest.mark.parametrize("optimization", ["ST-Volume", "Space", "Time", "Variable"])
+@pytest.mark.parametrize("optimization", ["Gansner", "Space", "Time", "Variable"])
 @pytest.mark.parametrize(
     "circuit_1, circuit_2",
     [

@@ -93,14 +93,14 @@ def test_stabilizer_states_are_the_same_for_simple_circuits(circuit):
 @pytest.mark.parametrize(
     "circuit, target_tocks, target_qubits, layering_optimization, max_num_qubits",
     [
-        (Circuit([H(0), CNOT(0, 1)]), 1, 2, "ST-Volume", -1),
+        (Circuit([H(0), CNOT(0, 1)]), 1, 2, "Gansner", -1),
         (Circuit([H(0)] + [CNOT(0, i) for i in range(4)]), 1, 4, "Time", -1),
         (Circuit([H(0)] + [CNOT(0, i) for i in range(4)]), 4, 2, "Space", -1),
-        (Circuit([H(0)] + [CNOT(0, i) for i in range(4)]), 1, 4, "ST-Volume", -1),
+        (Circuit([H(0)] + [CNOT(0, i) for i in range(4)]), 1, 4, "Gansner", -1),
         (Circuit([H(0)] + [CNOT(0, i) for i in range(4)]), 2, 3, "Variable", 2),
         (Circuit([H(0), T(0)] * 3), 3, 2, "Time", -1),
         (Circuit([H(0), T(0)] * 3), 4, 2, "Space", -1),
-        (Circuit([H(0), T(0)] * 3), 4, 2, "ST-Volume", -1),
+        (Circuit([H(0), T(0)] * 3), 4, 2, "Gansner", -1),
         (Circuit([H(0), T(0)] * 3), 3, 3, "Variable", 2),
     ],
 )

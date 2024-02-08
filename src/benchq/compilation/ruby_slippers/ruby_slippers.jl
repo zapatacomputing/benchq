@@ -131,9 +131,8 @@ function run_ruby_slippers(
     if proportion == 1.0
         num_logical_qubits = get_num_logical_qubits(pauli_tracker.layering, asg, verbose)
         num_consumption_tocks = length(pauli_tracker.layering)
-        println("Number of consumption tocks: ", num_consumption_tocks)
-        println("Number of logical qubits: ", num_logical_qubits)
-        println("Max graph degree: ", maximum([length(adj) for adj in asg.edge_data]) - 1)
+        println("True number of consumption tocks: ", num_consumption_tocks)
+        println("True number of logical qubits: ", num_logical_qubits)
         return python_asg(asg), num_consumption_tocks, num_logical_qubits, proportion
     else
         # if we did not finish compiling the circuit, return the proportion of the circuit
@@ -309,9 +308,7 @@ function get_graph_state_data(
     end
 
     calculate_layering!(pauli_tracker, asg, nodes_to_remove, verbose)
-    verbose && println("Deleting excess space from data structures...")
     delete_excess_asg_space!(asg)
-    verbose && println("Minimizing node labels for manual stitching...")
 
     if manually_stitchable
         verbose && println("Minimizing node labels for manual stitching...")

@@ -1,6 +1,10 @@
 ################################################################################
 # © Copyright 2022-2023 Zapata Computing Inc.
 ################################################################################
+using Pkg
+Pkg.add("Memoize")
+using Memoize
+
 """
 Holds data for tracking conditional Pauli operators through a circuit.
 
@@ -193,140 +197,31 @@ Attributes:
 Returns:
     predecessors (Set{Qubit}): All the nodes which depend on the base node.
 """
-function get_predecessors_iterative(pauli_tracker::PauliTracker, initial_target, initial_predecessors)::Set{Qubit}
-    # Initialize a stack with the initial target
-    stack = [initial_target]
-    predecessors = copy(initial_predecessors)
-    curr_recursion_level = 0
-    max_recursion_level = 10
-
-    while !isempty(stack) && curr_recursion_level <= max_recursion_level
-        target = pop!(stack)
-        non_clifford_measurement = pauli_tracker.measurements[target][1] in non_clifford_gate_codes
-        is_x_target = pauli_tracker.cond_paulis[target][1] != []
-
-        if non_clifford_measurement
-            push!(predecessors, target)
-            append!(stack, pauli_tracker.cond_paulis[target][2])
-        else
-            if pauli_tracker.measurements[target][1] == H_code || pauli_tracker.measurements[target][1] == I_code
-                push!(predecessors, target)
-                append!(stack, pauli_tracker.cond_paulis[target][2])
+function dag_filler_factory(pauli_tracker, output_nodes_set)
+    @memoize function fill_dag_for_this_node(target::Qubit)
+        predecessors = Set{Qubit}(target)
+        if pauli_tracker.measurements[target][1] in non_clifford_gate_codes || target in output_nodes_set
+            for predecessor in pauli_tracker.cond_paulis[target][2]
+                union!(predecessors, fill_dag_for_this_node(predecessor))
             end
-        end
-
-        curr_recursion_level += 1
-    end
-
-    # Handle the case when the recursion limit is reached
-    if curr_recursion_level > max_recursion_level
-        for target in stack
-            union!(predecessors, pauli_tracker.cond_paulis[target][2])
-        end
-    end
-
-    return predecessors
-end
-
-
-
-function fill_dag_for_this_node!(
-    new_target::Qubit,
-    pauli_tracker::PauliTracker,
-    output_nodes_set::Set{Qubit},
-    second_level_dag,
-)
-    stack = [new_target]
-    predecessors = Set{Qubit}([])
-
-    while !isempty(stack)
-        target = pop!(stack)
-        push!(predecessors, target)
-
-        if isempty(second_level_dag[target])
-            if pauli_tracker.measurements[target][1] in non_clifford_gate_codes || target in output_nodes_set
-                append!(stack, pauli_tracker.cond_paulis[target][2])
-            else
-                # We always insert a hadamard gate before the measurement
-                # so we must follow the x edges up the tree for H_code
-                # and z edges up the tree for I_code.
-                if pauli_tracker.measurements[target][1] == H_code
-                    append!(stack, pauli_tracker.cond_paulis[target][1])
-                elseif pauli_tracker.measurements[target][1] == I_code
-                    append!(stack, pauli_tracker.cond_paulis[target][2])
+        else
+            # We always insert a hadamard gate before the measurement
+            # so we must follow the x edges up the tree for H_code
+            # and z edges up the tree for I_code.
+            if pauli_tracker.measurements[target][1] == H_code
+                for predecessor in pauli_tracker.cond_paulis[target][1]
+                    union!(predecessors, fill_dag_for_this_node(predecessor))
+                end
+            elseif pauli_tracker.measurements[target][1] == I_code
+                for predecessor in pauli_tracker.cond_paulis[target][2]
+                    union!(predecessors, fill_dag_for_this_node(predecessor))
                 end
             end
-            println("stack: ", stack)
-        else
-            union!(predecessors, second_level_dag[predecessor])
         end
+
+        return predecessors
     end
-
-    return predecessors
-end
-
-# function dag_filler_factory(pauli_tracker::PauliTracker, output_nodes_set::Set{Qubit}, second_level_dag)
-#     return @memoize function fill_dag_for_this_node(new_target::Qubit)
-#         stack = [new_target]
-#         predecessors = Set{Qubit}([])
-
-#         while !isempty(stack)
-#             target = pop!(stack)
-#             push!(predecessors, target)
-
-#             if pauli_tracker.measurements[target][1] in non_clifford_gate_codes || target in output_nodes_set
-#                 append!(stack, pauli_tracker.cond_paulis[target][2])
-#             else
-#                 # We always insert a hadamard gate before the measurement
-#                 # so we must follow the x edges up the tree for H_code
-#                 # and z edges up the tree for I_code.
-#                 if pauli_tracker.measurements[target][1] == H_code
-#                     append!(stack, pauli_tracker.cond_paulis[target][1])
-#                 elseif pauli_tracker.measurements[target][1] == I_code
-#                     append!(stack, pauli_tracker.cond_paulis[target][2])
-#                 end
-#             end
-#         end
-
-#         return predecessors
-#     end
-# end
-
-function fill_dag_for_this_node!(
-    new_target::Qubit,
-    pauli_tracker::PauliTracker,
-    output_nodes_set::Set{Qubit},
-    second_level_dag,
-)
-    stack = [new_target]
-    predecessors = Set{Qubit}([])
-
-    while !isempty(stack)
-        target = pop!(stack)
-        push!(predecessors, target)
-
-        if isempty(second_level_dag[target])
-            if pauli_tracker.measurements[target][1] in non_clifford_gate_codes || target in output_nodes_set
-                append!(stack, pauli_tracker.cond_paulis[target][2])
-            else
-                # We always insert a hadamard gate before the measurement
-                # so we must follow the x edges up the tree for H_code
-                # and z edges up the tree for I_code.
-                if pauli_tracker.measurements[target][1] == H_code
-                    append!(stack, pauli_tracker.cond_paulis[target][1])
-                elseif pauli_tracker.measurements[target][1] == I_code
-                    append!(stack, pauli_tracker.cond_paulis[target][2])
-                end
-            end
-            # println("stack: ", stack)
-        else
-            union!(predecessors, second_level_dag[new_target])
-        end
-    end
-
-    second_level_dag[new_target] = predecessors
-
-    return predecessors
+    return fill_dag_for_this_node
 end
 
 
@@ -347,41 +242,42 @@ Attributes:
         in the DAG.
 
 Returns:
-    new_dag (Vector{Vector{Qubit}}): A vector containing the order in
+    optimal_dag (Vector{Vector{Qubit}}): A vector containing the order in
         which the qubits must be measured. The first index is the layer,
         and the vector contained in that index is the qubits in that
         layer. The qubits in each layer are measured in parallel.
 """
-function get_sparse_measurement_dag(
+function get_optimal_measurement_dag(
     pauli_tracker::PauliTracker,
     output_nodes,
     nodes_to_include,
     verbose,
 )::Vector{Vector{Qubit}}
-    new_dag = [Set([]) for _ in range(1, pauli_tracker.n_nodes)]
-    second_level_dag = [Set([]) for _ in range(1, pauli_tracker.n_nodes)]
+    optimal_dag = [[] for _ in range(1, pauli_tracker.n_nodes)]
     output_nodes_set = Set(output_nodes)
+    fill_dag_for_this_node = dag_filler_factory(pauli_tracker, output_nodes_set)
+    max_size = 0
 
-    for node in VerboseIterator(nodes_to_include, verbose, "Creating sparse single-qubit measurement DAG...")
+    for node in VerboseIterator(nodes_to_include, verbose, "Creating optimal single-qubit measurement DAG...")
         non_clifford_measurement = pauli_tracker.measurements[node][1] in non_clifford_gate_codes
         if non_clifford_measurement || node in output_nodes_set
+            predecessors = Set([])
             for predecessor in pauli_tracker.cond_paulis[node][1]
-                union!(new_dag[node], fill_dag_for_this_node!(predecessor, pauli_tracker, output_nodes_set, second_level_dag))
+                union!(predecessors, fill_dag_for_this_node(predecessor))
             end
+            optimal_dag[node] = collect(predecessors)
+            # investigate the sparsity of the DAG as it grows
+            max_size = max(max_size, length(predecessors))
+            println("Max size: ", max_size, " Num predecessors for node $node: ", length(predecessors), " ")
         end
     end
 
-    newer_dag = [[] for _ in range(1, pauli_tracker.n_nodes)]
-    for (i, adj) in enumerate(new_dag)
-        newer_dag[i] = collect(adj)
-    end
-
-    return newer_dag
+    return optimal_dag
 end
 
 """
 A simple function for creating a measurement DAG. This DAG is not nearly as
-efficient as the one created by get_sparse_measurement_dag, but it is much
+efficient as the one created by get_optimal_measurement_dag, but it is much
 easier to understand and thus is good for debugging stitching. It also preserves
 the order in which qubits are created in the circuit, so it can be useful
 for Space optimal layerings.
@@ -402,8 +298,24 @@ Returns:
 function get_simple_measurement_dag(pauli_tracker::PauliTracker, nodes_to_include, verbose)::Vector{Vector{Qubit}}
     new_dag = [[] for _ in range(1, pauli_tracker.n_nodes)]
     for node in nodes_to_include
-        new_dag[node] =
-            vcat(pauli_tracker.cond_paulis[node][1], pauli_tracker.cond_paulis[node][2])
+        if pauli_tracker.measurements[node][1] in non_clifford_gate_codes
+            for predecessor in pauli_tracker.cond_paulis[node][1]
+                push!(new_dag[node], predecessor)
+            end
+            for predecessor in pauli_tracker.cond_paulis[node][2]
+                push!(new_dag[node], predecessor)
+            end
+        end
+        if pauli_tracker.measurements[node][1] == H_code
+            for predecessor in pauli_tracker.cond_paulis[node][1]
+                push!(new_dag[node], predecessor)
+            end
+        end
+        if pauli_tracker.measurements[node][1] == I_code
+            for predecessor in pauli_tracker.cond_paulis[node][2]
+                push!(new_dag[node], predecessor)
+            end
+        end
     end
     return new_dag
 end
@@ -421,6 +333,7 @@ function reverseDAG(dag::Vector{Vector{Qubit}}, verbose::Bool=false)::Vector{Vec
 
     return reversedDAG
 end
+
 
 """
 Given a pauli tracker and an ASG, calculate the order in which qubits
@@ -445,31 +358,31 @@ function calculate_layering!(pauli_tracker::PauliTracker, asg, ignored_nodes::Se
     if pauli_tracker.layering_optimization == "Time"
         verbose && println("Calculating time optimized layering...")
         output_nodes = asg.stitching_properties.graph_output_nodes
-        sparse_dag = get_sparse_measurement_dag(pauli_tracker, output_nodes, nodes_to_include, verbose)
+        optimal_dag = get_simple_measurement_dag(pauli_tracker, nodes_to_include, verbose)
         pauli_tracker.layering =
-            unadjustable_coffman_grahm(sparse_dag, asg, nodes_to_include, verbose)
+            unadjustable_coffman_grahm(optimal_dag, asg, nodes_to_include, verbose)
     elseif pauli_tracker.layering_optimization == "Space"
         verbose && println("Calculating space optimized layering...")
         output_nodes = asg.stitching_properties.graph_output_nodes
 
         measurement_dag = get_simple_measurement_dag(pauli_tracker, nodes_to_include, verbose)
         reverse_dag = reverseDAG(measurement_dag, verbose)
-        sparse_dag = get_sparse_measurement_dag(pauli_tracker, output_nodes, nodes_to_include, verbose)
+        optimal_dag = get_simple_measurement_dag(pauli_tracker, nodes_to_include, verbose)
 
         pauli_tracker.layering =
-            variable_width(measurement_dag, reverse_dag, sparse_dag, asg, 1, nodes_to_include, verbose)
+            variable_width(measurement_dag, reverse_dag, optimal_dag, asg, 1, nodes_to_include, verbose)
     elseif pauli_tracker.layering_optimization == "Variable"
         verbose && println("Calculating layering with $(pauli_tracker.max_num_qubits) qubits...")
         output_nodes = asg.stitching_properties.graph_output_nodes
 
         measurement_dag = get_simple_measurement_dag(pauli_tracker, nodes_to_include, verbose)
-        sparse_dag = get_sparse_measurement_dag(pauli_tracker, output_nodes, nodes_to_include, verbose)
-        reverse_dag = reverseDAG(sparse_dag)
+        reverse_dag = reverseDAG(measurement_dag)
+        optimal_dag = get_simple_measurement_dag(pauli_tracker, nodes_to_include, verbose)
 
         pauli_tracker.layering = variable_width(
             measurement_dag,
             reverse_dag,
-            sparse_dag,
+            optimal_dag,
             asg,
             pauli_tracker.max_num_qubits,
             nodes_to_include,
@@ -479,14 +392,14 @@ function calculate_layering!(pauli_tracker::PauliTracker, asg, ignored_nodes::Se
         verbose && println("Calculating Gansner layering...")
         output_nodes = asg.stitching_properties.graph_output_nodes
         measurement_dag =
-            get_sparse_measurement_dag(pauli_tracker, output_nodes, nodes_to_include, verbose)
+            get_simple_measurement_dag(pauli_tracker, nodes_to_include, verbose)
         pauli_tracker.layering =
             gansner_layering(measurement_dag, pauli_tracker.n_nodes, nodes_to_include)
     elseif pauli_tracker.layering_optimization == "Longest Path"
         verbose && println("Calculating longest path layering...")
         output_nodes = asg.stitching_properties.graph_output_nodes
         measurement_dag =
-            get_sparse_measurement_dag(pauli_tracker, output_nodes, nodes_to_include, verbose)
+            get_simple_measurement_dag(pauli_tracker, nodes_to_include, verbose)
         reverse_dag = reverseDAG(measurement_dag, verbose)
         pauli_tracker.layering =
             longest_path_layering(measurement_dag, reverse_dag, n_nodes, nodes_to_include, verbose)
@@ -724,10 +637,9 @@ function kahns_algorithm(
         end
 
         # Show progress in real time
-        counter += 1
-        dispcnt += 1
-
         if verbose && dispcnt >= 1000
+            counter += 1
+            dispcnt += 1
             percent = round(Int, 100 * counter / total_length)
             elapsed_time = round(time() - start_time, digits=2)
             print("\r$(percent)% ($counter) completed in $(elapsed_time)s")
@@ -755,7 +667,7 @@ the graph that can accommodate each node as it is created. If it cannot find
 a layer with sufficently small width, then it will increase the width of the
 layering to fit the node at the last layer currently being laid.
 """
-function variable_width(measurement_dag, reverse_dag, sparse_dag, asg, max_width::Int, nodes_to_include::Vector{Qubit}, verbose::Bool=false)
+function variable_width(measurement_dag, reverse_dag, optimal_dag, asg, max_width::Int, nodes_to_include::Vector{Qubit}, verbose::Bool=false)
     space_optimized = max_width == 1
     sorted_nodes = kahns_algorithm(measurement_dag, reverse_dag, asg.n_nodes, nodes_to_include, asg, verbose)
 
@@ -769,13 +681,12 @@ function variable_width(measurement_dag, reverse_dag, sparse_dag, asg, max_width
     if space_optimized == 1
         max_width = min_logical_qubits
     elseif max_width < min_logical_qubits
-        @warn "max_width $max_width is too small. Setting max width to $min_logical_qubits."
+        @warn "Cannot fit circuit onto $max_width qubits. Setting num qubits to $min_logical_qubits."
     end
 
     curr_physical_nodes = get_neighborhood(ordering_layering[1], asg)
     measured_nodes = Set{Qubit}([])
 
-    verbose && println("Combining adjacent timesteps without increasing qubit number...")
     curr_layer = Vector{Qubit}([sorted_nodes[1]])
     layering = Vector{Vector{Qubit}}([])
     for new_node_to_add in VerboseIterator(
@@ -786,7 +697,7 @@ function variable_width(measurement_dag, reverse_dag, sparse_dag, asg, max_width
         new_neighborhood_to_add = setdiff(get_neighborhood(new_node_to_add, asg), measured_nodes)
         union!(curr_physical_nodes, new_neighborhood_to_add)
 
-        if length(curr_physical_nodes) <= max_width && isempty(intersect(sparse_dag[new_node_to_add], curr_physical_nodes))
+        if length(curr_physical_nodes) <= max_width && isempty(intersect(optimal_dag[new_node_to_add], curr_physical_nodes))
             push!(curr_layer, new_node_to_add)
         else
             push!(layering, curr_layer)

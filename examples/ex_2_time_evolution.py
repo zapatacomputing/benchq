@@ -42,57 +42,61 @@ def main():
     # defines the problem we try to solve.
     # measure_time is a utility tool which measures the execution time of
     # the code inside the with statement.
-    with measure_time() as t_info:
-        # N = 2  # Problem size
-        # operator = get_vlasov_hamiltonian(N=N, k=2.0, alpha=0.6, nu=0)
+    for N in [2, 10, 100, 1000]:
+        with measure_time() as t_info:
+            # N = 2  # Problem size
+            # operator = get_vlasov_hamiltonian(N=N, k=2.0, alpha=0.6, nu=0)
 
-        # Alternative operator: 1D Heisenberg model
-        N = 100
-        operator = generate_1d_heisenberg_hamiltonian(N)
+            # Alternative operator: 1D Heisenberg model
+            operator = generate_1d_heisenberg_hamiltonian(N)
 
-    print("Operator generation time:", t_info.total)
+        print("Operator generation time:", t_info.total)
 
-    # Here we generate the AlgorithmImplementation structure, which contains
-    # information such as what subroutine needs to be executed and how many times.
-    # In this example we perform time evolution using the QSP algorithm.
-    with measure_time() as t_info:
-        algorithm = qsp_time_evolution_algorithm(operator, evolution_time, 1e-3)
-    print("Circuit generation time:", t_info.total)
+        # Here we generate the AlgorithmImplementation structure, which contains
+        # information such as what subroutine needs to be executed and how many times.
+        # In this example we perform time evolution using the QSP algorithm.
+        with measure_time() as t_info:
+            algorithm = qsp_time_evolution_algorithm(operator, evolution_time, 1e-3)
+        print("Circuit generation time:", t_info.total)
 
-    # First we perform resource estimation with gate synthesis at the circuit level.
-    # It's more accurate and leads to lower estimates, but also more expensive
-    # in terms of runtime and memory usage.
-    # Then we perform resource estimation with gate synthesis during the measurement,
-    # which we call "delayed gate synthesis".
+        # First we perform resource estimation with gate synthesis at the circuit level.
+        # It's more accurate and leads to lower estimates, but also more expensive
+        # in terms of runtime and memory usage.
+        # Then we perform resource estimation with gate synthesis during the measurement,
+        # which we call "delayed gate synthesis".
 
-    compiler = get_ruby_slippers_compiler(
-        layering_optimization="Space",
-    )
-    # with measure_time() as t_info:
-    #     gsc_resource_estimates = get_custom_resource_estimation(
-    #         algorithm,
-    #         estimator=GraphResourceEstimator(architecture_model),
-    #         transformers=[
-    #             synthesize_clifford_t(algorithm.error_budget),
-    #             create_big_graph_from_subcircuits(compiler),
-    #         ],
-    #     )
-
-    # print("Resource estimation time with synthesis:", t_info.total)
-    # pprint(gsc_resource_estimates)
-
-    with measure_time() as t_info:
-        gsc_resource_estimates = get_custom_resource_estimation(
-            algorithm,
-            estimator=GraphResourceEstimator(architecture_model),
-            transformers=[
-                transpile_to_native_gates,
-                create_big_graph_from_subcircuits(compiler),
-            ],
+        compiler = get_ruby_slippers_compiler(
+            layering_optimization="Time",
+            max_num_qubits=10000,
         )
 
-    print("Resource estimation time without synthesis:", t_info.total)
-    pprint(gsc_resource_estimates)
+        print("n_qubits:", algorithm.program.subroutines[0].n_qubits)
+
+        # with measure_time() as t_info:
+        #     gsc_resource_estimates = get_custom_resource_estimation(
+        #         algorithm,
+        #         estimator=GraphResourceEstimator(architecture_model),
+        #         transformers=[
+        #             synthesize_clifford_t(algorithm.error_budget),
+        #             create_big_graph_from_subcircuits(compiler),
+        #         ],
+        #     )
+
+        # print("Resource estimation time with synthesis:", t_info.total)
+        # pprint(gsc_resource_estimates)
+
+        with measure_time() as t_info:
+            gsc_resource_estimates = get_custom_resource_estimation(
+                algorithm,
+                estimator=GraphResourceEstimator(architecture_model),
+                transformers=[
+                    transpile_to_native_gates,
+                    create_big_graph_from_subcircuits(compiler),
+                ],
+            )
+
+        print("Resource estimation time without synthesis:", t_info.total)
+        pprint(gsc_resource_estimates)
 
 
 if __name__ == "__main__":

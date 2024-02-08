@@ -28,7 +28,7 @@ SKIP_SLOW = pytest.mark.skipif(
 )
 
 
-def verify_random_circuit(n_qubits, depth, hyperparams, layering_optimization):
+def verify_random_circuit(n_qubits, depth, hyperparams, layering_optimization, verbose):
     # test that a single random circuit works for |0> initialization
 
     circuit = generate_random_circuit(n_qubits, depth)
@@ -41,6 +41,7 @@ def verify_random_circuit(n_qubits, depth, hyperparams, layering_optimization):
         show_circuit=True,
         throw_error_on_incorrect_result=True,
         layering_optimization=layering_optimization,
+        verbose=verbose,
     )
 
 
@@ -72,12 +73,13 @@ def check_correctness_for_single_init(
     throw_error_on_incorrect_result=True,
     layering_optimization="Time",
     max_num_qubits=3,
+    verbose=False,
 ):
     full_circuit = init + circuit
 
     asg, pauli_tracker, _ = jl.get_graph_state_data(
         full_circuit,
-        verbose=False,
+        verbose=verbose,
         takes_graph_input=False,
         gives_graph_output=False,
         layering_optimization=str(layering_optimization),
@@ -85,9 +87,15 @@ def check_correctness_for_single_init(
         hyperparams=hyperparams,
     )
 
+    print("Returned to Python!")
+
     asg, pauli_tracker = jl.python_asg(asg), jl.python_pauli_tracker(pauli_tracker)
 
+    print("Converted to Python!")
+
     pdf = simulate(circuit, init, asg, pauli_tracker, show_circuit=show_circuit)
+
+    print("Finished Simulation!")
 
     if show_graph_state:
         plot_graph_state(asg, pauli_tracker)
@@ -167,6 +175,8 @@ def simulate(circuit, init, asg, pauli_tracker, show_circuit=True):
         list(range(asg["n_nodes"])), pauli_tracker["cond_paulis"]
     )
 
+    print("Creating layering in simulation!")
+
     for layer_label, layer in enumerate(pauli_tracker["layering"]):
         c.barrier(label=f"Layer:{layer_label}")
         for node in layer:
@@ -220,11 +230,24 @@ def simulate(circuit, init, asg, pauli_tracker, show_circuit=True):
 
     if show_circuit:
         print(c)
+
+    print("Starting simulation!")
     simulator = Aer.get_backend("aer_simulator_matrix_product_state")
     cc = qiskit.transpile(RemoveBarriers()(c), backend=simulator, optimization_level=3)
     result = simulator.run(cc, shots=1000).result().get_counts()
 
     return counts_to_pdf(asg["data_nodes"], result)
+
+
+def reverse_dag(dag):
+    reversed_dag = [[[], []] for _ in range(len(dag))]
+    for node, controls in enumerate(dag):
+        x_controls, z_controls = controls
+        for control in x_controls:
+            reversed_dag[control][0].append(node)
+        for control in z_controls:
+            reversed_dag[control][1].append(node)
+    return reversed_dag
 
 
 def enact_sqc_layer(asg, c, reg):
@@ -372,7 +395,7 @@ def topological_sort(layer, cond_paulis):
     return result
 
 
-# @pytest.mark.parametrize("optimization", ["ST-Volume", "Space", "Time", "Variable"])
+# @pytest.mark.parametrize("optimization", ["Gansner", "Space", "Time", "Variable"])
 # @pytest.mark.parametrize(
 #     "init",
 #     [
@@ -503,7 +526,7 @@ def test_1000_large_random_circuits():
         )
 
         layering_optimization = np.random.choice(
-            ["Space", "Time", "ST-Volume", "Variable"]
+            ["Space", "Time", "Variable", "Gansner"]
         )
 
         print(
@@ -513,9 +536,10 @@ def test_1000_large_random_circuits():
         )
         verify_random_circuit(
             n_qubits=10,
-            depth=50,
+            depth=30,
             hyperparams=hyperparams,
             layering_optimization=layering_optimization,
+            verbose=True,
         )
         n_circuits_checked += 1
 

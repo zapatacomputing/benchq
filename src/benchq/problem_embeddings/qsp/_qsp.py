@@ -97,7 +97,7 @@ def get_qsp_circuit(
 def get_qsp_program(
     operator: PauliRepresentation,
     n_block_encodings: int,
-    decompose_select_v: bool = True,
+    decompose_select_v: bool = False,
 ) -> QuantumProgram:
     pyliqtr_operator = openfermion_to_pyliqtr(to_openfermion(operator))
     angles = np.random.random(3)
