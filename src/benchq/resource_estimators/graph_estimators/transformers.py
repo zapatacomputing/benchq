@@ -69,6 +69,32 @@ def transpile_to_native_gates(program: QuantumProgram) -> QuantumProgram:
     )
 
 
+# @sdk.task(
+#     dependency_imports=[sdk.PythonImports("benchq[dev]")],
+#     custom_image="hub.stage.nexus.orquestra.io/zapatacomputing/benchq-ce:3eec2c8-sdk0.60.0",
+# )
+@sdk.task(
+    source_import=sdk.GithubImport(
+        "zapatacomputing/benchq",
+        git_ref="faster-kahns-algo",
+    ),
+    custom_image="hub.nexus.orquestra.io/zapatacomputing/benchq-ce:3eec2c8-sdk0.60.0",
+)
+def distributed_graph_creation(circuit, graph_production_method):
+    return graph_production_method(circuit)
+
+
+# @sdk.task(dependency_imports=[sdk.PythonImports("benchq[dev]")])
+@sdk.task(
+    source_import=sdk.GithubImport(
+        "zapatacomputing/benchq",
+        git_ref="faster-kahns-algo",
+    ),
+)
+def make_graph_partition(program: QuantumProgram, *graphs_list):
+    return GraphPartition(program, list(graphs_list))
+
+
 def create_graphs_for_subcircuits(
     graph_production_method=get_algorithmic_graph_from_ruby_slippers,
     destination="local",
@@ -77,36 +103,12 @@ def create_graphs_for_subcircuits(
     project_id="migration",
     num_cores=3,
 ) -> Callable[[QuantumProgram], GraphPartition]:
-    # @sdk.task(
-    #     dependency_imports=[sdk.PythonImports("benchq[dev]")],
-    #     custom_image="hub.stage.nexus.orquestra.io/zapatacomputing/benchq-ce:3eec2c8-sdk0.60.0",
-    # )
-    @sdk.task(
-        source_import=sdk.GithubImport(
-            "zapatacomputing/benchq",
-            git_ref="validate-ruby-slippers-2",
-            username="athenacaesura",
-        ),
-        custom_image="hub.nexus.orquestra.io/zapatacomputing/benchq-ce:3eec2c8-sdk0.60.0",
-    )
-    def distributed_graph_creation(circuit):
-        return graph_production_method(circuit)
-
-    # @sdk.task(dependency_imports=[sdk.PythonImports("benchq[dev]")])
-    @sdk.task(
-        source_import=sdk.GithubImport(
-            "zapatacomputing/benchq",
-            git_ref="validate-ruby-slippers-2",
-            username="athenacaesura",
-        ),
-    )
-    def make_graph_partition(program: QuantumProgram, *graphs_list):
-        return GraphPartition(program, list(graphs_list))
 
     @sdk.workflow(resources=sdk.Resources(cpu=str(num_cores), memory="16Gi"))
     def graph_wf(program: QuantumProgram) -> GraphPartition:
         graphs_list = [
-            distributed_graph_creation(circuit) for circuit in program.subroutines
+            distributed_graph_creation(circuit, graph_production_method)
+            for circuit in program.subroutines
         ]
         return make_graph_partition(program, *graphs_list)  # type: ignore
 
