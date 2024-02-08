@@ -222,6 +222,10 @@ def _run_pyscf(
     run_id = None
 
     if mlflow_experiment_name is not None:
+        if orq_workspace_id is None:
+            raise ValueError(
+                "orq_workspace_id must be set if mlflow_experiment_name is set."
+            )
         os.environ["MLFLOW_TRACKING_TOKEN"] = sdk.mlflow.get_tracking_token()
         urllib3.disable_warnings()
 
@@ -230,24 +234,11 @@ def _run_pyscf(
 
         if scf_options is not None:
             if "callback" in scf_options:
-                # we want to log to mlflow, AND we've defined the
-                # callback in scf_options
-                with warnings.catch_warnings():
-                    warnings.filterwarnings(
-                        "ignore",
-                        message="The 'sym_pos' keyword is deprecated and should be",
-                    )
-                    mean_field_object.run(**scf_options)
+                # user has defined a callback in scf_options
+                raise ValueError("scf_options should not contain a 'callback' key if mlflow_experiment_name is set.")
             else:
                 # we want to log to mlflow, BUT haven't defined the
                 # callback in scf_options
-                if not isinstance(orq_workspace_id, str):
-                    raise TypeError(
-                        "orq_workspace_id is not a str, it is "
-                        + str(type(orq_workspace_id))
-                        + " Did you remember to pass that in "
-                        "to the MolecularHamiltonianGenerator?"
-                    )
                 client, run_id = _create_mlflow_setup(
                     mlflow_experiment_name, orq_workspace_id
                 )
@@ -266,11 +257,6 @@ def _run_pyscf(
                     mean_field_object.run(**temp_options)
         else:
             # we want to log to mlflow, but haven't defined scf_options
-            if not isinstance(orq_workspace_id, str):
-                raise TypeError(
-                    "orq_workspace_id is not a str, it is "
-                    + str(type(orq_workspace_id))
-                )
             client, run_id = _create_mlflow_setup(
                 mlflow_experiment_name, orq_workspace_id
             )
@@ -508,7 +494,9 @@ class MolecularHamiltonianGenerator:
     To log PySCF progress after each SCF cycle to MLflow, set mlflow_experiment_name and
     orq_workspace_id. The workspace must have MLflow enabled, and you must be either
     logged in to the cluster or running a remote workflow on the cluster. See the
-    `Orquestra documentation <https://docs.orquestra.io/>`_ for more information.
+    `Orquestra documentation <https://docs.orquestra.io/>`_ for more information. Also
+    note that scf_options must not have a "callback" key if mlflow_experiment_name and
+    orq_workspace_id are set.
 
 
     Args:
