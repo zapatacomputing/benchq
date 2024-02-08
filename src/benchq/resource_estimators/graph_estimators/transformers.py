@@ -3,6 +3,7 @@ from copy import copy
 from typing import Callable, Sequence, Tuple
 
 import networkx as nx
+from dataclasses import dataclass
 
 from ...algorithms.data_structures import ErrorBudget, GraphPartition
 from ...compilation import (
@@ -15,6 +16,9 @@ from ...problem_embeddings.quantum_program import (
     get_program_from_circuit,
 )
 from orquestra import sdk
+from ..resource_info import GraphData
+
+from .graph_estimator import substrate_scheduler, remove_isolated_nodes_from_graph
 
 
 def _distribute_transpilation_failure_tolerance(
@@ -69,6 +73,14 @@ def transpile_to_native_gates(program: QuantumProgram) -> QuantumProgram:
     )
 
 
+@dataclass
+class DistributedGraphCreationOutputWrapper:
+    num_logical_qubits: int
+    num_graph_preparation_tocks: int
+    num_consumption_tocks: int
+    num_nodes: int
+
+
 # @sdk.task(
 #     dependency_imports=[sdk.PythonImports("benchq[dev]")],
 #     custom_image="hub.stage.nexus.orquestra.io/zapatacomputing/benchq-ce:3eec2c8-sdk0.60.0",
@@ -81,18 +93,51 @@ def transpile_to_native_gates(program: QuantumProgram) -> QuantumProgram:
     custom_image="hub.nexus.orquestra.io/zapatacomputing/benchq-ce:3eec2c8-sdk0.60.0",
 )
 def distributed_graph_creation(circuit, graph_production_method):
-    return graph_production_method(circuit)
+    graph, num_consumption_tocks, num_logical_qubits = graph_production_method(circuit)
+
+    compiler = substrate_scheduler(graph, "fast")
+    n_measurement_steps = len(compiler.measurement_steps)
+
+    output = DistributedGraphCreationOutputWrapper(
+        num_logical_qubits,
+        n_measurement_steps,
+        num_consumption_tocks,
+        graph.number_of_nodes(),
+    )
+
+    return output
 
 
-# @sdk.task(dependency_imports=[sdk.PythonImports("benchq[dev]")])
 @sdk.task(
     source_import=sdk.GithubImport(
         "zapatacomputing/benchq",
         git_ref="faster-kahns-algo",
     ),
+    custom_image="hub.nexus.orquestra.io/zapatacomputing/benchq-ce:3eec2c8-sdk0.60.0",
 )
-def make_graph_partition(program: QuantumProgram, *graphs_list):
-    return GraphPartition(program, list(graphs_list))
+def get_full_graph_data(program, *graph_data_list):
+    graph_data_list = list(graph_data_list)
+
+    num_logical_qubits = 0
+    num_measurement_steps = 0
+    num_nodes = 0
+    for subroutine in program.calculate_subroutine_sequence(program.steps):
+        num_logical_qubits = max(
+            graph_data_list[subroutine].num_logical_qubits, num_logical_qubits
+        )
+        num_measurement_steps += (
+            graph_data_list[subroutine].num_graph_preparation_tocks
+            + graph_data_list[subroutine].num_consumption_tocks
+        )
+        num_nodes += graph_data_list[subroutine].num_nodes
+
+    return GraphData(
+        max_graph_degree=num_logical_qubits,
+        n_nodes=num_nodes,
+        n_t_gates=program.n_t_gates,
+        n_rotation_gates=program.n_rotation_gates,
+        n_measurement_steps=num_measurement_steps,
+    )
 
 
 def create_graphs_for_subcircuits(
@@ -106,16 +151,19 @@ def create_graphs_for_subcircuits(
 
     @sdk.workflow(resources=sdk.Resources(cpu=str(num_cores), memory="16Gi"))
     def graph_wf(program: QuantumProgram) -> GraphPartition:
-        graphs_list = [
+        graph_data_list = [
             distributed_graph_creation(circuit, graph_production_method)
             for circuit in program.subroutines
         ]
-        return make_graph_partition(program, *graphs_list)  # type: ignore
+
+        return get_full_graph_data(program, *graph_data_list)
 
     def _transformer(program: QuantumProgram) -> GraphPartition:
-        if destination == "local":
+        if destination == "debug":
+            wf_run = graph_wf(program).run("in_process")
+        elif destination == "local":
             wf_run = graph_wf(program).run("ray")
-        if destination == "remote":
+        elif destination == "remote":
             wf_run = graph_wf(program).run(
                 config_name,
                 workspace_id=workspace_id,
@@ -139,48 +187,3 @@ def create_big_graph_from_subcircuits(
         return GraphPartition(new_program, [graph])
 
     return _transformer
-
-
-def remove_isolated_nodes(graph_partition: GraphPartition) -> GraphPartition:
-    """Sometimes our circuits can generate a lot of extra nodes because of how
-    RESET is implemented. This transformer removes these nodes from the
-    graph to prevent them from influencing the costing. There are 3 known sources
-    of isolated nodes:
-        1. Unneeded resets at the beginning of the circuit.
-        2. Decomposing rotations into gates sometimes gives bare nodes if a
-             T gate is placed after a reset. (most concerning)
-        3. Consecutive reset gates happening later on in the circuit.
-
-    Args:
-        graph_partition (GraphPartition): graph partition to remove the isoated
-            nodes of.
-
-    Returns:
-        GraphPartition: input graph partition with isolated nodes removed.
-    """
-    print("Removing isolated nodes from graph...")
-    start = time.time()
-    new_graphs = []
-    total_nodes_removed = 0
-    for graph in graph_partition.subgraphs:
-        n_nodes_removed, graph = remove_isolated_nodes_from_graph(graph)
-
-        total_nodes_removed += n_nodes_removed
-        new_graphs.append(graph)
-
-    print(
-        f"Removed {total_nodes_removed} isolated nodes "
-        f"in {time.time() - start} seconds."
-    )
-    return GraphPartition(graph_partition.program, new_graphs)
-
-
-def remove_isolated_nodes_from_graph(graph: nx.Graph) -> Tuple[int, nx.Graph]:
-    cleaned_graph = copy(graph)
-    isolated_nodes = list(nx.isolates(cleaned_graph))
-    n_nodes_removed = len(isolated_nodes)
-
-    cleaned_graph.remove_nodes_from(isolated_nodes)
-    cleaned_graph = nx.convert_node_labels_to_integers(cleaned_graph)
-
-    return n_nodes_removed, cleaned_graph

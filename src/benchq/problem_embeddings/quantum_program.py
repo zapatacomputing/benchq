@@ -70,9 +70,11 @@ class QuantumProgram:
     def min_n_nodes(self) -> int:
         return self.n_t_gates + self.n_rotation_gates + self.subroutines[0].n_qubits
 
-    def count_operations_in_subroutine(self, step: int, gates: Sequence[str]) -> int:
+    def count_operations_in_subroutine(
+        self, subroutine: int, gates: Sequence[str]
+    ) -> int:
         n_gates = 0
-        for op in self.subroutines[step].operations:
+        for op in self.subroutines[subroutine].operations:
             if isinstance(op, GateOperation) and op.gate.name in gates:
                 n_gates += 1
             if isinstance(op, ResetOperation) and "ResetOperation" in gates:

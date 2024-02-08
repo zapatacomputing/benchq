@@ -62,7 +62,7 @@ def get_ruby_slippers_compiler(
         end = time.time()
         print("time: ", end - start)
 
-        return graph
+        return graph, num_consumption_tocks, num_logical_qubits
 
     return _run_compiler
 
