@@ -92,8 +92,10 @@ class DistributedGraphCreationOutputWrapper:
     ),
     custom_image="hub.nexus.orquestra.io/zapatacomputing/benchq-ce:3eec2c8-sdk0.60.0",
 )
-def distributed_graph_creation(circuit, graph_production_method):
-    graph, num_consumption_tocks, num_logical_qubits = graph_production_method(circuit)
+def distributed_graph_creation(circuit):
+    graph, num_consumption_tocks, num_logical_qubits = (
+        get_algorithmic_graph_from_ruby_slippers(circuit)
+    )
 
     compiler = substrate_scheduler(graph, "fast")
     n_measurement_steps = len(compiler.measurement_steps)
@@ -152,8 +154,7 @@ def create_graphs_for_subcircuits(
     @sdk.workflow(resources=sdk.Resources(cpu=str(num_cores), memory="16Gi"))
     def graph_wf(program: QuantumProgram) -> GraphPartition:
         graph_data_list = [
-            distributed_graph_creation(circuit, graph_production_method)
-            for circuit in program.subroutines
+            distributed_graph_creation(circuit) for circuit in program.subroutines
         ]
 
         return get_full_graph_data(program, *graph_data_list)
