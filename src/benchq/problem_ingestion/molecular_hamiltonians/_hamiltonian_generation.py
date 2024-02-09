@@ -214,12 +214,16 @@ def _run_pyscf(
 
     Raises:
         SCFConvergenceError: If the SCF calculation does not converge.
+        ValueError: If mlflow_experiment_name is set but orq_workspace_id is not or
+            scf_options contains a "callback" key.
     """
     molecule = _get_pyscf_molecule(mol_spec)
     mean_field_object = (scf.RHF if mol_spec.multiplicity == 1 else scf.ROHF)(molecule)
     mean_field_object.max_memory = 1e6  # set allowed memory high so tests pass
 
-    run_id = None
+    updated_scf_options = {}
+    if scf_options is not None:
+        updated_scf_options.update(scf_options)
 
     if mlflow_experiment_name is not None:
         if orq_workspace_id is None:
@@ -232,63 +236,26 @@ def _run_pyscf(
         flat_mol_dict = _flatten_dict(asdict(mol_spec))
         flat_active_dict = _flatten_dict(asdict(active_space_spec))
 
-        if scf_options is not None:
-            if "callback" in scf_options:
-                # user has defined a callback in scf_options
-                raise ValueError("scf_options should not contain a 'callback' key if mlflow_experiment_name is set.")
-            else:
-                # we want to log to mlflow, BUT haven't defined the
-                # callback in scf_options
-                client, run_id = _create_mlflow_setup(
-                    mlflow_experiment_name, orq_workspace_id
-                )
-
-                for key, val in flat_mol_dict.items():
-                    client.log_param(run_id, key, val)
-                for key, val in flat_active_dict.items():
-                    client.log_param(run_id, key, val)
-                temp_options = deepcopy(scf_options)
-                temp_options["callback"] = create_mlflow_scf_callback(client, run_id)
-                with warnings.catch_warnings():
-                    warnings.filterwarnings(
-                        "ignore",
-                        message="The 'sym_pos' keyword is deprecated and should be",
-                    )
-                    mean_field_object.run(**temp_options)
-        else:
-            # we want to log to mlflow, but haven't defined scf_options
-            client, run_id = _create_mlflow_setup(
-                mlflow_experiment_name, orq_workspace_id
+        if scf_options is not None and "callback" in scf_options:
+            raise ValueError(
+                "scf_options should not contain a 'callback' key if mlflow_experiment_name is set."
             )
 
-            for key, val in flat_mol_dict.items():
-                client.log_param(run_id, key, val)
-            for key, val in flat_active_dict.items():
-                client.log_param(run_id, key, val)
-            temp_options = {"callback": create_mlflow_scf_callback(client, run_id)}
-            with warnings.catch_warnings():
-                warnings.filterwarnings(
-                    "ignore",
-                    message="The 'sym_pos' keyword is deprecated and should be",
-                )
-                mean_field_object.run(**temp_options)
-    else:
-        if scf_options is not None:
-            # we don't want to run on mlflow, but we've specified scf_options
-            with warnings.catch_warnings():
-                warnings.filterwarnings(
-                    "ignore",
-                    message="The 'sym_pos' keyword is deprecated and should be",
-                )
-                mean_field_object.run(**scf_options)
-        else:
-            # we don't want to run on mlflow, and haven't specified scf_options
-            with warnings.catch_warnings():
-                warnings.filterwarnings(
-                    "ignore",
-                    message="The 'sym_pos' keyword is deprecated and should be",
-                )
-                mean_field_object.run()
+        client, run_id = _create_mlflow_setup(mlflow_experiment_name, orq_workspace_id)
+
+        for key, val in flat_mol_dict.items():
+            client.log_param(run_id, key, val)
+        for key, val in flat_active_dict.items():
+            client.log_param(run_id, key, val)
+
+        updated_scf_options["callback"] = create_mlflow_scf_callback(client, run_id)
+
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            "ignore",
+            message="The 'sym_pos' keyword is deprecated and should be",
+        )
+        mean_field_object.run(**updated_scf_options)
 
     if not mean_field_object.converged:
         raise SCFConvergenceError()

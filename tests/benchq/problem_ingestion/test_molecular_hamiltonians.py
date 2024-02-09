@@ -227,19 +227,9 @@ def test_get_active_space_hamiltonian_logs_to_mlflow_no_specified_callback(
     patch_log_metric.assert_any_call(ANY, ANY, "cput0_0", ANY)
 
 
-def test_get_active_space_hamiltonian_logs_to_mlflow_with_specified_callback(
-    patch_sdk_token,
-    patch_sdk_uri,
-    patch_local_client,
-):
+def test_get_active_space_hamiltonian_raises_error_when_mlflow_and_callback_specified():
     # Given
-    experiment_name = patch_local_client.create_experiment(
-        "test_get_active_space_hamiltonian_logs_to_mlflow_with_specified_callback",
-    )
-    experiment = patch_local_client.get_experiment_by_name(name=experiment_name)
-    run_id = patch_local_client.create_run(experiment.experiment_id).info.run_id
-    scf_callback = create_mlflow_scf_callback(patch_local_client, run_id)
-    scf_options = {"callback": scf_callback}
+    scf_options = {"callback": lambda: None}
     new_hydrogen_chain_instance = get_hydrogen_chain_hamiltonian_generator(
         2,
         mlflow_experiment_name="pytest",
@@ -247,15 +237,10 @@ def test_get_active_space_hamiltonian_logs_to_mlflow_with_specified_callback(
         orq_workspace_id="testing",
     )
 
-    # When
-    _ = new_hydrogen_chain_instance.get_active_space_hamiltonian()
-
     # Then
-    patch_local_client.log_metric.assert_called()
-
-    # last param (value) depends on optimization, so could be different run-to-run
-    patch_local_client.log_metric.assert_any_call(ANY, "last_hf_e", ANY)
-    patch_local_client.log_metric.assert_any_call(ANY, "cput0_0", ANY)
+    with pytest.raises(ValueError):
+        # When
+        _ = new_hydrogen_chain_instance.get_active_space_hamiltonian()
 
 
 def test_get_active_space_hamiltonian_logs_to_mlflow_with_scf_options_no_callback(
@@ -325,19 +310,9 @@ def test_get_active_space_meanfield_object_logs_to_mlflow_no_specified_callback(
     patch_log_metric.assert_any_call(ANY, ANY, "cput0_0", ANY)
 
 
-def test_get_active_space_meanfield_object_logs_to_mlflow_with_specified_callback(
-    patch_sdk_token,
-    patch_sdk_uri,
-    patch_local_client,
-):
+def test_get_active_space_meanfield_object_raises_error_when_mlflow_and_callback_specified():
     # Given
-    experiment_name = patch_local_client.create_experiment(
-        "test_get_active_space_hamiltonian_logs_to_mlflow_with_specified_callback",
-    )
-    experiment = patch_local_client.get_experiment_by_name(name=experiment_name)
-    run_id = patch_local_client.create_run(experiment.experiment_id).info.run_id
-    scf_callback = create_mlflow_scf_callback(patch_local_client, run_id)
-    scf_options = {"callback": scf_callback}
+    scf_options = {"callback": lambda: None}
     new_hydrogen_chain_instance = get_hydrogen_chain_hamiltonian_generator(
         2,
         mlflow_experiment_name="pytest",
@@ -345,15 +320,10 @@ def test_get_active_space_meanfield_object_logs_to_mlflow_with_specified_callbac
         scf_options=scf_options,
     )
 
-    # When
-    _ = new_hydrogen_chain_instance.get_active_space_meanfield_object()
-
     # Then
-    patch_local_client.log_metric.assert_called()
-
-    # last param (value) depends on optimization, so could be different run-to-run
-    patch_local_client.log_metric.assert_any_call(ANY, "last_hf_e", ANY)
-    patch_local_client.log_metric.assert_any_call(ANY, "cput0_0", ANY)
+    with pytest.raises(ValueError):
+        # When
+        _ = new_hydrogen_chain_instance.get_active_space_meanfield_object()
 
 
 def test_get_active_space_meanfield_object_logs_to_mlflow_with_scf_options_no_callback(

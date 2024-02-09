@@ -57,7 +57,11 @@ def get_double_factorized_hamiltonian_block_encoding(
     lam = compute_lambda_df(h1, eri_rr, LR)
 
     allowable_phase_estimation_error = 1
-    (step_cost, total_cost, num_qubits,) = _get_double_factorized_qpe_info(
+    (
+        step_cost,
+        total_cost,
+        num_qubits,
+    ) = _get_double_factorized_qpe_info(
         h1,
         eri,
         threshold,
