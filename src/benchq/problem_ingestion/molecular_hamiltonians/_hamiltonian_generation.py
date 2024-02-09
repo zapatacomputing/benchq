@@ -415,9 +415,10 @@ def _get_molecular_data(
 
     molecular_data.hf_energy = float(mean_field_object.e_tot)
 
-    molecular_data._pyscf_data = pyscf_data = {}
-    pyscf_data["mol"] = molecule
-    pyscf_data["scf"] = mean_field_object
+    molecular_data._pyscf_data = {  # type: ignore
+        "mol": molecule,
+        "scf": mean_field_object,
+    }
 
     molecular_data.canonical_orbitals = mean_field_object.mo_coeff.astype(float)
     molecular_data.orbital_energies = mean_field_object.mo_energy.astype(float)
