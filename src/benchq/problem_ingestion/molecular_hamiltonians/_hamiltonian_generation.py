@@ -238,7 +238,8 @@ def _run_pyscf(
 
         if scf_options is not None and "callback" in scf_options:
             raise ValueError(
-                "scf_options should not contain a 'callback' key if mlflow_experiment_name is set."
+                "scf_options should not contain a 'callback' key if"
+                "mlflow_experiment_name is set."
             )
 
         client, run_id = _create_mlflow_setup(mlflow_experiment_name, orq_workspace_id)
