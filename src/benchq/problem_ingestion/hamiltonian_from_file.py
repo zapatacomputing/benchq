@@ -9,7 +9,7 @@ from typing import List, Union
 import h5py
 import numpy as np
 import openfermion as of
-from openfermion import InteractionOperator, jordan_wigner
+from openfermion import InteractionOperator, QubitOperator, jordan_wigner
 from orquestra.integrations.cirq.conversions import from_openfermion
 from orquestra.quantum.operators import PauliSum, PauliTerm
 from orquestra.quantum.utils import ensure_open
@@ -115,7 +115,7 @@ def _get_hamiltonian_from_hdf5(file_name: str) -> PauliSum:
     if "q_matrix" in data.keys():
         return _qaoa_hamiltonian_from_hdf5(data)
     elif "basis" in data.attrs:
-        return _molecule_hamiltonian_from_hdf5(data)
+        return from_openfermion(_molecule_hamiltonian_from_hdf5(data))
     else:
         raise ValueError(
             f"Hamiltonian extraction failed for {file_name}. "
@@ -165,16 +165,16 @@ def _qaoa_hamiltonian_from_hdf5(data: h5py.File) -> PauliSum:
     return hamiltonian
 
 
-def _molecule_hamiltonian_from_hdf5(data: h5py.File) -> PauliSum:
+def _molecule_hamiltonian_from_hdf5(data: h5py.File) -> QubitOperator:
     """Given a file with a hamiltonian, generate hamiltonian terms corresponding to it.
     This function only accepts hamiltonians in the format with one and two body terms as
     attributes of the hdf5 file.
 
     Args:
-        data (h5py.File): a file with a hamiltonian described by one and two body terms
+        data: A file with a hamiltonian described by one and two body terms.
 
     Returns:
-        PauliSum: the terms of the haimltonian
+        The Jordan-Wigner transformed Hamiltonian.
     """
     one_body_term = data["one_body_tensor"]
     two_body_term = data["two_body_tensor"]
@@ -184,5 +184,4 @@ def _molecule_hamiltonian_from_hdf5(data: h5py.File) -> PauliSum:
         one_body_tensor=one_body_term,
         two_body_tensor=two_body_term,
     )
-    hamiltonian = jordan_wigner(hamiltonian)
-    return hamiltonian
+    return jordan_wigner(hamiltonian)
