@@ -227,7 +227,7 @@ def test_get_active_space_hamiltonian_logs_to_mlflow_no_specified_callback(
     patch_log_metric.assert_any_call(ANY, ANY, "cput0_0", ANY)
 
 
-def test_get_active_space_hamiltonian_raises_error_when_mlflow_and_callback_specified():
+def test_get_active_space_hamiltonian_raises_error_with_mlflow_and_callback():
     # Given
     scf_options = {"callback": lambda: None}
     new_hydrogen_chain_instance = get_hydrogen_chain_hamiltonian_generator(
@@ -310,7 +310,7 @@ def test_get_active_space_meanfield_object_logs_to_mlflow_no_specified_callback(
     patch_log_metric.assert_any_call(ANY, ANY, "cput0_0", ANY)
 
 
-def test_get_active_space_meanfield_object_raises_error_when_mlflow_and_callback_specified():
+def test_get_active_space_meanfield_object_raises_error_with_mlflow_and_callback():
     # Given
     scf_options = {"callback": lambda: None}
     new_hydrogen_chain_instance = get_hydrogen_chain_hamiltonian_generator(
