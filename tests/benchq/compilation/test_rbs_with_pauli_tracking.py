@@ -105,8 +105,7 @@ def check_correctness_for_single_init(
     n = len(pdf)
 
     all_bitstrings = [
-        format(i, f"0{full_circuit.n_qubits}b")
-        for i in range(2**full_circuit.n_qubits)
+        format(i, f"0{full_circuit.n_qubits}b") for i in range(2**full_circuit.n_qubits)
     ]
 
     for i in range(n):
@@ -514,7 +513,7 @@ def topological_sort(layer, cond_paulis):
 # If you run this test, it will take a long time to complete. Make sure to
 # run it with the -s option so that you can see the circuits being printed
 # as well as the progress of the test.
-# @SKIP_SLOW
+@SKIP_SLOW
 def test_1000_large_random_circuits():
     for n_circuits_checked in range(1000):
         # randomize hyperparams

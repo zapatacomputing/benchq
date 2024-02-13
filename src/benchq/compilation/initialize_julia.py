@@ -23,6 +23,10 @@ dependency_dict: Any = {
             "uuid": "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91",
             "version": "0.34.0",
         },
+        "Memoize": {
+            "uuid": "c03570c3-d221-55d1-a50c-7939bbd78826",
+            "version": "0.4.4",
+        },
     },
 }
 curr_deps = juliapkg.deps.load_cur_deps()

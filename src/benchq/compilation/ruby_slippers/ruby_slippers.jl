@@ -10,10 +10,7 @@ the algorithm to ignore paulis.
 =#
 
 using PythonCall
-import Pkg
-Pkg.add("StatsBase")
 using StatsBase
-
 
 const Qubit = UInt32
 const AdjList = Set{Qubit}
@@ -21,7 +18,7 @@ const erase_line = "        \b\b\b\b\b\b\b\b"
 
 include("verbose_iterator.jl")
 include("graph_sim_data.jl")
-include("pauli_tracker.jl")
+include("../pauli_tracker/pauli_tracker.jl")
 include("algorithm_specific_graph.jl")
 include("asg_stitching.jl")
 

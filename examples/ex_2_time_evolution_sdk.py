@@ -35,6 +35,7 @@ from benchq.problem_embeddings.quantum_program import (
     split_large_subroutines_into_smaller_subroutines,
 )
 from rigetti_application_instances import FHInstance
+from time import time
 
 
 def main():
@@ -42,6 +43,7 @@ def main():
 
     architecture_model = BASIC_SC_ARCHITECTURE_MODEL
 
+    start_time = time()
     # Generating Hamiltonian for a given set of parameters, which
     # defines the problem we try to solve.
     # measure_time is a utility tool which measures the execution time of
@@ -50,28 +52,30 @@ def main():
         # N = 2  # Problem size
         # operator = get_vlasov_hamiltonian(N=N, k=2.0, alpha=0.6, nu=0)
 
-        # # Alternative operator: 1D Heisenberg model
-        # N = 2
-        # operator = generate_1d_heisenberg_hamiltonian(N)
+        # Alternative operator: 1D Heisenberg model
+        N = 2
+        operator = generate_1d_heisenberg_hamiltonian(N)
 
-        # Specify final time and limits on number of time steps and epsilon
-        T = 10
-        # MAX_STEPS = 1000
-        # J value
-        J = 1
-        # J' next nearest neighbour
-        J_nnn = -J / 3
-        # U values
-        # u_values = np.arange(1, 7) * J
-        u_val = 1 * J
-        # hz
-        hz = 0
-        # mu
-        mu = 0
-        N = 3
+        # # Specify final time and limits on number of time steps and epsilon
+        # T = 10
+        # # MAX_STEPS = 1000
+        # # J value
+        # J = 1
+        # # J' next nearest neighbour
+        # J_nnn = -J / 3
+        # # U values
+        # # u_values = np.arange(1, 7) * J
+        # u_val = 1 * J
+        # # hz
+        # hz = 0
+        # # mu
+        # mu = 0
+        # # N = 5
 
-        instance = FHInstance(N=N, J=-J, U=u_val, hz=hz, mu=mu, J_nnn=J_nnn, end_time=T)
-        operator, alpha = instance.make_hamiltonian_and_alpha()
+        # instance = FHInstance(
+        #     N=N, J=-J, U=u_val, hz=hz, mu=mu, J_nnn=J_nnn, end_time=T
+        # )
+        # operator, alpha = instance.make_hamiltonian_and_alpha()
 
     print("Operator generation time:", t_info.total)
 
@@ -82,8 +86,10 @@ def main():
         algorithm = qsp_time_evolution_algorithm(operator, evolution_time, 1e-3)
     print("Circuit generation time:", t_info.total)
 
+    print("n qubits:", algorithm.program.subroutines[0].n_qubits)
+
     algorithm.program = split_large_subroutines_into_smaller_subroutines(
-        algorithm.program, 10000
+        algorithm.program, int(1e8)
     )
 
     # First we perform resource estimation with gate synthesis at the circuit level.
@@ -92,6 +98,8 @@ def main():
     # Then we perform resource estimation with gate synthesis during the measurement,
     # which we call "delayed gate synthesis".
     compiler = get_ruby_slippers_compiler(
+        teleportation_threshold=5,
+        teleportation_distance=2,
         layering_optimization="Space",
     )
 
@@ -104,7 +112,7 @@ def main():
                 transpile_to_native_gates,
                 create_graphs_for_subcircuits(
                     compiler,
-                    destination="remote",
+                    destination="local",
                     num_cores=num_cores,
                 ),
             ],
@@ -112,6 +120,8 @@ def main():
 
     print("Resource estimation time without synthesis:", t_info.total)
     pprint(gsc_resource_estimates)
+
+    print("Total time:", time() - start_time)
 
 
 # def break_into_smaller_subroutines(circuit, chunk_size=1e7):

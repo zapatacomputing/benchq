@@ -99,7 +99,7 @@ def get_qsp_program(
     n_block_encodings: int,
     decompose_select_v: bool = False,
 ) -> QuantumProgram:
-    pyliqtr_operator = operator
+    pyliqtr_operator = openfermion_to_pyliqtr(to_openfermion(operator))
     angles = np.random.random(3)
 
     qsp_generator = QSP.QSP.QSP(
