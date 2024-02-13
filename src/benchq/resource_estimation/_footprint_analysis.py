@@ -56,7 +56,7 @@ class AlgorithmParameters:
     t_count: int = 0
     proportion_of_bounding_box: float = 1
 
-    def estimate_cost(self, scalability) -> CostEstimate:
+    def estimate_cost(self, scalability, scalability_model) -> CostEstimate:
         """Determine algorithm single-shot layout and costs for given params.
 
         ASSUMES:
@@ -87,9 +87,18 @@ class AlgorithmParameters:
             + n_physical_qubits_used_for_distillation
         )
 
-        scaled_physical_error_rate = self.physical_error_rate * (
-            physical_qubit_count ** (1 / scalability)
-        )
+        if scalability_model == "n":
+            scaled_physical_error_rate = self.physical_error_rate * (
+                physical_qubit_count ** (1 / scalability)
+            )
+        elif scalability_model == "logn":
+            scaled_physical_error_rate = self.physical_error_rate * (
+                math.log10(physical_qubit_count) ** (1 / scalability)
+            )
+        else:
+            # Raising a ValueError to signal that an invalid scalability_model was provided
+            raise ValueError(f"Invalid scalability model: '{scalability_model}'. Valid options are 'n' or 'logn'.")
+
 
         # recalculate widget failure rate now that we know how many qubits are used
         # for the clifford part of the circuit.
@@ -282,6 +291,7 @@ def cost_estimator(
     routing_overhead_proportion=0.5,
     hardware_failure_tolerance=1e-3,
     scalability=1000,
+    scalability_model: str="n",
 ):
     """
     Produce best cost in terms of physical qubits and real run time based on
@@ -307,7 +317,7 @@ def cost_estimator(
                 routing_overhead_proportion=routing_overhead_proportion,
                 proportion_of_bounding_box=portion_of_bounding_box,
             )
-            cost = params.estimate_cost(scalability)
+            cost = params.estimate_cost(scalability, scalability_model)
 
             # determine if this is the best cost so far
             if cost.algorithm_failure_probability <= hardware_failure_tolerance:
