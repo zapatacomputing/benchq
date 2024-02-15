@@ -6,6 +6,8 @@ from pyLIQTR.QSP import gen_qsp
 from ..algorithms.data_structures import AlgorithmImplementation, ErrorBudget
 from ..conversions import openfermion_to_pyliqtr
 from ..problem_embeddings import get_qsp_program, get_trotter_program
+from pyLIQTR.QSP.Hamiltonian import Hamiltonian
+from ..conversions import SUPPORTED_OPERATORS, operator_to_pyliqtr
 
 
 # TODO: This logic is copied from pyLIQTR, perhaps we want to change it to our own?
@@ -19,10 +21,10 @@ def _get_steps(tau, req_prec):
     return steps
 
 
-def _n_block_encodings_for_time_evolution(hamiltonian, time, failure_tolerance):
-    pyliqtr_operator = openfermion_to_pyliqtr(to_openfermion(hamiltonian))
-
-    tau = time * pyliqtr_operator.alpha
+def _n_block_encodings_for_time_evolution(
+    hamiltonian: Hamiltonian, time: float, failure_tolerance: float
+):
+    tau = time * hamiltonian.alpha
     steps = _get_steps(tau, failure_tolerance)
 
     # number of steps needs to be odd for QSP
@@ -33,7 +35,7 @@ def _n_block_encodings_for_time_evolution(hamiltonian, time, failure_tolerance):
 
 
 def qsp_time_evolution_algorithm(
-    hamiltonian: PauliRepresentation, time: float, failure_tolerance: float
+    hamiltonian: SUPPORTED_OPERATORS, time: float, failure_tolerance: float
 ) -> AlgorithmImplementation:
     """Returns a program that implements time evolution using QSP.
 
@@ -42,6 +44,7 @@ def qsp_time_evolution_algorithm(
         time: time of the evolution
         failure_tolerance: how often the algorithm can fail
     """
+    hamiltonian = operator_to_pyliqtr(hamiltonian)
     n_block_encodings = _n_block_encodings_for_time_evolution(
         hamiltonian, time, failure_tolerance
     )

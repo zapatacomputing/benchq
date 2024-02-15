@@ -7,12 +7,11 @@ from orquestra.quantum.operators import PauliRepresentation
 from ...algorithms.data_structures import AlgorithmImplementation, ErrorBudget
 from ...conversions import openfermion_to_pyliqtr
 from ...problem_embeddings import get_qsp_program
+from pyLIQTR.QSP.Hamiltonian import Hamiltonian
 
 
-def _n_block_encodings(hamiltonian: PauliRepresentation, precision: float):
-    pyliqtr_operator = openfermion_to_pyliqtr(to_openfermion(hamiltonian))
-
-    return int(np.ceil(np.pi * (pyliqtr_operator.alpha) / (precision)))
+def _n_block_encodings(hamiltonian: Hamiltonian, precision: float):
+    return int(np.ceil(np.pi * (hamiltonian.alpha) / (precision)))
 
 
 def qpe_gsee_algorithm(

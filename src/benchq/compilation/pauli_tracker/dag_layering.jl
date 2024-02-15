@@ -34,7 +34,7 @@ function calculate_layering!(pauli_tracker::PauliTracker, asg, ignored_nodes::Se
 
         measurement_dag = get_dag(pauli_tracker, nodes_to_include, 1, verbose)
         reverse_dag = get_reversed_dag(measurement_dag, verbose)
-        optimal_dag = get_dag(pauli_tracker, nodes_to_include, 1000, verbose)
+        optimal_dag = get_dag(pauli_tracker, nodes_to_include, 10, verbose)
 
         pauli_tracker.layering =
             variable_width(measurement_dag, reverse_dag, optimal_dag, asg, 1, nodes_to_include, verbose)

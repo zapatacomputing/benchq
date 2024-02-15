@@ -159,6 +159,7 @@ def create_graphs_for_subcircuits(
         return get_full_graph_data(program, *graph_data_list)
 
     def _transformer(program: QuantumProgram) -> GraphPartition:
+        print("Beginning compilation...")
         if destination == "debug":
             wf_run = graph_wf(program).run("in_process")
         elif destination == "local":
@@ -169,8 +170,10 @@ def create_graphs_for_subcircuits(
                 workspace_id=workspace_id,
                 project_id=project_id,
             )
+        graph_data = wf_run.get_results(wait=True)
+        print("Compilation complete.")
 
-        return wf_run.get_results(wait=True)
+        return graph_data
 
     return _transformer
 

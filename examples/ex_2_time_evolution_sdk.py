@@ -34,6 +34,7 @@ from benchq.compilation.julia_utils import get_ruby_slippers_compiler
 from benchq.problem_embeddings.quantum_program import (
     split_large_subroutines_into_smaller_subroutines,
 )
+
 from rigetti_application_instances import FHInstance
 from time import time
 
@@ -53,29 +54,27 @@ def main():
         # operator = get_vlasov_hamiltonian(N=N, k=2.0, alpha=0.6, nu=0)
 
         # Alternative operator: 1D Heisenberg model
-        N = 2
-        operator = generate_1d_heisenberg_hamiltonian(N)
+        # N = 2
+        # operator = generate_1d_heisenberg_hamiltonian(N)
 
-        # # Specify final time and limits on number of time steps and epsilon
-        # T = 10
-        # # MAX_STEPS = 1000
-        # # J value
-        # J = 1
-        # # J' next nearest neighbour
-        # J_nnn = -J / 3
-        # # U values
-        # # u_values = np.arange(1, 7) * J
-        # u_val = 1 * J
-        # # hz
-        # hz = 0
-        # # mu
-        # mu = 0
-        # # N = 5
+        # Specify final time and limits on number of time steps and epsilon
+        T = 10
+        # MAX_STEPS = 1000
+        # J value
+        J = 1
+        # J' next nearest neighbour
+        J_nnn = -J / 3
+        # U values
+        # u_values = np.arange(1, 7) * J
+        u_val = 1 * J
+        # hz
+        hz = 0
+        # mu
+        mu = 0
+        N = 5
 
-        # instance = FHInstance(
-        #     N=N, J=-J, U=u_val, hz=hz, mu=mu, J_nnn=J_nnn, end_time=T
-        # )
-        # operator, alpha = instance.make_hamiltonian_and_alpha()
+        instance = FHInstance(N=N, J=-J, U=u_val, hz=hz, mu=mu, J_nnn=J_nnn, end_time=T)
+        operator, alpha = instance.make_hamiltonian_and_alpha()
 
     print("Operator generation time:", t_info.total)
 
@@ -89,7 +88,7 @@ def main():
     print("n qubits:", algorithm.program.subroutines[0].n_qubits)
 
     algorithm.program = split_large_subroutines_into_smaller_subroutines(
-        algorithm.program, int(1e8)
+        algorithm.program, int(1e3)
     )
 
     # First we perform resource estimation with gate synthesis at the circuit level.
@@ -112,7 +111,7 @@ def main():
                 transpile_to_native_gates,
                 create_graphs_for_subcircuits(
                     compiler,
-                    destination="local",
+                    destination="remote",
                     num_cores=num_cores,
                 ),
             ],

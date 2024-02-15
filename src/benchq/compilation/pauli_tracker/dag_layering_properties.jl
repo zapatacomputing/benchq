@@ -44,9 +44,10 @@ end
 
 """
 Get the lower bound for the number of logical qubits in the circuit. This is done by finding
-the maximum number of physical qubits which are in the neighborhod of a node, yet must be
-measured after that node. The function will print out the bound as well as histogram of the
-bounds for each node.
+the maximum number of nodes which are in the neighborhod of a node, yet must be measured after
+that node. We know that when we measure the node at the center of the neighborhood, all of the
+nodes which are measured after that must be realized as logical qubits. The function will print
+out the bound as well as histogram of the bounds for each node.
 
 Attributes:
     dag (Vector{Vector{Qubit}}): The DAG representing the order in which the qubits must be measured.
