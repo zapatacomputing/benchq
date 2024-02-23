@@ -11,8 +11,9 @@ but is also more expensive in terms of runtime and memory usage.
 Most of the objects has been described in the `1_from_qasm.py` examples, here
 we only explain new concepts.
 
-WARNING: This example requires the pyscf extra. run `pip install benchq[pyscf]`
-to install the extra.
+WARNING: This example requires the pyscf extra as well as the sdk extra.
+run `pip install benchq[pyscf]` then `pip install benchq[sdk]` from the
+main to install the extras. Then run `orq start` to start local ray.
 """
 from pprint import pprint
 
@@ -54,27 +55,8 @@ def main():
         # operator = get_vlasov_hamiltonian(N=N, k=2.0, alpha=0.6, nu=0)
 
         # Alternative operator: 1D Heisenberg model
-        # N = 2
-        # operator = generate_1d_heisenberg_hamiltonian(N)
-
-        # Specify final time and limits on number of time steps and epsilon
-        T = 10
-        # MAX_STEPS = 1000
-        # J value
-        J = 1
-        # J' next nearest neighbour
-        J_nnn = -J / 3
-        # U values
-        # u_values = np.arange(1, 7) * J
-        u_val = 1 * J
-        # hz
-        hz = 0
-        # mu
-        mu = 0
-        N = 5
-
-        instance = FHInstance(N=N, J=-J, U=u_val, hz=hz, mu=mu, J_nnn=J_nnn, end_time=T)
-        operator, alpha = instance.make_hamiltonian_and_alpha()
+        N = 2
+        operator = generate_1d_heisenberg_hamiltonian(N)
 
     print("Operator generation time:", t_info.total)
 
@@ -83,8 +65,8 @@ def main():
     # In this example we perform time evolution using the QSP algorithm.
     with measure_time() as t_info:
         algorithm = qsp_time_evolution_algorithm(operator, evolution_time, 1e-3)
-    print("Circuit generation time:", t_info.total)
 
+    print("Circuit generation time:", t_info.total)
     print("n qubits:", algorithm.program.subroutines[0].n_qubits)
 
     algorithm.program = split_large_subroutines_into_smaller_subroutines(
@@ -111,7 +93,7 @@ def main():
                 transpile_to_native_gates,
                 create_graphs_for_subcircuits(
                     compiler,
-                    destination="remote",
+                    destination="local",
                     num_cores=num_cores,
                 ),
             ],

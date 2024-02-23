@@ -142,7 +142,7 @@ def get_full_graph_data(program, *graph_data_list):
 
 def create_graphs_for_subcircuits(
     graph_production_method=get_algorithmic_graph_from_ruby_slippers,
-    destination="local",
+    destination="debug",
     config_name="darpa-ta1",
     workspace_id="darpa-phase-ii-gsc-resource-estimates-8a7c3b",
     project_id="migration",
