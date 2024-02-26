@@ -95,9 +95,13 @@ class AlgorithmParameters:
             scaled_physical_error_rate = self.physical_error_rate * (
                 math.log10(physical_qubit_count) ** (1 / scalability)
             )
+        elif scalability_model == "lnn":
+            scaled_physical_error_rate = self.physical_error_rate * (
+                1 + (1 / scalability) * math.log(physical_qubit_count)
+            )
         else:
             # Raising a ValueError to signal that an invalid scalability_model was provided
-            raise ValueError(f"Invalid scalability model: '{scalability_model}'. Valid options are 'n' or 'logn'.")
+            raise ValueError(f"Invalid scalability model: '{scalability_model}'. Valid options are 'n' or 'logn' or 'lnn'.")
 
 
         # recalculate widget failure rate now that we know how many qubits are used
@@ -320,6 +324,9 @@ def cost_estimator(
             cost = params.estimate_cost(scalability, scalability_model)
 
             # determine if this is the best cost so far
+            if isinstance(cost.algorithm_failure_probability, complex):
+               # print("yz debug: cost.algorithm_failure_probability", cost.algorithm_failure_probability)
+                cost.algorithm_failure_probability = abs(cost.algorithm_failure_probability)
             if cost.algorithm_failure_probability <= hardware_failure_tolerance:
                 # optimize for smallest spacetime volume
                 if (
