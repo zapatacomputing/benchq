@@ -1,12 +1,11 @@
 ################################################################################
 # © Copyright 2022-2023 Zapata Computing Inc.
 ################################################################################
-import time
-
 import networkx as nx
 from orquestra.quantum.circuits import Circuit
 
 from .initialize_julia import jl
+from .compiled_data_structures import CompiledCircuit
 
 
 def get_nx_graph_from_rbs_adj_list(adj: list) -> nx.Graph:
@@ -18,16 +17,12 @@ def get_nx_graph_from_rbs_adj_list(adj: list) -> nx.Graph:
     return graph
 
 
-def get_algorithmic_graph_from_ruby_slippers(circuit: Circuit) -> nx.Graph:
-    return get_ruby_slippers_compiler(True)(circuit)
-
-
 def get_ruby_slippers_compiler(
-    verbose: bool = True,
     takes_graph_input: bool = True,
     gives_graph_output: bool = True,
-    layering_optimization: str = "Time",
     max_num_qubits: int = 1,
+    optimal_dag_density: int = 1,
+    use_fully_optimized_dag: bool = False,
     teleportation_threshold: int = 40,
     teleportation_distance: int = 4,
     min_neighbor_degree: int = 6,
@@ -35,11 +30,13 @@ def get_ruby_slippers_compiler(
     decomposition_strategy: int = 0,
     max_graph_size: int = 1e7,
 ):
-    def _run_compiler(circuit: Circuit) -> nx.Graph:
+    def _run_compiler(
+        circuit: Circuit,
+        layering_optimization: str = "Time",
+        verbose: bool = True,
+    ) -> nx.Graph:
         (
-            asg,
-            num_consumption_tocks,
-            num_logical_qubits,
+            compiled_graph_data,
             _,
         ) = jl.run_ruby_slippers(
             circuit,
@@ -48,6 +45,8 @@ def get_ruby_slippers_compiler(
             gives_graph_output=gives_graph_output,
             layering_optimization=layering_optimization,
             max_num_qubits=max_num_qubits,
+            optimal_dag_density=optimal_dag_density,
+            use_fully_optimized_dag=use_fully_optimized_dag,
             teleportation_threshold=teleportation_threshold,
             teleportation_distance=teleportation_distance,
             min_neighbor_degree=min_neighbor_degree,
@@ -56,13 +55,7 @@ def get_ruby_slippers_compiler(
             max_graph_size=max_graph_size,
         )
 
-        print("getting networkx graph from vertices")
-        start = time.time()
-        graph = get_nx_graph_from_rbs_adj_list(asg["edge_data"])
-        end = time.time()
-        print("time: ", end - start)
-
-        return graph, num_consumption_tocks, num_logical_qubits
+        return CompiledCircuit.from_dict(compiled_graph_data)
 
     return _run_compiler
 

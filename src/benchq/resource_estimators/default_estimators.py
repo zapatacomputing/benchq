@@ -4,7 +4,7 @@ from typing import List, Optional
 import numpy as np
 
 from ..algorithms.data_structures import AlgorithmImplementation
-from ..compilation import get_algorithmic_graph_from_ruby_slippers
+from ..compilation import compile_circuit_using_ruby_slippers
 from ..decoder_modeling import DecoderModel
 from ..problem_embeddings.quantum_program import QuantumProgram
 from ..quantum_hardware_modeling.hardware_architecture_models import (
@@ -12,15 +12,14 @@ from ..quantum_hardware_modeling.hardware_architecture_models import (
 )
 from .footprint_estimators.openfermion_estimator import footprint_estimator
 from .graph_estimators.customizable_pipelines import (
-    get_custom_extrapolated_estimate,
     get_custom_resource_estimation,
 )
-from .graph_estimators.extrapolation_estimator import ExtrapolationResourceEstimator
 from .graph_estimators.graph_estimator import GraphResourceEstimator
-from .graph_estimators.transformers import (
-    create_big_graph_from_subcircuits,
-    synthesize_clifford_t,
-    transpile_to_native_gates,
+from ..compilation.graph_states.quantum_program_compiler import (
+    create_graph_from_full_circuit,
+    transpile_to_clifford_t,
+    compile_to_native_gates,
+    create_graphs_for_subroutines,
 )
 from .resource_info import ExtrapolatedGraphResourceInfo, ResourceInfo
 
@@ -57,9 +56,9 @@ def get_precise_graph_estimate(
         algorithm_implementation,
         estimator,
         transformers=[
-            transpile_to_native_gates,
-            synthesize_clifford_t(algorithm_implementation.error_budget),
-            create_big_graph_from_subcircuits(),
+            compile_to_native_gates,
+            transpile_to_clifford_t(algorithm_implementation.error_budget),
+            create_graph_from_full_circuit(),
         ],
     )
 
@@ -95,20 +94,18 @@ def get_fast_graph_estimate(
         algorithm_implementation,
         estimator,
         transformers=[
-            transpile_to_native_gates,
-            create_big_graph_from_subcircuits(
-                graph_production_method=get_algorithmic_graph_from_ruby_slippers,
+            compile_to_native_gates,
+            create_graph_from_full_circuit(
+                graph_production_method=compile_circuit_using_ruby_slippers,
             ),
         ],
     )
 
 
-def get_precise_extrapolation_estimate(
+def get_precise_stitched_estimate(
     algorithm_implementation: AlgorithmImplementation,
     hardware_model: BasicArchitectureModel,
-    steps_to_extrapolate_from: List[int],
     decoder_model: Optional[DecoderModel] = None,
-    n_measurement_steps_fit_type: str = "logarithmic",
 ) -> ExtrapolatedGraphResourceInfo:
     """Run a faster resource estimate that's based on extrapolating from smaller
     circuits.
@@ -129,30 +126,26 @@ def get_precise_extrapolation_estimate(
     Returns:
         ResourceInfo: The resources required to run the algorithm.
     """
-    estimator = ExtrapolationResourceEstimator(
-        hardware_model,
-        steps_to_extrapolate_from,
-        decoder_model=decoder_model,
-        n_measurement_steps_fit_type=n_measurement_steps_fit_type,
-    )
+    estimator = GraphResourceEstimator(hardware_model, decoder_model=decoder_model)
 
-    return get_custom_extrapolated_estimate(
+    return get_custom_resource_estimation(
         algorithm_implementation,
         estimator,
         transformers=[
-            transpile_to_native_gates,
-            synthesize_clifford_t(algorithm_implementation.error_budget),
-            create_big_graph_from_subcircuits(),
+            compile_to_native_gates,
+            transpile_to_clifford_t(algorithm_implementation.error_budget),
+            create_graphs_for_subroutines(
+                graph_production_method=compile_circuit_using_ruby_slippers,
+                destination="single-thread",
+            ),
         ],
     )
 
 
-def get_fast_extrapolation_estimate(
+def get_fast_stitched_estimate(
     algorithm_implementation: AlgorithmImplementation,
     hardware_model: BasicArchitectureModel,
-    steps_to_extrapolate_from: List[int],
     decoder_model: Optional[DecoderModel] = None,
-    n_measurement_steps_fit_type: str = "logarithmic",
 ) -> ExtrapolatedGraphResourceInfo:
     """The fastest resource estimate method, but also the least accurate one.
 
@@ -173,20 +166,16 @@ def get_fast_extrapolation_estimate(
     Returns:
         ResourceInfo: The resources required to run the algorithm.
     """
-    estimator = ExtrapolationResourceEstimator(
-        hardware_model,
-        steps_to_extrapolate_from,
-        decoder_model=decoder_model,
-        n_measurement_steps_fit_type=n_measurement_steps_fit_type,
-    )
+    estimator = GraphResourceEstimator(hardware_model, decoder_model=decoder_model)
 
-    return get_custom_extrapolated_estimate(
+    return get_custom_resource_estimation(
         algorithm_implementation,
         estimator,
         transformers=[
-            transpile_to_native_gates,
-            create_big_graph_from_subcircuits(
-                graph_production_method=get_algorithmic_graph_from_ruby_slippers,
+            compile_to_native_gates,
+            create_graphs_for_subroutines(
+                graph_production_method=compile_circuit_using_ruby_slippers,
+                destination="single-thread",
             ),
         ],
     )
@@ -201,7 +190,7 @@ def get_footprint_estimate(
         hardware_model, decoder_model=decoder_model
     )
 
-    algorithm_implementation.program = transpile_to_native_gates(
+    algorithm_implementation.program = compile_to_native_gates(
         algorithm_implementation.program
     )
 
@@ -277,7 +266,7 @@ def automatic_resource_estimator(
         print("Using precise graph estimator")
     elif extrapolaed_graph_size < 1e7:
         pipeline = partial(
-            get_precise_extrapolation_estimate,
+            get_precise_stitched_estimate,
             steps_to_extrapolate_from=DEFAULT_STEPS_TO_EXTRAPOLATE_FROM,
         )
         print("Using precise extrapolation graph estimator")
@@ -286,7 +275,7 @@ def automatic_resource_estimator(
         print("Using fast graph estimator")
     elif small_extrapolated_graph_size < 1e7:
         pipeline = partial(
-            get_fast_extrapolation_estimate,
+            get_fast_stitched_estimate,
             steps_to_extrapolate_from=DEFAULT_STEPS_TO_EXTRAPOLATE_FROM,
         )
         print("Using fast extrapolation graph estimator")

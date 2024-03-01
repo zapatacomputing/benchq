@@ -15,9 +15,9 @@ from orquestra.quantum.decompositions._decomposition import DecompositionRule
 
 from benchq.compilation import (
     pyliqtr_transpile_to_clifford_t,
-    transpile_to_native_gates,
+    compile_to_native_gates,
 )
-from benchq.compilation.transpile_to_native_gates import decompose_benchq_circuit
+from benchq.compilation.circuits.compile_to_native_gates import decompose_benchq_circuit
 from benchq.problem_embeddings.block_encodings.offset_tridiagonal import (
     get_offset_tridagonal_block_encoding,
 )
@@ -150,7 +150,7 @@ def run_time_marching():
     decomposed_cir = decompose_benchq_circuit(
         time_marching_cir, [Remove_Multicontrol()]
     )
-    native_gates = transpile_to_native_gates(decomposed_cir)
+    native_gates = compile_to_native_gates(decomposed_cir)
     clifford_t = pyliqtr_transpile_to_clifford_t(native_gates, 1e-2)
     quantum_program = clifford_t
     print(f"Number of T and T_dag gates: {quantum_program.n_t_gates}")

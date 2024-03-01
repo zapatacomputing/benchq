@@ -10,7 +10,6 @@ from benchq.compilation import get_ruby_slippers_compiler
 from benchq.decoder_modeling import DecoderModel
 from benchq.problem_embeddings.quantum_program import (
     QuantumProgram,
-    get_program_from_circuit,
 )
 from benchq.quantum_hardware_modeling import (
     BASIC_ION_TRAP_ARCHITECTURE_MODEL,
@@ -19,10 +18,10 @@ from benchq.quantum_hardware_modeling import (
 )
 from benchq.resource_estimators.graph_estimators import (
     GraphResourceEstimator,
-    create_big_graph_from_subcircuits,
+    create_graph_from_full_circuit,
     get_custom_resource_estimation,
-    synthesize_clifford_t,
-    transpile_to_native_gates,
+    transpile_to_clifford_t,
+    compile_to_native_gates,
 )
 
 fast_ruby_slippers = get_ruby_slippers_compiler(
@@ -44,13 +43,13 @@ def use_delayed_gate_synthesis(request):
 def _get_transformers(use_delayed_gate_synthesis, error_budget):
     if use_delayed_gate_synthesis:
         transformers = [
-            synthesize_clifford_t(error_budget),
-            create_big_graph_from_subcircuits(fast_ruby_slippers),
+            transpile_to_clifford_t(error_budget),
+            create_graph_from_full_circuit(fast_ruby_slippers),
         ]
     else:
         transformers = [
-            transpile_to_native_gates,
-            create_big_graph_from_subcircuits(fast_ruby_slippers),
+            compile_to_native_gates,
+            create_graph_from_full_circuit(fast_ruby_slippers),
         ]
     return transformers
 
@@ -97,25 +96,25 @@ def test_resource_estimations_returns_results_for_different_architectures(
             {"n_measurement_steps": 3, "n_nodes": 3, "n_logical_qubits": 2},
         ),
         (
-            get_program_from_circuit(
+            QuantumProgram.from_circuit(
                 Circuit([RX(np.pi / 4)(0), RY(np.pi / 4)(0), CNOT(0, 1)])
             ),
             {"n_measurement_steps": 4, "n_nodes": 4, "n_logical_qubits": 2},
         ),
         (
-            get_program_from_circuit(
+            QuantumProgram.from_circuit(
                 Circuit([H(0)] + [CNOT(i, i + 1) for i in range(3)])
             ),
             {"n_measurement_steps": 4, "n_nodes": 4, "n_logical_qubits": 3},
         ),
         (
-            get_program_from_circuit(
+            QuantumProgram.from_circuit(
                 Circuit([H(0)] + [CNOT(i, i + 1) for i in range(3)] + [T(1), T(2)])
             ),
             {"n_measurement_steps": 6, "n_nodes": 6, "n_logical_qubits": 5},
         ),
         (
-            get_program_from_circuit(
+            QuantumProgram.from_circuit(
                 Circuit([H(0), T(0), CNOT(0, 1), T(2), CNOT(2, 3)])
             ),
             {"n_measurement_steps": 3, "n_nodes": 3, "n_logical_qubits": 2},
@@ -170,7 +169,7 @@ def test_better_architecture_does_not_require_more_resources(
 
     transformers = _get_transformers(use_delayed_gate_synthesis, error_budget)
 
-    quantum_program = get_program_from_circuit(
+    quantum_program = QuantumProgram.from_circuit(
         Circuit([H(0), RZ(np.pi / 4)(0), CNOT(0, 1)])
     )
     algorithm_implementation = AlgorithmImplementation(quantum_program, error_budget, 1)
@@ -223,7 +222,7 @@ def test_higher_error_budget_does_not_require_more_resources(
         use_delayed_gate_synthesis, high_error_budget
     )
 
-    quantum_program = get_program_from_circuit(
+    quantum_program = QuantumProgram.from_circuit(
         Circuit([H(0), RZ(np.pi / 4)(0), CNOT(0, 1)])
     )
     algorithm_implementation_low_error_budget = AlgorithmImplementation(
@@ -263,7 +262,7 @@ def test_get_resource_estimations_for_program_accounts_for_decoder(optimization)
     architecture_model = BASIC_SC_ARCHITECTURE_MODEL
     # set circuit generation weight to 0
     error_budget = ErrorBudget.from_weights(1e-3, 0, 1, 1)
-    quantum_program = get_program_from_circuit(
+    quantum_program = QuantumProgram.from_circuit(
         Circuit([H(0), RZ(np.pi / 4)(0), CNOT(0, 1)])
     )
     algorithm_implementation = AlgorithmImplementation(quantum_program, error_budget, 1)

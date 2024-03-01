@@ -19,11 +19,9 @@ from benchq.resource_estimators.footprint_estimators.openfermion_estimator impor
     footprint_estimator,
 )
 from benchq.resource_estimators.graph_estimators import (
-    ExtrapolationResourceEstimator,
-    create_big_graph_from_subcircuits,
-    get_custom_extrapolated_estimate,
+    create_graph_from_full_circuit,
     remove_isolated_nodes,
-    transpile_to_native_gates,
+    compile_to_native_gates,
 )
 
 
@@ -72,8 +70,8 @@ def get_resources(lattice_type: str, size: int, decoder_data_file: str):
         algorithm_implementation,
         my_estimator,
         transformers=[
-            transpile_to_native_gates,
-            create_big_graph_from_subcircuits(gpm),
+            compile_to_native_gates,
+            create_graph_from_full_circuit(gpm),
             remove_isolated_nodes,
         ],
     )

@@ -13,14 +13,14 @@ from orquestra.integrations.qiskit.conversions import import_from_qiskit
 from qiskit.circuit import QuantumCircuit
 
 from benchq.algorithms.data_structures import AlgorithmImplementation, ErrorBudget
-from benchq.problem_embeddings import get_program_from_circuit
+from benchq.problem_embeddings import QuantumProgram
 from benchq.quantum_hardware_modeling import BASIC_SC_ARCHITECTURE_MODEL
 from benchq.resource_estimators.graph_estimators import (
     GraphResourceEstimator,
-    create_big_graph_from_subcircuits,
+    create_graph_from_full_circuit,
     get_custom_resource_estimation,
-    synthesize_clifford_t,
-    transpile_to_native_gates,
+    transpile_to_clifford_t,
+    compile_to_native_gates,
 )
 
 
@@ -60,9 +60,9 @@ def main(file_name):
         algorithm_implementation,
         estimator=GraphResourceEstimator(architecture_model),
         transformers=[
-            transpile_to_native_gates,
-            synthesize_clifford_t(error_budget),
-            create_big_graph_from_subcircuits(),
+            compile_to_native_gates,
+            transpile_to_clifford_t(error_budget),
+            create_graph_from_full_circuit(),
         ],
     )
     print("Resource estimation results:")

@@ -5,7 +5,7 @@ import pytest
 from orquestra.quantum.circuits import CNOT, RZ, Circuit, H
 
 from benchq.algorithms.data_structures import AlgorithmImplementation, ErrorBudget
-from benchq.problem_embeddings.quantum_program import get_program_from_circuit
+from benchq.problem_embeddings.quantum_program import QuantumProgram
 from benchq.quantum_hardware_modeling.hardware_architecture_models import IONTrapModel
 from benchq.resource_estimators.azure_estimator import AzureResourceEstimator
 
@@ -32,7 +32,7 @@ def test_better_architecture_does_not_require_more_resources() -> None:
     # set circuit generation weight to 0
     error_budget = ErrorBudget.from_weights(1e-3, 0, 1, 1)
 
-    quantum_program = get_program_from_circuit(
+    quantum_program = QuantumProgram.from_circuit(
         Circuit([H(0), RZ(np.pi / 4)(0), CNOT(0, 1)])
     )
 
@@ -69,7 +69,7 @@ def test_higher_error_budget_requires_less_resources() -> None:
     low_failure_tolerance = 1e-5
     high_failure_tolerance = 1e-3
 
-    quantum_program = get_program_from_circuit(
+    quantum_program = QuantumProgram.from_circuit(
         Circuit([H(0), RZ(np.pi / 4)(0), CNOT(0, 1)])
     )
 

@@ -16,7 +16,7 @@ import pathlib
 from benchq.compilation import (
     jl,
     pyliqtr_transpile_to_clifford_t,
-    transpile_to_native_gates,
+    compile_to_native_gates,
 )
 from benchq.problem_embeddings.quantum_program import QuantumProgram
 
@@ -137,7 +137,7 @@ def test_stabilizer_states_are_the_same_for_circuits(filename):
             QuantumCircuit.from_qasm_file(os.path.join("examples", "data", filename))
         )
 
-    circuit = transpile_to_native_gates(qiskit_circuit)
+    circuit = compile_to_native_gates(qiskit_circuit)
     test_circuit = get_icm(circuit)
 
     target_tableau = get_target_tableau(test_circuit)
@@ -183,7 +183,7 @@ def test_stabilizer_states_are_the_same_for_circuits_with_decomposed_rotations(
             qiskit_circuit, circuit_precision=10**-2
         )
         test_circuit = get_icm(clifford_t)
-        test_circuit = transpile_to_native_gates(test_circuit)
+        test_circuit = compile_to_native_gates(test_circuit)
 
         target_tableau = get_target_tableau(test_circuit)
 

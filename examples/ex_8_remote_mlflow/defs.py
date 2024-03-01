@@ -22,9 +22,9 @@ from benchq.quantum_hardware_modeling.hardware_architecture_models import (
 )
 from benchq.resource_estimators.graph_estimators import (
     GraphResourceEstimator,
-    create_big_graph_from_subcircuits,
+    create_graph_from_full_circuit,
     get_custom_resource_estimation,
-    transpile_to_native_gates,
+    compile_to_native_gates,
 )
 
 task_deps = [
@@ -70,8 +70,8 @@ def gsc_estimates(algorithm, architecture_model):
         algorithm,
         estimator=GraphResourceEstimator(hw_model=architecture_model),
         transformers=[
-            transpile_to_native_gates,
-            create_big_graph_from_subcircuits(),
+            compile_to_native_gates,
+            create_graph_from_full_circuit(),
         ],
     )
 

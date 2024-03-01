@@ -22,31 +22,36 @@ function calculate_layering!(pauli_tracker::PauliTracker, asg, ignored_nodes::Se
     nodes_to_include = Vector{Qubit}([node for node = 1:pauli_tracker.n_nodes if !(node in ignored_nodes)])
     output_nodes = asg.stitching_properties.graph_output_nodes
 
-    if pauli_tracker.layering_optimization == "Time"
-        verbose && println("Calculating time optimized layering...")
+    if pauli_tracker.use_fully_optimized_dag
+        optimal_dag = get_optimal_measurement_dag(pauli_tracker, output_nodes, nodes_to_include, verbose)
+    else
+        optimal_dag = get_dag(pauli_tracker, nodes_to_include, pauli_tracker.optimal_dag_density, verbose)
+    end
 
-        optimal_dag = get_dag(pauli_tracker, nodes_to_include, 1000, verbose)
+    if pauli_tracker.layering_optimization == "Time"
+        verbose && println("Calculating time optimal layering...")
+
+        output_nodes = asg.stitching_properties.graph_output_nodes
+        reverse_dag = get_reversed_dag(optimal_dag, verbose)
 
         pauli_tracker.layering =
-            unadjustable_coffman_grahm(optimal_dag, asg, nodes_to_include, verbose)
+            longest_path_layering(optimal_dag, reverse_dag, n_nodes, nodes_to_include, verbose)
     elseif pauli_tracker.layering_optimization == "Space"
         verbose && println("Calculating space optimized layering...")
 
-        measurement_dag = get_dag(pauli_tracker, nodes_to_include, 1, verbose)
-        reverse_dag = get_reversed_dag(measurement_dag, verbose)
-        optimal_dag = get_dag(pauli_tracker, nodes_to_include, 10, verbose)
+        sparse_dag = get_dag(pauli_tracker, nodes_to_include, 1, verbose)
+        reverse_dag = get_reversed_dag(sparse_dag, verbose)
 
         pauli_tracker.layering =
-            variable_width(measurement_dag, reverse_dag, optimal_dag, asg, 1, nodes_to_include, verbose)
+            variable_num_qubits(sparse_dag, reverse_dag, optimal_dag, asg, 1, nodes_to_include, verbose)
     elseif pauli_tracker.layering_optimization == "Variable"
         verbose && println("Calculating layering with $(pauli_tracker.max_num_qubits) qubits...")
 
-        measurement_dag = get_simple_measurement_dag(pauli_tracker, nodes_to_include, verbose)
-        reverse_dag = get_reversed_dag(measurement_dag)
-        optimal_dag = get_simple_measurement_dag(pauli_tracker, nodes_to_include, verbose)
+        sparse_dag = get_simple_measurement_dag(pauli_tracker, nodes_to_include, 1, verbose)
+        reverse_dag = get_reversed_dag(sparse_dag)
 
-        pauli_tracker.layering = variable_width(
-            measurement_dag,
+        pauli_tracker.layering = variable_num_qubits(
+            sparse_dag,
             reverse_dag,
             optimal_dag,
             asg,
@@ -54,71 +59,17 @@ function calculate_layering!(pauli_tracker::PauliTracker, asg, ignored_nodes::Se
             nodes_to_include,
             verbose,
         )
-    elseif pauli_tracker.layering_optimization == "Gansner"
-        verbose && println("Calculating Gansner layering...")
-
-        measurement_dag =
-            get_simple_measurement_dag(pauli_tracker, nodes_to_include, verbose)
-
-        pauli_tracker.layering =
-            gansner_layering(measurement_dag, pauli_tracker.n_nodes, nodes_to_include)
-    elseif pauli_tracker.layering_optimization == "Longest Path"
-        verbose && println("Calculating longest path layering...")
-
-        output_nodes = asg.stitching_properties.graph_output_nodes
-        measurement_dag =
-            get_simple_measurement_dag(pauli_tracker, nodes_to_include, verbose)
-        reverse_dag = get_reversed_dag(measurement_dag, verbose)
-
-        pauli_tracker.layering =
-            longest_path_layering(measurement_dag, reverse_dag, n_nodes, nodes_to_include, verbose)
     else
         error("Invalid layering optimization.")
     end
 
-    get_lower_bound_for_n_logical_qubits(measurement_dag, asg, nodes_to_include, 3, true)
-
     verbose && println("Layering complete.")
-end
-
-function gansner_layering(measurement_dag, n_nodes, nodes_to_include)
-    function dfs(node, visited, node_layers)
-        visited[node] = true
-        maxLayer = 0
-
-        for neighbor in measurement_dag[node]
-            if !visited[neighbor]
-                maxLayer = max(maxLayer, dfs(neighbor, visited, node_layers))
-            elseif node_layers[neighbor] != -1
-                maxLayer = max(maxLayer, node_layers[neighbor])
-            end
-        end
-
-        node_layers[node] = maxLayer + 1
-        return node_layers[node]
-    end
-
-    visited = falses(n_nodes)
-    node_layers = fill(-1, n_nodes)
-
-    for node in nodes_to_include
-        if !visited[node]
-            dfs(node, visited, node_layers)
-        end
-    end
-
-    layering = [[] for _ in range(1, maximum(node_layers))]
-    for node in nodes_to_include
-        layer = node_layers[node]
-        push!(layering[layer], node)
-    end
-
-    return layering
 end
 
 """
 A depth first search which returns the nodes in the order that they are
-visited. This is used to find a topological  ordering of a graph.
+visited. This is used to find a topological  ordering of a graph quickly
+when the ordering does not matter.
 """
 function depth_first_sort(measurement_dag, n_nodes, nodes_to_include)
     visited = falses(n_nodes)
@@ -143,38 +94,6 @@ function depth_first_sort(measurement_dag, n_nodes, nodes_to_include)
     return ordering
 end
 
-"""
-Given a DAG, finds  layering in the dag which minimizes the width due to
-the ASG adding nodes to the DAG. This is done by finding the first layer in
-the graph that can accommodate each node as it is created. If it cannot find
-a layer with sufficently small width, then it will increase the width of the
-layering to fit the node at the last layer currently being laid.
-"""
-function unadjustable_coffman_grahm(measurement_dag, asg, nodes_to_include, verbose)
-    layering = [[] for _ in range(1, asg.n_nodes)]
-    inv_layering = zeros(UInt, asg.n_nodes)
-
-    max_layer = 1
-    for node in VerboseIterator(
-        depth_first_sort(measurement_dag, asg.n_nodes, nodes_to_include),
-        verbose,
-        "Creating time optimal layering..."
-    )
-        # Find the maximum layer of the neighbors
-        min_layer = 1
-        for neighbor in measurement_dag[node]
-            min_layer = max(min_layer, inv_layering[neighbor] + 1)
-        end
-
-        # Update the rank of the node
-        push!(layering[min_layer], node)
-        inv_layering[node] = min_layer
-        max_layer = max(max_layer, min_layer)
-    end
-
-    println("max_layer: ", max_layer)
-    return resize!(layering, max_layer)
-end
 
 """
 Create the layering based on the longest path in the DAG. This is done by
@@ -191,7 +110,7 @@ Attributes:
         in the DAG.
 
 Returns:
-    longest_path (Vector{Vector{Qubit}}): The layer of each node in the DAG.
+    layers (Vector{Vector{Qubit}}): The layer of each node in the DAG.
 """
 function longest_path_layering(measurement_dag, reverse_measurent_dag, n_nodes, nodes_to_include::Vector{Qubit}, verbose::Bool=false)
     longest_path = zeros(Qubit, n_nodes)
@@ -333,13 +252,13 @@ end
 
 """
 Given a DAG, finds  layering in the dag which minimizes the width due to
-the ASG adding nodes to the DAG. This is done by finding the first layer in
-the graph that can accommodate each node as it is created. If it cannot find
-a layer with sufficently small width, then it will increase the width of the
-layering to fit the node at the last layer currently being laid.
+the ASG adding nodes to the DAG. This is done by first finding a topological
+ordering of the DAG which minimizes which minimizes the number of qubits.
+Next, we combine layers of the DAG such that that minimum number of qubits
+is not increased.
 """
-function variable_width(measurement_dag, reverse_measurent_dag, optimal_dag, asg, max_width::Int, nodes_to_include::Vector{Qubit}, verbose::Bool=false)
-    space_optimized = max_width == 1
+function variable_num_qubits(measurement_dag, reverse_measurent_dag, optimal_dag, asg, num_qubits::Int, nodes_to_include::Vector{Qubit}, verbose::Bool=false)
+    space_optimized = num_qubits == 1
     sorted_nodes = kahns_algorithm(measurement_dag, reverse_measurent_dag, asg.n_nodes, nodes_to_include, asg, verbose)
 
     # create a layering that is just the topological sort
@@ -349,10 +268,10 @@ function variable_width(measurement_dag, reverse_measurent_dag, optimal_dag, asg
     end
     min_logical_qubits = get_num_logical_qubits(ordering_layering, asg)
 
-    if space_optimized == 1
-        max_width = min_logical_qubits
-    elseif max_width < min_logical_qubits
-        @warn "Cannot fit circuit onto $max_width qubits. Setting num qubits to $min_logical_qubits."
+    if space_optimized
+        num_qubits = min_logical_qubits
+    elseif num_qubits < min_logical_qubits
+        @warn "Cannot fit circuit onto $num_qubits qubits. Setting num qubits to $min_logical_qubits."
     end
 
     curr_physical_nodes = get_neighborhood(ordering_layering[1], asg)
@@ -368,7 +287,7 @@ function variable_width(measurement_dag, reverse_measurent_dag, optimal_dag, asg
         new_neighborhood_to_add = setdiff(get_neighborhood(new_node_to_add, asg), measured_nodes)
         union!(curr_physical_nodes, new_neighborhood_to_add)
 
-        if length(curr_physical_nodes) <= max_width && isempty(intersect(optimal_dag[new_node_to_add], curr_physical_nodes))
+        if length(curr_physical_nodes) <= num_qubits && isempty(intersect(optimal_dag[new_node_to_add], curr_physical_nodes))
             push!(curr_layer, new_node_to_add)
         else
             push!(layering, curr_layer)

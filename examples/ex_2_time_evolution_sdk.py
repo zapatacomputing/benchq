@@ -25,13 +25,17 @@ from benchq.problem_ingestion.solid_state_hamiltonians.heisenberg import (
 from benchq.quantum_hardware_modeling import BASIC_SC_ARCHITECTURE_MODEL
 from benchq.resource_estimators.graph_estimators import (
     GraphResourceEstimator,
-    create_graphs_for_subcircuits,
     get_custom_resource_estimation,
-    synthesize_clifford_t,
-    transpile_to_native_gates,
+    compile_to_native_gates,
 )
 from benchq.timing import measure_time
-from benchq.compilation.julia_utils import get_ruby_slippers_compiler
+from benchq.compilation.graph_states.julia_utils import get_ruby_slippers_compiler
+from benchq.compilation.graph_states.quantum_program_compiler import (
+    get_quantum_program_compiler,
+)
+from benchq.compilation.graph_states.compiled_data_structures import (
+    CompiledAlgorithmImplementation,
+)
 from benchq.problem_embeddings.quantum_program import (
     split_large_subroutines_into_smaller_subroutines,
 )
@@ -86,21 +90,28 @@ def main():
 
     with measure_time() as t_info:
         num_cores = len(algorithm.program.subroutines)
-        gsc_resource_estimates = get_custom_resource_estimation(
-            algorithm,
-            estimator=GraphResourceEstimator(architecture_model),
-            transformers=[
-                transpile_to_native_gates,
-                create_graphs_for_subcircuits(
-                    compiler,
-                    destination="local",
-                    num_cores=num_cores,
-                ),
-            ],
+        compiler = get_ruby_slippers_compiler(
+            teleportation_threshold=5,
+            teleportation_distance=2,
+            layering_optimization="Space",
+            max_graph_size=1e7,
+        )
+
+        compiler = get_quantum_program_compiler(compiler)
+
+        compiled_program = compiler(algorithm.program)
+
+        compiled_algorithm = CompiledAlgorithmImplementation(
+            compiled_program, algorithm
+        )
+        estimator = GraphResourceEstimator(optimization="Space", verbose=True)
+        resource_estimate = estimator.estimate_resources_from_compiled_implementation(
+            compiled_algorithm,
+            BASIC_SC_ARCHITECTURE_MODEL,
         )
 
     print("Resource estimation time without synthesis:", t_info.total)
-    pprint(gsc_resource_estimates)
+    pprint(resource_estimate)
 
     print("Total time:", time() - start_time)
 

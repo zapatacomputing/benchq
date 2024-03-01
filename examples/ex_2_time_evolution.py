@@ -24,10 +24,10 @@ from benchq.problem_ingestion.solid_state_hamiltonians.heisenberg import (
 from benchq.quantum_hardware_modeling import BASIC_SC_ARCHITECTURE_MODEL
 from benchq.resource_estimators.graph_estimators import (
     GraphResourceEstimator,
-    create_big_graph_from_subcircuits,
+    create_graph_from_full_circuit,
     get_custom_resource_estimation,
-    synthesize_clifford_t,
-    transpile_to_native_gates,
+    transpile_to_clifford_t,
+    compile_to_native_gates,
 )
 from benchq.timing import measure_time
 from benchq.compilation.julia_utils import get_ruby_slippers_compiler
@@ -77,8 +77,8 @@ def main():
         #         algorithm,
         #         estimator=GraphResourceEstimator(architecture_model),
         #         transformers=[
-        #             synthesize_clifford_t(algorithm.error_budget),
-        #             create_big_graph_from_subcircuits(compiler),
+        #             transpile_to_clifford_t(algorithm.error_budget),
+        #             create_graph_from_full_circuit(compiler),
         #         ],
         #     )
 
@@ -90,8 +90,8 @@ def main():
                 algorithm,
                 estimator=GraphResourceEstimator(architecture_model),
                 transformers=[
-                    transpile_to_native_gates,
-                    create_big_graph_from_subcircuits(compiler),
+                    compile_to_native_gates,
+                    create_graph_from_full_circuit(compiler),
                 ],
             )
 

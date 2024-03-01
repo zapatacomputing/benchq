@@ -5,7 +5,7 @@ import string
 import pytest
 from orquestra.quantum.circuits import CNOT, Circuit, H
 
-from benchq.compilation import transpile_to_native_gates
+from benchq.compilation import compile_to_native_gates
 from benchq.compilation.ruby_slippers.rbs_hyperparam_tuning import (
     create_estimated_rbs_time_objective_fn,
     create_space_time_objective_fn,
@@ -27,13 +27,13 @@ def large_circuit():
             *[CNOT(j, i) for i in range(1, size) for j in range(0, size)],
         ]
     )
-    return transpile_to_native_gates(circ)
+    return compile_to_native_gates(circ)
 
 
 @pytest.fixture()
 def small_circuit():
     circ = Circuit([H(0), CNOT(0, 1)])
-    return transpile_to_native_gates(circ)
+    return compile_to_native_gates(circ)
 
 
 SKIP_SLOW = pytest.mark.skipif(

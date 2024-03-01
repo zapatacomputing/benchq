@@ -7,13 +7,12 @@ from typing import Dict, Generic, Iterable, List, Optional, Sequence, TypeVar, c
 import cirq
 import numpy as np
 import pyLIQTR.QSP as QSP
-from orquestra.integrations.cirq.conversions import import_from_cirq, to_openfermion
+from orquestra.integrations.cirq.conversions import import_from_cirq
 from orquestra.quantum.circuits import Circuit, GateOperation
-from orquestra.quantum.operators import PauliRepresentation
 from pyLIQTR.QSP import gen_qsp
 from pyLIQTR.QSP.qsp_helpers import qsp_decompose_once
 
-from ...conversions import openfermion_to_pyliqtr, SUPPORTED_OPERATORS, operator_to_pyliqtr
+from ...conversions import SUPPORTED_OPERATORS, operator_to_pyliqtr
 from ..quantum_program import QuantumProgram
 
 TCircuit = TypeVar("TCircuit")

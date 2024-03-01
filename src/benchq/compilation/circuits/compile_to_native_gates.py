@@ -21,10 +21,10 @@ from orquestra.quantum.decompositions._decomposition import (
     decompose_operation,
 )
 
-from ..conversions._circuit_translations import import_circuit
+from ...conversions._circuit_translations import import_circuit
 
 
-def transpile_to_native_gates(circuit) -> Circuit:
+def compile_to_native_gates(circuit) -> Circuit:
     """Traspile common gates to clifford + RZ gates.
     Changes RX, RY, and U3 to RZ. Changes CCX to T gates.
     Also, translates rotations with some characteristic angles

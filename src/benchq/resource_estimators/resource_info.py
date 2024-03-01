@@ -4,14 +4,14 @@
 """Data structures describing estimated resources and related info."""
 
 from dataclasses import dataclass, field
-from typing import Generic, List, Optional, TypeVar
+from typing import Generic, Optional, TypeVar
 
 TExtra = TypeVar("TExtra")
 
 
 @dataclass
 class DecoderInfo:
-    """Information relating the deceoder."""
+    """Information relating the decoder."""
 
     total_energy_in_joules: float
     power_in_watts: float
@@ -71,7 +71,7 @@ class ResourceInfo(Generic[TExtra]):
 class GraphData:
     """Minimal set of graph-related data needed for resource estimation."""
 
-    max_graph_degree: int
+    num_logical_qubits: int
     n_nodes: int
     n_t_gates: int
     n_rotation_gates: int
@@ -80,25 +80,6 @@ class GraphData:
 
 # Alias for type of resource info returned by GraphResourceEstimator
 GraphResourceInfo = ResourceInfo[GraphData]
-
-
-@dataclass
-class ExtrapolatedGraphData(GraphData):
-    """GraphData extended with extrapolation-related info."""
-
-    n_logical_qubits_r_squared: float
-    n_measurement_steps_r_squared: float
-    n_nodes_r_squared: float
-    data_used_to_extrapolate: List[GraphData] = field(repr=False)
-    steps_to_extrapolate_to: int
-
-    @property
-    def max_graph_degree_r_squared(self) -> float:
-        return self.n_logical_qubits_r_squared
-
-
-# Alias for type of resource info returned by ExtrapolationResourceEstimator
-ExtrapolatedGraphResourceInfo = ResourceInfo[ExtrapolatedGraphData]
 
 
 @dataclass

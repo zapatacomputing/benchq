@@ -1,16 +1,8 @@
-import time
 import warnings
 from dataclasses import replace
 from decimal import Decimal, getcontext
 from math import ceil
-from typing import Iterable, Optional, Tuple
-from copy import copy
-import networkx as nx
-from graph_state_generation.optimizers import (
-    fast_maximal_independent_set_stabilizer_reduction,
-    greedy_stabilizer_measurement_scheduler,
-)
-from graph_state_generation.substrate_scheduler import TwoRowSubstrateScheduler
+from typing import Iterable, Optional, Callable
 
 from benchq.decoder_modeling.decoder_resource_estimator import get_decoder_info
 
@@ -28,44 +20,13 @@ from ...quantum_hardware_modeling.devitt_surface_code import (
     physical_qubits_per_logical_qubit,
 )
 from ..resource_info import GraphData, GraphResourceInfo
+from ...problem_embeddings.quantum_program import QuantumProgram
+from ...compilation.graph_states.compiled_data_structures import (
+    CompiledAlgorithmImplementation,
+    CompiledQuantumProgram,
+)
 
 INITIAL_SYNTHESIS_ACCURACY = 0.0001
-
-
-def substrate_scheduler(graph: nx.Graph, preset: str) -> TwoRowSubstrateScheduler:
-    """A simple interface for running the substrate scheduler. Can be run quickly or
-    optimized for smaller runtime. Using the "optimized" preset can halve the number
-    of measurement steps, but takes about 100x longer to run. It's probably only
-    suitable for graphs with less than 10^5 nodes.
-
-    Args:
-        graph (nx.Graph): Graph to create substrate schedule for.
-        preset (str): Can optimize for speed ("fast") or for smaller number of
-            measurement steps ("optimized").
-
-    Returns:
-        TwoRowSubstrateScheduler: A substrate scheduler object with the schedule
-            already created.
-    """
-    cleaned_graph = remove_isolated_nodes_from_graph(graph)[1]
-
-    print("starting substrate scheduler")
-    start = time.time()
-    if preset == "fast":
-        compiler = TwoRowSubstrateScheduler(
-            cleaned_graph,
-            stabilizer_scheduler=greedy_stabilizer_measurement_scheduler,
-        )
-    if preset == "optimized":
-        compiler = TwoRowSubstrateScheduler(
-            cleaned_graph,
-            pre_mapping_optimizer=fast_maximal_independent_set_stabilizer_reduction,
-            stabilizer_scheduler=greedy_stabilizer_measurement_scheduler,
-        )
-    compiler.run()
-    end = time.time()
-    print("substrate scheduler took", end - start, "seconds")
-    return compiler
 
 
 class GraphResourceEstimator:
@@ -79,11 +40,8 @@ class GraphResourceEstimator:
             If None, no estimates on the number of decoder are provided.
         optimization (str): The optimization to use for the estimate. Either estimate
             the resources needed to run the algorithm in the shortest time possible
-            ("time") or the resources needed to run the algorithm with the smallest
-            number of physical qubits ("space").
-        substrate_scheduler_preset (str): Optimize for speed ("fast") so that it can
-            be run on larger graphs or for lower resource estimates ("optimized"). For
-            graphs of sizes in the thousands of nodes or higher, "fast" is recommended.
+            ("Time") or the resources needed to run the algorithm with the smallest
+            number of physical qubits ("Space").
         magic_state_factory_iterator (Optional[Iterable[MagicStateFactory]]: iterator
             over all magic_state_factories.
             to be used during estimation. If not provided (or passed None)
@@ -96,55 +54,35 @@ class GraphResourceEstimator:
 
     def __init__(
         self,
-        hw_model: BasicArchitectureModel,
-        decoder_model: Optional[DecoderModel] = None,
-        optimization: str = "space",
-        substrate_scheduler_preset: str = "fast",
-        magic_state_factory_iterator: Optional[Iterable[MagicStateFactory]] = None,
+        optimization: str = "Space",
+        verbose: bool = False,
     ):
-        self.hw_model = hw_model
-        self.decoder_model = decoder_model
         self.optimization = optimization
-        self.substrate_scheduler_preset = substrate_scheduler_preset
         getcontext().prec = 100  # need some extra precision for this calculation
-        self.magic_state_factory_iterator = (
-            magic_state_factory_iterator or iter_litinski_factories(hw_model)
-        )
-
-    def _get_n_measurement_steps(self, graph) -> int:
-        compiler = substrate_scheduler(graph, self.substrate_scheduler_preset)
-        n_measurement_steps = len(compiler.measurement_steps)
-        return n_measurement_steps
-
-    def _get_graph_data_for_single_graph(self, problem: GraphPartition) -> GraphData:
-        graph = problem.subgraphs[0]
-        print("getting max graph degree")
-        max_graph_degree = max(deg for _, deg in graph.degree())
-        n_measurement_steps = self._get_n_measurement_steps(graph)
-        return GraphData(
-            max_graph_degree=max_graph_degree,
-            n_nodes=graph.number_of_nodes(),
-            n_t_gates=problem.n_t_gates,
-            n_rotation_gates=problem.n_rotation_gates,
-            n_measurement_steps=n_measurement_steps,
-        )
 
     def _minimize_code_distance(
         self,
-        n_total_t_gates: int,
-        graph_data: GraphData,
+        compiled_program: CompiledQuantumProgram,
         hardware_failure_tolerance: float,
         magic_state_factory: MagicStateFactory,
+        n_t_gates_per_rotation: float,
+        hw_model: BasicArchitectureModel,
         min_d: int = 4,
         max_d: int = 200,
     ) -> int:
+
         for code_distance in range(min_d, max_d):
-            logical_st_volume = self.get_logical_st_volume(
-                n_total_t_gates, graph_data, code_distance, magic_state_factory
+            num_logical_qubits, total_cycles = self.get_logical_qubits_and_num_cycles(
+                compiled_program,
+                magic_state_factory,
+                n_t_gates_per_rotation,
+                code_distance,
             )
+            st_volume_in_logical_qubit_cycles = num_logical_qubits * total_cycles
+
             ec_error_rate_at_this_distance = get_total_logical_failure_rate(
-                self.hw_model,
-                logical_st_volume,
+                hw_model,
+                st_volume_in_logical_qubit_cycles,
                 code_distance,
             )
 
@@ -155,88 +93,94 @@ class GraphResourceEstimator:
             f"Required distance is greater than maximum allowable distance: {max_d}."
         )
 
-    def _get_v_graph(
+    def get_logical_qubits_and_num_cycles(
         self,
-        graph_data: GraphData,
+        compiled_program: CompiledQuantumProgram,
+        magic_state_factory: MagicStateFactory,
+        n_t_gates_per_rotation: float,
         code_distance: int,
     ):
-        if self.optimization == "space":
-            V_graph = (
-                2
-                * graph_data.max_graph_degree
-                * graph_data.n_measurement_steps
-                * code_distance
+        cycles_per_subroutine = [0 for _ in len(compiled_program.subroutines)]
+
+        if self.optimization == "Space":
+            # use a single factory
+            num_logical_qubits = 2 * compiled_program.num_logical_qubits
+            for i, subroutine in enumerate(compiled_program.subroutines):
+                for layer in range(subroutine.num_layers):
+                    num_t_states_in_this_layer = (
+                        n_t_gates_per_rotation * subroutine.rotations_per_layer[layer]
+                        + subroutine.t_states_per_layer[layer]
+                    )
+                    num_distillations_in_this_layer = (
+                        num_t_states_in_this_layer
+                        / magic_state_factory.n_t_gates_produced_per_distillation
+                    )
+                    graph_preparation_cycles_in_this_layer = (
+                        subroutine.graph_creation_tocks_per_layer[layer] * code_distance
+                    )
+                    cycles_per_subroutine[i] += (
+                        # prepare graph state, then distill and deliver T states
+                        graph_preparation_cycles_in_this_layer
+                        + num_distillations_in_this_layer
+                        * (
+                            magic_state_factory.distillation_time_in_cycles
+                            + code_distance  # 1 tock to deliver T state
+                        )
+                    )
+        elif self.optimization == "Time":
+            if compiled_program.n_rotation_gates == 0:
+                # If there are no rotation gates, we can use a single factory
+                num_factories_per_logical_qubit = 1
+            else:
+                # Use n_t_gates_per_rotation factories for each logical qubit
+                num_factories_per_logical_qubit = n_t_gates_per_rotation
+
+            num_factories_per_logical_qubit /= (
+                magic_state_factory.n_t_gates_produced_per_distillation
             )
-        elif self.optimization == "time":
-            V_graph = (
-                2 * graph_data.n_nodes * graph_data.n_measurement_steps * code_distance
+
+            factory_width = magic_state_factory.space[1]
+            factory_width_in_logical_qubit_side_lengths = factory_width / (
+                2 ** (1 / 2) * code_distance  # logical qubit side length
             )
+            # for each logical qubit, add enough factories to cover a single
+            # node which can represent a distillation or a rotation
+            num_logical_qubits = (
+                num_factories_per_logical_qubit * compiled_program.num_logical_qubits
+                # bus qubits which span factory sides
+                * factory_width_in_logical_qubit_side_lengths
+                + compiled_program.num_logical_qubits  # logical qubits for computation
+            )
+            for i, subroutine in enumerate(compiled_program.subroutines):
+                for layer in range(subroutine.num_layers):
+                    cycles_per_subroutine[i] += (
+                        # Distill T states and prepare graph state in parallel so if the
+                        # cycles needed to prepare the graph state are less than the
+                        # cycles needed to distill the T states, then we can ignore the
+                        # graph state preparation time.
+                        max(
+                            subroutine.graph_creation_tocks_per_layer[layer]
+                            * code_distance,
+                            magic_state_factory.distillation_time_in_cycles,
+                        )
+                        # cycles to deliver T states to the logical qubits
+                        # here we are rate limited by access to the logical qubit
+                        + code_distance * num_factories_per_logical_qubit
+                        # assume that each T state from a given distillation is
+                        # delivered in a different tock (pessimistic assumption)
+                        * magic_state_factory.n_t_gates_produced_per_distillation
+                    )
         else:
             raise ValueError(
                 f"Unknown optimization: {self.optimization}. "
-                "Should be either 'time' or 'space'."
+                "Should be either 'Time' or 'Space'."
             )
-        return V_graph
 
-    def _get_v_measure(
-        self,
-        n_total_t_gates: int,
-        graph_data: GraphData,
-        code_distance: int,
-        magic_state_factory: MagicStateFactory,
-    ):
-        if self.optimization == "space":
-            V_measure = (
-                2
-                * graph_data.max_graph_degree
-                * n_total_t_gates
-                * (magic_state_factory.distillation_time_in_cycles + code_distance)
-            )
-        elif self.optimization == "time":
-            V_measure = (
-                n_total_t_gates
-                * magic_state_factory.space[1]
-                * (magic_state_factory.distillation_time_in_cycles + code_distance)
-                / (2 ** (1 / 2) * code_distance + 1)
-            )
-        else:
-            raise ValueError(
-                f"Unknown optimization: {self.optimization}. "
-                "Should be either 'time' or 'space'."
-            )
-        return V_measure
+        total_cycles = 0
+        for subroutine in compiled_program.subroutine_sequence:
+            total_cycles += cycles_per_subroutine[subroutine]
 
-    def get_logical_st_volume(
-        self,
-        n_total_t_gates: int,
-        graph_data: GraphData,
-        code_distance: int,
-        magic_state_factory: MagicStateFactory,
-    ):
-        return self._get_v_graph(graph_data, code_distance) + self._get_v_measure(
-            n_total_t_gates, graph_data, code_distance, magic_state_factory
-        )
-
-    def get_n_total_t_gates(
-        self,
-        n_t_gates: int,
-        n_rotation_gates: int,
-        transpilation_failure_tolerance: float,
-    ) -> int:
-        if n_rotation_gates != 0:
-            per_gate_synthesis_accuracy = 1 - (
-                1 - Decimal(transpilation_failure_tolerance)
-            ) ** Decimal(1 / n_rotation_gates)
-
-            n_t_gates_used_at_measurement = (
-                n_rotation_gates
-                * self.SYNTHESIS_SCALING
-                * int((1 / per_gate_synthesis_accuracy).log10() / Decimal(2).log10())
-            )
-        else:
-            n_t_gates_used_at_measurement = 0
-
-        return n_t_gates + n_t_gates_used_at_measurement
+        return num_logical_qubits, total_cycles
 
     def _get_time_per_circuit_in_seconds(
         self,
@@ -245,7 +189,7 @@ class GraphResourceEstimator:
         n_total_t_gates: float,
         magic_state_factory: MagicStateFactory,
     ) -> float:
-        if self.optimization == "space":
+        if self.optimization == "Space":
             return (
                 6
                 * self.hw_model.surface_code_cycle_time_in_seconds
@@ -255,7 +199,7 @@ class GraphResourceEstimator:
                     * n_total_t_gates
                 )
             )
-        elif self.optimization == "time":
+        elif self.optimization == "Time":
             return (
                 6
                 * self.hw_model.surface_code_cycle_time_in_seconds
@@ -267,7 +211,7 @@ class GraphResourceEstimator:
             )
         else:
             raise NotImplementedError(
-                "Must use either time or space optimal estimator."
+                "Must use either Time or Space optimal estimator."
             )
 
     def _get_n_physical_qubits(
@@ -276,15 +220,15 @@ class GraphResourceEstimator:
         code_distance: int,
         magic_state_factory: MagicStateFactory,
     ) -> int:
-        patch_size = physical_qubits_per_logical_qubit(code_distance)
-        if self.optimization == "space":
+        patch_size =
+        if self.optimization == "Space":
             return (
-                2 * graph_data.max_graph_degree * patch_size
+                2 * graph_data.num_logical_qubits * patch_size
                 + magic_state_factory.qubits
             )
-        elif self.optimization == "time":
+        elif self.optimization == "Time":
             return ceil(
-                graph_data.max_graph_degree * patch_size
+                graph_data.num_logical_qubits * patch_size
                 + 2 ** (0.5)
                 * graph_data.n_measurement_steps
                 * magic_state_factory.space[0]
@@ -292,45 +236,43 @@ class GraphResourceEstimator:
             )
         else:
             raise NotImplementedError(
-                "Must use either time or space optimal estimator."
+                "Must use either Time or Space optimal estimator."
             )
 
-    def estimate_resources_from_graph_data(
+    def estimate_resources_from_compiled_implementation(
         self,
-        graph_data: GraphData,
-        algorithm_implementation: AlgorithmImplementation,
+        compiled_algorithm_implementation,
+        hw_model: BasicArchitectureModel,
+        decoder_model: Optional[DecoderModel] = None,
+        magic_state_factory_iterator: Optional[Iterable[MagicStateFactory]] = None,
     ) -> GraphResourceInfo:
-        this_transpilation_failure_tolerance = (
-            algorithm_implementation.error_budget.transpilation_failure_tolerance
+        magic_state_factory_iterator = iter(
+            magic_state_factory_iterator or iter_litinski_factories(hw_model)
         )
+        n_rotation_gates = compiled_algorithm_implementation.n_rotation_gates
 
-        magic_state_factory_iterator = iter(self.magic_state_factory_iterator)
-
+        this_transpilation_failure_tolerance = (
+            compiled_algorithm_implementation.error_budget.transpilation_failure_tolerance
+        )
+        hardware_failure_tolerance = (
+            compiled_algorithm_implementation.error_budget.hardware_failure_tolerance
+        )
         while True:
             magic_state_factory_found = False
             for magic_state_factory in magic_state_factory_iterator:
-                tmp_graph_data = replace(
-                    graph_data,
-                    n_nodes=ceil(
-                        graph_data.n_nodes
-                        / magic_state_factory.n_t_gates_produced_per_distillation
-                    ),
-                    n_t_gates=ceil(
-                        graph_data.n_t_gates
-                        / magic_state_factory.n_t_gates_produced_per_distillation
-                    ),
+                per_gate_synthesis_accuracy = 1 - (
+                    1 - Decimal(this_transpilation_failure_tolerance)
+                ) ** Decimal(1 / n_rotation_gates)
+                n_t_gates_per_rotation = self.SYNTHESIS_SCALING * int(
+                    (1 / per_gate_synthesis_accuracy).log10() / Decimal(2).log10()
                 )
 
-                n_total_t_gates = self.get_n_total_t_gates(
-                    tmp_graph_data.n_t_gates,
-                    tmp_graph_data.n_rotation_gates,
-                    this_transpilation_failure_tolerance,
-                )
                 code_distance = self._minimize_code_distance(
-                    n_total_t_gates,
-                    tmp_graph_data,
-                    algorithm_implementation.error_budget.hardware_failure_tolerance,
+                    compiled_algorithm_implementation.program,
+                    hardware_failure_tolerance,
                     magic_state_factory,
+                    n_t_gates_per_rotation,
+                    hw_model,
                 )
                 this_logical_cell_error_rate = logical_cell_error_rate(
                     self.hw_model.physical_qubit_error_rate, code_distance
@@ -352,18 +294,21 @@ class GraphResourceEstimator:
                     code_distance=-1,
                     logical_error_rate=1.0,
                     # estimate the number of logical qubits using max node degree
-                    n_logical_qubits=graph_data.max_graph_degree,
+                    n_logical_qubits=compiled_algorithm_implementation.program.num_logical_qubits,
                     total_time_in_seconds=0.0,
                     n_physical_qubits=0,
                     magic_state_factory_name="No MagicStateFactory Found",
                     decoder_info=None,
                     routing_to_measurement_volume_ratio=0.0,
-                    extra=graph_data,
+                    extra=compiled_algorithm_implementation.program,
                 )
             if this_transpilation_failure_tolerance < this_logical_cell_error_rate:
                 # if the t gates typically do not come from rotation gates, then
                 # then you will have to restart the calculation from scratch.
-                if graph_data.n_t_gates < 0.01 * graph_data.n_nodes:
+                if (
+                    compiled_algorithm_implementation.program.n_t_gates
+                    < 0.01 * compiled_algorithm_implementation.program.n_rotation_gates
+                ):
                     raise RuntimeError(
                         "Run estimate again with lower synthesis failure tolerance."
                     )
@@ -374,140 +319,63 @@ class GraphResourceEstimator:
                     )
                 this_transpilation_failure_tolerance /= 10
             else:
-                graph_data = tmp_graph_data
                 break
 
         # get error rate after correction
-        space_time_volume = self.get_logical_st_volume(
-            n_total_t_gates, graph_data, code_distance, magic_state_factory
+        num_logical_qubits, num_cycles = self.get_logical_qubits_and_num_cycles(
+            compiled_algorithm_implementation.program,
+            magic_state_factory,
+            n_t_gates_per_rotation,
+            code_distance,
         )
 
-        graph_measure_ratio = (
-            self._get_v_graph(graph_data, code_distance) / space_time_volume
-        )
-
-        logical_st_volume = self.get_logical_st_volume(
-            n_total_t_gates, graph_data, code_distance, magic_state_factory
-        )
+        st_volume_in_logical_qubit_cycles = num_logical_qubits * num_cycles
 
         total_logical_error_rate = get_total_logical_failure_rate(
-            self.hw_model,
-            logical_st_volume,
+            hw_model,
+            st_volume_in_logical_qubit_cycles,
             code_distance,
         )
 
         # get number of physical qubits needed for the computation
-        n_physical_qubits = self._get_n_physical_qubits(
-            graph_data, code_distance, magic_state_factory
-        )
+        n_physical_qubits = physical_qubits_per_logical_qubit(code_distance) * num_logical_qubits
 
         # get total time to run algorithm
-        time_per_circuit_in_seconds = self._get_time_per_circuit_in_seconds(
-            graph_data, code_distance, n_total_t_gates, magic_state_factory
-        )
+        time_per_circuit_in_seconds = 6 * num_cycles * hw_model.surface_code_cycle_time_in_seconds
 
-        # The total space time volume, prior to measurements is,
-        # V_{graph}= 2\Delta S (where we measure each of the steps,
-        # S in terms of tocks, corresponding to d cycle times.
-        # d will be solved for later).  For each distilled T-state,
-        # C-cycles are needed to prepare the state and 1-Tock is required
-        # to interact the state with the graph node and measure it in
-        # the X or Z-basis.  Hence for each node measurement (assuming
-        # T-basis measurements), the volume increases to,
-        # V = 2*Delta*S*d+ 2*Delta*(C+d).
-
-        total_time_in_seconds = (
-            time_per_circuit_in_seconds * algorithm_implementation.n_shots
-        )
+        total_time_in_seconds = time_per_circuit_in_seconds * compiled_algorithm_implementation.n_shots
 
         decoder_info = get_decoder_info(
-            self.hw_model,
-            self.decoder_model,
+            hw_model,
+            decoder_model,
             code_distance,
-            space_time_volume,
-            graph_data.max_graph_degree,
+            st_volume_in_logical_qubit_cycles,
+            num_logical_qubits,
         )
 
-        return GraphResourceInfo(
+        resource_info = GraphResourceInfo(
             code_distance=code_distance,
             logical_error_rate=total_logical_error_rate,
             # estimate the number of logical qubits using max node degree
-            n_logical_qubits=graph_data.max_graph_degree,
+            n_logical_qubits=num_logical_qubits,
             total_time_in_seconds=total_time_in_seconds,
             n_physical_qubits=n_physical_qubits,
             magic_state_factory_name=magic_state_factory.name,
             decoder_info=decoder_info,
-            routing_to_measurement_volume_ratio=graph_measure_ratio,
-            extra=graph_data,
+            routing_to_measurement_volume_ratio=None,
+            extra=None,
         )
 
-    def estimate(
-        self, algorithm_implementation: AlgorithmImplementation
-    ) -> GraphResourceInfo:
-        if isinstance(algorithm_implementation.program, GraphData):
-            resource_info = self.estimate_resources_from_graph_data(
-                algorithm_implementation.program, algorithm_implementation
-            )
-            if isinstance(self.hw_model, DetailedArchitectureModel):
-                resource_info.hardware_resource_info = (
-                    self.hw_model.get_hardware_resource_estimates(resource_info)
-                )
+        resource_info.hardware_resource_info = (
+            hw_model.get_hardware_resource_estimates(resource_info)
+            if isinstance(hw_model, DetailedArchitectureModel)
+            else None
+        )
 
-            return resource_info
-        elif len(algorithm_implementation.program.subgraphs) == 1:
-            graph_data = self._get_graph_data_for_single_graph(
-                algorithm_implementation.program
-            )
-            resource_info = self.estimate_resources_from_graph_data(
-                graph_data, algorithm_implementation
-            )
-            if isinstance(self.hw_model, DetailedArchitectureModel):
-                resource_info.hardware_resource_info = (
-                    self.hw_model.get_hardware_resource_estimates(resource_info)
-                )
-            return resource_info
+        return resource_info
 
 
-def remove_isolated_nodes_from_graph(graph: nx.Graph) -> Tuple[int, nx.Graph]:
-    cleaned_graph = copy(graph)
-    isolated_nodes = list(nx.isolates(cleaned_graph))
-    n_nodes_removed = len(isolated_nodes)
-
-    cleaned_graph.remove_nodes_from(isolated_nodes)
-    cleaned_graph = nx.convert_node_labels_to_integers(cleaned_graph)
-
-    return n_nodes_removed, cleaned_graph
-
-
-def remove_isolated_nodes(graph_partition: GraphPartition) -> GraphPartition:
-    """Sometimes our circuits can generate a lot of extra nodes because of how
-    RESET is implemented. This transformer removes these nodes from the
-    graph to prevent them from influencing the costing. There are 3 known sources
-    of isolated nodes:
-        1. Unneeded resets at the beginning of the circuit.
-        2. Decomposing rotations into gates sometimes gives bare nodes if a
-             T gate is placed after a reset. (most concerning)
-        3. Consecutive reset gates happening later on in the circuit.
-
-    Args:
-        graph_partition (GraphPartition): graph partition to remove the isoated
-            nodes of.
-
-    Returns:
-        GraphPartition: input graph partition with isolated nodes removed.
-    """
-    print("Removing isolated nodes from graph...")
-    start = time.time()
-    new_graphs = []
-    total_nodes_removed = 0
-    for graph in graph_partition.subgraphs:
-        n_nodes_removed, graph = remove_isolated_nodes_from_graph(graph)
-
-        total_nodes_removed += n_nodes_removed
-        new_graphs.append(graph)
-
-    print(
-        f"Removed {total_nodes_removed} isolated nodes "
-        f"in {time.time() - start} seconds."
-    )
-    return GraphPartition(graph_partition.program, new_graphs)
+def prepare_program_for_compilation(implementation: QuantumProgram) -> QuantumProgram:
+    implementation.program = compile_to_native_gates(implementation.program)
+    if transpile_to_clifford_t:
+        transpile_to_clifford_t(implementation)

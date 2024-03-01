@@ -11,7 +11,7 @@ from ...algorithms import GraphPartition
 from ...problem_embeddings import QuantumProgram
 from ...quantum_hardware_modeling import BASIC_SC_ARCHITECTURE_MODEL
 from ...resource_estimators.graph_estimators import GraphResourceEstimator
-from .. import jl, transpile_to_native_gates
+from .. import jl, compile_to_native_gates
 from ..julia_utils import get_nx_graph_from_rbs_adj_list
 
 
@@ -107,12 +107,12 @@ def space_time_cost_from_rbs(
     graph_data = empty_graph_re._get_graph_data_for_single_graph(graph_partition)
 
     if space_or_time == "space":
-        return (10**time_overrun) + graph_data.max_graph_degree - 1
+        return (10**time_overrun) + graph_data.num_logical_qubits - 1
     elif space_or_time == "time":
         return (10**time_overrun) + graph_data.n_measurement_steps - 1
     elif space_or_time == "space&time":
         return (
-            (10**time_overrun) + graph_data.max_graph_degree - 1,
+            (10**time_overrun) + graph_data.num_logical_qubits - 1,
             (10**time_overrun) + graph_data.n_measurement_steps - 1,
         )
     else:
@@ -349,7 +349,7 @@ def get_optimal_hyperparams_for_time(
     Returns:
         the best hyperparameters found during optimization
     """
-    transpiled_circ = transpile_to_native_gates(circuit)
+    transpiled_circ = compile_to_native_gates(circuit)
     objective = create_space_time_objective_fn(
         rbs_iteration_time,
         max_allowed_time,
@@ -391,7 +391,7 @@ def get_optimal_hyperparams_for_space_and_time(
     Returns:
         the best hyperparameters (based on space_weight) found during optimization
     """
-    transpiled_circ = transpile_to_native_gates(circuit)
+    transpiled_circ = compile_to_native_gates(circuit)
     objective = create_space_time_objective_fn(
         rbs_iteration_time,
         max_allowed_time,
@@ -441,7 +441,7 @@ def get_optimal_hyperparams_for_estimated_rbs_time(
     Returns:
         the best hyperparameters found during optimization
     """
-    transpiled_circ = transpile_to_native_gates(circuit)
+    transpiled_circ = compile_to_native_gates(circuit)
     objective = create_estimated_rbs_time_objective_fn(
         rbs_iteration_time, transpiled_circ, circuit_prop_estimate
     )

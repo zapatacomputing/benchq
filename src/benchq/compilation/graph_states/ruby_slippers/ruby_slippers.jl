@@ -21,6 +21,7 @@ include("graph_sim_data.jl")
 include("../pauli_tracker/pauli_tracker.jl")
 include("algorithm_specific_graph.jl")
 include("asg_stitching.jl")
+include("../substrate_scheduler/substrate_scheduler.jl")
 
 """
 Converts a given circuit in Clifford + T form to icm form and simulates the icm
@@ -31,26 +32,30 @@ are metaparameters which can be optimized to speed up the simulation. This funct
 serves as the primary entry point for the Ruby Slippers algorithm via pythoncall.
 
 Args:
-    orquestra_circuit::Circuit        circuit to be simulated
-    verbose::Bool                     whether to print progress
-    takes_graph_input::Bool           whether the circuit takes a graph state as input and thus
+    orquestra_circuit::Circuit        Circuit to be simulated
+    verbose::Bool                     Whether to print progress
+    takes_graph_input::Bool           Whether the circuit takes a graph state as input and thus
                                         can be stitched to a previous graph state.
-    gives_graph_output::Bool          whether the circuit gives a graph state as output and thus
+    gives_graph_output::Bool          Whether the circuit gives a graph state as output and thus
                                         can be stitched to a future graph state.
-    layering_optimization::String     which layering optimization to use in the pauli tracker.
+    layering_optimization::String     Which layering optimization to use in the pauli tracker.
                                         Options are "ST-Volume", "Time", "Space", "Variable"
-    max_num_qubits::Int                  how many gates to put in each layer in the case of "Variable"
-    teleportation_threshold::Int      max node degree allowed before state is teleported
-    teleportation_distance::Int       number of teleportations to do when state is teleported
+    max_num_qubits::Int               How many gates to put in each layer in the case of "Variable"
+    optimal_dag_density::Int          How dense to make the dag. Higher values require more time,
+                                        but can be more optimizable. Ranges from 0-infinity.
+    use_fully_optimized_dag::Bool     Whether to use the fully optimized dag, is more efficient
+                                        than setting the optimal_dag_density to a high value.
+    teleportation_threshold::Int      Max node degree allowed before state is teleported
+    teleportation_distance::Int       Number of teleportations to do when state is teleported
     min_neighbor_degree::Int                stop searching for neighbor with low degree if
                                         neighbor has at least this many neighbors
-    max_num_neighbors_to_search::Int  max number of neighbors to search through when finding
+    max_num_neighbors_to_search::Int  Max number of neighbors to search through when finding
                                         a neighbor with low degree
-    decomposition_strategy::Int       strategy for decomposing non-clifford gate
+    decomposition_strategy::Int       Strategy for decomposing non-clifford gate
                                         0: keep current qubit as data qubit
                                         1: teleport data to new qubit which becomes data qubit
-    max_graph_size::Int               maximum number of nodes in the graph state
-    max_time::Float64                 maximum time to spend compiling the circuit
+    max_graph_size::Int               Maximum number of nodes in the graph state
+    max_time::Float64                 Maximum time to spend compiling the circuit
 
 
 Returns:
@@ -66,6 +71,8 @@ function run_ruby_slippers(
     gives_graph_output::Bool=true,
     layering_optimization::String="ST-Volume",
     max_num_qubits::Int64=1,
+    optimal_dag_density::Int,
+    use_fully_optimized_dag::Bool,
     teleportation_threshold::Int64=40,
     teleportation_distance::Int64=4,
     min_neighbor_degree::Int64=6,
@@ -106,6 +113,8 @@ function run_ruby_slippers(
                 gives_graph_output=gives_graph_output,
                 layering_optimization=layering_optimization,
                 max_num_qubits=max_num_qubits,
+                optimal_dag_density=optimal_dag_density,
+                use_fully_optimized_dag=use_fully_optimized_dag,
                 hyperparams=hyperparams,
                 max_graph_size=max_graph_size,
                 max_time=max_time,
@@ -127,16 +136,21 @@ function run_ruby_slippers(
 
     if proportion == 1.0
         num_logical_qubits = get_num_logical_qubits(pauli_tracker.layering, asg, verbose)
-        num_consumption_tocks = length(pauli_tracker.layering)
-        println("True number of consumption tocks: ", num_consumption_tocks)
-        println("True number of logical qubits: ", num_logical_qubits)
-        return python_asg(asg), num_consumption_tocks, num_logical_qubits, proportion
+        num_layers = length(pauli_tracker.layering)
+        (graph_creation_tocks_per_layer, t_states_per_layer, rotations_per_layer) = two_row_scheduler(asg, pauli_tracker, num_logical_qubits)
+        python_compiled_data = Dict(
+            "num_logical_qubits" => num_logical_qubits,
+            "num_layers" => num_layers,
+            "graph_creation_tocks_per_layer" => pylist(graph_creation_tocks_per_layer),
+            "t_states_per_layer" => pylist(t_states_per_layer),
+            "rotations_per_layer" => pylist(rotations_per_layer),
+        )
+        return python_compiled_data, proportion
     else
         # if we did not finish compiling the circuit, return the proportion of the circuit
         return python_asg(asg), 0, 0, proportion
     end
 end
-
 
 """
 Get the maximum number of nodes that the graph could possibly need. Helps to reduce
@@ -188,24 +202,29 @@ Get the vertices of a graph state corresponding to enacting the given circuit
 on the |0> state. Also gives the single qubit clifford operation on each node.
 
 Args:
-    orquestra_circuit::Circuit   circuit to be simulated
-    verbose::Bool                whether to print progress
-    takes_graph_input::Bool      whether the circuit takes a graph state as input and thus
-                                   can be stitched to a previous graph state.
-    gives_graph_output::Bool     whether the circuit gives a graph state as output and thus
-                                   can be stitched to a future graph state.
-    layering_optimization::Stringwhich layering optimization to use in the pauli tracker.
-                                   Options are "ST-Volume", "Time", "Space", "Variable"
-    max_num_qubits::Int             how many gates to put in each layer in the case of "Variable"
-    hyperparams::RbSHyperparams  metaparameters which can be optimized to speed up the compilation.
-    max_graph_size::UInt32       maximum number of nodes in the graph state
-    max_time::Float64            maximum time to spend compiling the circuit
+    orquestra_circuit::Circuit    Circuit to be simulated
+    verbose::Bool                 Whether to print progress
+    takes_graph_input::Bool       Whether the circuit takes a graph state as input and thus
+                                    can be stitched to a previous graph state.
+    gives_graph_output::Bool      Whether the circuit gives a graph state as output and thus
+                                    can be stitched to a future graph state.
+    layering_optimization::String Which layering optimization to use in the pauli tracker.
+                                    Options are "ST-Volume", "Time", "Space", "Variable"
+    max_num_qubits::Int           How many gates to put in each layer in the case of "Variable"
+    optimal_dag_density::Int      How dense to make the dag. Higher values require more time,
+                                    but can be more optimizable. Ranges from 0-infinity.
+    use_fully_optimized_dag::Bool Whether to use the fully optimized dag, is more efficient
+                                    than setting the optimal_dag_density to a high value.
+    hyperparams::RbSHyperparams   Metaparameters which can be optimized to speed up the
+                                    compilation.
+    max_graph_size::UInt32        Maximum number of nodes in the graph state
+    max_time::Float64             Maximum time to spend compiling the circuit
 
 Raises:
     ValueError: if an unsupported gate is encountered
 
 Returns:
-    Vector{UInt8}: the list of single qubit clifford operations on each node
+    Vector{UInt8}:     the list of single qubit clifford operations on each node
     Vector{AdjList}:   the adjacency list describing the graph corresponding to the graph state
 """
 function get_graph_state_data(
@@ -216,6 +235,8 @@ function get_graph_state_data(
     manually_stitchable::Bool=false,
     layering_optimization::String="ST-Volume",
     max_num_qubits::Int64=1,
+    optimal_dag_density::Int=1,
+    use_fully_optimized_dag::Bool=false,
     hyperparams::RbSHyperparams=default_hyperparams,
     max_graph_size::UInt32=UInt32(100000),
     max_time::Float64=1e8,
@@ -227,10 +248,10 @@ function get_graph_state_data(
     n_qubits = pyconvert(Int, orquestra_circuit.n_qubits)
 
     if takes_graph_input
-        asg, pauli_tracker = initialize_for_graph_input(max_graph_size, n_qubits, layering_optimization, max_num_qubits)
+        asg, pauli_tracker = initialize_for_graph_input(max_graph_size, n_qubits, layering_optimization, max_num_qubits, optimal_dag_density, use_fully_optimized_dag)
     else
         asg = AlgorithmSpecificGraphAllZero(max_graph_size, n_qubits)
-        pauli_tracker = PauliTracker(n_qubits, layering_optimization, max_num_qubits)
+        pauli_tracker = PauliTracker(n_qubits, layering_optimization, max_num_qubits, optimal_dag_density, use_fully_optimized_dag)
     end
 
     total_length = length(orquestra_circuit.operations)
@@ -379,10 +400,10 @@ end
 Apply a CZ gate to the graph on the given vertices.
 
 Args:
-    sqs::Vector{UInt8}      single qubit clifford operation on each node
-    adj::Vector{AdjList}  adjacency list describing the graph state
-    vertex_1::Int         vertex to enact the CZ gate on
-    vertex_2::Int         vertex to enact the CZ gate on
+    sqs::Vector{UInt8}   single qubit clifford operation on each node
+    adj::Vector{AdjList} adjacency list describing the graph state
+    vertex_1::Int        vertex to enact the CZ gate on
+    vertex_2::Int        vertex to enact the CZ gate on
 """
 function cz(asg, vertex_1, vertex_2, pauli_tracker, hyperparams)
     if length(asg.edge_data[vertex_1]) >= hyperparams.teleportation_threshold

@@ -37,6 +37,12 @@ Holds data for tracking conditional Pauli operators through a circuit.
         to the maximum number of qubits which can exist at each time step.
         Note that if one picks max_num_qubits to be too small, we will
         resort to the smallest width which can fit the circuit.
+    optimal_dag_density: Int
+        The optimal density of the DAG. This quantity roughly corresponds to
+        how well defined the "arrow of time" is in the DAG. A higher number
+        means that the DAG is less well defined and so the DAG might be more
+        difficult to create, but is more optimizable. Ranges from 0-infinity.
+        This variable is used in every dag optimizeation other than
 """
 mutable struct PauliTracker
     cond_paulis::Vector{Vector{Vector{Qubit}}}
@@ -45,14 +51,18 @@ mutable struct PauliTracker
     layering::Vector{Vector{Qubit}}
     layering_optimization::String
     max_num_qubits::Int
+    optimal_dag_density::Int
+    use_fully_optimized_dag::Bool
 
-    PauliTracker(n_qubits, layering_optimization, max_num_qubits) = new(
+    PauliTracker(n_qubits, layering_optimization, max_num_qubits, optimal_dag_density, use_fully_optimized_dag) = new(
         [[[], []] for _ in range(1, n_qubits)],
         [[H_code, 0.0] for _ in range(1, n_qubits)],
         n_qubits,
         [],
         layering_optimization,
         max_num_qubits,
+        optimal_dag_density,
+        use_fully_optimized_dag,
     )
 end
 
@@ -70,6 +80,8 @@ function python_pauli_tracker(pauli_tracker)
         "layering" => python_adjlist!(pauli_tracker.layering),
         "layering_optimization" => pauli_tracker.layering_optimization,
         "max_num_qubits" => pauli_tracker.max_num_qubits,
+        "optimal_dag_density" => pauli_tracker.optimal_dag_density,
+        "use_fully_optimized_dag" => pauli_tracker.use_fully_optimized_dag,
     )
 
     return python_pauli_tracker

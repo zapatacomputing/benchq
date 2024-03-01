@@ -14,14 +14,14 @@ from benchq.mlflow.data_logging import (
     log_input_objects_to_mlflow,
     log_resource_info_to_mlflow,
 )
-from benchq.problem_embeddings.quantum_program import get_program_from_circuit
+from benchq.problem_embeddings import QuantumProgram
 from benchq.quantum_hardware_modeling import BASIC_SC_ARCHITECTURE_MODEL
 from benchq.resource_estimators.graph_estimators import (
     GraphResourceEstimator,
-    create_big_graph_from_subcircuits,
+    create_graph_from_full_circuit,
     get_custom_resource_estimation,
-    synthesize_clifford_t,
-    transpile_to_native_gates,
+    transpile_to_clifford_t,
+    compile_to_native_gates,
 )
 
 
@@ -33,7 +33,7 @@ def main(file_name, total_failure_tolerance=1e-3):
     qiskit_circuit = QuantumCircuit.from_qasm_file(file_name)
     # In order to perform resource estimation we need to translate it to a
     # benchq program.
-    quantum_program = get_program_from_circuit(import_from_qiskit(qiskit_circuit))
+    quantum_program = QuantumProgram.from_circuit(import_from_qiskit(qiskit_circuit))
 
     # Error budget is used to define what should be the failure rate of running
     # the whole calculation. It also allows to set relative weights for different
@@ -64,9 +64,9 @@ def main(file_name, total_failure_tolerance=1e-3):
         algorithm_implementation,
         estimator=GraphResourceEstimator(architecture_model),
         transformers=[
-            transpile_to_native_gates,
-            synthesize_clifford_t(error_budget),
-            create_big_graph_from_subcircuits(),
+            compile_to_native_gates,
+            transpile_to_clifford_t(error_budget),
+            create_graph_from_full_circuit(),
         ],
     )
 

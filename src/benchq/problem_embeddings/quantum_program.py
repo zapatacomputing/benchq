@@ -5,6 +5,15 @@ from typing import Callable, Sequence
 
 from orquestra.quantum.circuits import Circuit, GateOperation, ResetOperation, I
 from copy import copy
+import time
+
+from ..compilation.circuits.compile_to_native_gates import _compile_to_native_gates
+from ..compilation.circuits.pyliqtr_transpilation import (
+    _distribute_transpilation_failure_tolerance,
+    pyliqtr_transpile_to_clifford_t,
+)
+
+from ..algorithms.data_structures import ErrorBudget
 
 
 class QuantumProgram:
@@ -36,6 +45,12 @@ class QuantumProgram:
         self.subroutines = subroutines
         self.steps = steps
         self.calculate_subroutine_sequence = calculate_subroutine_sequence
+
+    @staticmethod
+    def from_circuit(circuit: Circuit) -> "QuantumProgram":
+        return QuantumProgram(
+            [circuit], steps=1, calculate_subroutine_sequence=lambda x: [0]
+        )
 
     @property
     def multiplicities(self) -> Sequence[int]:
@@ -101,51 +116,68 @@ class QuantumProgram:
             calculate_subroutine_sequence=self.calculate_subroutine_sequence,
         )
 
-    @staticmethod
-    def from_circuit(circuit: Circuit) -> "QuantumProgram":
+    def transpile_to_clifford_t(
+        self,
+        error_budget: ErrorBudget,
+    ) -> "QuantumProgram":
+        tolerances = _distribute_transpilation_failure_tolerance(
+            self, error_budget.transpilation_failure_tolerance
+        )
+        circuits = [
+            pyliqtr_transpile_to_clifford_t(circuit, circuit_precision=tolerance)
+            for circuit, tolerance in zip(self.subroutines, tolerances)
+        ]
+        return self.replace_circuits(circuits)
+
+    def compile_to_native_gates(self, verbose: bool = False) -> "QuantumProgram":
+        if verbose:
+            print("Compiling to native gates...")
+        start = time.time()
+        circuits = [_compile_to_native_gates(circuit) for circuit in self.subroutines]
+        if verbose:
+            print(f"Compiled in {time.time() - start} seconds.")
+        return self.replace_circuits(circuits)
+
+    def combine_subroutines(self) -> "QuantumProgram":
+        new_circuit = Circuit()
+        for i in self.subroutine_sequence:
+            new_circuit += self.subroutines[i]
         return QuantumProgram(
-            [circuit], steps=1, calculate_subroutine_sequence=lambda x: [0]
+            [new_circuit],
+            steps=1,
+            calculate_subroutine_sequence=lambda x: [0],
         )
 
+    def split_into_smaller_subroutines(self, max_size: int) -> "QuantumProgram":
+        new_subroutines = []
+        subroutine_splits = [[] for _ in range(len(self.subroutines))]
+        num_new_subroutines = 0
+        n_qubits = self.subroutines[0].n_qubits
+        for i, sub in enumerate(self.subroutines):
+            if len(sub.operations) > max_size:
+                for j in range(0, len(sub.operations), max_size):
+                    new_subroutines.append(
+                        Circuit(sub._operations[j : j + max_size] + [I(n_qubits - 1)])
+                    )
+                    subroutine_splits[i].append(
+                        len(self.subroutines) - 1 + num_new_subroutines
+                    )
+                    num_new_subroutines += 1
+            else:
+                new_subroutines.append(sub)
+                subroutine_splits[i] = [i]
 
-def get_program_from_circuit(circuit: Circuit):
-    return QuantumProgram(
-        [circuit], steps=1, calculate_subroutine_sequence=lambda x: [0]
-    )
+        old_calculate_subroutine_sequence = copy(self.calculate_subroutine_sequence)
 
+        def calculate_split_subroutine_sequence(steps: int) -> Sequence[int]:
+            new_sequence = []
+            for i in old_calculate_subroutine_sequence(steps):
+                for j in subroutine_splits[i]:
+                    new_sequence.append(j)
+            return new_sequence
 
-def split_large_subroutines_into_smaller_subroutines(
-    program: QuantumProgram, max_size: int
-) -> QuantumProgram:
-    new_subroutines = []
-    subroutine_splits = [[] for _ in range(len(program.subroutines))]
-    num_new_subroutines = 0
-    n_qubits = program.subroutines[0].n_qubits
-    for i, sub in enumerate(program.subroutines):
-        if len(sub.operations) > max_size:
-            for j in range(0, len(sub.operations), max_size):
-                new_subroutines.append(
-                    Circuit(sub._operations[j : j + max_size] + [I(n_qubits - 1)])
-                )
-                subroutine_splits[i].append(
-                    len(program.subroutines) - 1 + num_new_subroutines
-                )
-                num_new_subroutines += 1
-        else:
-            new_subroutines.append(sub)
-            subroutine_splits[i] = [i]
-
-    old_calculate_subroutine_sequence = copy(program.calculate_subroutine_sequence)
-
-    def calculate_split_subroutine_sequence(steps: int) -> Sequence[int]:
-        new_sequence = []
-        for i in old_calculate_subroutine_sequence(steps):
-            for j in subroutine_splits[i]:
-                new_sequence.append(j)
-        return new_sequence
-
-    return QuantumProgram(
-        new_subroutines,
-        steps=program.steps,
-        calculate_subroutine_sequence=calculate_split_subroutine_sequence,
-    )
+        return QuantumProgram(
+            new_subroutines,
+            steps=self.steps,
+            calculate_subroutine_sequence=calculate_split_subroutine_sequence,
+        )

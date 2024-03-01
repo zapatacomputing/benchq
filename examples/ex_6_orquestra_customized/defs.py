@@ -2,6 +2,7 @@
 
 To run this on Orquestra or locally use ``run.py`` script in the same directory.
 """
+
 from dataclasses import replace
 from typing import List
 
@@ -21,8 +22,8 @@ from benchq.quantum_hardware_modeling import (
 )
 from benchq.resource_estimators.graph_estimators import (
     GraphResourceEstimator,
-    create_big_graph_from_subcircuits,
-    transpile_to_native_gates,
+    create_graph_from_full_circuit,
+    compile_to_native_gates,
 )
 from benchq.resource_estimators.resource_info import GraphResourceInfo
 
@@ -72,8 +73,8 @@ def compile(
     """
     compiled_algorithm = replace(
         algorithm_implementation,
-        program=create_big_graph_from_subcircuits()(
-            transpile_to_native_gates(algorithm_implementation.program)
+        program=create_graph_from_full_circuit()(
+            compile_to_native_gates(algorithm_implementation.program)
         ),
     )
 

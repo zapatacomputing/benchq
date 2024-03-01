@@ -31,7 +31,7 @@ def plot_extrapolations(
     figure.tight_layout(pad=1.5)
 
     for i, property in enumerate(
-        ["max_graph_degree", "n_measurement_steps", "n_nodes"]
+        ["num_logical_qubits", "n_measurement_steps", "n_nodes"]
     ):
         x = np.array(steps_to_extrapolate_from)
         y = np.array(

@@ -20,9 +20,9 @@ from benchq.quantum_hardware_modeling import BASIC_SC_ARCHITECTURE_MODEL
 from benchq.resource_estimators.azure_estimator import AzureResourceEstimator
 from benchq.resource_estimators.graph_estimators import (
     GraphResourceEstimator,
-    create_big_graph_from_subcircuits,
+    create_graph_from_full_circuit,
     get_custom_resource_estimation,
-    transpile_to_native_gates,
+    compile_to_native_gates,
 )
 from benchq.timing import measure_time
 
@@ -56,8 +56,8 @@ def main():
                 hw_model=architecture_model, decoder_model=decoder_model
             ),
             transformers=[
-                transpile_to_native_gates,
-                create_big_graph_from_subcircuits(),
+                compile_to_native_gates,
+                create_graph_from_full_circuit(),
             ],
         )
 

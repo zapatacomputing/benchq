@@ -59,14 +59,14 @@ Attributes:
 Returns:
     nothing
 """
-function get_lower_bound_for_n_logical_qubits(dag, asg, nodes_to_include, depth=5, verbose=false)
+function print_lower_bound_for_n_logical_qubits(dag, asg, nodes_to_include, depth=5, verbose=false)
     bounds = [0 for _ in 1:asg.n_nodes]
     reverse_dag = get_reversed_dag(dag)
     for qubit in VerboseIterator(nodes_to_include, verbose, "Calculating logical qubit lower bound...")
         successors = get_all_successors(reverse_dag, qubit, depth)
         bounds[qubit] = length(intersect(asg.edge_data[qubit], successors))
     end
-    println("Lower bound on logical qubits: ", maximum(bounds))
+    println("Lower bound on logical qubits with this DAG and ASG: ", maximum(bounds))
     println("Number of nodes with each bound: ", bounds_histogram(bounds))
 end
 

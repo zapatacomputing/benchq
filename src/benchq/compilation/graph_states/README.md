@@ -18,8 +18,5 @@ The python interface for this package is generated allows for a number of option
 The graph state simulator I use required generating several tables which can be found in `graph_sim_data.jl`. The code which generated these tables can be found in the `table_generation` folder.
 
 TODOs:
-[ ] - Set up pythonic interface
 [ ] - Improve and run testing
-[ ] - Set up native julia testing that is called via python
-[ ] - Make ruby slippers take in orquestra circuits
 

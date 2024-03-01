@@ -34,7 +34,7 @@ from benchq.resource_estimators.resource_info import ResourceInfo
                 "code_distance": 19,
                 "decoder_info": None,
                 "extra": {
-                    "max_graph_degree": 51,
+                    "num_logical_qubits": 51,
                     "n_measurement_steps": 81,
                     "n_nodes": 1550,
                     "n_rotation_gates": 0,
@@ -49,7 +49,7 @@ from benchq.resource_estimators.resource_info import ResourceInfo
             {
                 "code_distance": 19,
                 "decoder_info": None,
-                "extra.max_graph_degree": 51,
+                "extra.num_logical_qubits": 51,
                 "extra.n_measurement_steps": 81,
                 "extra.n_nodes": 1550,
                 "extra.n_rotation_gates": 0,

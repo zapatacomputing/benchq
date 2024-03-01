@@ -13,11 +13,11 @@ from benchq.quantum_hardware_modeling.hardware_architecture_models import (
 from benchq.resource_estimators.graph_estimators import (
     ExtrapolationResourceEstimator,
     GraphResourceEstimator,
-    create_big_graph_from_subcircuits,
+    create_graph_from_full_circuit,
     get_custom_extrapolated_estimate,
     get_custom_resource_estimation,
-    synthesize_clifford_t,
-    transpile_to_native_gates,
+    transpile_to_clifford_t,
+    compile_to_native_gates,
 )
 
 # Below is code snippet for inspecting the extrapolations visually
@@ -46,14 +46,14 @@ def use_delayed_gate_synthesis(request):
 def _get_transformers(use_delayed_gate_synthesis, error_budget):
     if not use_delayed_gate_synthesis:
         transformers = [
-            transpile_to_native_gates,
-            synthesize_clifford_t(error_budget),
-            create_big_graph_from_subcircuits(fast_ruby_slippers),
+            compile_to_native_gates,
+            transpile_to_clifford_t(error_budget),
+            create_graph_from_full_circuit(fast_ruby_slippers),
         ]
     else:
         transformers = [
-            transpile_to_native_gates,
-            create_big_graph_from_subcircuits(fast_ruby_slippers),
+            compile_to_native_gates,
+            create_graph_from_full_circuit(fast_ruby_slippers),
         ]
     return transformers
 
@@ -144,7 +144,7 @@ def test_get_resource_estimations_for_small_program_gives_correct_results(
 
     _fields_to_compare = [
         "n_nodes",
-        "max_graph_degree",
+        "num_logical_qubits",
         "code_distance",
         "n_measurement_steps",
     ]
@@ -205,7 +205,7 @@ def test_get_resource_estimations_for_large_program_gives_correct_results(
             steps_to_extrapolate_from,
             n_measurement_steps_fit_type=n_measurement_steps_fit_type,
             optimization=optimization,
-            max_graph_degree_fit_type="linear",
+            num_logical_qubits_fit_type="linear",
         ),
         transformers=transformers,
     )
