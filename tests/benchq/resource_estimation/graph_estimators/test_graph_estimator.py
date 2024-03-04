@@ -8,6 +8,9 @@ from orquestra.quantum.circuits import CNOT, RX, RY, RZ, Circuit, H, T
 from benchq.algorithms.data_structures import AlgorithmImplementation, ErrorBudget
 from benchq.compilation import get_ruby_slippers_compiler
 from benchq.decoder_modeling import DecoderModel
+from benchq.magic_state_distillation.litinski_factories import (
+    _ERROR_RATE_FACTORY_MAPPING,
+)
 from benchq.problem_embeddings.quantum_program import (
     QuantumProgram,
     get_program_from_circuit,
@@ -185,7 +188,9 @@ def test_better_architecture_does_not_require_more_resources(
     high_noise_resource_estimates = get_custom_resource_estimation(
         algorithm_implementation,
         estimator=GraphResourceEstimator(
-            high_noise_architecture_model, optimization=optimization
+            high_noise_architecture_model,
+            optimization=optimization,
+            magic_state_factory_iterator=_ERROR_RATE_FACTORY_MAPPING[1e-4],
         ),
         transformers=transformers,
     )
