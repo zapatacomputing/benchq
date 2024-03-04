@@ -10,7 +10,7 @@ from .magic_state_factory import MagicStateFactory
 _ALLOWED_PHYSICAL_ERROR_RATES = (1e-3, 1e-4)
 
 _ERROR_RATE_FACTORY_MAPPING = {
-    1e-4: (
+    1e-3: (
         MagicStateFactory("(15-to-1)_17,7,7", 4.5e-8, (72, 64), 4620, 42.6),
         MagicStateFactory(
             "(15-to-1)^6_15,5,5 x (20-to-4)_23,11,13",
@@ -49,7 +49,7 @@ _ERROR_RATE_FACTORY_MAPPING = {
             128,
         ),
     ),
-    1e-3: (
+    1e-4: (
         MagicStateFactory("(15-to-1)_7,3,3", 4.4e-8, (30, 27), 810, 18.1),
         MagicStateFactory("(15-to-1)_9,3,3", 9.3e-10, (38, 30), 1150, 18.1),
         MagicStateFactory("(15-to-1)_11,5,5", 1.9e-11, (47, 44), 2070, 30),
