@@ -1,7 +1,7 @@
 import numpy
 import pytest
 
-from benchq.resource_estimators.footprint_estimators.openfermion_estimator import (
+from benchq.resource_estimators.openfermion_estimator import (
     _cost_estimator,
 )
 

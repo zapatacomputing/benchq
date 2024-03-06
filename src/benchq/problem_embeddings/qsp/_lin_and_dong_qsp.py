@@ -75,7 +75,7 @@ def build_control_rotation(num_qubits: int, phi: float) -> QuantumCircuit:
     return qc_crot
 
 
-def build_qsp_circuit(
+def get_lin_and_dong_qsp_circuit(
     num_qubits: int,
     be_qc: QuantumCircuit,
     phi_seq: npt.NDArray[np.float64],

@@ -11,7 +11,6 @@ function get_num_logical_qubits(layering, asg, verbose=false)
     n_logical_qubits = length(curr_physical_nodes)
     measured_nodes = Set{Qubit}([])
 
-    # iterate through every pair of consecutive layers
     for i in VerboseIterator(1:length(layering)-1, verbose, "Calculating number of logical qubits...")
         union!(measured_nodes, layering[i])
         added_nodes = layering[i+1]

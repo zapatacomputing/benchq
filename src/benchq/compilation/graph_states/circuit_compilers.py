@@ -5,7 +5,7 @@ import networkx as nx
 from orquestra.quantum.circuits import Circuit
 
 from .initialize_julia import jl
-from .compiled_data_structures import CompiledCircuit
+from .compiled_data_structures import GSCInfo
 
 
 def get_nx_graph_from_rbs_adj_list(adj: list) -> nx.Graph:
@@ -17,7 +17,18 @@ def get_nx_graph_from_rbs_adj_list(adj: list) -> nx.Graph:
     return graph
 
 
-def get_ruby_slippers_compiler(
+def default_ruby_slippers_circuit_compiler(
+    circuit: Circuit,
+    optimization: str,
+    verbose: bool,
+) -> GSCInfo:
+    compiled_graph_data, _ = jl.run_ruby_slippers(
+        circuit, verbose=verbose, layering_optimization=optimization
+    )
+    return GSCInfo.from_dict(compiled_graph_data)
+
+
+def get_ruby_slippers_circuit_compiler(
     takes_graph_input: bool = True,
     gives_graph_output: bool = True,
     max_num_qubits: int = 1,
@@ -32,8 +43,8 @@ def get_ruby_slippers_compiler(
 ):
     def _run_compiler(
         circuit: Circuit,
-        layering_optimization: str = "Time",
-        verbose: bool = True,
+        optimization: str,
+        verbose: bool,
     ) -> nx.Graph:
         (
             compiled_graph_data,
@@ -43,7 +54,7 @@ def get_ruby_slippers_compiler(
             verbose=verbose,
             takes_graph_input=takes_graph_input,
             gives_graph_output=gives_graph_output,
-            layering_optimization=layering_optimization,
+            layering_optimization=optimization,
             max_num_qubits=max_num_qubits,
             optimal_dag_density=optimal_dag_density,
             use_fully_optimized_dag=use_fully_optimized_dag,
@@ -55,12 +66,16 @@ def get_ruby_slippers_compiler(
             max_graph_size=max_graph_size,
         )
 
-        return CompiledCircuit.from_dict(compiled_graph_data)
+        return GSCInfo.from_dict(compiled_graph_data)
 
     return _run_compiler
 
 
-def get_algorithmic_graph_from_Jabalizer(circuit: Circuit) -> nx.Graph:
+def Jabalizer_circuit_compiler(
+    circuit: Circuit,
+    optimization: str,
+    verbose: bool,
+) -> nx.Graph:
     svec, op_seq, icm_output, data_qubits_map = jl.run_jabalizer(circuit)
     return create_graph_from_stabilizers(svec)
 

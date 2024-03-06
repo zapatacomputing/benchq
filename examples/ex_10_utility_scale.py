@@ -1,27 +1,33 @@
-import datetime
 import json
-import os
 import typing
 import warnings
-from pathlib import Path
 from typing import Literal
 
 from benchq.algorithms.time_evolution import qsp_time_evolution_algorithm
-from benchq.compilation import get_ruby_slippers_compiler
 from benchq.decoder_modeling import DecoderModel
 from benchq.problem_ingestion.solid_state_hamiltonians.ising import (
     generate_ising_hamiltonian_on_cubic_lattice,
     generate_ising_hamiltonian_on_kitaev_lattice,
     generate_ising_hamiltonian_on_triangular_lattice,
 )
-from benchq.quantum_hardware_modeling import DETAILED_ION_TRAP_ARCHITECTURE_MODEL
-from benchq.resource_estimators.footprint_estimators.openfermion_estimator import (
-    footprint_estimator,
+from benchq.quantum_hardware_modeling import (
+    DETAILED_ION_TRAP_ARCHITECTURE_MODEL,
+    BASIC_SC_ARCHITECTURE_MODEL,
 )
-from benchq.resource_estimators.graph_estimators import (
-    create_graph_from_full_circuit,
-    remove_isolated_nodes,
-    compile_to_native_gates,
+from benchq.resource_estimators.graph_estimator import (
+    GraphResourceEstimator,
+)
+from benchq.compilation.graph_states.implementation_compiler import (
+    get_implementation_compiler,
+)
+from benchq.compilation.graph_states.circuit_compilers import (
+    get_ruby_slippers_circuit_compiler,
+)
+from benchq.compilation.circuits.pyliqtr_transpilation import (
+    get_total_t_gates_after_transpilation,
+)
+from benchq.resource_estimators.openfermion_estimator import (
+    openfermion_estimator,
 )
 
 
@@ -36,7 +42,7 @@ def get_resources(lattice_type: str, size: int, decoder_data_file: str):
     else:
         raise ValueError(f"Lattice type {lattice_type} not supported")
 
-    architecture_model = DETAILED_ION_TRAP_ARCHITECTURE_MODEL
+    architecture_model = BASIC_SC_ARCHITECTURE_MODEL
 
     print("Getting algorithm implementation...")
     evolution_time = 1
@@ -47,49 +53,33 @@ def get_resources(lattice_type: str, size: int, decoder_data_file: str):
 
     print("Setting resource estimation parameters...")
     decoder_model = DecoderModel.from_csv(decoder_data_file)
-    my_estimator = ExtrapolationResourceEstimator(
-        architecture_model,
-        [2, 4, 6, 8, 10],
-        n_measurement_steps_fit_type="logarithmic",
-        optimization="space",
-        decoder_model=decoder_model,
+    circuit_compiler = get_ruby_slippers_circuit_compiler(
+        teleportation_threshold=80, optimal_dag_density=10
     )
-
-    # select teleportation threshold to tune number of logical qubits
-    if lattice_type == "triangular":
-        gpm = get_ruby_slippers_compiler(teleportation_threshold=70)
-    elif lattice_type == "kitaev":
-        gpm = get_ruby_slippers_compiler(teleportation_threshold=60)
-    elif lattice_type == "cubic":
-        gpm = get_ruby_slippers_compiler(teleportation_threshold=70)
-    else:
-        raise ValueError(f"Lattice type {lattice_type} not supported")
+    implementation_compiler = get_implementation_compiler(
+        circuit_compiler, destination="single-thread"
+    )
+    estimator = GraphResourceEstimator(optimization="Time", verbose=True)
 
     print("Estimating resources via graph state compilation...")
-    gsc_resources = get_custom_extrapolated_estimate(
+    gsc_resources = estimator.compile_and_estimate(
         algorithm_implementation,
-        my_estimator,
-        transformers=[
-            compile_to_native_gates,
-            create_graph_from_full_circuit(gpm),
-            remove_isolated_nodes,
-        ],
+        implementation_compiler,
+        architecture_model,
+        decoder_model,
     )
 
-    total_t_gates = my_estimator.get_n_total_t_gates(
-        gsc_resources.extra.n_t_gates,
-        gsc_resources.extra.n_rotation_gates,
-        algorithm_implementation.error_budget.transpilation_failure_tolerance,
-    )
-
+    total_t_gates = get_total_t_gates_after_transpilation(algorithm_implementation)
     hw_tolerance = algorithm_implementation.error_budget.hardware_failure_tolerance
-    footprint_resources = footprint_estimator(
+
+    footprint_resources = openfermion_estimator(
         algorithm_implementation.program.num_data_qubits,
         num_t=total_t_gates,
-        architecture_model=my_estimator.hw_model,
+        architecture_model=architecture_model,
         hardware_failure_tolerance=hw_tolerance,
         decoder_model=decoder_model,
     )
+
     return gsc_resources, footprint_resources
 
 

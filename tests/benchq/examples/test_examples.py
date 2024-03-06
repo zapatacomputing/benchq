@@ -14,7 +14,7 @@ from benchq.algorithms.data_structures import (
     GraphPartition,
 )
 from benchq.compilation import (
-    get_algorithmic_graph_from_Jabalizer,
+    Jabalizer_circuit_compiler,
     pyliqtr_transpile_to_clifford_t,
 )
 from benchq.magic_state_distillation.litinski_factories import iter_litinski_factories
@@ -32,7 +32,7 @@ from examples.ex_3_packages_comparison import (  # noqa: E402
     main as packages_comparison_main,
 )
 from examples.ex_4_fast_graph_estimates import main as fast_graph  # noqa: E402
-from examples.ex_11_utility_scale import main as utility_scale  # noqa: E402
+from benchq.examples.ex_10_utility_scale import main as utility_scale  # noqa: E402
 
 SKIP_AZURE = pytest.mark.skipif(
     os.getenv("BENCHQ_TEST_AZURE") is None,
@@ -98,7 +98,7 @@ def test_toy_example_notebook():
         demo_circuit, circuit_precision=1e-6
     )
 
-    circuit_graph = get_algorithmic_graph_from_Jabalizer(clifford_t_circuit)
+    circuit_graph = Jabalizer_circuit_compiler(clifford_t_circuit)
 
     # only allow a failure to occur 1% of the time
     budget = ErrorBudget.from_even_split(1e-2)
@@ -115,7 +115,7 @@ def test_toy_example_notebook():
     implementation = AlgorithmImplementation.from_circuit(demo_circuit, budget, 1)
     get_precise_graph_estimate(implementation, architecture_model)
 
-    get_algorithmic_graph_from_Jabalizer(clifford_t_circuit)
+    Jabalizer_circuit_compiler(clifford_t_circuit)
 
     get_icm(clifford_t_circuit)
 
@@ -144,7 +144,7 @@ def test_toy_example_notebook():
         graph_data, distance, n_total_t_gates, magic_state_factory
     )
 
-    from benchq.resource_estimators.graph_estimators.graph_estimator import (
+    from benchq.resource_estimators.graph_estimator import (
         substrate_scheduler,
     )
 
@@ -156,5 +156,5 @@ def test_toy_example_notebook():
     clifford_t_circuit = pyliqtr_transpile_to_clifford_t(
         circuit, circuit_precision=1e-10
     )
-    circuit_graph = get_algorithmic_graph_from_Jabalizer(clifford_t_circuit)
+    circuit_graph = Jabalizer_circuit_compiler(clifford_t_circuit)
     substrate_scheduler(circuit_graph, "fast")

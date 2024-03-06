@@ -35,7 +35,11 @@ def _azure_result_to_resource_info(job_results: dict) -> AzureResourceInfo:
     )
 
 
-class AzureResourceEstimator:
+def azure_estimator(
+    algorithm: AlgorithmImplementation,
+    hw_model: Optional[BasicArchitectureModel] = None,
+    use_full_circuit: bool = True,
+) -> AzureResourceInfo:
     """Class that interfaces between Bench-Q and Azure QRE.
 
     It allows to use Azure QRE to estimate the resources required to run
@@ -51,76 +55,63 @@ class AzureResourceEstimator:
             Defaults to True.
 
     """
-
-    def __init__(
-        self,
-        hw_model: Optional[BasicArchitectureModel] = None,
-        use_full_circuit: bool = True,
-    ):
-        if hw_model is not None:
-            warnings.warn(
-                "Supplying hardware model to AzureResourceEstimator is "
-                "currently broken."
-            )
-        self.hw_model = hw_model
-        self.use_full_circuit = use_full_circuit
-
-    def estimate(
-        self,
-        algorithm: AlgorithmImplementation,
-    ) -> AzureResourceInfo:
-        azure_error_budget: Dict[str, float] = {}
-        if algorithm.error_budget is not None:
-            azure_error_budget = {}
-            azure_error_budget[
-                "rotations"
-            ] = algorithm.error_budget.transpilation_failure_tolerance
-            remaining_error = algorithm.error_budget.hardware_failure_tolerance
-            azure_error_budget["logical"] = remaining_error / 2
-            azure_error_budget["tstates"] = remaining_error / 2
-        if self.use_full_circuit:
-            circuit = algorithm.program.full_circuit
-            return self._estimate_resources_for_circuit(circuit, azure_error_budget)
-        else:
-            raise NotImplementedError(
-                "Resource estimation for Quantum Programs which are not consisting "
-                "of a single circuit is not implemented yet."
-            )
-
-    def _estimate_resources_for_circuit(
-        self, circuit: Circuit, error_budget: Dict[str, float]
-    ) -> AzureResourceInfo:
-        if self.hw_model is not None:
-            gate_time = self.hw_model.surface_code_cycle_time_in_seconds
-            gate_time_string = f"{int(gate_time * 1e9)} ns"
-            qubitParams = {
-                "name": "custom gate-based",
-                "instructionSet": "GateBased",
-                "oneQubitGateTime": gate_time_string,
-                # "oneQubitMeasurementTime": "30 μs",
-                "oneQubitGateErrorRate": (self.hw_model.physical_qubit_error_rate),
-                # "tStateErrorRate": 1e-3
-            }
-        else:
-            qubitParams = None
-
-        qiskit_circuit = export_to_qiskit(circuit)
-        provider = AzureQuantumProvider(
-            resource_id=os.getenv("AZURE_RESOURCE_ID"), location="East US"
+    if hw_model is not None:
+        warnings.warn(
+            "Supplying hardware model to AzureResourceEstimator is " "currently broken."
+        )
+    azure_error_budget: Dict[str, float] = {}
+    if algorithm.error_budget is not None:
+        azure_error_budget = {}
+        azure_error_budget["rotations"] = (
+            algorithm.error_budget.transpilation_failure_tolerance
+        )
+        remaining_error = algorithm.error_budget.hardware_failure_tolerance
+        azure_error_budget["logical"] = remaining_error / 2
+        azure_error_budget["tstates"] = remaining_error / 2
+    if use_full_circuit:
+        circuit = algorithm.program.full_circuit
+        return _estimate_resources_for_circuit(hw_model, circuit, azure_error_budget)
+    else:
+        raise NotImplementedError(
+            "Resource estimation for Quantum Programs which are not consisting "
+            "of a single circuit is not implemented yet."
         )
 
-        backend = provider.get_backend("microsoft.estimator")
-        if qubitParams is None:
-            job = backend.run(qiskit_circuit, errorBudget=error_budget)
-        else:
-            job = backend.run(
-                qiskit_circuit, qubitParams=qubitParams, errorBudget=error_budget
-            )
 
-        job_monitor(job)
-        job_results = job.result().data()
-        del job_results["reportData"]
-        job_results["physicalCounts"]["runtime_in_s"] = (
-            job_results["physicalCounts"]["runtime"] / 1e9
+def _estimate_resources_for_circuit(
+    hw_model: BasicArchitectureModel, circuit: Circuit, error_budget: Dict[str, float]
+) -> AzureResourceInfo:
+    if hw_model is not None:
+        gate_time = hw_model.surface_code_cycle_time_in_seconds
+        gate_time_string = f"{int(gate_time * 1e9)} ns"
+        qubitParams = {
+            "name": "custom gate-based",
+            "instructionSet": "GateBased",
+            "oneQubitGateTime": gate_time_string,
+            # "oneQubitMeasurementTime": "30 μs",
+            "oneQubitGateErrorRate": (hw_model.physical_qubit_error_rate),
+            # "tStateErrorRate": 1e-3
+        }
+    else:
+        qubitParams = None
+
+    qiskit_circuit = export_to_qiskit(circuit)
+    provider = AzureQuantumProvider(
+        resource_id=os.getenv("AZURE_RESOURCE_ID"), location="East US"
+    )
+
+    backend = provider.get_backend("microsoft.estimator")
+    if qubitParams is None:
+        job = backend.run(qiskit_circuit, errorBudget=error_budget)
+    else:
+        job = backend.run(
+            qiskit_circuit, qubitParams=qubitParams, errorBudget=error_budget
         )
-        return _azure_result_to_resource_info(job_results)
+
+    job_monitor(job)
+    job_results = job.result().data()
+    del job_results["reportData"]
+    job_results["physicalCounts"]["runtime_in_s"] = (
+        job_results["physicalCounts"]["runtime"] / 1e9
+    )
+    return _azure_result_to_resource_info(job_results)

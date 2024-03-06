@@ -3,7 +3,7 @@
 ################################################################################
 from orquestra.quantum.operators import PauliSum
 
-from ..problem_embeddings._qaoa import get_qaoa_program
+from ..problem_embeddings.qaoa._qaoa import get_qaoa_program
 from .data_structures import AlgorithmImplementation, ErrorBudget
 
 

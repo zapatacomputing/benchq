@@ -15,7 +15,7 @@ from orquestra.integrations.qiskit.conversions import (
 from orquestra.quantum.circuits import PHASE, RZ, SX, Circuit, X
 from qiskit import QuantumCircuit, transpile
 
-from ..qsp._lin_and_dong_qsp import build_qsp_circuit
+from ..qsp._lin_and_dong_qsp import get_lin_and_dong_qsp_circuit
 from ..quantum_program import QuantumProgram
 from .compression_gadget import get_add_dagger, get_add_l
 from .matrix_properties import get_degree, get_kappa, get_num_of_grid_points
@@ -151,7 +151,9 @@ def inverse_block_encoding(
     # Construct QSP circuit in Qiskit
     qsp_qubits = sel.n_qubits + 1
     qiskit_sel = export_to_qiskit(sel)
-    sel_inverse = build_qsp_circuit(qsp_qubits, qiskit_sel, phi_seq, realpart=True)
+    sel_inverse = get_lin_and_dong_qsp_circuit(
+        qsp_qubits, qiskit_sel, phi_seq, realpart=True
+    )
 
     return import_from_qiskit(sel_inverse)
 
@@ -291,7 +293,7 @@ def get_time_marching_program(
     )
     qsp_qubits = single_time_step.n_qubits + 1
     amplified_single_time_step = import_from_qiskit(
-        build_qsp_circuit(
+        get_lin_and_dong_qsp_circuit(
             qsp_qubits, export_to_qiskit(single_time_step), phases, realpart=True
         )
     )

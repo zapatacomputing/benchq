@@ -3,10 +3,10 @@
 ################################################################################
 import numpy as np
 import pytest
-from cirq import CNOT as CirqCNOT
-from cirq import H as CirqH
-from cirq import LineQubit
-from cirq.circuits import Circuit as CirqCircuit
+from cirq.ops.common_gates import CNOT as CirqCNOT
+from cirq.ops.common_gates import H as CirqH
+from cirq.devices.line_qubit import LineQubit
+from cirq.circuits.circuit import Circuit as CirqCircuit
 from numpy import linalg as LA
 from orquestra.quantum.circuits import CNOT as OrquestraCNOT
 from orquestra.quantum.circuits import RX, RZ
@@ -14,7 +14,7 @@ from orquestra.quantum.circuits import Circuit as OrquestraCircuit
 from orquestra.quantum.circuits import H as OrquestraH
 from qiskit.circuit import QuantumCircuit as QiskitCircuit
 
-from benchq.compilation import pyliqtr_transpile_to_clifford_t
+from benchq.compilation.circuits import pyliqtr_transpile_to_clifford_t
 
 two_qubit_qiskit_circuit = QiskitCircuit(2)
 two_qubit_qiskit_circuit.cx(0, 1)
@@ -30,9 +30,9 @@ two_qubit_qiskit_circuit.h(0)
 )
 def test_clifford_circuit_produces_correct_output(circuit):
     """Tests that clifford circuits are unchanged"""
-    pyliqtr_transpile_to_clifford_t(circuit, gate_precision=0.001) == OrquestraCircuit(
-        [OrquestraCNOT(0, 1), OrquestraH(0)]
-    )
+    assert pyliqtr_transpile_to_clifford_t(
+        circuit, gate_precision=0.001
+    ) == OrquestraCircuit([OrquestraCNOT(0, 1), OrquestraH(0)])
 
 
 @pytest.mark.parametrize("gate_precision", [1e-3, 1e-6, 1e-10, 1.2e-6])

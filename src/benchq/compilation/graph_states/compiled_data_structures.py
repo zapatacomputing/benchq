@@ -8,7 +8,7 @@ from ...problem_embeddings.quantum_program import (
 
 
 @dataclass
-class CompiledCircuit:
+class GSCInfo:
     num_logical_qubits: int
     num_layers: int
     graph_creation_tocks_per_layer: List[int]
@@ -16,8 +16,8 @@ class CompiledCircuit:
     rotations_per_layer: List[int]
 
     @staticmethod
-    def from_dict(data: dict) -> "CompiledCircuit":
-        return CompiledCircuit(
+    def from_dict(data: dict) -> "GSCInfo":
+        return GSCInfo(
             data["num_logical_qubits"],
             data["num_layers"],
             data["graph_creation_tocks_per_layer"],
@@ -31,7 +31,7 @@ class CompiledQuantumProgram:
 
     def __init__(
         self,
-        subroutines: Sequence[CompiledCircuit],
+        subroutines: Sequence[GSCInfo],
         steps: int,
         calculate_subroutine_sequence: Callable[[int], Sequence[int]],
     ) -> None:
@@ -47,10 +47,6 @@ class CompiledQuantumProgram:
         Raises:
             ValueError: If the subroutines do not all act on the same number of qubits.
         """
-        if not all(
-            subroutine.n_qubits == subroutines[0].n_qubits for subroutine in subroutines
-        ):
-            raise ValueError("All subroutines must have the same number of qubits")
         self.num_logical_qubits = max(
             subroutine.num_logical_qubits for subroutine in subroutines
         )
@@ -60,11 +56,13 @@ class CompiledQuantumProgram:
 
     @staticmethod
     def from_program(
-        program: QuantumProgram, compiled_circuits: List[CompiledCircuit]
+        program: QuantumProgram, compiled_circuits: List[GSCInfo]
     ) -> "CompiledQuantumProgram":
         assert len(compiled_circuits) == len(program.subroutines)
         return CompiledQuantumProgram(
-            compiled_circuits, steps=1, calculate_subroutine_sequence=lambda x: [0]
+            compiled_circuits,
+            steps=program.steps,
+            calculate_subroutine_sequence=program.calculate_subroutine_sequence,
         )
 
     @property
@@ -102,4 +100,4 @@ class CompiledAlgorithmImplementation:
     ) -> None:
         self.program = program
         self.n_shots = algorithm_implementation.n_shots
-        self.errror_budget = algorithm_implementation.errror_budget
+        self.error_budget = algorithm_implementation.error_budget

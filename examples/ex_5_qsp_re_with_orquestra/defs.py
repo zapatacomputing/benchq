@@ -14,13 +14,12 @@ from benchq.problem_ingestion import get_vlasov_hamiltonian
 from benchq.quantum_hardware_modeling.hardware_architecture_models import (
     BASIC_SC_ARCHITECTURE_MODEL,
 )
-from benchq.resource_estimators.azure_estimator import AzureResourceEstimator
-from benchq.resource_estimators.graph_estimators import (
+from benchq.resource_estimators.azure_estimator import azure_estimator
+from benchq.resource_estimators.graph_estimator import (
     GraphResourceEstimator,
-    create_graph_from_full_circuit,
-    get_custom_resource_estimation,
-    compile_to_native_gates,
 )
+from benchq.compilation.graph_states import get_implementation_compiler
+
 
 task_deps = [
     sdk.PythonImports("pyscf==2.2.0"),
@@ -64,13 +63,12 @@ def get_operator(problem_size):
 
 @task_with_julia
 def gsc_estimates(algorithm, architecture_model):
-    return get_custom_resource_estimation(
+    implementation_compiler = get_implementation_compiler(destination="single-thread")
+    estimator = GraphResourceEstimator(optimization="Time", verbose=True)
+    return estimator.compile_and_estimate(
         algorithm,
-        estimator=GraphResourceEstimator(hw_model=architecture_model),
-        transformers=[
-            compile_to_native_gates,
-            create_graph_from_full_circuit(),
-        ],
+        implementation_compiler,
+        BASIC_SC_ARCHITECTURE_MODEL,
     )
 
 
@@ -104,11 +102,7 @@ def azure_estimates(algorithm, architecture_model):
         )
         print("Original error message:", e)
 
-    return get_custom_resource_estimation(
-        algorithm,
-        estimator=AzureResourceEstimator(),
-        transformers=[],
-    )
+    return azure_estimator(algorithm, architecture_model)
 
 
 @sdk.workflow

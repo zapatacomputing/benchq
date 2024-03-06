@@ -1,4 +1,4 @@
 ################################################################################
 # © Copyright 2022-2023 Zapata Computing Inc.
 ################################################################################
-from .quantum_program import QuantumProgram
+from ._trotter import get_trotter_circuit, get_trotter_program

@@ -7,13 +7,12 @@ from orquestra.quantum.circuits import Circuit, GateOperation, ResetOperation, I
 from copy import copy
 import time
 
-from ..compilation.circuits.compile_to_native_gates import _compile_to_native_gates
-from ..compilation.circuits.pyliqtr_transpilation import (
-    _distribute_transpilation_failure_tolerance,
+from ..compilation.circuits import (
     pyliqtr_transpile_to_clifford_t,
+    get_num_t_gates_per_rotation,
+    compile_to_native_gates,
 )
-
-from ..algorithms.data_structures import ErrorBudget
+from decimal import Decimal
 
 
 class QuantumProgram:
@@ -118,10 +117,10 @@ class QuantumProgram:
 
     def transpile_to_clifford_t(
         self,
-        error_budget: ErrorBudget,
+        transpilation_failure_tolerance: float,
     ) -> "QuantumProgram":
-        tolerances = _distribute_transpilation_failure_tolerance(
-            self, error_budget.transpilation_failure_tolerance
+        tolerances = _distribute_transpilation_failure_tolerance_over_program(
+            self, transpilation_failure_tolerance
         )
         circuits = [
             pyliqtr_transpile_to_clifford_t(circuit, circuit_precision=tolerance)
@@ -129,11 +128,24 @@ class QuantumProgram:
         ]
         return self.replace_circuits(circuits)
 
+    def get_total_t_gates_after_transpilation(
+        self, transpilation_failure_tolerance: float
+    ):
+        per_gate_synthesis_accuracy = 1 - (
+            1 - Decimal(transpilation_failure_tolerance)
+        ) ** Decimal(1 / self.num_rotation_gates)
+
+        n_t_gates_per_rotation = get_num_t_gates_per_rotation(
+            per_gate_synthesis_accuracy
+        )
+
+        return self.n_t_gates + self.num_rotation_gates * n_t_gates_per_rotation
+
     def compile_to_native_gates(self, verbose: bool = False) -> "QuantumProgram":
         if verbose:
             print("Compiling to native gates...")
         start = time.time()
-        circuits = [_compile_to_native_gates(circuit) for circuit in self.subroutines]
+        circuits = [compile_to_native_gates(circuit) for circuit in self.subroutines]
         if verbose:
             print(f"Compiled in {time.time() - start} seconds.")
         return self.replace_circuits(circuits)
@@ -181,3 +193,21 @@ class QuantumProgram:
             steps=self.steps,
             calculate_subroutine_sequence=calculate_split_subroutine_sequence,
         )
+
+
+def _distribute_transpilation_failure_tolerance_over_program(
+    program: QuantumProgram, total_transpilation_failure_tolerance: float
+) -> Sequence[float]:
+    n_rots_per_subroutine = [
+        program.count_operations_in_subroutine(i, ["RX", "RY", "RZ"])
+        for i in range(len(program.subroutines))
+    ]
+
+    return (
+        [0 for _ in program.subroutines]
+        if program.n_rotation_gates == 0
+        else [
+            total_transpilation_failure_tolerance * count / program.n_rotation_gates
+            for count in n_rots_per_subroutine
+        ]
+    )

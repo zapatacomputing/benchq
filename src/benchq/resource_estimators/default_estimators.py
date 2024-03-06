@@ -4,18 +4,18 @@ from typing import List, Optional
 import numpy as np
 
 from ..algorithms.data_structures import AlgorithmImplementation
-from ..compilation import compile_circuit_using_ruby_slippers
+from ..compilation import default_ruby_slippers_circuit_compiler
 from ..decoder_modeling import DecoderModel
 from ..problem_embeddings.quantum_program import QuantumProgram
 from ..quantum_hardware_modeling.hardware_architecture_models import (
     BasicArchitectureModel,
 )
-from .footprint_estimators.openfermion_estimator import footprint_estimator
+from .openfermion_estimator import openfermion_estimator
 from .graph_estimators.customizable_pipelines import (
     get_custom_resource_estimation,
 )
-from .graph_estimators.graph_estimator import GraphResourceEstimator
-from ..compilation.graph_states.quantum_program_compiler import (
+from .graph_estimator import GraphResourceEstimator
+from ..compilation.graph_states.implementation_compiler import (
     create_graph_from_full_circuit,
     transpile_to_clifford_t,
     compile_to_native_gates,
@@ -96,7 +96,7 @@ def get_fast_graph_estimate(
         transformers=[
             compile_to_native_gates,
             create_graph_from_full_circuit(
-                graph_production_method=compile_circuit_using_ruby_slippers,
+                graph_production_method=default_ruby_slippers_circuit_compiler,
             ),
         ],
     )
@@ -135,7 +135,7 @@ def get_precise_stitched_estimate(
             compile_to_native_gates,
             transpile_to_clifford_t(algorithm_implementation.error_budget),
             create_graphs_for_subroutines(
-                graph_production_method=compile_circuit_using_ruby_slippers,
+                graph_production_method=default_ruby_slippers_circuit_compiler,
                 destination="single-thread",
             ),
         ],
@@ -174,7 +174,7 @@ def get_fast_stitched_estimate(
         transformers=[
             compile_to_native_gates,
             create_graphs_for_subroutines(
-                graph_production_method=compile_circuit_using_ruby_slippers,
+                graph_production_method=default_ruby_slippers_circuit_compiler,
                 destination="single-thread",
             ),
         ],
@@ -204,7 +204,7 @@ def get_footprint_estimate(
         algorithm_implementation.error_budget.hardware_failure_tolerance
     )
 
-    return footprint_estimator(
+    return openfermion_estimator(
         algorithm_implementation.program.num_data_qubits,
         num_t=total_t_gates,
         architecture_model=hardware_model,

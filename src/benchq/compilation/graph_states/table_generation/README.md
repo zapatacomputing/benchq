@@ -1,0 +1,1 @@
+This folder contains files which were used to generate the tables in graph_sim_data.

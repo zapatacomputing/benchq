@@ -35,7 +35,7 @@ function calculate_layering!(pauli_tracker::PauliTracker, asg, ignored_nodes::Se
         reverse_dag = get_reversed_dag(optimal_dag, verbose)
 
         pauli_tracker.layering =
-            longest_path_layering(optimal_dag, reverse_dag, n_nodes, nodes_to_include, verbose)
+            longest_path_layering(optimal_dag, reverse_dag, pauli_tracker.n_nodes, nodes_to_include, verbose)
     elseif pauli_tracker.layering_optimization == "Space"
         verbose && println("Calculating space optimized layering...")
 

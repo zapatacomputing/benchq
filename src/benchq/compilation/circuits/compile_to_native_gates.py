@@ -24,12 +24,14 @@ from orquestra.quantum.decompositions._decomposition import (
 from ...conversions._circuit_translations import import_circuit
 
 
-def compile_to_native_gates(circuit) -> Circuit:
+def compile_to_native_gates(circuit, verbose=False) -> Circuit:
     """Traspile common gates to clifford + RZ gates.
     Changes RX, RY, and U3 to RZ. Changes CCX to T gates.
     Also, translates rotations with some characteristic angles
     (-pi, -pi/2, -pi/4, 0, pi/4, pi/2, pi) to simpler gates.
     """
+    if verbose:
+        print("Compiling to native gates...")
     circuit = import_circuit(circuit)
     # Hack: decompose drops n_qubits from the original circuits, so we add it back
     return Circuit(

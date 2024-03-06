@@ -5,7 +5,7 @@
 from orquestra.quantum.circuits import Circuit
 from orquestra.quantum.operators import PauliSum, PauliTerm
 
-from benchq.problem_embeddings._qaoa import get_qaoa_circuit
+from benchq.problem_embeddings.qaoa._qaoa import get_qaoa_circuit
 
 
 def test_get_qaoa_circuit_produces_correct_output_for_small_coefficeints():

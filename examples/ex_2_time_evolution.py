@@ -11,8 +11,9 @@ but is also more expensive in terms of runtime and memory usage.
 Most of the objects has been described in the `1_from_qasm.py` examples, here
 we only explain new concepts.
 
-WARNING: This example requires the pyscf extra. run `pip install benchq[pyscf]`
-to install the extra.
+WARNING: This example requires the pyscf extra as well as the sdk extra.
+run `pip install benchq[pyscf]` then `pip install benchq[sdk]` from the
+main to install the extras. Then run `orq start` to start local ray.
 """
 from pprint import pprint
 
@@ -22,81 +23,61 @@ from benchq.problem_ingestion.solid_state_hamiltonians.heisenberg import (
     generate_1d_heisenberg_hamiltonian,
 )
 from benchq.quantum_hardware_modeling import BASIC_SC_ARCHITECTURE_MODEL
-from benchq.resource_estimators.graph_estimators import (
-    GraphResourceEstimator,
-    create_graph_from_full_circuit,
-    get_custom_resource_estimation,
-    transpile_to_clifford_t,
-    compile_to_native_gates,
-)
 from benchq.timing import measure_time
-from benchq.compilation.julia_utils import get_ruby_slippers_compiler
+from benchq.compilation.graph_states.implementation_compiler import (
+    get_implementation_compiler,
+)
+from benchq.resource_estimators.graph_estimator import GraphResourceEstimator
+
+from time import time
 
 
 def main():
     evolution_time = 5
 
-    architecture_model = BASIC_SC_ARCHITECTURE_MODEL
-
+    start_time = time()
     # Generating Hamiltonian for a given set of parameters, which
     # defines the problem we try to solve.
     # measure_time is a utility tool which measures the execution time of
     # the code inside the with statement.
-    for N in [2, 10, 100, 1000]:
-        with measure_time() as t_info:
-            # N = 2  # Problem size
-            # operator = get_vlasov_hamiltonian(N=N, k=2.0, alpha=0.6, nu=0)
+    with measure_time() as t_info:
+        N = 200  # Problem size
 
-            # Alternative operator: 1D Heisenberg model
-            operator = generate_1d_heisenberg_hamiltonian(N)
+        # Get a Vlasov Hamiltonian for simulation
+        operator = get_vlasov_hamiltonian(N=N, k=2.0, alpha=0.6, nu=0)
+        # Alternative operator: 1D Heisenberg model
+        # operator = generate_1d_heisenberg_hamiltonian(N)
 
-        print("Operator generation time:", t_info.total)
+    print("Operator generation time:", t_info.total)
 
-        # Here we generate the AlgorithmImplementation structure, which contains
-        # information such as what subroutine needs to be executed and how many times.
-        # In this example we perform time evolution using the QSP algorithm.
-        with measure_time() as t_info:
-            algorithm = qsp_time_evolution_algorithm(operator, evolution_time, 1e-3)
-        print("Circuit generation time:", t_info.total)
+    # Here we generate the AlgorithmImplementation structure, which contains
+    # information such as what subroutine needs to be executed and how many times.
+    # In this example we perform time evolution using the QSP algorithm.
+    with measure_time() as t_info:
+        algorithm = qsp_time_evolution_algorithm(operator, evolution_time, 1e-3)
 
-        # First we perform resource estimation with gate synthesis at the circuit level.
-        # It's more accurate and leads to lower estimates, but also more expensive
-        # in terms of runtime and memory usage.
-        # Then we perform resource estimation with gate synthesis during the measurement,
-        # which we call "delayed gate synthesis".
+    print("Circuit generation time:", t_info.total)
+    print("n qubits in circuit:", algorithm.program.subroutines[0].n_qubits)
 
-        compiler = get_ruby_slippers_compiler(
-            layering_optimization="Time",
-            max_num_qubits=10000,
+    # allows for parallelization of the compilation
+    # uses ruby slippers compiler by default
+    # set destination to "local" to parallelize compilation on your machine
+    # if you have set up orquestra, you can use the "remote" option to
+    # parallelize the compilation on the cloud.
+    implementation_compiler = get_implementation_compiler(destination="single-thread")
+    estimator = GraphResourceEstimator(optimization="Time", verbose=True)
+
+    with measure_time() as t_info:
+        resource_estimate = estimator.compile_and_estimate(
+            algorithm,
+            implementation_compiler,
+            BASIC_SC_ARCHITECTURE_MODEL,
         )
 
-        print("n_qubits:", algorithm.program.subroutines[0].n_qubits)
+    print("Resource estimation time without synthesis:", t_info.total)
+    pprint(resource_estimate)
 
-        # with measure_time() as t_info:
-        #     gsc_resource_estimates = get_custom_resource_estimation(
-        #         algorithm,
-        #         estimator=GraphResourceEstimator(architecture_model),
-        #         transformers=[
-        #             transpile_to_clifford_t(algorithm.error_budget),
-        #             create_graph_from_full_circuit(compiler),
-        #         ],
-        #     )
-
-        # print("Resource estimation time with synthesis:", t_info.total)
-        # pprint(gsc_resource_estimates)
-
-        with measure_time() as t_info:
-            gsc_resource_estimates = get_custom_resource_estimation(
-                algorithm,
-                estimator=GraphResourceEstimator(architecture_model),
-                transformers=[
-                    compile_to_native_gates,
-                    create_graph_from_full_circuit(compiler),
-                ],
-            )
-
-        print("Resource estimation time without synthesis:", t_info.total)
-        pprint(gsc_resource_estimates)
+    print("Total time:", time() - start_time)
 
 
 if __name__ == "__main__":

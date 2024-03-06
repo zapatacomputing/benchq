@@ -6,7 +6,7 @@ import pytest
 from orquestra.quantum.circuits import CNOT, RX, RY, RZ, Circuit, H, T
 
 from benchq.algorithms.data_structures import AlgorithmImplementation, ErrorBudget
-from benchq.compilation import get_ruby_slippers_compiler
+from benchq.compilation import get_ruby_slippers_circuit_compiler
 from benchq.decoder_modeling import DecoderModel
 from benchq.problem_embeddings.quantum_program import (
     QuantumProgram,
@@ -24,7 +24,7 @@ from benchq.resource_estimators.graph_estimators import (
     compile_to_native_gates,
 )
 
-fast_ruby_slippers = get_ruby_slippers_compiler(
+fast_ruby_slippers = get_ruby_slippers_circuit_compiler(
     max_graph_size=10,
     decomposition_strategy=0,
 )

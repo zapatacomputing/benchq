@@ -5,7 +5,7 @@ import pytest
 from orquestra.quantum.circuits import CNOT, RZ, Circuit, H
 
 from benchq.algorithms.data_structures import AlgorithmImplementation, ErrorBudget
-from benchq.compilation import get_ruby_slippers_compiler
+from benchq.compilation import get_ruby_slippers_circuit_compiler
 from benchq.problem_embeddings import QuantumProgram
 from benchq.quantum_hardware_modeling.hardware_architecture_models import (
     BASIC_SC_ARCHITECTURE_MODEL,
@@ -26,7 +26,7 @@ from benchq.resource_estimators.graph_estimators import (
 # from benchq.vizualization_tools import plot_extrapolations
 # plot_extrapolations(extrapolated_resource_estimates, steps_to_extrapolate_from, n_measurement_steps_fit_type, gsc_resource_estimates) # noqa: E501
 
-fast_ruby_slippers = get_ruby_slippers_compiler(
+fast_ruby_slippers = get_ruby_slippers_circuit_compiler(
     teleportation_threshold=1e4,
     max_graph_size=1e5,
     decomposition_strategy=0,

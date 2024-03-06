@@ -48,7 +48,7 @@ def main(file_name):
     # Use the default compiler
     compiler = get_implementation_compiler()
     # Put all the pieces together to get a resource estimate
-    gsc_resource_estimates = estimator.compile_and_estimate_resources(
+    gsc_resource_estimates = estimator.compile_and_estimate(
         algorithm_implementation,
         compiler,
         architecture_model,

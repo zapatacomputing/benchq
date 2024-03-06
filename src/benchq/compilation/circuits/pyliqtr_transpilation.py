@@ -2,16 +2,16 @@
 # © Copyright 2022 Zapata Computing Inc.
 ################################################################################
 import warnings
-from typing import Optional, Union, Sequence
+from typing import Optional, Union
 
 from cirq.circuits import Circuit as CirqCircuit
 from orquestra.quantum.circuits import Circuit as OrquestraCircuit
 from orquestra.quantum.circuits import GateOperation
 from pyLIQTR.gate_decomp.cirq_transforms import clifford_plus_t_direct_transform
 from qiskit.circuit import QuantumCircuit as QiskitCircuit
-from ...problem_embeddings import QuantumProgram
 
 from ...conversions import export_circuit, import_circuit
+from decimal import Decimal, getcontext
 
 
 def pyliqtr_transpile_to_clifford_t(
@@ -73,25 +73,12 @@ def pyliqtr_transpile_to_clifford_t(
     return import_circuit(compiled_cirq_circuit, orquestra_circuit.n_qubits)
 
 
-def _distribute_transpilation_failure_tolerance(
-    program: QuantumProgram, total_transpilation_failure_tolerance: float
-) -> Sequence[float]:
-    n_rots_per_subroutine = [
-        program.count_operations_in_subroutine(i, ["RX", "RY", "RZ"])
-        for i in range(len(program.subroutines))
-    ]
-    # Not using program n_rotation_gates because we already computed partial
-    # counts for subroutines.
-    n_total_rots = sum(
-        n_rotations * multi
-        for n_rotations, multi in zip(n_rots_per_subroutine, program.multiplicities)
-    )
+# Assumes gridsynth scaling
+SYNTHESIS_SCALING = 4
+getcontext().prec = 100
 
-    return (
-        [0 for _ in program.subroutines]
-        if n_total_rots == 0
-        else [
-            total_transpilation_failure_tolerance * count / n_total_rots
-            for count in n_rots_per_subroutine
-        ]
+
+def get_num_t_gates_per_rotation(per_gate_synthesis_accuracy: float) -> int:
+    return SYNTHESIS_SCALING * int(
+        (1 / Decimal(per_gate_synthesis_accuracy)).log10() / Decimal(2).log10()
     )

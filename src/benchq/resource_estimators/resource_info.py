@@ -91,7 +91,7 @@ class AzureExtra:
     raw_data: dict
 
 
-# Alias for type of resource info returned by AzureResourceEstimator
+# Alias for type of resource info returned by azure_estimator
 AzureResourceInfo = ResourceInfo[AzureExtra]
 
 

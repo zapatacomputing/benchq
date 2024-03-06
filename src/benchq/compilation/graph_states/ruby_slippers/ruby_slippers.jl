@@ -71,8 +71,8 @@ function run_ruby_slippers(
     gives_graph_output::Bool=true,
     layering_optimization::String="ST-Volume",
     max_num_qubits::Int64=1,
-    optimal_dag_density::Int,
-    use_fully_optimized_dag::Bool,
+    optimal_dag_density::Int=1,
+    use_fully_optimized_dag::Bool=false,
     teleportation_threshold::Int64=40,
     teleportation_distance::Int64=4,
     min_neighbor_degree::Int64=6,
@@ -137,7 +137,8 @@ function run_ruby_slippers(
     if proportion == 1.0
         num_logical_qubits = get_num_logical_qubits(pauli_tracker.layering, asg, verbose)
         num_layers = length(pauli_tracker.layering)
-        (graph_creation_tocks_per_layer, t_states_per_layer, rotations_per_layer) = two_row_scheduler(asg, pauli_tracker, num_logical_qubits)
+        (graph_creation_tocks_per_layer, t_states_per_layer, rotations_per_layer) =
+            two_row_scheduler(asg, pauli_tracker, num_logical_qubits, verbose)
         python_compiled_data = Dict(
             "num_logical_qubits" => num_logical_qubits,
             "num_layers" => num_layers,

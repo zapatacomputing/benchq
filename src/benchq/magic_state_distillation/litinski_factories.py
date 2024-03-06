@@ -106,4 +106,11 @@ def iter_litinski_factories_for_sc(
             73400,
             128,
         ),
+        MagicStateFactory(
+            "(15-to-1)^8_23,9,9 x (15-to-1)_49,19,21",
+            9.0e-23,
+            (426, 181),
+            133842,
+            157.5,
+        ),
     ]

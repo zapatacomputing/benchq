@@ -17,18 +17,18 @@ import dataclasses
 import math
 from typing import Iterable, Optional
 
-from ...decoder_modeling.decoder_resource_estimator import get_decoder_info
-from ...magic_state_distillation import MagicStateFactory
-from ...magic_state_distillation.autoccz_factories import iter_all_openfermion_factories
-from ...quantum_hardware_modeling import (
+from ..decoder_modeling.decoder_resource_estimator import get_decoder_info
+from ..magic_state_distillation import MagicStateFactory
+from ..magic_state_distillation.autoccz_factories import iter_all_openfermion_factories
+from ..quantum_hardware_modeling import (
     BASIC_SC_ARCHITECTURE_MODEL,
     BasicArchitectureModel,
 )
-from ...quantum_hardware_modeling.fowler_surface_code import (
+from ..quantum_hardware_modeling.fowler_surface_code import (
     logical_cell_error_rate,
     physical_qubits_per_logical_qubit,
 )
-from ..resource_info import OpenFermionExtra, OpenFermionResourceInfo
+from .resource_info import OpenFermionExtra, OpenFermionResourceInfo
 
 
 @dataclasses.dataclass(frozen=True, unsafe_hash=True)
@@ -174,7 +174,7 @@ def _cost_estimator(
     return best_cost, best_params
 
 
-def footprint_estimator(
+def openfermion_estimator(
     num_logical_qubits: int,
     num_toffoli: int = 0,
     num_t: int = 0,

@@ -5,12 +5,13 @@ import os
 import pathlib
 
 from .initialize_julia import jl, juliapkg
-from .julia_utils import (
+from .circuit_compilers import (
     get_algorithmic_graph_and_icm_output,
-    get_algorithmic_graph_from_Jabalizer,
-    compile_circuit_using_ruby_slippers,
-    get_ruby_slippers_compiler,
+    Jabalizer_circuit_compiler,
+    default_ruby_slippers_circuit_compiler,
+    get_ruby_slippers_circuit_compiler,
 )
+from .implementation_compiler import get_implementation_compiler
 
 jl.include(
     os.path.join(pathlib.Path(__file__).parent.resolve(), "jabalizer_wrapper.jl"),

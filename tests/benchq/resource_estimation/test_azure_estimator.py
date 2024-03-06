@@ -7,7 +7,7 @@ from orquestra.quantum.circuits import CNOT, RZ, Circuit, H
 from benchq.algorithms.data_structures import AlgorithmImplementation, ErrorBudget
 from benchq.problem_embeddings.quantum_program import QuantumProgram
 from benchq.quantum_hardware_modeling.hardware_architecture_models import IONTrapModel
-from benchq.resource_estimators.azure_estimator import AzureResourceEstimator
+from benchq.resource_estimators.azure_estimator import azure_estimator
 
 SKIP_AZURE = pytest.mark.skipif(
     os.getenv("BENCHQ_TEST_AZURE") is None,
@@ -40,15 +40,13 @@ def test_better_architecture_does_not_require_more_resources() -> None:
         program=quantum_program, error_budget=error_budget, n_shots=1
     )
 
-    low_quality_azure_re = AzureResourceEstimator(
-        hw_model=low_quality_architecture_model
+    low_quality_resource_estimates = azure_estimator(
+        alg_impl, low_quality_architecture_model
     )
-    high_quality_azure_re = AzureResourceEstimator(
-        hw_model=high_quality_architecture_model
-    )
-    low_quality_resource_estimates = low_quality_azure_re.estimate(alg_impl)
 
-    high_quality_resource_estimates = high_quality_azure_re.estimate(alg_impl)
+    high_quality_resource_estimates = azure_estimator(
+        alg_impl, high_quality_architecture_model
+    )
 
     assert (
         low_quality_resource_estimates.n_physical_qubits
@@ -85,10 +83,9 @@ def test_higher_error_budget_requires_less_resources() -> None:
         error_budget=ErrorBudget.from_weights(high_failure_tolerance, 0, 1, 1),
         n_shots=1,
     )
-    azure_re = AzureResourceEstimator()
 
-    low_budget_resource_estimates = azure_re.estimate(low_error_budget_impl)
-    high_budget_resource_estimates = azure_re.estimate(high_error_budget_impl)
+    low_budget_resource_estimates = azure_estimator(low_error_budget_impl)
+    high_budget_resource_estimates = azure_estimator(high_error_budget_impl)
 
     assert (
         low_budget_resource_estimates.n_physical_qubits
