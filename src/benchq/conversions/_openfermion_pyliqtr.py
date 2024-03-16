@@ -1,8 +1,9 @@
 ################################################################################
 # © Copyright 2022 Zapata Computing Inc.
 ################################################################################
-from openfermion import QubitOperator, count_qubits
+from openfermion import QubitOperator, IsingOperator, count_qubits
 from pyLIQTR.QSP.Hamiltonian import Hamiltonian
+from typing import Union
 
 
 def pyliqtr_to_openfermion(hamiltonian: Hamiltonian) -> QubitOperator:
@@ -18,7 +19,9 @@ def pyliqtr_to_openfermion(hamiltonian: Hamiltonian) -> QubitOperator:
     return qubit_op
 
 
-def openfermion_to_pyliqtr(qubit_operator: QubitOperator) -> Hamiltonian:
+def openfermion_to_pyliqtr(
+    qubit_operator: Union[QubitOperator, IsingOperator]
+) -> Hamiltonian:
     """Converts a QubitOperator from Openfermion into pyLIQTR
 
     Args:

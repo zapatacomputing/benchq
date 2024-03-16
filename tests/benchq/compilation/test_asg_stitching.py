@@ -1,17 +1,9 @@
-from juliacall import Main as jl
+from benchq.compilation.graph_states import jl
 import test_rbs_with_pauli_tracking
 import os
-import pathlib
 from benchq.visualization_tools.plot_graph_state import plot_graph_state
 import pytest
 from orquestra.quantum.circuits import Y, X, CNOT, RZ, CZ, H, Circuit, T, Z, S
-
-jl.include(
-    os.path.join(
-        pathlib.Path(__file__).parent.resolve(),
-        "../../../src/benchq/compilation/ruby_slippers/ruby_slippers.jl",
-    ),
-)
 
 SKIP_SLOW = pytest.mark.skipif(
     os.getenv("SLOW_BENCHMARKS") is None,
@@ -69,7 +61,7 @@ def get_graph(circuit, hyperparams, connection_type, optimization, max_num_qubit
             takes_graph_input=True,
             gives_graph_output=False,
             manually_stitchable=True,
-            layering_optimization=optimization,
+            optimization=optimization,
             max_num_qubits=max_num_qubits,
             hyperparams=hyperparams,
             max_time=1e8,
@@ -81,7 +73,7 @@ def get_graph(circuit, hyperparams, connection_type, optimization, max_num_qubit
             takes_graph_input=False,
             gives_graph_output=True,
             manually_stitchable=True,
-            layering_optimization=optimization,
+            optimization=optimization,
             max_num_qubits=max_num_qubits,
             hyperparams=hyperparams,
             max_time=1e8,
@@ -93,7 +85,7 @@ def get_graph(circuit, hyperparams, connection_type, optimization, max_num_qubit
             takes_graph_input=True,
             gives_graph_output=True,
             manually_stitchable=True,
-            layering_optimization=optimization,
+            optimization=optimization,
             max_num_qubits=max_num_qubits,
             hyperparams=hyperparams,
             max_time=1e8,
@@ -105,7 +97,7 @@ def get_graph(circuit, hyperparams, connection_type, optimization, max_num_qubit
             takes_graph_input=False,
             gives_graph_output=False,
             manually_stitchable=True,
-            layering_optimization=optimization,
+            optimization=optimization,
             max_num_qubits=max_num_qubits,
             hyperparams=hyperparams,
             max_time=1e8,
@@ -116,7 +108,7 @@ def get_graph(circuit, hyperparams, connection_type, optimization, max_num_qubit
     return asg, pauli_tracker
 
 
-# def get_stiched_graphs(circuit_1, circuit_2, circuit_3, hyperparams, optimization):
+# def get_stitched_graphs(circuit_1, circuit_2, circuit_3, hyperparams, optimization):
 #     asg_1, pauli_tracker_1 = get_graph(circuit_1, hyperparams, "output", optimization)
 #     # plot_graph_state(*to_python(asg_1, pauli_tracker_1))
 
@@ -147,7 +139,7 @@ ghz_circuit = Circuit([H(0), CNOT(0, 1), CNOT(0, 2)])
 
 
 @SKIP_SLOW
-@pytest.mark.parametrize("optimization", ["Gansner", "Space", "Time", "Variable"])
+@pytest.mark.parametrize("optimization", ["Space", "Time", "Variable"])
 @pytest.mark.parametrize(
     "init",
     [
@@ -261,7 +253,7 @@ def test_triple_stitched_circuit_produces_correct_result(
     )
 
 
-@pytest.mark.parametrize("optimization", ["Gansner", "Space", "Time", "Variable"])
+@pytest.mark.parametrize("optimization", ["Space", "Time", "Variable"])
 @pytest.mark.parametrize(
     "circuit_1, circuit_2",
     [
@@ -337,13 +329,4 @@ def test_double_stitched_circuit_produces_correct_result(
         init,
         show_graph=False,
         show_circuit=True,
-    )
-
-
-if __name__ == "__main__":
-    test_triple_stitched_circuit_produces_correct_result(
-        "Variable",
-        # ghz_circuit,
-        # ghz_circuit,
-        # ghz_circuit,
     )

@@ -100,7 +100,7 @@ class OpenFermionExtra:
     """Extra info relating to resource estimation using OpenFermion."""
 
     fail_rate_msFactory: float
-    rounds_magicstateFactory: int
+    rounds_magicstateFactory: float
     scc_time: float
     physical_qubit_error_rate: float
 

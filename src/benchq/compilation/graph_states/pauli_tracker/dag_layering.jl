@@ -47,7 +47,7 @@ function calculate_layering!(pauli_tracker::PauliTracker, asg, ignored_nodes::Se
     elseif pauli_tracker.layering_optimization == "Variable"
         verbose && println("Calculating layering with $(pauli_tracker.max_num_qubits) qubits...")
 
-        sparse_dag = get_simple_measurement_dag(pauli_tracker, nodes_to_include, 1, verbose)
+        sparse_dag = get_dag(pauli_tracker, nodes_to_include, 1, verbose)
         reverse_dag = get_reversed_dag(sparse_dag)
 
         pauli_tracker.layering = variable_num_qubits(
@@ -60,7 +60,7 @@ function calculate_layering!(pauli_tracker::PauliTracker, asg, ignored_nodes::Se
             verbose,
         )
     else
-        error("Invalid layering optimization.")
+        error("$(pauli_tracker.layering_optimization) is not a valid layering optimization.")
     end
 
     verbose && println("Layering complete.")
@@ -266,7 +266,7 @@ function variable_num_qubits(measurement_dag, reverse_measurent_dag, optimal_dag
     for node in sorted_nodes
         push!(ordering_layering, [node])
     end
-    min_logical_qubits = get_num_logical_qubits(ordering_layering, asg)
+    min_logical_qubits = get_num_logical_qubits(ordering_layering, asg, "Space", verbose)
 
     if space_optimized
         num_qubits = min_logical_qubits
@@ -274,7 +274,7 @@ function variable_num_qubits(measurement_dag, reverse_measurent_dag, optimal_dag
         @warn "Cannot fit circuit onto $num_qubits qubits. Setting num qubits to $min_logical_qubits."
     end
 
-    curr_physical_nodes = get_neighborhood(ordering_layering[1], asg)
+    curr_physical_nodes = get_neighborhood(ordering_layering[1], asg, 2)
     measured_nodes = Set{Qubit}([])
 
     curr_layer = Vector{Qubit}([sorted_nodes[1]])
@@ -284,7 +284,7 @@ function variable_num_qubits(measurement_dag, reverse_measurent_dag, optimal_dag
         verbose,
         "Combining adjacent timesteps without increasing qubit number...",
     )
-        new_neighborhood_to_add = setdiff(get_neighborhood(new_node_to_add, asg), measured_nodes)
+        new_neighborhood_to_add = setdiff(get_neighborhood(new_node_to_add, asg, 2), measured_nodes)
         union!(curr_physical_nodes, new_neighborhood_to_add)
 
         if length(curr_physical_nodes) <= num_qubits && isempty(intersect(optimal_dag[new_node_to_add], curr_physical_nodes))

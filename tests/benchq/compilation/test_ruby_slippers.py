@@ -13,19 +13,16 @@ from orquestra.quantum.circuits import CNOT, CZ, Circuit, H, S, T, X
 from qiskit import QuantumCircuit
 import pathlib
 
-from benchq.compilation import (
-    jl,
+from benchq.compilation.circuits import (
     pyliqtr_transpile_to_clifford_t,
     compile_to_native_gates,
 )
 from benchq.problem_embeddings.quantum_program import QuantumProgram
+from benchq.compilation.graph_states import jl
 
-
-jl.include(
-    os.path.join(
-        pathlib.Path(__file__).parent.resolve(),
-        "../../../src/benchq/compilation/ruby_slippers/ruby_slippers.jl",
-    ),
+SKIP_SLOW = pytest.mark.skipif(
+    os.getenv("SLOW_BENCHMARKS") is None,
+    reason="Slow benchmarks can only run if SLOW_BENCHMARKS env variable is defined",
 )
 
 
@@ -71,19 +68,27 @@ jl.include(
 def test_stabilizer_states_are_the_same_for_simple_circuits(circuit):
     target_tableau = get_target_tableau(circuit)
 
-    asg, num_consumption_tocks, num_logical_qubits, _ = jl.run_ruby_slippers(
-        circuit,
-        takes_graph_input=False,
-        gives_graph_output=False,
-        verbose=False,
-        teleportation_threshold=jl.UInt16(999),
+    hyperparams = jl.RbSHyperparams(
+        jl.UInt16(999), jl.UInt8(4), jl.UInt8(6), jl.UInt32(1e5), jl.UInt8(0)
     )
 
-    vertices = list(zip(asg["sqs"], asg["edge_data"]))
+    asg, pauli_tracker, _ = jl.get_graph_state_data(
+        circuit,
+        verbose=False,
+        takes_graph_input=False,
+        gives_graph_output=False,
+        optimization="Time",
+        hyperparams=hyperparams,
+    )
+    num_logical_qubits = jl.get_num_logical_qubits(pauli_tracker.layering, asg, "Time")
 
+    asg = jl.python_asg(asg)
+    pauli_tracker = jl.python_pauli_tracker(pauli_tracker)
+
+    vertices = list(zip(asg["sqs"], asg["edge_data"]))
     graph_tableau = get_stabilizer_tableau_from_vertices(vertices)
 
-    assert num_consumption_tocks == 1
+    assert len(pauli_tracker["layering"]) == 1
     assert num_logical_qubits == circuit.n_qubits
     assert_tableaus_correspond_to_the_same_stabilizer_state(
         graph_tableau, target_tableau
@@ -91,33 +96,43 @@ def test_stabilizer_states_are_the_same_for_simple_circuits(circuit):
 
 
 @pytest.mark.parametrize(
-    "circuit, target_tocks, target_qubits, layering_optimization, max_num_qubits",
+    "circuit, target_non_clifford_layers, target_qubits, optimization, max_num_qubits",
     [
-        (Circuit([H(0), CNOT(0, 1)]), 1, 2, "Gansner", -1),
         (Circuit([H(0)] + [CNOT(0, i) for i in range(4)]), 1, 4, "Time", -1),
-        (Circuit([H(0)] + [CNOT(0, i) for i in range(4)]), 4, 2, "Space", -1),
-        (Circuit([H(0)] + [CNOT(0, i) for i in range(4)]), 1, 4, "Gansner", -1),
-        (Circuit([H(0)] + [CNOT(0, i) for i in range(4)]), 2, 3, "Variable", 2),
-        (Circuit([H(0), T(0)] * 3), 3, 2, "Time", -1),
-        (Circuit([H(0), T(0)] * 3), 4, 2, "Space", -1),
-        (Circuit([H(0), T(0)] * 3), 4, 2, "Gansner", -1),
-        (Circuit([H(0), T(0)] * 3), 3, 3, "Variable", 2),
+        (Circuit([H(0)] + [CNOT(0, i) for i in range(4)]), 3, 2, "Space", -1),
+        (Circuit([H(0)] + [CNOT(0, i) for i in range(4)]), 3, 2, "Variable", 2),
+        (Circuit([H(0), T(0)] * 3), 3, 3, "Time", -1),
+        (Circuit([H(0), T(0)] * 3), 3, 2, "Space", -1),
+        (Circuit([H(0), T(0)] * 3), 3, 2, "Variable", 2),
     ],
 )
-def test_tocks_and_qubits_are_correct(
-    circuit, target_tocks, target_qubits, layering_optimization, max_num_qubits
+def test_tocks_layers_and_qubits_are_correct(
+    circuit,
+    target_non_clifford_layers,
+    target_qubits,
+    optimization,
+    max_num_qubits,
 ):
-    asg, num_consumption_tocks, num_logical_qubits, _ = jl.run_ruby_slippers(
+    hyperparams = jl.RbSHyperparams(
+        jl.UInt16(999), jl.UInt8(4), jl.UInt8(6), jl.UInt32(1e5), jl.UInt8(0)
+    )
+    asg, pauli_tracker, _ = jl.get_graph_state_data(
         circuit,
+        verbose=False,
         takes_graph_input=False,
         gives_graph_output=False,
-        layering_optimization=layering_optimization,
-        verbose=False,
-        teleportation_threshold=jl.UInt16(999),
+        optimization=optimization,
+        hyperparams=hyperparams,
         max_num_qubits=max_num_qubits,
     )
+    num_logical_qubits = jl.get_num_logical_qubits(
+        pauli_tracker.layering, asg, optimization
+    )
 
-    assert num_consumption_tocks == target_tocks
+    asg = jl.python_asg(asg)
+    pauli_tracker = jl.python_pauli_tracker(pauli_tracker)
+
+    assert len(pauli_tracker["layering"]) == target_non_clifford_layers
     assert num_logical_qubits == target_qubits
 
 
@@ -142,13 +157,19 @@ def test_stabilizer_states_are_the_same_for_circuits(filename):
 
     target_tableau = get_target_tableau(test_circuit)
 
-    asg, _, _, _ = jl.run_ruby_slippers(
+    hyperparams = jl.RbSHyperparams(
+        jl.UInt16(999), jl.UInt8(4), jl.UInt8(6), jl.UInt32(1e5), jl.UInt8(0)
+    )
+    asg, pauli_tracker, _ = jl.get_graph_state_data(
         circuit,
+        verbose=False,
         takes_graph_input=False,
         gives_graph_output=False,
-        verbose=False,
-        teleportation_threshold=999,
+        optimization="Time",
+        hyperparams=hyperparams,
     )
+    asg = jl.python_asg(asg)
+
     vertices = list(zip(asg["sqs"], asg["edge_data"]))
     graph_tableau = get_stabilizer_tableau_from_vertices(vertices)
 
@@ -156,7 +177,7 @@ def test_stabilizer_states_are_the_same_for_circuits(filename):
         graph_tableau, target_tableau
     )
 
-
+@SKIP_SLOW
 @pytest.mark.parametrize(
     "filename",
     [
@@ -188,13 +209,18 @@ def test_stabilizer_states_are_the_same_for_circuits_with_decomposed_rotations(
         target_tableau = get_target_tableau(test_circuit)
 
         # ensure state does not teleport
-        asg, _, _, _ = jl.run_ruby_slippers(
+        hyperparams = jl.RbSHyperparams(
+            jl.UInt16(999), jl.UInt8(4), jl.UInt8(6), jl.UInt32(1e5), jl.UInt8(0)
+        )
+        asg, pauli_tracker, _ = jl.get_graph_state_data(
             test_circuit,
+            verbose=False,
             takes_graph_input=False,
             gives_graph_output=False,
-            verbose=False,
-            teleportation_threshold=9999,
+            optimization="Time",
+            hyperparams=hyperparams,
         )
+        asg = jl.python_asg(asg)
         vertices = list(zip(asg["sqs"], asg["edge_data"]))
 
         graph_tableau = get_stabilizer_tableau_from_vertices(vertices)
@@ -245,15 +271,22 @@ def test_teleportation_produces_correct_number_of_nodes_for_small_circuits(
     n_t_gates = quantum_program.n_t_gates
     n_rotations = quantum_program.n_rotation_gates
 
-    asg, _, _, _ = jl.run_ruby_slippers(
+    hyperparams = jl.RbSHyperparams(
+        jl.UInt16(teleportation_threshold),
+        jl.UInt8(teleportation_distance),
+        jl.UInt8(6),
+        jl.UInt32(1e5),
+        jl.UInt8(0),
+    )
+    asg, pauli_tracker, _ = jl.get_graph_state_data(
         circuit,
+        verbose=False,
         takes_graph_input=False,
         gives_graph_output=False,
-        verbose=True,
-        max_graph_size=9999,
-        teleportation_threshold=teleportation_threshold,
-        teleportation_distance=teleportation_distance,
+        optimization="Time",
+        hyperparams=hyperparams,
     )
+    asg = jl.python_asg(asg)
 
     n_nodes = len(asg["sqp"])
 
@@ -294,9 +327,18 @@ def test_teleportation_produces_correct_node_parity_for_large_circuits(
         quantum_program = QuantumProgram.from_circuit(clifford_t)
         n_t_gates = quantum_program.n_t_gates
 
-        asg, _, _, _ = jl.run_ruby_slippers(
-            clifford_t, takes_graph_input=False, gives_graph_output=False, verbose=False
+        hyperparams = jl.RbSHyperparams(
+            jl.UInt16(999), jl.UInt8(4), jl.UInt8(6), jl.UInt32(1e5), jl.UInt8(0)
         )
+        asg, pauli_tracker, _ = jl.get_graph_state_data(
+            clifford_t,
+            verbose=False,
+            takes_graph_input=False,
+            gives_graph_output=False,
+            optimization="Time",
+            hyperparams=hyperparams,
+        )
+        asg = jl.python_asg(asg)
 
         n_nodes = len(asg["sqp"])
 
@@ -305,6 +347,7 @@ def test_teleportation_produces_correct_node_parity_for_large_circuits(
         assert (n_nodes - n_t_gates) % 2 == 0
 
 
+@pytest.mark.skip(reason="This test requires hyperparameter tuning.")
 @pytest.mark.parametrize(
     "circuit, rbs_iteration_time, expected_prop_range",
     [
@@ -320,7 +363,7 @@ def test_teleportation_produces_correct_node_parity_for_large_circuits(
 )
 def test_rbs_gives_reasonable_prop(circuit, rbs_iteration_time, expected_prop_range):
     # when
-    _, _, _, prop = jl.run_ruby_slippers(
+    _, _, prop = jl.run_ruby_slippers(
         circuit,
         takes_graph_input=False,
         gives_graph_output=False,

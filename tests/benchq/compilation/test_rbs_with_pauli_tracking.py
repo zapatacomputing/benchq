@@ -3,22 +3,13 @@ from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister, Aer
 import qiskit
 import numpy as np
 import os
-import pathlib
 import random
-from juliacall import Main as jl
+from benchq.compilation.graph_states import jl
 from qiskit.transpiler.passes import RemoveBarriers
 from benchq.visualization_tools.plot_graph_state import plot_graph_state
 from benchq.conversions import export_circuit
 from orquestra.quantum.circuits import Circuit, I, X, Y, Z, H, S, CNOT, CZ, RZ, T
 import pytest
-
-
-jl.include(
-    os.path.join(
-        pathlib.Path(__file__).parent.resolve(),
-        "../../../src/benchq/compilation/ruby_slippers/ruby_slippers.jl",
-    ),
-)
 
 np.random.seed(0)
 
@@ -28,7 +19,7 @@ SKIP_SLOW = pytest.mark.skipif(
 )
 
 
-def verify_random_circuit(n_qubits, depth, hyperparams, layering_optimization, verbose):
+def verify_random_circuit(n_qubits, depth, hyperparams, optimization, verbose):
     # test that a single random circuit works for |0> initialization
 
     circuit = generate_random_circuit(n_qubits, depth)
@@ -40,7 +31,7 @@ def verify_random_circuit(n_qubits, depth, hyperparams, layering_optimization, v
         hyperparams,
         show_circuit=True,
         throw_error_on_incorrect_result=True,
-        layering_optimization=layering_optimization,
+        optimization=optimization,
         verbose=verbose,
     )
 
@@ -71,7 +62,7 @@ def check_correctness_for_single_init(
     show_circuit=False,
     show_graph_state=False,
     throw_error_on_incorrect_result=True,
-    layering_optimization="Time",
+    optimization="Time",
     max_num_qubits=3,
     verbose=False,
 ):
@@ -82,7 +73,7 @@ def check_correctness_for_single_init(
         verbose=verbose,
         takes_graph_input=False,
         gives_graph_output=False,
-        layering_optimization=str(layering_optimization),
+        optimization=str(optimization),
         max_num_qubits=max_num_qubits,
         hyperparams=hyperparams,
     )
@@ -394,120 +385,120 @@ def topological_sort(layer, cond_paulis):
     return result
 
 
-# @pytest.mark.parametrize("optimization", ["Gansner", "Space", "Time", "Variable"])
-# @pytest.mark.parametrize(
-#     "init",
-#     [
-#         # All start in Z basis
-#         Circuit([]),
-#         # Some start in X basis, one in Z basis
-#         Circuit([H(0), H(1)]),
-#         # All start in X basis
-#         Circuit([H(0), H(1), H(2)]),
-#         # all start in Y basis
-#         Circuit([H(0), S(0), H(1), S(1), H(2), S(2)]),
-#     ],
-# )
-# @pytest.mark.parametrize(
-#     "circuit",
-#     [
-#         # T gates work alone
-#         Circuit([T(0), T(0)]),
-#         # rotations work alone
-#         Circuit([RZ(2.44)(0), RZ(5.71)(0)]),
-#         # rotations work in circuit
-#         Circuit([Z(0), Y(0), RZ(1.07)(2), X(1)]),
-#         # Standard single qubit gates
-#         Circuit([X(0)]),
-#         Circuit([H(0)]),
-#         Circuit([S(0)]),
-#         Circuit([H(0), S(0), H(0)]),
-#         Circuit([H(0), S(0)]),
-#         Circuit([S(0), H(0)]),
-#         Circuit([H(2)]),
-#         Circuit([H(0), CNOT(0, 1)]),
-#         Circuit([CZ(0, 1), H(2)]),
-#         Circuit([H(0), S(0), CNOT(0, 1), H(2)]),
-#         Circuit([CNOT(0, 1), CNOT(1, 2)]),
-#         Circuit([H(0), RZ(0.034023)(0)]),
-#         # Test pauli tracker layering
-#         Circuit(
-#             [
-#                 H(0),
-#                 S(0),
-#                 H(1),
-#                 CZ(0, 1),
-#                 H(2),
-#                 CZ(1, 2),
-#             ]
-#         ),
-#         Circuit(
-#             [
-#                 H(0),
-#                 H(1),
-#                 H(3),
-#                 CZ(0, 3),
-#                 CZ(1, 4),
-#                 H(3),
-#                 H(4),
-#                 CZ(3, 4),
-#             ]
-#         ),
-#         Circuit(
-#             [
-#                 H(0),
-#                 H(1),
-#                 H(4),
-#                 T(1),
-#                 CZ(0, 4),
-#                 CNOT(1, 0),
-#                 H(1),
-#                 CNOT(3, 1),
-#                 T(1),
-#                 CNOT(4, 1),
-#                 T(4),
-#                 H(4),
-#                 T(4),
-#             ]
-#         ),
-#         Circuit(
-#             [
-#                 H(3),
-#                 CZ(0, 2),
-#                 T(1),
-#                 H(1),
-#                 T(1),
-#                 T(1),
-#                 CNOT(0, 1),
-#                 CZ(1, 2),
-#                 CNOT(2, 1),
-#                 T(1),
-#             ],
-#         ),
-#         # test layering with non-clifford dependencies
-#         Circuit(
-#             [
-#                 T(0),
-#                 H(0),
-#                 T(0),
-#                 T(0),
-#                 H(0),
-#                 T(0),
-#             ]
-#         ),
-#     ],
-# )
-# def test_particular_circuits_give_correct_results(circuit, init, optimization):
-#     hyperparams = jl.RbSHyperparams(3, 2, 6, 1e5, 0)
-#     check_correctness_for_single_init(
-#         circuit,
-#         init,
-#         hyperparams,
-#         show_circuit=True,
-#         throw_error_on_incorrect_result=True,
-#         layering_optimization=optimization,
-#         max_num_qubits=3,
-#     )
+@pytest.mark.parametrize("optimization", ["Space", "Time", "Variable"])
+@pytest.mark.parametrize(
+    "init",
+    [
+        # All start in Z basis
+        Circuit([]),
+        # Some start in X basis, one in Z basis
+        Circuit([H(0), H(1)]),
+        # All start in X basis
+        Circuit([H(0), H(1), H(2)]),
+        # all start in Y basis
+        Circuit([H(0), S(0), H(1), S(1), H(2), S(2)]),
+    ],
+)
+@pytest.mark.parametrize(
+    "circuit",
+    [
+        # T gates work alone
+        Circuit([T(0), T(0)]),
+        # rotations work alone
+        Circuit([RZ(2.44)(0), RZ(5.71)(0)]),
+        # rotations work in circuit
+        Circuit([Z(0), Y(0), RZ(1.07)(2), X(1)]),
+        # Standard single qubit gates
+        Circuit([X(0)]),
+        Circuit([H(0)]),
+        Circuit([S(0)]),
+        Circuit([H(0), S(0), H(0)]),
+        Circuit([H(0), S(0)]),
+        Circuit([S(0), H(0)]),
+        Circuit([H(2)]),
+        Circuit([H(0), CNOT(0, 1)]),
+        Circuit([CZ(0, 1), H(2)]),
+        Circuit([H(0), S(0), CNOT(0, 1), H(2)]),
+        Circuit([CNOT(0, 1), CNOT(1, 2)]),
+        Circuit([H(0), RZ(0.034023)(0)]),
+        # Test pauli tracker layering
+        Circuit(
+            [
+                H(0),
+                S(0),
+                H(1),
+                CZ(0, 1),
+                H(2),
+                CZ(1, 2),
+            ]
+        ),
+        Circuit(
+            [
+                H(0),
+                H(1),
+                H(3),
+                CZ(0, 3),
+                CZ(1, 4),
+                H(3),
+                H(4),
+                CZ(3, 4),
+            ]
+        ),
+        Circuit(
+            [
+                H(0),
+                H(1),
+                H(4),
+                T(1),
+                CZ(0, 4),
+                CNOT(1, 0),
+                H(1),
+                CNOT(3, 1),
+                T(1),
+                CNOT(4, 1),
+                T(4),
+                H(4),
+                T(4),
+            ]
+        ),
+        Circuit(
+            [
+                H(3),
+                CZ(0, 2),
+                T(1),
+                H(1),
+                T(1),
+                T(1),
+                CNOT(0, 1),
+                CZ(1, 2),
+                CNOT(2, 1),
+                T(1),
+            ],
+        ),
+        # test layering with non-clifford dependencies
+        Circuit(
+            [
+                T(0),
+                H(0),
+                T(0),
+                T(0),
+                H(0),
+                T(0),
+            ]
+        ),
+    ],
+)
+def test_particular_circuits_give_correct_results(circuit, init, optimization):
+    hyperparams = jl.RbSHyperparams(3, 2, 6, 1e5, 0)
+    check_correctness_for_single_init(
+        circuit,
+        init,
+        hyperparams,
+        show_circuit=True,
+        throw_error_on_incorrect_result=True,
+        optimization=optimization,
+        max_num_qubits=3,
+    )
 
 
 # If you run this test, it will take a long time to complete. Make sure to
@@ -524,9 +515,7 @@ def test_1000_large_random_circuits():
             teleportation_threshold, teleportation_depth, min_neighbor_degree, 1e5, 0
         )
 
-        layering_optimization = np.random.choice(
-            ["Space", "Time", "Variable", "Gansner"]
-        )
+        optimization = np.random.choice(["Space", "Time", "Variable"])
 
         print(
             "\033[92m"
@@ -537,7 +526,7 @@ def test_1000_large_random_circuits():
             n_qubits=10,
             depth=30,
             hyperparams=hyperparams,
-            layering_optimization=layering_optimization,
+            optimization=optimization,
             verbose=True,
         )
         n_circuits_checked += 1
@@ -558,7 +547,7 @@ def test_1000_large_random_circuits():
 #             show_circuit=False,
 #             show_graph_state=False,
 #             throw_error_on_incorrect_result=True,
-#             layering_optimization="Time",
+#             optimization="Time",
 #             max_num_qubits=3,
 #         )
 #     except Exception:
@@ -576,7 +565,7 @@ def test_1000_large_random_circuits():
 #     show_circuit=True,
 #     show_graph_state=False,
 #     throw_error_on_incorrect_result=True,
-#     layering_optimization="Time",
+#     optimization="Time",
 #     max_num_qubits=3,
 # )
 # # stops evaluation on a correct result so you dont have to run it twice

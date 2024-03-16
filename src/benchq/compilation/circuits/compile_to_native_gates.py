@@ -25,7 +25,7 @@ from ...conversions._circuit_translations import import_circuit
 
 
 def compile_to_native_gates(circuit, verbose=False) -> Circuit:
-    """Traspile common gates to clifford + RZ gates.
+    """Transpile common gates to clifford + RZ gates.
     Changes RX, RY, and U3 to RZ. Changes CCX to T gates.
     Also, translates rotations with some characteristic angles
     (-pi, -pi/2, -pi/4, 0, pi/4, pi/2, pi) to simpler gates.
@@ -104,13 +104,13 @@ class DecomposeStandardRZ(DecompositionRule[GateOperation]):
         elif np.isclose(theta, np.pi) or np.isclose(theta, -np.pi):
             return [Z(*operation.qubit_indices)]
         elif np.isclose(theta, -np.pi / 4):
-            return [Dagger(T)(*operation.qubit_indices)]
+            return [T.dagger(*operation.qubit_indices)]
         elif np.isclose(theta, -np.pi / 2):
-            return [Dagger(S)(*operation.qubit_indices)]
+            return [S.dagger(*operation.qubit_indices)]
         elif np.isclose(theta, -3 * np.pi / 4):
             return [
-                Dagger(S)(*operation.qubit_indices),
-                Dagger(T)(*operation.qubit_indices),
+                S.dagger(*operation.qubit_indices),
+                T.dagger(*operation.qubit_indices),
             ]
         else:
             raise RuntimeError(

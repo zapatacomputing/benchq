@@ -59,11 +59,11 @@ def main():
     print("Circuit generation time:", t_info.total)
     print("n qubits in circuit:", algorithm.program.subroutines[0].n_qubits)
 
-    # allows for parallelization of the compilation
-    # uses ruby slippers compiler by default
-    # set destination to "local" to parallelize compilation on your machine
-    # if you have set up orquestra, you can use the "remote" option to
-    # parallelize the compilation on the cloud.
+    # Allows for parallelized compilation. Uses ruby slippers compiler by default.
+    # The single-thread setting is simplest to use. You can parallelize on a local
+    # machine by setting the destination to "local" and running `orq up` in the
+    # terminal. Additional settings as well as using a remote cluster can be
+    # configured by using other settings available in the get_implementation_compiler
     implementation_compiler = get_implementation_compiler(destination="single-thread")
     estimator = GraphResourceEstimator(optimization="Time", verbose=True)
 
@@ -77,7 +77,7 @@ def main():
     print("Resource estimation time without synthesis:", t_info.total)
     pprint(resource_estimate)
 
-    print("Total time:", time() - start_time)
+    print("Total time to estimate resources:", time() - start_time)
 
 
 if __name__ == "__main__":

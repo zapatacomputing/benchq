@@ -38,8 +38,8 @@ Args:
                                         can be stitched to a previous graph state.
     gives_graph_output::Bool          Whether the circuit gives a graph state as output and thus
                                         can be stitched to a future graph state.
-    layering_optimization::String     Which layering optimization to use in the pauli tracker.
-                                        Options are "ST-Volume", "Time", "Space", "Variable"
+    optimization::String              Which layering optimization to use in the pauli tracker.
+                                        Options are "Time", "Space", "Variable"
     max_num_qubits::Int               How many gates to put in each layer in the case of "Variable"
     optimal_dag_density::Int          How dense to make the dag. Higher values require more time,
                                         but can be more optimizable. Ranges from 0-infinity.
@@ -59,17 +59,15 @@ Args:
 
 
 Returns:
-    edge_data::python List[List[int]] adjacency list describing the graph state
-    num_consumption_tocks::Int        number of tocks used to consume the graph
-    num_logical_qubits::Int           number of logical qubits in the graph state
-    proportion::Float64               proportion of the circuit that was compiled
+    python_compiled_data::Dict        Data describing the compiled circuit
+    proportion::Float64               Proportion of the circuit that was compiled
 """
 function run_ruby_slippers(
     orquestra_circuit;
     verbose::Bool=true,
     takes_graph_input::Bool=true,
     gives_graph_output::Bool=true,
-    layering_optimization::String="ST-Volume",
+    optimization::String="Space",
     max_num_qubits::Int64=1,
     optimal_dag_density::Int=1,
     use_fully_optimized_dag::Bool=false,
@@ -111,7 +109,7 @@ function run_ruby_slippers(
                 verbose=verbose,
                 takes_graph_input=takes_graph_input,
                 gives_graph_output=gives_graph_output,
-                layering_optimization=layering_optimization,
+                optimization=optimization,
                 max_num_qubits=max_num_qubits,
                 optimal_dag_density=optimal_dag_density,
                 use_fully_optimized_dag=use_fully_optimized_dag,
@@ -126,7 +124,7 @@ function run_ruby_slippers(
                 verbose=verbose,
                 takes_graph_input=takes_graph_input,
                 gives_graph_output=gives_graph_output,
-                layering_optimization=layering_optimization,
+                optimization=optimization,
                 max_num_qubits=max_num_qubits,
                 hyperparams=hyperparams,
                 max_graph_size=max_graph_size,
@@ -135,10 +133,10 @@ function run_ruby_slippers(
     end
 
     if proportion == 1.0
-        num_logical_qubits = get_num_logical_qubits(pauli_tracker.layering, asg, verbose)
+        num_logical_qubits = get_num_logical_qubits(pauli_tracker.layering, asg, optimization, verbose)
         num_layers = length(pauli_tracker.layering)
         (graph_creation_tocks_per_layer, t_states_per_layer, rotations_per_layer) =
-            two_row_scheduler(asg, pauli_tracker, num_logical_qubits, verbose)
+            two_row_scheduler(asg, pauli_tracker, num_logical_qubits, optimization, verbose)
         python_compiled_data = Dict(
             "num_logical_qubits" => num_logical_qubits,
             "num_layers" => num_layers,
@@ -149,7 +147,7 @@ function run_ruby_slippers(
         return python_compiled_data, proportion
     else
         # if we did not finish compiling the circuit, return the proportion of the circuit
-        return python_asg(asg), 0, 0, proportion
+        return 0, proportion
     end
 end
 
@@ -209,8 +207,8 @@ Args:
                                     can be stitched to a previous graph state.
     gives_graph_output::Bool      Whether the circuit gives a graph state as output and thus
                                     can be stitched to a future graph state.
-    layering_optimization::String Which layering optimization to use in the pauli tracker.
-                                    Options are "ST-Volume", "Time", "Space", "Variable"
+    optimization::String          Which layering optimization to use in the pauli tracker.
+                                    Options are "Time", "Space", "Variable"
     max_num_qubits::Int           How many gates to put in each layer in the case of "Variable"
     optimal_dag_density::Int      How dense to make the dag. Higher values require more time,
                                     but can be more optimizable. Ranges from 0-infinity.
@@ -234,7 +232,7 @@ function get_graph_state_data(
     takes_graph_input::Bool=true,
     gives_graph_output::Bool=true,
     manually_stitchable::Bool=false,
-    layering_optimization::String="ST-Volume",
+    optimization::String="Space",
     max_num_qubits::Int64=1,
     optimal_dag_density::Int=1,
     use_fully_optimized_dag::Bool=false,
@@ -249,10 +247,10 @@ function get_graph_state_data(
     n_qubits = pyconvert(Int, orquestra_circuit.n_qubits)
 
     if takes_graph_input
-        asg, pauli_tracker = initialize_for_graph_input(max_graph_size, n_qubits, layering_optimization, max_num_qubits, optimal_dag_density, use_fully_optimized_dag)
+        asg, pauli_tracker = initialize_for_graph_input(max_graph_size, n_qubits, optimization, max_num_qubits, optimal_dag_density, use_fully_optimized_dag)
     else
         asg = AlgorithmSpecificGraphAllZero(max_graph_size, n_qubits)
-        pauli_tracker = PauliTracker(n_qubits, layering_optimization, max_num_qubits, optimal_dag_density, use_fully_optimized_dag)
+        pauli_tracker = PauliTracker(n_qubits, optimization, max_num_qubits, optimal_dag_density, use_fully_optimized_dag)
     end
 
     total_length = length(orquestra_circuit.operations)

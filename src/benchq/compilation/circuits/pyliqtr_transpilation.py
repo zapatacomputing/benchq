@@ -4,7 +4,7 @@
 import warnings
 from typing import Optional, Union
 
-from cirq.circuits import Circuit as CirqCircuit
+from cirq.circuits.circuit import Circuit as CirqCircuit
 from orquestra.quantum.circuits import Circuit as OrquestraCircuit
 from orquestra.quantum.circuits import GateOperation
 from pyLIQTR.gate_decomp.cirq_transforms import clifford_plus_t_direct_transform
@@ -78,7 +78,9 @@ SYNTHESIS_SCALING = 4
 getcontext().prec = 100
 
 
-def get_num_t_gates_per_rotation(per_gate_synthesis_accuracy: float) -> int:
+def get_num_t_gates_per_rotation(
+    per_gate_synthesis_accuracy: Union[float, Decimal]
+) -> int:
     return SYNTHESIS_SCALING * int(
         (1 / Decimal(per_gate_synthesis_accuracy)).log10() / Decimal(2).log10()
     )

@@ -30,8 +30,8 @@ Holds data for tracking conditional Pauli operators through a circuit.
         index is the qubits in that layer. The qubits in each layer are
         measured in parallel.
     layering_optimization: String
-        The optimization used to calculate the layering. Can be "Gansner",
-        "Time", "Space", and "Variable".
+        The optimization used to calculate the layering. Can be "Time",
+        "Space", and "Variable".
     max_num_qubits: Int
         The width parameter used for the "Variable" optimization. Corresponds
         to the maximum number of qubits which can exist at each time step.

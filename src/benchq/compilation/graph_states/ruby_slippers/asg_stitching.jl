@@ -225,7 +225,7 @@ function minimize_node_labels!(asg::AlgorithmSpecificGraph, pauli_tracker, nodes
 
     for i = 1:length(pauli_tracker.layering)
         sublist = pauli_tracker.layering[i]
-        for j = 1:length(sublist)
+        for j = eachindex(sublist)
             if sublist[j] in nodes_to_keep
                 sublist[j] = findfirst(nodes_to_keep .== sublist[j])
             elseif sublist[j] in nodes_to_remove

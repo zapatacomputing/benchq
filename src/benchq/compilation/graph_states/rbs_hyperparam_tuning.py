@@ -6,13 +6,12 @@ from math import ceil
 import networkx as nx
 import optuna
 from orquestra.quantum.circuits import Circuit, H
-
-from ...algorithms import GraphPartition
-from ...problem_embeddings import QuantumProgram
-from ...quantum_hardware_modeling import BASIC_SC_ARCHITECTURE_MODEL
-from ...resource_estimators.graph_estimators import GraphResourceEstimator
-from .. import jl, compile_to_native_gates
-from ..circuit_compilers import get_nx_graph_from_rbs_adj_list
+from typing import Tuple, Union
+from .circuit_compilers import get_nx_graph_from_rbs_adj_list
+from ...resource_estimators.graph_estimator import GraphResourceEstimator
+from ...algorithms.data_structures import AlgorithmImplementation
+from juliacall import Main as jl
+from .circuit_compilers import get_ruby_slippers_circuit_compiler
 
 
 def space_time_cost_from_rbs(
@@ -21,14 +20,15 @@ def space_time_cost_from_rbs(
     space_or_time: str,
     circuit: Circuit,
     verbose=False,
-    max_graph_size=None,
+    max_num_qubits=None,
+    optimal_dag_density=1,
     teleportation_threshold=40,
     teleportation_distance=4,
     min_neighbor_degree=6,
     max_num_neighbors_to_search=1e5,
-    decomposition_strategy=1,
+    max_graph_size=None,
     circuit_prop_estimate=1.0,
-):
+) -> Union[float, Tuple[float, float]]:
     """
     Runs Ruby Slippers (RBS) and uses the resulting graph to get estimates
     of circuit cost complexity in terms of time, space, or both. This is a
@@ -58,22 +58,34 @@ def space_time_cost_from_rbs(
         space_cost (float) OR time_cost (float) when space_or_time == "space" or "time"
         (space_cost, time_cost) (float, float) when space_or_time == "space&time"
     """
-    new_circuit = circuit
     if circuit_prop_estimate != 1.0:
         num_op = ceil(len(circuit.operations) * circuit_prop_estimate)
         new_circuit = Circuit(circuit.operations[:num_op])
 
-    _, adj, proportion_of_circuit_completed = jl.run_ruby_slippers(
-        new_circuit,
-        verbose,
-        max_graph_size,
-        teleportation_threshold,
-        teleportation_distance,
-        min_neighbor_degree,
-        max_num_neighbors_to_search,
-        decomposition_strategy,
-        rbs_iteration_time,
-    )
+        circuit_compiler = get_ruby_slippers_circuit_compiler(
+            max_num_qubits,
+            optimal_dag_density,
+            teleportation_threshold,
+            teleportation_distance,
+            min_neighbor_degree,
+            max_num_neighbors_to_search,
+            1,
+            max_graph_size,
+        )
+
+        implementation_compiler = get_implementation_compiler(circuit_compiler)
+
+        compiled_graph_data, _ = jl.run_ruby_slippers(
+            new_circuit,
+            verbose,
+            max_graph_size,
+            teleportation_threshold,
+            teleportation_distance,
+            min_neighbor_degree,
+            max_num_neighbors_to_search,
+            decomposition_strategy,
+            rbs_iteration_time,
+        )
 
     if proportion_of_circuit_completed == 1.0 and circuit_prop_estimate != 1.0:
         raise RuntimeError(
@@ -83,6 +95,7 @@ def space_time_cost_from_rbs(
 
     estimated_time = rbs_iteration_time / proportion_of_circuit_completed
     time_overrun = estimated_time - max_allowed_time
+    # Severly punish being over 5 minuts
     # max value for float is approx 10^308, avoid going past that
     if time_overrun > 300:
         time_overrun = 300
@@ -95,16 +108,10 @@ def space_time_cost_from_rbs(
     nx_graph = nx.convert_node_labels_to_integers(nx_graph)
 
     dummy_circuit = Circuit([H(0)])
+    implementation = AlgorithmImplementation.from_circuit(dummy_circuit, 1)
 
-    quantum_program = QuantumProgram(
-        [dummy_circuit],
-        1,
-        lambda x: [0] * x,
-    )
-
-    graph_partition = GraphPartition(program=quantum_program, subgraphs=[nx_graph])
-    empty_graph_re = GraphResourceEstimator(BASIC_SC_ARCHITECTURE_MODEL)
-    graph_data = empty_graph_re._get_graph_data_for_single_graph(graph_partition)
+    graph_re = GraphResourceEstimator(optimization=space_or_time)
+    graph_data = graph_re.compile_and_estimate(implementation)
 
     if space_or_time == "space":
         return (10**time_overrun) + graph_data.num_logical_qubits - 1

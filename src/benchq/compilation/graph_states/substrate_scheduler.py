@@ -10,7 +10,9 @@ from copy import copy
 from typing import Tuple
 
 
-def substrate_scheduler(graph: nx.Graph, preset: str) -> TwoRowSubstrateScheduler:
+def python_substrate_scheduler(
+    graph: nx.Graph, preset: str, verbose: bool = False
+) -> TwoRowSubstrateScheduler:
     """A simple interface for running the substrate scheduler. Can be run quickly or
     optimized for smaller runtime. Using the "optimized" preset can halve the number
     of measurement steps, but takes about 100x longer to run. It's probably only
@@ -27,7 +29,8 @@ def substrate_scheduler(graph: nx.Graph, preset: str) -> TwoRowSubstrateSchedule
     """
     cleaned_graph = remove_isolated_nodes_from_graph(graph)[1]
 
-    print("starting substrate scheduler")
+    if verbose:
+        print("starting substrate scheduler")
     start = time.time()
     if preset == "fast":
         compiler = TwoRowSubstrateScheduler(
@@ -42,12 +45,13 @@ def substrate_scheduler(graph: nx.Graph, preset: str) -> TwoRowSubstrateSchedule
         )
     compiler.run()
     end = time.time()
-    print("substrate scheduler took", end - start, "seconds")
+    if verbose:
+        print("substrate scheduler took", end - start, "seconds")
     return compiler
 
 
-def get_n_measurement_steps(optimization, graph) -> int:
-    compiler = substrate_scheduler(graph, optimization)
+def get_n_measurement_steps(optimization, graph, verbose: bool = False) -> int:
+    compiler = python_substrate_scheduler(graph, optimization, verbose)
     n_measurement_steps = len(compiler.measurement_steps)
     return n_measurement_steps
 

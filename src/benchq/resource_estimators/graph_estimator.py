@@ -1,6 +1,6 @@
 import warnings
 from decimal import Decimal, getcontext
-from typing import Iterable, Optional
+from typing import Iterable, Optional, Tuple
 
 from benchq.decoder_modeling.decoder_resource_estimator import get_decoder_info
 
@@ -68,17 +68,19 @@ class GraphResourceEstimator:
     ) -> int:
 
         for code_distance in range(min_d, max_d):
-            num_logical_qubits, total_cycles = self.get_logical_qubits_and_num_cycles(
+            num_logical_qubits, num_cycles = self.get_logical_qubits_and_num_cycles(
                 compiled_program,
                 magic_state_factory,
                 n_t_gates_per_rotation,
                 code_distance,
             )
-            st_volume_in_logical_qubit_cycles = num_logical_qubits * total_cycles
+            st_volume_in_logical_qubit_tocks = (
+                num_logical_qubits * num_cycles / code_distance
+            )
 
             ec_error_rate_at_this_distance = get_total_logical_failure_rate(
                 hw_model,
-                st_volume_in_logical_qubit_cycles,
+                st_volume_in_logical_qubit_tocks,
                 code_distance,
             )
 
@@ -95,7 +97,7 @@ class GraphResourceEstimator:
         magic_state_factory: MagicStateFactory,
         n_t_gates_per_rotation: float,
         code_distance: int,
-    ):
+    ) -> Tuple[int, int]:
         cycles_per_subroutine = [0 for _ in range(len(compiled_program.subroutines))]
 
         if self.optimization == "Space":
@@ -114,7 +116,7 @@ class GraphResourceEstimator:
                     graph_preparation_cycles_in_this_layer = (
                         subroutine.graph_creation_tocks_per_layer[layer] * code_distance
                     )
-                    cycles_per_subroutine[i] += (
+                    cycles_per_subroutine[i] += ceil(
                         # prepare graph state, then distill and deliver T states
                         graph_preparation_cycles_in_this_layer
                         + num_distillations_in_this_layer
@@ -138,7 +140,7 @@ class GraphResourceEstimator:
                 num_factories_per_logical_qubit * code_distance
             )
 
-            num_factories_per_logical_qubit /= (
+            num_factories_per_logical_qubit /= ceil(
                 magic_state_factory.n_t_gates_produced_per_distillation
             )
 
@@ -159,7 +161,7 @@ class GraphResourceEstimator:
 
             for i, subroutine in enumerate(compiled_program.subroutines):
                 for layer in range(subroutine.num_layers):
-                    cycles_per_subroutine[i] += (
+                    cycles_per_subroutine[i] += ceil(
                         # Distill T states and prepare graph state in parallel so if the
                         # cycles needed to prepare the graph state are less than the
                         # cycles needed to distill the T states, then we can ignore the
@@ -179,11 +181,11 @@ class GraphResourceEstimator:
                 "Should be either 'Time' or 'Space'."
             )
 
-        total_cycles = 0
+        num_cycles = 0
         for subroutine in compiled_program.subroutine_sequence:
-            total_cycles += cycles_per_subroutine[subroutine]
+            num_cycles += cycles_per_subroutine[subroutine]
 
-        return num_logical_qubits, total_cycles
+        return num_logical_qubits, num_cycles
 
     def estimate_resources_from_compiled_implementation(
         self,

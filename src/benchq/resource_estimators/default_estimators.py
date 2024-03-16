@@ -1,27 +1,21 @@
 from functools import partial
-from typing import List, Optional
-
+from typing import Optional
 import numpy as np
 
 from ..algorithms.data_structures import AlgorithmImplementation
-from ..compilation import default_ruby_slippers_circuit_compiler
+from ..compilation.graph_states import get_implementation_compiler
+from ..compilation.circuits.pyliqtr_transpilation import SYNTHESIS_SCALING
 from ..decoder_modeling import DecoderModel
 from ..problem_embeddings.quantum_program import QuantumProgram
 from ..quantum_hardware_modeling.hardware_architecture_models import (
     BasicArchitectureModel,
+    SCModel,
+    IONTrapModel,
 )
 from .openfermion_estimator import openfermion_estimator
-from .graph_estimators.customizable_pipelines import (
-    get_custom_resource_estimation,
-)
 from .graph_estimator import GraphResourceEstimator
-from ..compilation.graph_states.implementation_compiler import (
-    create_graph_from_full_circuit,
-    transpile_to_clifford_t,
-    compile_to_native_gates,
-    create_graphs_for_subroutines,
-)
-from .resource_info import ExtrapolatedGraphResourceInfo, ResourceInfo
+from .resource_info import ResourceInfo
+import warnings
 
 DEFAULT_STEPS_TO_EXTRAPOLATE_FROM = [1, 2, 3]
 
@@ -29,6 +23,7 @@ DEFAULT_STEPS_TO_EXTRAPOLATE_FROM = [1, 2, 3]
 def get_precise_graph_estimate(
     algorithm_implementation: AlgorithmImplementation,
     hardware_model: BasicArchitectureModel,
+    optimization: str,
     decoder_model: Optional[DecoderModel] = None,
 ) -> ResourceInfo:
     """Run a slow resource estimate with the lowest amount of resources.
@@ -50,22 +45,25 @@ def get_precise_graph_estimate(
     Returns:
         ResourceInfo: The resources required to run the algorithm.
     """
-    estimator = GraphResourceEstimator(hardware_model, decoder_model=decoder_model)
+    algorithm_implementation = algorithm_implementation.transpile_to_clifford_t()
+    algorithm_implementation = AlgorithmImplementation.from_circuit(
+        algorithm_implementation.program.full_circuit,
+        algorithm_implementation.error_budget,
+        algorithm_implementation.n_shots,
+    )
 
-    return get_custom_resource_estimation(
+    return GraphResourceEstimator(optimization).compile_and_estimate(
         algorithm_implementation,
-        estimator,
-        transformers=[
-            compile_to_native_gates,
-            transpile_to_clifford_t(algorithm_implementation.error_budget),
-            create_graph_from_full_circuit(),
-        ],
+        get_implementation_compiler(),
+        hardware_model,
+        decoder_model=decoder_model,
     )
 
 
 def get_fast_graph_estimate(
     algorithm_implementation: AlgorithmImplementation,
     hardware_model: BasicArchitectureModel,
+    optimization: str,
     decoder_model: Optional[DecoderModel] = None,
 ) -> ResourceInfo:
     """Run a slow resource estimate that's faster than the precise one.
@@ -88,25 +86,26 @@ def get_fast_graph_estimate(
     Returns:
         ResourceInfo: The resources required to run the algorithm.
     """
-    estimator = GraphResourceEstimator(hardware_model, decoder_model=decoder_model)
+    algorithm_implementation = AlgorithmImplementation.from_circuit(
+        algorithm_implementation.program.full_circuit,
+        algorithm_implementation.error_budget,
+        algorithm_implementation.n_shots,
+    )
 
-    return get_custom_resource_estimation(
+    return GraphResourceEstimator(optimization).compile_and_estimate(
         algorithm_implementation,
-        estimator,
-        transformers=[
-            compile_to_native_gates,
-            create_graph_from_full_circuit(
-                graph_production_method=default_ruby_slippers_circuit_compiler,
-            ),
-        ],
+        get_implementation_compiler(),
+        hardware_model,
+        decoder_model=decoder_model,
     )
 
 
 def get_precise_stitched_estimate(
     algorithm_implementation: AlgorithmImplementation,
     hardware_model: BasicArchitectureModel,
+    optimization: str,
     decoder_model: Optional[DecoderModel] = None,
-) -> ExtrapolatedGraphResourceInfo:
+) -> ResourceInfo:
     """Run a faster resource estimate that's based on extrapolating from smaller
     circuits.
 
@@ -126,27 +125,22 @@ def get_precise_stitched_estimate(
     Returns:
         ResourceInfo: The resources required to run the algorithm.
     """
-    estimator = GraphResourceEstimator(hardware_model, decoder_model=decoder_model)
+    algorithm_implementation = algorithm_implementation.transpile_to_clifford_t()
 
-    return get_custom_resource_estimation(
+    return GraphResourceEstimator(optimization).compile_and_estimate(
         algorithm_implementation,
-        estimator,
-        transformers=[
-            compile_to_native_gates,
-            transpile_to_clifford_t(algorithm_implementation.error_budget),
-            create_graphs_for_subroutines(
-                graph_production_method=default_ruby_slippers_circuit_compiler,
-                destination="single-thread",
-            ),
-        ],
+        get_implementation_compiler(),
+        hardware_model,
+        decoder_model=decoder_model,
     )
 
 
 def get_fast_stitched_estimate(
     algorithm_implementation: AlgorithmImplementation,
     hardware_model: BasicArchitectureModel,
+    optimization: str,
     decoder_model: Optional[DecoderModel] = None,
-) -> ExtrapolatedGraphResourceInfo:
+) -> ResourceInfo:
     """The fastest resource estimate method, but also the least accurate one.
 
     Run a resource estimate by creating a part graph created by of the full
@@ -166,40 +160,30 @@ def get_fast_stitched_estimate(
     Returns:
         ResourceInfo: The resources required to run the algorithm.
     """
-    estimator = GraphResourceEstimator(hardware_model, decoder_model=decoder_model)
-
-    return get_custom_resource_estimation(
+    return GraphResourceEstimator(optimization).compile_and_estimate(
         algorithm_implementation,
-        estimator,
-        transformers=[
-            compile_to_native_gates,
-            create_graphs_for_subroutines(
-                graph_production_method=default_ruby_slippers_circuit_compiler,
-                destination="single-thread",
-            ),
-        ],
+        get_implementation_compiler(),
+        hardware_model,
+        decoder_model=decoder_model,
     )
 
 
 def get_footprint_estimate(
     algorithm_implementation: AlgorithmImplementation,
     hardware_model: BasicArchitectureModel,
+    optimization: str,
     decoder_model: Optional[DecoderModel] = None,
 ):
-    dummy_estimator = GraphResourceEstimator(
-        hardware_model, decoder_model=decoder_model
-    )
+    if optimization == "Space":
+        warnings.warn(
+            "Time optimization is not supported for footprint analysis. "
+            "Using Space optimization."
+        )
 
-    algorithm_implementation.program = compile_to_native_gates(
-        algorithm_implementation.program
+    algorithm_implementation.program = (
+        algorithm_implementation.program.compile_to_native_gates()
     )
-
-    total_t_gates = dummy_estimator.get_n_total_t_gates(
-        algorithm_implementation.program.n_t_gates,
-        algorithm_implementation.program.n_rotation_gates,
-        algorithm_implementation.error_budget.transpilation_failure_tolerance,
-    )
-
+    total_t_gates = algorithm_implementation.n_t_gates_after_transpilation
     hardware_failure_tolerance = (
         algorithm_implementation.error_budget.hardware_failure_tolerance
     )
@@ -217,6 +201,7 @@ def automatic_resource_estimator(
     algorithm_implementation: AlgorithmImplementation,
     hardware_model: BasicArchitectureModel,
     decoder_model: Optional[DecoderModel] = None,
+    optimization: Optional[str] = None,
 ) -> ResourceInfo:
     """Pick the appropriate resource estimator based on the size of the program.
 
@@ -248,6 +233,17 @@ def automatic_resource_estimator(
     assert isinstance(algorithm_implementation.program, QuantumProgram)
     initial_number_of_steps = algorithm_implementation.program.steps
 
+    if optimization is None:
+        if hardware_model == SCModel:
+            optimization = "Space"
+        elif hardware_model == IONTrapModel:
+            optimization = "Time"
+        else:
+            raise ValueError(
+                f"Hardware model {hardware_model} has no default optimization. "
+                "Please specify one manually."
+            )
+
     graph_size = estimate_full_graph_size(algorithm_implementation, False)
     reduced_graph_size = estimate_full_graph_size(algorithm_implementation, True)
 
@@ -267,7 +263,6 @@ def automatic_resource_estimator(
     elif extrapolaed_graph_size < 1e7:
         pipeline = partial(
             get_precise_stitched_estimate,
-            steps_to_extrapolate_from=DEFAULT_STEPS_TO_EXTRAPOLATE_FROM,
         )
         print("Using precise extrapolation graph estimator")
     elif reduced_graph_size < 1e7:
@@ -276,7 +271,6 @@ def automatic_resource_estimator(
     elif small_extrapolated_graph_size < 1e7:
         pipeline = partial(
             get_fast_stitched_estimate,
-            steps_to_extrapolate_from=DEFAULT_STEPS_TO_EXTRAPOLATE_FROM,
         )
         print("Using fast extrapolation graph estimator")
     else:
@@ -286,6 +280,7 @@ def automatic_resource_estimator(
     return pipeline(
         algorithm_implementation,
         hardware_model,
+        optimization,
         decoder_model=decoder_model,
     )
 
@@ -301,7 +296,7 @@ def estimate_full_graph_size(
     if not delayed_gate_synthesis:
         graph_complexity += (
             algorithm_implementation.program.n_rotation_gates
-            * GraphResourceEstimator.SYNTHESIS_SCALING
+            * SYNTHESIS_SCALING
             * np.log2(
                 1
                 / algorithm_implementation.error_budget.transpilation_failure_tolerance

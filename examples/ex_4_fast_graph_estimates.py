@@ -45,7 +45,9 @@ def main():
     print("Circuit generation time:", t_info.total)
 
     with measure_time() as t_info:
-        fast_gsc_resources = get_fast_graph_estimate(algorithm, architecture_model)
+        fast_gsc_resources = get_fast_graph_estimate(
+            algorithm, architecture_model, optimization="Time"
+        )
 
     print("Resource estimation time with GSC:", t_info.total)
     pprint(fast_gsc_resources)

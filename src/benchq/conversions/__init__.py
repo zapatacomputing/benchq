@@ -3,4 +3,4 @@
 ################################################################################
 from ._circuit_translations import SUPPORTED_CIRCUITS, export_circuit, import_circuit
 from ._openfermion_pyliqtr import openfermion_to_pyliqtr, pyliqtr_to_openfermion
-from ._operator_translations import SUPPORTED_OPERATORS, operator_to_pyliqtr
+from ._operator_translations import SUPPORTED_OPERATORS, get_pyliqtr_operator

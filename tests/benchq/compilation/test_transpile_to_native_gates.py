@@ -18,7 +18,7 @@ from orquestra.quantum.circuits import (
     Z,
 )
 
-from benchq.compilation import compile_to_native_gates
+from benchq.compilation.circuits import compile_to_native_gates
 
 TOFFOLI_DECOMPOSITION = [
     H(2),

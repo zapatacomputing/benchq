@@ -6,8 +6,18 @@ Get the number of logical qubits in the circuit. This is done by finding
 the maximum number of physical qubits which are connected to each other
 through the conditional Pauli operators at each layer of the pauli tracker.
 """
-function get_num_logical_qubits(layering, asg, verbose=false)
-    curr_physical_nodes = get_neighborhood(layering[1], asg)
+function get_num_logical_qubits(layering, asg, optimization, verbose=false)
+    if optimization == "Space"
+        neighborhod_degree = 1
+    elseif optimization == "Time"
+        neighborhod_degree = 2
+    elseif optimization == "Variable"
+        neighborhod_degree = 1
+    else
+        throw(ArgumentError("Invalid optimization type."))
+    end
+
+    curr_physical_nodes = get_neighborhood(layering[1], asg, neighborhod_degree)
     n_logical_qubits = length(curr_physical_nodes)
     measured_nodes = Set{Qubit}([])
 
@@ -16,7 +26,7 @@ function get_num_logical_qubits(layering, asg, verbose=false)
         added_nodes = layering[i+1]
 
         setdiff!(curr_physical_nodes, layering[i])
-        new_nodes_to_add = setdiff(get_neighborhood(added_nodes, asg), measured_nodes)
+        new_nodes_to_add = setdiff(get_neighborhood(added_nodes, asg, neighborhod_degree), measured_nodes)
         union!(curr_physical_nodes, new_nodes_to_add)
 
         n_logical_qubits = max(n_logical_qubits, length(curr_physical_nodes))
@@ -25,15 +35,18 @@ function get_num_logical_qubits(layering, asg, verbose=false)
     return n_logical_qubits
 end
 
-function get_neighborhood(centers, asg)
+function get_neighborhood(centers, asg, distance=1)
     neighborhood = Set{Qubit}([])
+    if distance == 0
+        return centers
+    end
     for center in centers
         for neighbor in asg.edge_data[center]
             push!(neighborhood, neighbor)
         end
     end
 
-    return union(neighborhood, centers)
+    return get_neighborhood(union(neighborhood, centers), asg, distance - 1)
 end
 
 function get_n_measurement_steps(pauli_tracker::PauliTracker)

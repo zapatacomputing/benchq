@@ -11,6 +11,7 @@ class AlgorithmImplementation:
     error_budget: ErrorBudget
     n_shots: int
 
+    @staticmethod
     def from_circuit(
         circuit: SUPPORTED_CIRCUITS, error_budget: ErrorBudget, n_shots: int = 1
     ):
@@ -19,5 +20,22 @@ class AlgorithmImplementation:
 
     def transpile_to_clifford_t(self):
         return AlgorithmImplementation(
-            self.program.transpile_to_clifford_t(self.error_budget), self.error_budget
+            self.program.transpile_to_clifford_t(
+                self.error_budget.transpilation_failure_tolerance
+            ),
+            self.error_budget,
+            self.n_shots,
+        )
+
+    @property
+    def n_t_gates_after_transpilation(self):
+        return self.program.get_n_t_gates_after_transpilation(
+            self.error_budget.transpilation_failure_tolerance
+        )
+
+    def compile_to_native_gates(self, verbose: bool = False):
+        return AlgorithmImplementation(
+            self.program.compile_to_native_gates(verbose),
+            self.error_budget,
+            self.n_shots,
         )

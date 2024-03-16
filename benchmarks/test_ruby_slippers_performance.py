@@ -3,7 +3,8 @@ import itertools
 import pytest
 from orquestra.quantum.circuits import CNOT, RX, Circuit, H, S, X, Z
 
-from benchq.compilation import jl, pyliqtr_transpile_to_clifford_t
+from benchq.compilation.circuits import pyliqtr_transpile_to_clifford_t
+from benchq.compilation.graph_states import jl
 
 
 @pytest.mark.parametrize(

@@ -3,7 +3,6 @@
 ################################################################################
 import networkx as nx
 from orquestra.quantum.circuits import Circuit
-
 from .initialize_julia import jl
 from .compiled_data_structures import GSCInfo
 
@@ -23,7 +22,7 @@ def default_ruby_slippers_circuit_compiler(
     verbose: bool,
 ) -> GSCInfo:
     compiled_graph_data, _ = jl.run_ruby_slippers(
-        circuit, verbose=verbose, layering_optimization=optimization
+        circuit, verbose=verbose, optimization=optimization
     )
     return GSCInfo.from_dict(compiled_graph_data)
 
@@ -39,13 +38,13 @@ def get_ruby_slippers_circuit_compiler(
     min_neighbor_degree: int = 6,
     max_num_neighbors_to_search: int = int(1e5),
     decomposition_strategy: int = 0,
-    max_graph_size: int = 1e7,
+    max_graph_size: int = int(1e7),
 ):
     def _run_compiler(
         circuit: Circuit,
         optimization: str,
         verbose: bool,
-    ) -> nx.Graph:
+    ) -> GSCInfo:
         (
             compiled_graph_data,
             _,
@@ -54,7 +53,7 @@ def get_ruby_slippers_circuit_compiler(
             verbose=verbose,
             takes_graph_input=takes_graph_input,
             gives_graph_output=gives_graph_output,
-            layering_optimization=optimization,
+            optimization=optimization,
             max_num_qubits=max_num_qubits,
             optimal_dag_density=optimal_dag_density,
             use_fully_optimized_dag=use_fully_optimized_dag,
@@ -75,12 +74,27 @@ def Jabalizer_circuit_compiler(
     circuit: Circuit,
     optimization: str,
     verbose: bool,
-) -> nx.Graph:
+) -> GSCInfo:
+    raise NotImplementedError("Must wait for newest release of Jabalizer to integrate")
+
+    svec, op_seq, icm_output, data_qubits_map = jl.run_jabalizer(
+        circuit, debug_flag=verbose
+    )
+    graph = create_graph_from_stabilizers(svec)
+
+    # estimate number of logical qubits using max graph degree
+
+    # compiler = python_substrate_scheduler(graph, verbose)
+
+    return graph
+
+
+def get_algorithmic_graph_and_icm_output(circuit):
     svec, op_seq, icm_output, data_qubits_map = jl.run_jabalizer(circuit)
-    return create_graph_from_stabilizers(svec)
+    return create_graph_from_stabilizers(svec), op_seq, icm_output, data_qubits_map
 
 
-def create_graph_from_stabilizers(svec):
+def create_graph_from_stabilizers(svec) -> nx.Graph:
     G = nx.Graph()
     siz = len(svec)
     for i in range(siz):
@@ -89,8 +103,3 @@ def create_graph_from_stabilizers(svec):
             if z[j]:
                 G.add_edge(i, j)
     return G
-
-
-def get_algorithmic_graph_and_icm_output(circuit):
-    svec, op_seq, icm_output, data_qubits_map = jl.run_jabalizer(circuit)
-    return create_graph_from_stabilizers(svec), op_seq, icm_output, data_qubits_map

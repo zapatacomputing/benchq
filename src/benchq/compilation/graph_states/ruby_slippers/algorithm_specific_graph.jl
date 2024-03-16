@@ -87,7 +87,9 @@ of input and output nodes indicate that this graph is not stitchable.
 
 Attributes:
     edge_data (Vector{AdjList}): adjacency list describing the graph
-    sqs (Vector{UInt8}): single qubit clifford operations on each node
+    sqs (Vector{UInt8}): single qubit clifford symplectic operations
+                            on each node. The symplectic operations are
+                            just the clifford operators modulo the paulis
     sqp (Vector{UInt8}): single qubit pauli operations on each node
     n_nodes (UInt32): number of nodes being used by the graph state
     stitching_properties (Uint32): data on the stitchability of the graph
@@ -112,7 +114,7 @@ AlgorithmSpecificGraphAllZero(max_graph_size, n_qubits) = AlgorithmSpecificGraph
 Destructively convert edge_data to python adjacency list format.
 """
 function python_adjlist!(adj)
-    pylist([pylist(adj[i] .- 1) for i = 1:length(adj)])
+    pylist([pylist(adj[i] .- 1) for i = eachindex(adj)])
 end
 
 function python_asg(asg)

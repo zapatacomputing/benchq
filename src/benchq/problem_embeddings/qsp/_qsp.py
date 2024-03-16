@@ -12,7 +12,7 @@ from orquestra.quantum.circuits import Circuit, GateOperation
 from pyLIQTR.QSP import gen_qsp
 from pyLIQTR.QSP.qsp_helpers import qsp_decompose_once
 
-from ...conversions import SUPPORTED_OPERATORS, operator_to_pyliqtr
+from ...conversions import SUPPORTED_OPERATORS, get_pyliqtr_operator
 from ..quantum_program import QuantumProgram
 
 TCircuit = TypeVar("TCircuit")
@@ -55,7 +55,7 @@ def get_qsp_circuit(
     sclf: float,
     use_random_angles: bool = False,
 ) -> Circuit:
-    pyliqtr_operator = operator_to_pyliqtr(operator)
+    pyliqtr_operator = get_pyliqtr_operator(operator)
 
     # Ns = int(np.ceil(tmax / dt))  # Total number of timesteps
     timestep_vec = np.arange(0, tmax + dt, sclf * dt)  # Define array of timesteps
@@ -98,7 +98,7 @@ def get_qsp_program(
     n_block_encodings: int,
     decompose_select_v: bool = False,
 ) -> QuantumProgram:
-    pyliqtr_operator = operator_to_pyliqtr(operator)
+    pyliqtr_operator = get_pyliqtr_operator(operator)
     angles = np.random.random(3)
 
     qsp_generator = QSP.QSP.QSP(

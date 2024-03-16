@@ -13,15 +13,13 @@ from benchq.algorithms.data_structures import (
     ErrorBudget,
     GraphPartition,
 )
-from benchq.compilation import (
-    Jabalizer_circuit_compiler,
-    pyliqtr_transpile_to_clifford_t,
-)
+from benchq.compilation.circuits import pyliqtr_transpile_to_clifford_t
+from benchq.compilation.graph_states import Jabalizer_circuit_compiler
 from benchq.magic_state_distillation.litinski_factories import iter_litinski_factories
 from benchq.problem_embeddings.quantum_program import QuantumProgram
 from benchq.quantum_hardware_modeling import BASIC_SC_ARCHITECTURE_MODEL
 from benchq.resource_estimators.default_estimators import get_precise_graph_estimate
-from benchq.resource_estimators.graph_estimators import GraphResourceEstimator
+from benchq.resource_estimators.graph_estimator import GraphResourceEstimator
 
 MAIN_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.dirname(MAIN_DIR))
@@ -32,7 +30,7 @@ from examples.ex_3_packages_comparison import (  # noqa: E402
     main as packages_comparison_main,
 )
 from examples.ex_4_fast_graph_estimates import main as fast_graph  # noqa: E402
-from benchq.examples.ex_10_utility_scale import main as utility_scale  # noqa: E402
+from examples.ex_10_utility_scale import main as utility_scale  # noqa: E402
 
 SKIP_AZURE = pytest.mark.skipif(
     os.getenv("BENCHQ_TEST_AZURE") is None,

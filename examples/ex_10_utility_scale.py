@@ -23,9 +23,6 @@ from benchq.compilation.graph_states.implementation_compiler import (
 from benchq.compilation.graph_states.circuit_compilers import (
     get_ruby_slippers_circuit_compiler,
 )
-from benchq.compilation.circuits.pyliqtr_transpilation import (
-    get_total_t_gates_after_transpilation,
-)
 from benchq.resource_estimators.openfermion_estimator import (
     openfermion_estimator,
 )
@@ -69,7 +66,7 @@ def get_resources(lattice_type: str, size: int, decoder_data_file: str):
         decoder_model,
     )
 
-    total_t_gates = get_total_t_gates_after_transpilation(algorithm_implementation)
+    total_t_gates = algorithm_implementation.n_t_gates_after_transpilation
     hw_tolerance = algorithm_implementation.error_budget.hardware_failure_tolerance
 
     footprint_resources = openfermion_estimator(
@@ -126,7 +123,7 @@ if __name__ == "__main__":
     save_results = False
     path_to_save_results = "."
 
-    utiliy_scale_problems: typing.Dict[
+    utility_scale_problems: typing.Dict[
         Literal["triangular", "kitaev", "cubic"], int
     ] = {"triangular": 30, "kitaev": 22, "cubic": 10}
 
@@ -140,7 +137,7 @@ if __name__ == "__main__":
         decoder_data,
         save_results,
         lattice_type,
-        utiliy_scale_problems[lattice_type],
+        utility_scale_problems[lattice_type],
         path_to_save_results,
     )
 

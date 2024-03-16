@@ -1,20 +1,18 @@
 import numpy as np
-from orquestra.integrations.cirq.conversions import to_openfermion
 from orquestra.quantum.operators import PauliRepresentation
 from pyLIQTR.QSP import gen_qsp
 
 from ..algorithms.data_structures import AlgorithmImplementation, ErrorBudget
-from ..conversions import openfermion_to_pyliqtr
 from ..problem_embeddings.qsp import get_qsp_program
 from ..problem_embeddings.trotter import get_trotter_program
 from pyLIQTR.QSP.Hamiltonian import Hamiltonian
-from ..conversions import SUPPORTED_OPERATORS, operator_to_pyliqtr
+from ..conversions import SUPPORTED_OPERATORS, get_pyliqtr_operator
 
 
 # TODO: This logic is copied from pyLIQTR, perhaps we want to change it to our own?
 def _get_steps(tau, req_prec):
     # have tau and epsilon, backtrack in order to get steps
-    steps, closeval = gen_qsp.get_steps_from_logeps(np.log(req_prec), tau, 1)
+    steps, close_val = gen_qsp.get_steps_from_logeps(np.log(req_prec), tau, 1)
     # print(':------------------------------------------')
     # print(f': Steps = {steps}')
     while gen_qsp.getlogepsilon(tau, steps) > np.log(req_prec):
@@ -45,9 +43,9 @@ def qsp_time_evolution_algorithm(
         time: time of the evolution
         failure_tolerance: how often the algorithm can fail
     """
-    hamiltonian = operator_to_pyliqtr(hamiltonian)
+    pyliqtr_hamiltonian = get_pyliqtr_operator(hamiltonian)
     n_block_encodings = _n_block_encodings_for_time_evolution(
-        hamiltonian, time, failure_tolerance
+        pyliqtr_hamiltonian, time, failure_tolerance
     )
     program = get_qsp_program(hamiltonian, n_block_encodings, decompose_select_v=False)
     return AlgorithmImplementation(

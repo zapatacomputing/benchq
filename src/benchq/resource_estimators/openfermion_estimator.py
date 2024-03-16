@@ -15,7 +15,7 @@
 
 import dataclasses
 import math
-from typing import Iterable, Optional
+from typing import Iterable, Optional, Tuple
 
 from ..decoder_modeling.decoder_resource_estimator import get_decoder_info
 from ..magic_state_distillation import MagicStateFactory
@@ -124,7 +124,7 @@ def _cost_estimator(
     hardware_failure_tolerance: float = 1e-3,
     factory_count: int = 4,
     magic_state_factory_iterator: Optional[Iterable[MagicStateFactory]] = None,
-):
+) -> Tuple[CostEstimate, AlgorithmParameters]:
     """
     Produce best cost in terms of physical qubits and real run time based on
     number of toffoli, number of logical qubits, and physical error rate.
@@ -165,7 +165,7 @@ def _cost_estimator(
                     best_cost = cost
                     best_params = params
 
-    if best_cost is None:
+    if best_cost is None or best_params is None:
         raise RuntimeError(
             "Failed to find parameters that yield an acceptable failure probability. "
             "You must decrease the number of T gates and/or Toffolis in your circuit"
