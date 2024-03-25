@@ -28,7 +28,10 @@ from benchq.compilation.graph_states.implementation_compiler import (
     get_implementation_compiler,
 )
 from benchq.resource_estimators.graph_estimator import GraphResourceEstimator
-
+from benchq.compilation.graph_states import (
+    get_jabalizer_circuit_compiler,
+    get_ruby_slippers_circuit_compiler,
+)
 from time import time
 
 
@@ -41,7 +44,7 @@ def main():
     # measure_time is a utility tool which measures the execution time of
     # the code inside the with statement.
     with measure_time() as t_info:
-        N = 200  # Problem size
+        N = 3  # Problem size
 
         # Get a Vlasov Hamiltonian for simulation
         operator = get_vlasov_hamiltonian(N=N, k=2.0, alpha=0.6, nu=0)
@@ -64,8 +67,11 @@ def main():
     # machine by setting the destination to "local" and running `orq up` in the
     # terminal. Additional settings as well as using a remote cluster can be
     # configured by using other settings available in the get_implementation_compiler
-    implementation_compiler = get_implementation_compiler(destination="single-thread")
-    estimator = GraphResourceEstimator(optimization="Time", verbose=True)
+    implementation_compiler = get_implementation_compiler(
+        circuit_compiler=get_jabalizer_circuit_compiler(4),
+        destination="single-thread",
+    )
+    estimator = GraphResourceEstimator(optimization="Space", verbose=True)
 
     with measure_time() as t_info:
         resource_estimate = estimator.compile_and_estimate(

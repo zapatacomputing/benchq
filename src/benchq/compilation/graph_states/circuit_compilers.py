@@ -5,6 +5,7 @@ import networkx as nx
 from orquestra.quantum.circuits import Circuit
 from .initialize_julia import jl
 from .compiled_data_structures import GSCInfo
+from datetime import datetime
 
 
 def get_nx_graph_from_rbs_adj_list(adj: list) -> nx.Graph:
@@ -70,23 +71,22 @@ def get_ruby_slippers_circuit_compiler(
     return _run_compiler
 
 
-def Jabalizer_circuit_compiler(
-    circuit: Circuit,
-    optimization: str,
-    verbose: bool,
-) -> GSCInfo:
-    raise NotImplementedError("Must wait for newest release of Jabalizer to integrate")
+def get_jabalizer_circuit_compiler(
+    space_optimal_timeout: int = 60,
+):
+    def Jabalizer_circuit_compiler(
+        circuit: Circuit,
+        optimization: str,
+        verbose: bool,
+    ) -> GSCInfo:
 
-    svec, op_seq, icm_output, data_qubits_map = jl.run_jabalizer(
-        circuit, debug_flag=verbose
-    )
-    graph = create_graph_from_stabilizers(svec)
+        compiled_graph_data = jl.run_jabalizer(
+            circuit, optimization, verbose, space_optimal_timeout
+        )
 
-    # estimate number of logical qubits using max graph degree
+        return GSCInfo.from_dict(compiled_graph_data)
 
-    # compiler = python_substrate_scheduler(graph, verbose)
-
-    return graph
+    return Jabalizer_circuit_compiler
 
 
 def get_algorithmic_graph_and_icm_output(circuit):

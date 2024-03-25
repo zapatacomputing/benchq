@@ -54,6 +54,17 @@ mutable struct PauliTracker
     optimal_dag_density::Int
     use_fully_optimized_dag::Bool
 
+    PauliTracker(cond_paulis, measurements, n_nodes, layering, layering_optimization, max_num_qubits, optimal_dag_density, use_fully_optimized_dag) = new(
+        cond_paulis,
+        measurements,
+        n_nodes,
+        layering,
+        layering_optimization,
+        max_num_qubits,
+        optimal_dag_density,
+        use_fully_optimized_dag,
+    )
+
     PauliTracker(n_qubits, layering_optimization, max_num_qubits, optimal_dag_density, use_fully_optimized_dag) = new(
         [[[], []] for _ in range(1, n_qubits)],
         [[H_code, 0.0] for _ in range(1, n_qubits)],

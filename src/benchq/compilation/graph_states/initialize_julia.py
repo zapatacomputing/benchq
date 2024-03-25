@@ -13,7 +13,7 @@ dependency_dict: Any = {
         "JSON": {"uuid": "682c06a0-de6a-54ab-a142-c8b1cf79cde6", "version": "0.21"},
         "Jabalizer": {
             "uuid": "5ba14d91-d028-496b-b148-c0fbc366f709",
-            "version": "0.4.4",
+            "version": "0.5.0",
         },
         "TimerOutputs": {
             "uuid": "a759f4b9-e2f1-59dc-863e-4aeb61b1ea8f",
@@ -26,6 +26,10 @@ dependency_dict: Any = {
         "Memoize": {
             "uuid": "c03570c3-d221-55d1-a50c-7939bbd78826",
             "version": "0.4.4",
+        },
+        "Graphs": {
+            "uuid": "86223c79-3864-5bf0-83f7-82e725a168b6",
+            "version": "1.9.0",
         },
     },
 }

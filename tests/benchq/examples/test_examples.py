@@ -14,7 +14,7 @@ from benchq.algorithms.data_structures import (
     GraphPartition,
 )
 from benchq.compilation.circuits import pyliqtr_transpile_to_clifford_t
-from benchq.compilation.graph_states import Jabalizer_circuit_compiler
+from benchq.compilation.graph_states import get_jabalizer_circuit_compiler
 from benchq.magic_state_distillation.litinski_factories import iter_litinski_factories
 from benchq.problem_embeddings.quantum_program import QuantumProgram
 from benchq.quantum_hardware_modeling import BASIC_SC_ARCHITECTURE_MODEL
@@ -96,7 +96,10 @@ def test_toy_example_notebook():
         demo_circuit, circuit_precision=1e-6
     )
 
-    circuit_graph = Jabalizer_circuit_compiler(clifford_t_circuit)
+    compiler = get_jabalizer_circuit_compiler()
+    optimization = "Time"  # or "Space"
+    verbose = False
+    circuit_graph = compiler(clifford_t_circuit, optimization, verbose)
 
     # only allow a failure to occur 1% of the time
     budget = ErrorBudget.from_even_split(1e-2)

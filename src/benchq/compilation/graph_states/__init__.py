@@ -7,7 +7,7 @@ import pathlib
 from .initialize_julia import jl, juliapkg
 from .circuit_compilers import (
     get_algorithmic_graph_and_icm_output,
-    Jabalizer_circuit_compiler,
+    get_jabalizer_circuit_compiler,
     default_ruby_slippers_circuit_compiler,
     get_ruby_slippers_circuit_compiler,
 )
