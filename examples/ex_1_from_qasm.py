@@ -12,13 +12,11 @@ import os
 from qiskit.circuit import QuantumCircuit
 
 from benchq.algorithms.data_structures import AlgorithmImplementation, ErrorBudget
-from benchq.quantum_hardware_modeling import BASIC_SC_ARCHITECTURE_MODEL
-from benchq.resource_estimators.graph_estimator import (
-    GraphResourceEstimator,
-)
 from benchq.compilation.graph_states.implementation_compiler import (
     get_implementation_compiler,
 )
+from benchq.quantum_hardware_modeling import BASIC_SC_ARCHITECTURE_MODEL
+from benchq.resource_estimators.graph_estimator import GraphResourceEstimator
 
 
 def main(file_name):

@@ -19,7 +19,6 @@ def dummy_resource_info():
         total_time_in_seconds=5,
         decoder_info=None,
         magic_state_factory_name="",
-        routing_to_measurement_volume_ratio=1,
         extra=None,
     )
     yield resource_info

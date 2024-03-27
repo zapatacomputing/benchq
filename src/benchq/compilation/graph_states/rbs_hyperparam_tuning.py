@@ -2,16 +2,19 @@
 # © Copyright 2022-2023 Zapata Computing Inc.
 ################################################################################
 from math import ceil
+from typing import Tuple, Union
 
 import networkx as nx
 import optuna
-from orquestra.quantum.circuits import Circuit, H
-from typing import Tuple, Union
-from .circuit_compilers import get_nx_graph_from_rbs_adj_list
-from ...resource_estimators.graph_estimator import GraphResourceEstimator
-from ...algorithms.data_structures import AlgorithmImplementation
 from juliacall import Main as jl
-from .circuit_compilers import get_ruby_slippers_circuit_compiler
+from orquestra.quantum.circuits import Circuit, H
+
+from ...algorithms.data_structures import AlgorithmImplementation
+from ...resource_estimators.graph_estimator import GraphResourceEstimator
+from .circuit_compilers import (
+    get_nx_graph_from_rbs_adj_list,
+    get_ruby_slippers_circuit_compiler,
+)
 
 
 def space_time_cost_from_rbs(

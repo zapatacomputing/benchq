@@ -1,20 +1,16 @@
-from typing import Callable
+from typing import Callable, Sequence
 
-from ...algorithms.data_structures import GraphPartition
-from .circuit_compilers import (
-    default_ruby_slippers_circuit_compiler,
-)
-from ...problem_embeddings.quantum_program import (
-    QuantumProgram,
-)
 from orquestra import sdk
-from .compiled_data_structures import (
-    CompiledQuantumProgram,
-    CompiledAlgorithmImplementation,
-)
-from ..circuits.compile_to_native_gates import compile_to_native_gates
-from ...algorithms.data_structures import AlgorithmImplementation
 from orquestra.quantum.circuits import Circuit
+
+from ...algorithms.data_structures import AlgorithmImplementation
+from ..circuits.compile_to_native_gates import compile_to_native_gates
+from .circuit_compilers import default_ruby_slippers_circuit_compiler
+from .compiled_data_structures import (
+    CompiledAlgorithmImplementation,
+    CompiledQuantumProgram,
+    GSCInfo,
+)
 
 
 # @sdk.task(
@@ -24,7 +20,7 @@ from orquestra.quantum.circuits import Circuit
 @sdk.task(
     source_import=sdk.GithubImport(
         "zapatacomputing/benchq",
-        git_ref="faster-kahns-algo",
+        git_ref="ac/DTA2-270-implement-pauli-tracker",
     ),
     custom_image="hub.nexus.orquestra.io/zapatacomputing/benchq-ce:3eec2c8-sdk0.60.0",
 )
@@ -34,7 +30,7 @@ def distributed_graph_creation(
     verbose: bool,
     circuit_compiler,
     circuit_num: int,
-):
+) -> GSCInfo:
     if verbose:
         print(f"\nCompiling subroutine {circuit_num+1}...")
     circuit = compile_to_native_gates(circuit, verbose)
@@ -50,14 +46,14 @@ def get_implementation_compiler(
     config_name: str = "darpa-ta1",
     workspace_id: str = "darpa-phase-ii-gsc-resource-estimates-8a7c3b",
     project_id: str = "migration",
-) -> Callable[[QuantumProgram], GraphPartition]:
+) -> Callable[[AlgorithmImplementation, str, bool], CompiledAlgorithmImplementation]:
 
     @sdk.workflow(resources=sdk.Resources(cpu=str(num_cores), memory="16Gi"))
     def get_program_compilation_wf(
         algorithm_implementation: AlgorithmImplementation,
         optimization: str = "Space",
         verbose: bool = False,
-    ) -> GraphPartition:
+    ) -> Sequence[GSCInfo]:
         compiled_subroutine_list = []
         for circuit_num, circuit in enumerate(
             algorithm_implementation.program.subroutines
@@ -74,7 +70,7 @@ def get_implementation_compiler(
         algorithm_implementation: AlgorithmImplementation,
         optimization: str = "Space",
         verbose: bool = False,
-    ) -> GraphPartition:
+    ) -> CompiledAlgorithmImplementation:
         if verbose:
             print("Beginning compilation...")
         program_compilation_wf = get_program_compilation_wf(

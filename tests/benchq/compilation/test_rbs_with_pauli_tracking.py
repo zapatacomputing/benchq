@@ -1,15 +1,17 @@
 #!/usr/bin/env python
-from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister, Aer
-import qiskit
-import numpy as np
 import os
 import random
-from benchq.compilation.graph_states import jl
-from qiskit.transpiler.passes import RemoveBarriers
-from benchq.visualization_tools.plot_graph_state import plot_graph_state
-from benchq.conversions import export_circuit
-from orquestra.quantum.circuits import Circuit, I, X, Y, Z, H, S, CNOT, CZ, RZ, T
+
+import numpy as np
 import pytest
+import qiskit
+from orquestra.quantum.circuits import CNOT, CZ, RZ, Circuit, H, I, S, T, X, Y, Z
+from qiskit import Aer, ClassicalRegister, QuantumCircuit, QuantumRegister
+from qiskit.transpiler.passes import RemoveBarriers
+
+from benchq.compilation.graph_states import jl
+from benchq.conversions import export_circuit
+from benchq.visualization_tools.plot_graph_state import plot_graph_state
 
 np.random.seed(0)
 
@@ -68,7 +70,7 @@ def check_correctness_for_single_init(
 ):
     full_circuit = init + circuit
 
-    asg, pauli_tracker, _ = jl.get_graph_state_data(
+    asg, pauli_tracker, _ = jl.get_rbs_graph_state_data(
         full_circuit,
         verbose=verbose,
         takes_graph_input=False,

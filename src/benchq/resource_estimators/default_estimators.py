@@ -1,21 +1,22 @@
+import warnings
 from functools import partial
 from typing import Optional
+
 import numpy as np
 
 from ..algorithms.data_structures import AlgorithmImplementation
-from ..compilation.graph_states import get_implementation_compiler
 from ..compilation.circuits.pyliqtr_transpilation import SYNTHESIS_SCALING
+from ..compilation.graph_states import get_implementation_compiler
 from ..decoder_modeling import DecoderModel
 from ..problem_embeddings.quantum_program import QuantumProgram
 from ..quantum_hardware_modeling.hardware_architecture_models import (
     BasicArchitectureModel,
-    SCModel,
     IONTrapModel,
+    SCModel,
 )
-from .openfermion_estimator import openfermion_estimator
 from .graph_estimator import GraphResourceEstimator
+from .openfermion_estimator import openfermion_estimator
 from .resource_info import ResourceInfo
-import warnings
 
 DEFAULT_STEPS_TO_EXTRAPOLATE_FROM = [1, 2, 3]
 

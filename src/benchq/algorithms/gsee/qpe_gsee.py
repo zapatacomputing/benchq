@@ -3,11 +3,11 @@ import warnings
 import numpy as np
 from orquestra.integrations.cirq.conversions import to_openfermion
 from orquestra.quantum.operators import PauliRepresentation
+from pyLIQTR.QSP.Hamiltonian import Hamiltonian
 
 from ...algorithms.data_structures import AlgorithmImplementation, ErrorBudget
 from ...conversions import openfermion_to_pyliqtr
 from ...problem_embeddings.qsp import get_qsp_program
-from pyLIQTR.QSP.Hamiltonian import Hamiltonian
 
 
 def _n_block_encodings(hamiltonian: Hamiltonian, precision: float) -> int:

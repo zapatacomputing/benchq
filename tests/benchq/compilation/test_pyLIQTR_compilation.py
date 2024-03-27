@@ -3,10 +3,10 @@
 ################################################################################
 import numpy as np
 import pytest
+from cirq.circuits.circuit import Circuit as CirqCircuit
+from cirq.devices.line_qubit import LineQubit
 from cirq.ops.common_gates import CNOT as CirqCNOT
 from cirq.ops.common_gates import H as CirqH
-from cirq.devices.line_qubit import LineQubit
-from cirq.circuits.circuit import Circuit as CirqCircuit
 from numpy import linalg as LA
 from orquestra.quantum.circuits import CNOT as OrquestraCNOT
 from orquestra.quantum.circuits import RX, RZ

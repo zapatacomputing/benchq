@@ -1,9 +1,8 @@
+import matplotlib.patches as mpatches
+import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
-import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
-
-import matplotlib.patches as mpatches
 
 
 def plot_graph_state(asg, pauli_tracker):

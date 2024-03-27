@@ -1,9 +1,11 @@
-from benchq.compilation.graph_states import jl
-import test_rbs_with_pauli_tracking
 import os
-from benchq.visualization_tools.plot_graph_state import plot_graph_state
+
 import pytest
-from orquestra.quantum.circuits import Y, X, CNOT, RZ, CZ, H, Circuit, T, Z, S
+import test_rbs_with_pauli_tracking
+from orquestra.quantum.circuits import CNOT, CZ, RZ, Circuit, H, S, T, X, Y, Z
+
+from benchq.compilation.graph_states import jl
+from benchq.visualization_tools.plot_graph_state import plot_graph_state
 
 SKIP_SLOW = pytest.mark.skipif(
     os.getenv("SLOW_BENCHMARKS") is None,
@@ -55,7 +57,7 @@ def check_correctness_for_stitched_circuits(
 
 def get_graph(circuit, hyperparams, connection_type, optimization, max_num_qubits=3):
     if connection_type == "input":
-        asg, pauli_tracker, _ = jl.get_graph_state_data(
+        asg, pauli_tracker, _ = jl.get_rbs_graph_state_data(
             circuit,
             verbose=False,
             takes_graph_input=True,
@@ -67,7 +69,7 @@ def get_graph(circuit, hyperparams, connection_type, optimization, max_num_qubit
             max_time=1e8,
         )
     elif connection_type == "output":
-        asg, pauli_tracker, _ = jl.get_graph_state_data(
+        asg, pauli_tracker, _ = jl.get_rbs_graph_state_data(
             circuit,
             verbose=False,
             takes_graph_input=False,
@@ -79,7 +81,7 @@ def get_graph(circuit, hyperparams, connection_type, optimization, max_num_qubit
             max_time=1e8,
         )
     elif connection_type == "both":
-        asg, pauli_tracker, _ = jl.get_graph_state_data(
+        asg, pauli_tracker, _ = jl.get_rbs_graph_state_data(
             circuit,
             verbose=False,
             takes_graph_input=True,
@@ -91,7 +93,7 @@ def get_graph(circuit, hyperparams, connection_type, optimization, max_num_qubit
             max_time=1e8,
         )
     elif connection_type == "neither":
-        asg, pauli_tracker, _ = jl.get_graph_state_data(
+        asg, pauli_tracker, _ = jl.get_rbs_graph_state_data(
             circuit,
             verbose=False,
             takes_graph_input=False,

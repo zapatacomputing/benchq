@@ -104,7 +104,7 @@ function run_ruby_slippers(
 
     if verbose
         (asg, pauli_tracker, proportion) =
-            @time get_graph_state_data(
+            @time get_rbs_graph_state_data(
                 orquestra_circuit;
                 verbose=verbose,
                 takes_graph_input=takes_graph_input,
@@ -119,7 +119,7 @@ function run_ruby_slippers(
             )
     else
         (asg, pauli_tracker, proportion) =
-            get_graph_state_data(
+            get_rbs_graph_state_data(
                 orquestra_circuit;
                 verbose=verbose,
                 takes_graph_input=takes_graph_input,
@@ -226,7 +226,7 @@ Returns:
     Vector{UInt8}:     the list of single qubit clifford operations on each node
     Vector{AdjList}:   the adjacency list describing the graph corresponding to the graph state
 """
-function get_graph_state_data(
+function get_rbs_graph_state_data(
     orquestra_circuit;
     verbose::Bool=true,
     takes_graph_input::Bool=true,

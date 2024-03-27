@@ -10,18 +10,16 @@ from orquestra.integrations.qiskit.conversions import import_from_qiskit
 from qiskit.circuit import QuantumCircuit
 
 from benchq.algorithms.data_structures import AlgorithmImplementation, ErrorBudget
+from benchq.compilation.graph_states.implementation_compiler import (
+    get_implementation_compiler,
+)
 from benchq.mlflow.data_logging import (
     log_input_objects_to_mlflow,
     log_resource_info_to_mlflow,
 )
 from benchq.problem_embeddings import QuantumProgram
 from benchq.quantum_hardware_modeling import BASIC_SC_ARCHITECTURE_MODEL
-from benchq.resource_estimators.graph_estimator import (
-    GraphResourceEstimator,
-)
-from benchq.compilation.graph_states.implementation_compiler import (
-    get_implementation_compiler,
-)
+from benchq.resource_estimators.graph_estimator import GraphResourceEstimator
 
 
 def main(file_name, total_failure_tolerance=1e-3):

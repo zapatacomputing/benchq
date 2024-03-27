@@ -2,6 +2,7 @@
 # © Copyright 2022 Zapata Computing Inc.
 ################################################################################
 import warnings
+from decimal import Decimal, getcontext
 from typing import Optional, Union
 
 from cirq.circuits.circuit import Circuit as CirqCircuit
@@ -11,7 +12,6 @@ from pyLIQTR.gate_decomp.cirq_transforms import clifford_plus_t_direct_transform
 from qiskit.circuit import QuantumCircuit as QiskitCircuit
 
 from ...conversions import export_circuit, import_circuit
-from decimal import Decimal, getcontext
 
 
 def pyliqtr_transpile_to_clifford_t(

@@ -1,18 +1,18 @@
 ################################################################################
 # © Copyright 2022-2023 Zapata Computing Inc.
 ################################################################################
+import time
+from copy import copy
+from decimal import Decimal
 from typing import Callable, Sequence
 
-from orquestra.quantum.circuits import Circuit, GateOperation, ResetOperation, I
-from copy import copy
-import time
+from orquestra.quantum.circuits import Circuit, GateOperation, I, ResetOperation
 
 from ..compilation.circuits import (
-    pyliqtr_transpile_to_clifford_t,
-    get_num_t_gates_per_rotation,
     compile_to_native_gates,
+    get_num_t_gates_per_rotation,
+    pyliqtr_transpile_to_clifford_t,
 )
-from decimal import Decimal
 
 
 class QuantumProgram:

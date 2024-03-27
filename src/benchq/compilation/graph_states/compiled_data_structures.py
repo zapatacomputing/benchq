@@ -1,10 +1,7 @@
+from dataclasses import dataclass
 from typing import Callable, List, Sequence
 
-from dataclasses import dataclass
-
-from ...problem_embeddings.quantum_program import (
-    QuantumProgram,
-)
+from ...problem_embeddings.quantum_program import QuantumProgram
 
 
 @dataclass

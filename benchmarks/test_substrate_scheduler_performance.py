@@ -1,7 +1,7 @@
 import networkx as nx
 import pytest
 
-from benchq.compilation.graph_states.substrate_scheduler import (
+from benchq.compilation.graph_states.substrate_scheduler.python_substrate_scheduler import (
     python_substrate_scheduler,
 )
 

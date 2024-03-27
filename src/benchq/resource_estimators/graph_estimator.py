@@ -1,10 +1,16 @@
 import warnings
 from decimal import Decimal, getcontext
+from math import ceil
 from typing import Iterable, Optional, Tuple
 
 from benchq.decoder_modeling.decoder_resource_estimator import get_decoder_info
 
 from ..algorithms.data_structures import AlgorithmImplementation
+from ..compilation.circuits.pyliqtr_transpilation import get_num_t_gates_per_rotation
+from ..compilation.graph_states.compiled_data_structures import (
+    CompiledAlgorithmImplementation,
+    CompiledQuantumProgram,
+)
 from ..decoder_modeling import DecoderModel
 from ..magic_state_distillation import MagicStateFactory, iter_litinski_factories
 from ..quantum_hardware_modeling import (
@@ -16,13 +22,7 @@ from ..quantum_hardware_modeling.devitt_surface_code import (
     logical_cell_error_rate,
     physical_qubits_per_logical_qubit,
 )
-from math import ceil
 from .resource_info import GraphResourceInfo
-from ..compilation.graph_states.compiled_data_structures import (
-    CompiledAlgorithmImplementation,
-    CompiledQuantumProgram,
-)
-from ..compilation.circuits.pyliqtr_transpilation import get_num_t_gates_per_rotation
 
 INITIAL_SYNTHESIS_ACCURACY = 0.0001
 
@@ -122,31 +122,32 @@ class GraphResourceEstimator:
                         + num_distillations_in_this_layer
                         * (
                             magic_state_factory.distillation_time_in_cycles
-                            + code_distance  # 1 tock to deliver T state
+                            + 2 * code_distance  # 2 tocks to inject T state
                         )
                     )
         elif self.optimization == "Time":
-            # assume th
             if compiled_program.n_rotation_gates == 0:
                 # If there are no rotation gates, we can use a single factory
+                # for each logical qubit.
                 num_factories_per_logical_qubit = 1
             else:
                 # Assume that at each layer we need to distill as many T gates
                 # as are needed for performing rotations on each logical qubit.
                 num_factories_per_logical_qubit = n_t_gates_per_rotation
 
-            # must consume  T state at a time and consumption takes 1 tock
+            # must inject T state at a time and injection takes 2 tocks
             t_state_delivery_time_per_layer = (
-                num_factories_per_logical_qubit * code_distance
+                2 * num_factories_per_logical_qubit * code_distance
             )
 
             num_factories_per_logical_qubit /= ceil(
                 magic_state_factory.n_t_gates_produced_per_distillation
             )
 
-            factory_width = ceil(magic_state_factory.space[1])
-            factory_width_in_logical_qubit_side_lengths = factory_width / (
-                2 ** (1 / 2) * code_distance  # logical qubit side length
+            factory_width = magic_state_factory.space[1]
+            logical_qubit_side_length = 2 ** (1 / 2) * code_distance
+            factory_width_in_logical_qubit_side_lengths = int(
+                ceil(factory_width / logical_qubit_side_length)
             )
             # for each logical qubit, add enough factories to cover a single
             # node which can represent a distillation or a rotation
@@ -250,7 +251,6 @@ class GraphResourceEstimator:
                     n_physical_qubits=0,
                     magic_state_factory_name="No MagicStateFactory Found",
                     decoder_info=None,
-                    routing_to_measurement_volume_ratio=0.0,
                     extra=compiled_implementation.program,
                 )
             if this_transpilation_failure_tolerance < this_logical_cell_error_rate:
@@ -319,7 +319,6 @@ class GraphResourceEstimator:
             n_physical_qubits=n_physical_qubits,
             magic_state_factory_name=magic_state_factory.name,
             decoder_info=decoder_info,
-            routing_to_measurement_volume_ratio=None,
             extra=compiled_implementation,
         )
 

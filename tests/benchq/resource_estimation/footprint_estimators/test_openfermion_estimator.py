@@ -1,9 +1,7 @@
 import numpy
 import pytest
 
-from benchq.resource_estimators.openfermion_estimator import (
-    _cost_estimator,
-)
+from benchq.resource_estimators.openfermion_estimator import _cost_estimator
 
 
 @pytest.mark.parametrize(

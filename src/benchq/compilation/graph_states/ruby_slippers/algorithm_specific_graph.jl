@@ -31,13 +31,25 @@ mutable struct StitchingProperties
     graph_input_nodes::Vector{Qubit}
     graph_output_nodes::Vector{Qubit}
     gate_output_nodes::Vector{Qubit}
+end
+StitchingProperties(takes_graph_input, gives_graph_output, n_qubits) = StitchingProperties(
+    takes_graph_input,
+    gives_graph_output,
+    [],
+    [],
+    [Qubit(i) for i = 1:n_qubits]
+)
 
-    StitchingProperties(takes_graph_input, gives_graph_output, n_qubits) = new(
-        takes_graph_input,
-        gives_graph_output,
-        [],
-        [],
-        [Qubit(i) for i = 1:n_qubits]
+function Base.show(io::IO, sp::StitchingProperties)
+    decimal_graph_input_nodes = [Int(qubit) for qubit in sp.graph_input_nodes]
+    decimal_graph_output_nodes = [Int(qubit) for qubit in sp.graph_output_nodes]
+    decimal_gate_output_nodes = [Int(qubit) for qubit in sp.gate_output_nodes]
+    print(io, "StitchingProperties(\n    " *
+              "takes_graph_input = $(sp.takes_graph_input),\n    " *
+              "gives_graph_output = $(sp.gives_graph_output),\n    " *
+              "graph_input_nodes = $(decimal_graph_input_nodes),\n    " *
+              "graph_output_nodes = $(decimal_graph_output_nodes),\n    " *
+              "gate_output_nodes = $(decimal_gate_output_nodes)\n  )"
     )
 end
 
@@ -72,6 +84,7 @@ struct RbSHyperparams
     max_num_neighbors_to_search::UInt32
     decomposition_strategy::UInt8 # TODO: make pauli tracker work witn decomposition_strategy=1
 end
+
 default_hyperparams = RbSHyperparams(40, 4, 6, 1e5, 0)
 # Hyperparameter choices which disallow teleportation in the compilation
 graphsim_hyperparams(min_neighbor_degree, max_num_neighbors_to_search) = RbSHyperparams(65535, 2, min_neighbor_degree, max_num_neighbors_to_search, 0)
@@ -101,6 +114,21 @@ mutable struct AlgorithmSpecificGraph
     n_nodes::UInt32
     stitching_properties::StitchingProperties
 end
+
+function Base.show(io::IO, ag::AlgorithmSpecificGraph)
+    # Convert edge_data to Int for decimal printing
+    decimal_edge_data = [[Int(qubit) for qubit in adjList] for adjList in ag.edge_data]
+    print(io, "AlgorithmSpecificGraph(\n  " *
+              "edge_data = $decimal_edge_data,\n  " *
+              "sqs = $(ag.sqs),\n  " *
+              "sqp = $(ag.sqp),\n  " *
+              "n_nodes = $(ag.n_nodes),\n  " *
+              "stitching_properties = "
+    )
+    show(io, ag.stitching_properties)  # Use custom show method for readability
+    println(io, "\n)")
+end
+
 # Create a graph with all qubits initialized to the |0> state.
 AlgorithmSpecificGraphAllZero(max_graph_size, n_qubits) = AlgorithmSpecificGraph(
     [AdjList() for _ = 1:max_graph_size],

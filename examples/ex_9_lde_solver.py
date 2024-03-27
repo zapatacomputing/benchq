@@ -13,10 +13,7 @@ from orquestra.quantum.circuits import (
 )
 from orquestra.quantum.decompositions._decomposition import DecompositionRule
 
-from benchq.compilation import (
-    pyliqtr_transpile_to_clifford_t,
-    compile_to_native_gates,
-)
+from benchq.compilation import compile_to_native_gates, pyliqtr_transpile_to_clifford_t
 from benchq.compilation.circuits.compile_to_native_gates import decompose_benchq_circuit
 from benchq.problem_embeddings.block_encodings.offset_tridiagonal import (
     get_offset_tridagonal_block_encoding,

@@ -4,6 +4,12 @@ import warnings
 from typing import Literal
 
 from benchq.algorithms.time_evolution import qsp_time_evolution_algorithm
+from benchq.compilation.graph_states.circuit_compilers import (
+    get_ruby_slippers_circuit_compiler,
+)
+from benchq.compilation.graph_states.implementation_compiler import (
+    get_implementation_compiler,
+)
 from benchq.decoder_modeling import DecoderModel
 from benchq.problem_ingestion.solid_state_hamiltonians.ising import (
     generate_ising_hamiltonian_on_cubic_lattice,
@@ -11,21 +17,11 @@ from benchq.problem_ingestion.solid_state_hamiltonians.ising import (
     generate_ising_hamiltonian_on_triangular_lattice,
 )
 from benchq.quantum_hardware_modeling import (
-    DETAILED_ION_TRAP_ARCHITECTURE_MODEL,
     BASIC_SC_ARCHITECTURE_MODEL,
+    DETAILED_ION_TRAP_ARCHITECTURE_MODEL,
 )
-from benchq.resource_estimators.graph_estimator import (
-    GraphResourceEstimator,
-)
-from benchq.compilation.graph_states.implementation_compiler import (
-    get_implementation_compiler,
-)
-from benchq.compilation.graph_states.circuit_compilers import (
-    get_ruby_slippers_circuit_compiler,
-)
-from benchq.resource_estimators.openfermion_estimator import (
-    openfermion_estimator,
-)
+from benchq.resource_estimators.graph_estimator import GraphResourceEstimator
+from benchq.resource_estimators.openfermion_estimator import openfermion_estimator
 
 
 def get_resources(lattice_type: str, size: int, decoder_data_file: str):

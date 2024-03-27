@@ -22,9 +22,9 @@ from benchq.quantum_hardware_modeling.hardware_architecture_models import (
 )
 from benchq.resource_estimators.graph_estimators import (
     GraphResourceEstimator,
+    compile_to_native_gates,
     create_graph_from_full_circuit,
     get_custom_resource_estimation,
-    compile_to_native_gates,
 )
 
 task_deps = [

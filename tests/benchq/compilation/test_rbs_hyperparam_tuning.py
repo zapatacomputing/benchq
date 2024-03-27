@@ -17,7 +17,6 @@ from benchq.compilation.graph_states.rbs_hyperparam_tuning import (
     space_time_cost_from_rbs,
 )
 
-
 # skip tests here until we can figure out how to track progress
 # in the compilation routine.
 pytestmark = pytest.mark.skip(reason="All tests in this file are currently skipped.")

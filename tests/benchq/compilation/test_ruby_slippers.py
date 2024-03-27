@@ -2,6 +2,7 @@
 # © Copyright 2022-2023 Zapata Computing Inc.
 ################################################################################
 import os
+import pathlib
 
 import networkx as nx
 import numpy as np
@@ -11,14 +12,13 @@ from numba import njit
 from orquestra.integrations.qiskit.conversions import import_from_qiskit
 from orquestra.quantum.circuits import CNOT, CZ, Circuit, H, S, T, X
 from qiskit import QuantumCircuit
-import pathlib
 
 from benchq.compilation.circuits import (
-    pyliqtr_transpile_to_clifford_t,
     compile_to_native_gates,
+    pyliqtr_transpile_to_clifford_t,
 )
-from benchq.problem_embeddings.quantum_program import QuantumProgram
 from benchq.compilation.graph_states import jl
+from benchq.problem_embeddings.quantum_program import QuantumProgram
 
 SKIP_SLOW = pytest.mark.skipif(
     os.getenv("SLOW_BENCHMARKS") is None,
@@ -72,7 +72,7 @@ def test_stabilizer_states_are_the_same_for_simple_circuits(circuit):
         jl.UInt16(999), jl.UInt8(4), jl.UInt8(6), jl.UInt32(1e5), jl.UInt8(0)
     )
 
-    asg, pauli_tracker, _ = jl.get_graph_state_data(
+    asg, pauli_tracker, _ = jl.get_rbs_graph_state_data(
         circuit,
         verbose=False,
         takes_graph_input=False,
@@ -116,7 +116,7 @@ def test_tocks_layers_and_qubits_are_correct(
     hyperparams = jl.RbSHyperparams(
         jl.UInt16(999), jl.UInt8(4), jl.UInt8(6), jl.UInt32(1e5), jl.UInt8(0)
     )
-    asg, pauli_tracker, _ = jl.get_graph_state_data(
+    asg, pauli_tracker, _ = jl.get_rbs_graph_state_data(
         circuit,
         verbose=False,
         takes_graph_input=False,
@@ -160,7 +160,7 @@ def test_stabilizer_states_are_the_same_for_circuits(filename):
     hyperparams = jl.RbSHyperparams(
         jl.UInt16(999), jl.UInt8(4), jl.UInt8(6), jl.UInt32(1e5), jl.UInt8(0)
     )
-    asg, pauli_tracker, _ = jl.get_graph_state_data(
+    asg, pauli_tracker, _ = jl.get_rbs_graph_state_data(
         circuit,
         verbose=False,
         takes_graph_input=False,
@@ -176,6 +176,7 @@ def test_stabilizer_states_are_the_same_for_circuits(filename):
     assert_tableaus_correspond_to_the_same_stabilizer_state(
         graph_tableau, target_tableau
     )
+
 
 @SKIP_SLOW
 @pytest.mark.parametrize(
@@ -212,7 +213,7 @@ def test_stabilizer_states_are_the_same_for_circuits_with_decomposed_rotations(
         hyperparams = jl.RbSHyperparams(
             jl.UInt16(999), jl.UInt8(4), jl.UInt8(6), jl.UInt32(1e5), jl.UInt8(0)
         )
-        asg, pauli_tracker, _ = jl.get_graph_state_data(
+        asg, pauli_tracker, _ = jl.get_rbs_graph_state_data(
             test_circuit,
             verbose=False,
             takes_graph_input=False,
@@ -278,7 +279,7 @@ def test_teleportation_produces_correct_number_of_nodes_for_small_circuits(
         jl.UInt32(1e5),
         jl.UInt8(0),
     )
-    asg, pauli_tracker, _ = jl.get_graph_state_data(
+    asg, pauli_tracker, _ = jl.get_rbs_graph_state_data(
         circuit,
         verbose=False,
         takes_graph_input=False,
@@ -330,7 +331,7 @@ def test_teleportation_produces_correct_node_parity_for_large_circuits(
         hyperparams = jl.RbSHyperparams(
             jl.UInt16(999), jl.UInt8(4), jl.UInt8(6), jl.UInt32(1e5), jl.UInt8(0)
         )
-        asg, pauli_tracker, _ = jl.get_graph_state_data(
+        asg, pauli_tracker, _ = jl.get_rbs_graph_state_data(
             clifford_t,
             verbose=False,
             takes_graph_input=False,

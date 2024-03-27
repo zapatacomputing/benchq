@@ -222,7 +222,6 @@ def openfermion_estimator(
         code_distance=best_params.logical_data_qubit_distance,
         logical_error_rate=best_cost.algorithm_failure_probability,
         decoder_info=decoder_info,
-        routing_to_measurement_volume_ratio=best_params.routing_overhead_proportion,
         magic_state_factory_name=best_params.magic_state_factory.name,
         extra=OpenFermionExtra(
             fail_rate_msFactory=best_params.magic_state_factory.distilled_magic_state_error_rate,  # noqa: E501

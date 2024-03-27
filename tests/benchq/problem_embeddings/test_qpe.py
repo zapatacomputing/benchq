@@ -27,9 +27,7 @@ from benchq.problem_ingestion.molecule_hamiltonians import (
     generate_hydrogen_chain_instance,
 )
 from benchq.quantum_hardware_modeling import BasicArchitectureModel
-from benchq.resource_estimators.openfermion_estimator import (
-    openfermion_estimator,
-)
+from benchq.resource_estimators.openfermion_estimator import openfermion_estimator
 
 
 @pytest.mark.parametrize(

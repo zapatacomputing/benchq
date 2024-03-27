@@ -1,11 +1,13 @@
 ################################################################################
 # © Copyright 2022-2023 Zapata Computing Inc.
 ################################################################################
+from datetime import datetime
+
 import networkx as nx
 from orquestra.quantum.circuits import Circuit
-from .initialize_julia import jl
+
 from .compiled_data_structures import GSCInfo
-from datetime import datetime
+from .initialize_julia import jl
 
 
 def get_nx_graph_from_rbs_adj_list(adj: list) -> nx.Graph:
@@ -41,7 +43,7 @@ def get_ruby_slippers_circuit_compiler(
     decomposition_strategy: int = 0,
     max_graph_size: int = int(1e7),
 ):
-    def _run_compiler(
+    def rbs_circuit_compiler(
         circuit: Circuit,
         optimization: str,
         verbose: bool,
@@ -68,13 +70,13 @@ def get_ruby_slippers_circuit_compiler(
 
         return GSCInfo.from_dict(compiled_graph_data)
 
-    return _run_compiler
+    return rbs_circuit_compiler
 
 
 def get_jabalizer_circuit_compiler(
     space_optimal_timeout: int = 60,
 ):
-    def Jabalizer_circuit_compiler(
+    def jabalizer_circuit_compiler(
         circuit: Circuit,
         optimization: str,
         verbose: bool,
@@ -86,7 +88,7 @@ def get_jabalizer_circuit_compiler(
 
         return GSCInfo.from_dict(compiled_graph_data)
 
-    return Jabalizer_circuit_compiler
+    return jabalizer_circuit_compiler
 
 
 def get_algorithmic_graph_and_icm_output(circuit):

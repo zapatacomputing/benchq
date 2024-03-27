@@ -6,6 +6,10 @@
 from dataclasses import dataclass, field
 from typing import Generic, Optional, TypeVar
 
+from benchq.compilation.graph_states.compiled_data_structures import (
+    CompiledAlgorithmImplementation,
+)
+
 TExtra = TypeVar("TExtra")
 
 
@@ -62,24 +66,12 @@ class ResourceInfo(Generic[TExtra]):
     total_time_in_seconds: float
     decoder_info: Optional[DecoderInfo]
     magic_state_factory_name: str
-    routing_to_measurement_volume_ratio: float
     extra: TExtra
     hardware_resource_info: Optional[DetailedIonTrapResourceInfo] = None
 
 
-@dataclass
-class GraphData:
-    """Minimal set of graph-related data needed for resource estimation."""
-
-    num_logical_qubits: int
-    n_nodes: int
-    n_t_gates: int
-    n_rotation_gates: int
-    n_measurement_steps: int
-
-
 # Alias for type of resource info returned by GraphResourceEstimator
-GraphResourceInfo = ResourceInfo[GraphData]
+GraphResourceInfo = ResourceInfo[CompiledAlgorithmImplementation]
 
 
 @dataclass

@@ -1,12 +1,12 @@
 import numpy as np
 from orquestra.quantum.operators import PauliRepresentation
 from pyLIQTR.QSP import gen_qsp
+from pyLIQTR.QSP.Hamiltonian import Hamiltonian
 
 from ..algorithms.data_structures import AlgorithmImplementation, ErrorBudget
+from ..conversions import SUPPORTED_OPERATORS, get_pyliqtr_operator
 from ..problem_embeddings.qsp import get_qsp_program
 from ..problem_embeddings.trotter import get_trotter_program
-from pyLIQTR.QSP.Hamiltonian import Hamiltonian
-from ..conversions import SUPPORTED_OPERATORS, get_pyliqtr_operator
 
 
 # TODO: This logic is copied from pyLIQTR, perhaps we want to change it to our own?

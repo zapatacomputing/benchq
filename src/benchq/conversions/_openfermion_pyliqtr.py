@@ -1,9 +1,10 @@
 ################################################################################
 # © Copyright 2022 Zapata Computing Inc.
 ################################################################################
-from openfermion import QubitOperator, IsingOperator, count_qubits
-from pyLIQTR.QSP.Hamiltonian import Hamiltonian
 from typing import Union
+
+from openfermion import IsingOperator, QubitOperator, count_qubits
+from pyLIQTR.QSP.Hamiltonian import Hamiltonian
 
 
 def pyliqtr_to_openfermion(hamiltonian: Hamiltonian) -> QubitOperator:

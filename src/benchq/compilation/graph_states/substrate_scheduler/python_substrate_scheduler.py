@@ -1,13 +1,13 @@
 import time
+from copy import copy
+from typing import Tuple
+
 import networkx as nx
 from graph_state_generation.optimizers import (
     fast_maximal_independent_set_stabilizer_reduction,
     greedy_stabilizer_measurement_scheduler,
 )
 from graph_state_generation.substrate_scheduler import TwoRowSubstrateScheduler
-
-from copy import copy
-from typing import Tuple
 
 
 def python_substrate_scheduler(

@@ -1,21 +1,20 @@
+import warnings
 from functools import singledispatch
 from typing import Union
-import warnings
-
 
 with warnings.catch_warnings():
     warnings.filterwarnings("ignore", category=DeprecationWarning)
     # Numpy throws deprecation warnings due to the scipy import
     from openfermion import QubitOperator, IsingOperator, InteractionOperator
 
-from pyLIQTR.QSP.Hamiltonian import Hamiltonian
-
-from ._openfermion_pyliqtr import openfermion_to_pyliqtr
+import openfermion
 from orquestra.integrations.cirq.conversions._openfermion_conversions import (
     to_openfermion,
 )
-from orquestra.quantum.operators import PauliTerm, PauliSum
-import openfermion
+from orquestra.quantum.operators import PauliSum, PauliTerm
+from pyLIQTR.QSP.Hamiltonian import Hamiltonian
+
+from ._openfermion_pyliqtr import openfermion_to_pyliqtr
 
 SUPPORTED_OPERATORS = Union[
     PauliTerm, PauliSum, QubitOperator, IsingOperator, Hamiltonian, InteractionOperator

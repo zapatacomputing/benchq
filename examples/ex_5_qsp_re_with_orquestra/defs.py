@@ -10,16 +10,13 @@ from orquestra import sdk
 
 from benchq.algorithms.data_structures import ErrorBudget
 from benchq.algorithms.time_evolution import qsp_time_evolution_algorithm
+from benchq.compilation.graph_states import get_implementation_compiler
 from benchq.problem_ingestion import get_vlasov_hamiltonian
 from benchq.quantum_hardware_modeling.hardware_architecture_models import (
     BASIC_SC_ARCHITECTURE_MODEL,
 )
 from benchq.resource_estimators.azure_estimator import azure_estimator
-from benchq.resource_estimators.graph_estimator import (
-    GraphResourceEstimator,
-)
-from benchq.compilation.graph_states import get_implementation_compiler
-
+from benchq.resource_estimators.graph_estimator import GraphResourceEstimator
 
 task_deps = [
     sdk.PythonImports("pyscf==2.2.0"),

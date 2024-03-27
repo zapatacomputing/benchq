@@ -77,6 +77,30 @@ mutable struct PauliTracker
     )
 end
 
+function Base.show(io::IO, pt::PauliTracker)
+    # Helper function to convert nested Qubit vectors to decimal format
+    function convert_to_decimal(v)
+        if typeof(v) == Qubit
+            return Int(v)  # Convert Qubit to Int for decimal printing
+        elseif typeof(v) <: AbstractVector
+            return [convert_to_decimal(e) for e in v]  # Recursively convert elements
+        else
+            return v  # Return non-vector elements unchanged
+        end
+    end
+
+    print(io, "PauliTracker(\n")
+    print(io, "  cond_paulis = $(convert_to_decimal(pt.cond_paulis)),\n")
+    print(io, "  measurements = $(pt.measurements),\n")  # Assumes measurements are already in a printable format
+    print(io, "  n_nodes = $(Int(pt.n_nodes)),\n")  # Convert n_nodes to Int for decimal printing
+    print(io, "  layering = $(convert_to_decimal(pt.layering)),\n")
+    print(io, "  layering_optimization = \"$(pt.layering_optimization)\",\n")
+    print(io, "  max_num_qubits = $(pt.max_num_qubits),\n")
+    print(io, "  optimal_dag_density = $(pt.optimal_dag_density),\n")
+    print(io, "  use_fully_optimized_dag = $(pt.use_fully_optimized_dag)\n")
+    print(io, ")")
+end
+
 """Convert pauli tracker to a python object"""
 function python_pauli_tracker(pauli_tracker)
     python_cond_paulis = []

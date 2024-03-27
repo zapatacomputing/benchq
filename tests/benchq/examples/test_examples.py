@@ -8,11 +8,7 @@ import pytest
 from orquestra.sdk.schema.workflow_run import State
 from qiskit.circuit import QuantumCircuit
 
-from benchq.algorithms.data_structures import (
-    AlgorithmImplementation,
-    ErrorBudget,
-    GraphPartition,
-)
+from benchq.algorithms.data_structures import AlgorithmImplementation, ErrorBudget
 from benchq.compilation.circuits import pyliqtr_transpile_to_clifford_t
 from benchq.compilation.graph_states import get_jabalizer_circuit_compiler
 from benchq.magic_state_distillation.litinski_factories import iter_litinski_factories
@@ -101,22 +97,25 @@ def test_toy_example_notebook():
     verbose = False
     circuit_graph = compiler(clifford_t_circuit, optimization, verbose)
 
-    # only allow a failure to occur 1% of the time
-    budget = ErrorBudget.from_even_split(1e-2)
-    program = GraphPartition(
-        QuantumProgram.from_circuit(clifford_t_circuit), [circuit_graph]
+    budget = ErrorBudget.from_even_split(
+        1e-2
+    )  # 1% error margin split evenly between all sources of error
+    implementation = AlgorithmImplementation.from_circuit(
+        clifford_t_circuit, budget, n_shots=1
     )
-    implementation = AlgorithmImplementation(program, budget, 1)
-    estimator = GraphResourceEstimator(architecture_model)
 
-    estimator.estimate(implementation)
+    estimator = GraphResourceEstimator(optimization, verbose)
+
+    estimator.compile_and_estimate(implementation, compiler, architecture_model)
 
     # only allow a failure to occur 1% of the time
     budget = ErrorBudget.from_even_split(1e-2)
     implementation = AlgorithmImplementation.from_circuit(demo_circuit, budget, 1)
-    get_precise_graph_estimate(implementation, architecture_model)
+    optimization = "Time"
+    get_precise_graph_estimate(implementation, architecture_model, optimization)
 
-    Jabalizer_circuit_compiler(clifford_t_circuit)
+    compiler = get_jabalizer_circuit_compiler()
+    compiler(clifford_t_circuit, optimization="Time", verbose=True)
 
     get_icm(clifford_t_circuit)
 
@@ -145,9 +144,7 @@ def test_toy_example_notebook():
         graph_data, distance, n_total_t_gates, magic_state_factory
     )
 
-    from benchq.resource_estimators.graph_estimator import (
-        substrate_scheduler,
-    )
+    from benchq.resource_estimators.graph_estimator import substrate_scheduler
 
     compiler = substrate_scheduler(circuit_graph, "fast")
     [[node[0] for node in step] for step in compiler.measurement_steps]

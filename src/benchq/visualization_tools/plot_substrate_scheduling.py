@@ -7,7 +7,7 @@ import numpy as np
 
 
 def plot_graph_state_with_measurement_steps(
-    graph_state_graph,
+    asg,
     measurement_steps,
     cmap=plt.cm.rainbow,
     name="extrapolation_plot",
@@ -20,6 +20,11 @@ def plot_graph_state_with_measurement_steps(
     a networkx graph. The nodes are integers and the edges are tuples of
     integers. The cmap is the color map to use for the measurement steps.
     Note: Only works when substrate scheduler is run in "fast" mode."""
+    graph_state_graph = nx.Graph()
+    for node, neighbors in asg["edge_data"].items():
+        for neighbor in neighbors:
+            graph_state_graph.add_edge(node, neighbor)
+
     node_measurement_groupings = [
         [node[0] for node in row] for row in measurement_steps
     ]
