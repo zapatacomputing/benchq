@@ -19,10 +19,10 @@ def get_decoder_info(
         return None
     else:
         speed_limit = get_decoder_distance_limit_due_to_speed(hw_model, decoder_model)
-        if code_distance >= decoder_model.highest_calculated_distance:
+        if code_distance > decoder_model.highest_calculated_distance:
             warnings.warn(
-                f"Code distance {code_distance} is too high to get resource estimates "
-                "because resource estimates have not been calculated for "
+                f"Code distance {code_distance} is too high to get decoder resource "
+                "estimates because decoder properties have not been calculated for "
                 f"distances beyond {decoder_model.highest_calculated_distance}.",
                 RuntimeWarning,
             )

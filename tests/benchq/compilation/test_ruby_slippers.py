@@ -328,8 +328,9 @@ def test_teleportation_produces_correct_node_parity_for_large_circuits(
         quantum_program = QuantumProgram.from_circuit(clifford_t)
         n_t_gates = quantum_program.n_t_gates
 
+        # set threshold low so we teleport many times
         hyperparams = jl.RbSHyperparams(
-            jl.UInt16(999), jl.UInt8(4), jl.UInt8(6), jl.UInt32(1e5), jl.UInt8(0)
+            jl.UInt16(3), jl.UInt8(4), jl.UInt8(6), jl.UInt32(1e5), jl.UInt8(0)
         )
         asg, pauli_tracker, _ = jl.get_rbs_graph_state_data(
             clifford_t,
@@ -345,7 +346,7 @@ def test_teleportation_produces_correct_node_parity_for_large_circuits(
 
         assert n_nodes >= n_t_gates
         # teleportation only adds 2 nodes at a time.
-        assert (n_nodes - n_t_gates) % 2 == 0
+        assert (n_nodes - n_t_gates - clifford_t.n_qubits) % 2 == 0
 
 
 @pytest.mark.skip(reason="This test requires hyperparameter tuning.")

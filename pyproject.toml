@@ -63,6 +63,13 @@ exclude_lines = [
 
 [tool.pytest.ini_options]
 log_level="INFO"
+log_cli=True
+markers =
+   slow: Tests that take long time to run locally. Skipped by 'make test-fast'.
+# By default, treat warnings as errors
+filterwarnings =
+    error
+    ignore:module 'sre_constants' is deprecated:DeprecationWarning
 
 [tool.flake8]
 ignore = ['E203', 'E266', 'F401', 'W605']
