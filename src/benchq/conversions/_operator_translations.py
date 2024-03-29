@@ -21,7 +21,7 @@ SUPPORTED_OPERATORS = Union[
 
 
 @singledispatch
-def get_pyliqtr_operator(hamiltonian):
+def get_pyliqtr_operator(hamiltonian) -> Hamiltonian:
     raise NotImplementedError(f"Operator of type {type(hamiltonian)} not supported")
 
 

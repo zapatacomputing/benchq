@@ -144,7 +144,7 @@ def plot_graph_state(asg, pauli_tracker):
             nodePos,
             node_shape=aShape,
             nodelist=nodes_with_this_shape,
-            node_color=colors_for_nodes_with_this_shape,
+            node_color=colors_for_nodes_with_this_shape,  # pyright: ignore[reportArgumentType]
             node_size=120,
         )
     nx.draw_networkx_labels(graph, nodePos)
