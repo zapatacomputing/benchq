@@ -9,8 +9,8 @@ from benchq.algorithms.time_evolution import _n_block_encodings_for_time_evoluti
 from benchq.conversions import get_pyliqtr_operator
 from benchq.problem_embeddings.qsp import get_qsp_program
 from benchq.problem_ingestion import get_hamiltonian_from_file, get_vlasov_hamiltonian
-from benchq.problem_ingestion.molecule_hamiltonians import (
-    generate_hydrogen_chain_instance,
+from benchq.problem_ingestion.molecular_hamiltonians import (
+    get_hydrogen_chain_hamiltonian_generator,
 )
 
 SKIP_SLOW = pytest.mark.skipif(

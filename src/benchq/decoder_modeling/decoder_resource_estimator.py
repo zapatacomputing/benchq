@@ -42,8 +42,7 @@ def get_decoder_info(
                 * 1e-18
             )
             decoder_power_in_watts = (
-                2
-                * n_logical_qubits
+                n_logical_qubits
                 * decoder_model.power_in_nanowatts(code_distance)
                 * 1e-9
             )

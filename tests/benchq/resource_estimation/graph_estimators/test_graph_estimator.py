@@ -77,15 +77,6 @@ def test_resource_estimations_returns_results_for_different_architectures(
         assert gsc_resource_estimates.hardware_resource_info is None
 
 
-# GSCInfo(
-#     num_logical_qubits,
-#     num_layers,
-#     graph_creation_tocks_per_layer,
-#     t_states_per_layer,
-#     rotations_per_layer,
-# )
-
-
 @pytest.mark.parametrize(
     "quantum_program,optimization,expected_results",
     [

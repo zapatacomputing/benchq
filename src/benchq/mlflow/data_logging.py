@@ -66,7 +66,7 @@ def create_mlflow_scf_callback(
     Orquestra tasks), we need to have started an mlflow Client and a run associated
     with that client that can be passed in.
     For an example of creating the mlflow_client and run_id, see _run_pyscf()
-    in ChemistryApplicationInstance
+    in MolecularHamiltonianGenerator
     """
 
     def scf_callback(vars):

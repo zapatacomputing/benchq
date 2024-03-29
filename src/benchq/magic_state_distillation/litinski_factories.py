@@ -2,73 +2,15 @@ from functools import singledispatch
 from typing import Iterable
 
 from benchq.quantum_hardware_modeling.hardware_architecture_models import (
-    DetailedIonTrapModel,
-    IONTrapModel,
-    SCModel,
+    BasicArchitectureModel,
 )
 
 from .magic_state_factory import MagicStateFactory
 
+_ALLOWED_PHYSICAL_ERROR_RATES = (1e-3, 1e-4)
 
-@singledispatch
-def iter_litinski_factories(architecture_model) -> Iterable[MagicStateFactory]:
-    raise NotImplementedError(
-        f"No MagicStateFactorys known for type model {architecture_model}"
-    )
-
-
-@iter_litinski_factories.register
-def iter_litinski_factories_for_ion_traps(
-    _architecture_model: IONTrapModel,
-) -> Iterable[MagicStateFactory]:
-    return [
-        MagicStateFactory("(15-to-1)_7,3,3", 4.4e-8, (30, 27), 810, 18.1),
-        MagicStateFactory("(15-to-1)_9,3,3", 9.3e-10, (38, 30), 1150, 18.1),
-        MagicStateFactory("(15-to-1)_11,5,5", 1.9e-11, (47, 44), 2070, 30),
-        MagicStateFactory(
-            "(15-to-1)^4_9,3,3 x (20-to-4)_15,7,9",
-            2.4e-15,
-            (221, 96),
-            16400,
-            90.3,
-            n_t_gates_produced_per_distillation=4,
-        ),
-        MagicStateFactory(
-            "(15-to-1)^4_9,3,3 x (15-to-1)_25,9,9", 6.3e-25, (193, 96), 18600, 67.8
-        ),
-    ]
-
-
-# this can be combined with the above function, when we upgrade to python 3.11
-# and union types are supported by singledispatch.
-# https://github.com/python/cpython/issues/90172
-@iter_litinski_factories.register
-def iter_litinski_factories_for_detailed_ion_traps(
-    _architecture_model: DetailedIonTrapModel,
-) -> Iterable[MagicStateFactory]:
-    return [
-        MagicStateFactory("(15-to-1)_7,3,3", 4.4e-8, (30, 27), 810, 18.1),
-        MagicStateFactory("(15-to-1)_9,3,3", 9.3e-10, (38, 30), 1150, 18.1),
-        MagicStateFactory("(15-to-1)_11,5,5", 1.9e-11, (47, 44), 2070, 30),
-        MagicStateFactory(
-            "(15-to-1)^4_9,3,3 x (20-to-4)_15,7,9",
-            2.4e-15,
-            (221, 96),
-            16400,
-            90.3,
-            n_t_gates_produced_per_distillation=4,
-        ),
-        MagicStateFactory(
-            "(15-to-1)^4_9,3,3 x (15-to-1)_25,9,9", 6.3e-25, (193, 96), 18600, 67.8
-        ),
-    ]
-
-
-@iter_litinski_factories.register
-def iter_litinski_factories_for_sc(
-    _architecture_model: SCModel,
-) -> Iterable[MagicStateFactory]:
-    return [
+_ERROR_RATE_FACTORY_MAPPING = {
+    1e-3: (
         MagicStateFactory("(15-to-1)_17,7,7", 4.5e-8, (72, 64), 4620, 42.6),
         MagicStateFactory(
             "(15-to-1)^6_15,5,5 x (20-to-4)_23,11,13",
@@ -106,11 +48,29 @@ def iter_litinski_factories_for_sc(
             73400,
             128,
         ),
+    ),
+    1e-4: (
+        MagicStateFactory("(15-to-1)_7,3,3", 4.4e-8, (30, 27), 810, 18.1),
+        MagicStateFactory("(15-to-1)_9,3,3", 9.3e-10, (38, 30), 1150, 18.1),
+        MagicStateFactory("(15-to-1)_11,5,5", 1.9e-11, (47, 44), 2070, 30),
         MagicStateFactory(
-            "(15-to-1)^8_23,9,9 x (15-to-1)_49,19,21",
-            9.0e-23,
-            (426, 181),
-            133842,
-            157.5,
+            "(15-to-1)^4_9,3,3 x (20-to-4)_15,7,9",
+            2.4e-15,
+            (221, 96),
+            16400,
+            90.3,
+            n_t_gates_produced_per_distillation=4,
         ),
-    ]
+        MagicStateFactory(
+            "(15-to-1)^4_9,3,3 x (15-to-1)_25,9,9", 6.3e-25, (193, 96), 18600, 67.8
+        ),
+    ),
+}
+
+
+def iter_litinski_factories(
+    architecture_model: BasicArchitectureModel,
+) -> Iterable[MagicStateFactory]:
+    assert architecture_model.physical_qubit_error_rate in _ALLOWED_PHYSICAL_ERROR_RATES
+
+    return _ERROR_RATE_FACTORY_MAPPING[architecture_model.physical_qubit_error_rate]

@@ -138,7 +138,7 @@ class RXtoRZ(DecompositionRule[GateOperation]):
         def preprocess_gate(gate):
             return (
                 gate.controlled(operation.gate.num_control_qubits)
-                if operation.gate.name == "Control"
+                if isinstance(operation.gate, ControlledGate)
                 else gate
             )
 
@@ -169,7 +169,7 @@ class RYtoRZ(DecompositionRule[GateOperation]):
         def preprocess_gate(gate):
             return (
                 gate.controlled(operation.gate.num_control_qubits)
-                if operation.gate.name == "Control"
+                if isinstance(operation.gate, ControlledGate)
                 else gate
             )
 
@@ -211,7 +211,7 @@ class U3toRZ(DecompositionRule[GateOperation]):
         def preprocess_gate(gate):
             return (
                 gate.controlled(operation.gate.num_control_qubits)
-                if operation.gate.name == "Control"
+                if isinstance(operation.gate, ControlledGate)
                 else gate
             )
 

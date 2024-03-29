@@ -8,7 +8,7 @@ from typing import Tuple
 import numpy as np
 from openfermion.resource_estimates import df, sf
 
-from benchq.problem_ingestion.molecule_hamiltonians import (
+from benchq.problem_ingestion.molecular_hamiltonians import (
     compute_lambda_df,
     compute_lambda_sf,
 )
@@ -25,7 +25,7 @@ def get_single_factorized_qpe_toffoli_and_qubit_cost(
     eri: np.ndarray,
     rank: int,
     allowable_phase_estimation_error: float = 0.001,
-    bits_precision_coefficients: float = 10,
+    bits_precision_coefficients: int = 10,
 ) -> Tuple[int, int]:
     """Get the number of Toffoli gates and logical qubits for single factorized QPE as
     described in PRX Quantum 2, 030305.
