@@ -177,10 +177,10 @@ def test_better_architecture_does_not_require_more_resources(
     optimization,
     transpile_to_clifford_t,
 ):
-    low_noise_architecture_model = BASIC_SC_ARCHITECTURE_MODEL
+    low_noise_architecture_model = BASIC_ION_TRAP_ARCHITECTURE_MODEL
 
     high_noise_architecture_model = replace(
-        BASIC_SC_ARCHITECTURE_MODEL, physical_qubit_error_rate=1e-2
+        BASIC_ION_TRAP_ARCHITECTURE_MODEL, physical_qubit_error_rate=1e-3
     )
 
     # set algorithm failure tolerance to 0

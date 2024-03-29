@@ -69,7 +69,7 @@ def main():
     # configured by using other settings available in the get_implementation_compiler
     implementation_compiler = get_implementation_compiler(
         circuit_compiler=get_jabalizer_circuit_compiler(4),
-        destination="local",
+        destination="single-thread",
     )
     estimator = GraphResourceEstimator(optimization="Space", verbose=True)
 
