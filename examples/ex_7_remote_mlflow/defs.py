@@ -12,6 +12,7 @@ from orquestra import sdk
 
 from benchq.algorithms.data_structures import ErrorBudget
 from benchq.algorithms.time_evolution import qsp_time_evolution_algorithm
+from benchq.compilation.graph_states import get_implementation_compiler
 from benchq.mlflow.data_logging import (
     log_input_objects_to_mlflow,
     log_resource_info_to_mlflow,
@@ -20,12 +21,7 @@ from benchq.problem_ingestion import get_vlasov_hamiltonian
 from benchq.quantum_hardware_modeling.hardware_architecture_models import (
     BASIC_SC_ARCHITECTURE_MODEL,
 )
-from benchq.resource_estimators.graph_estimators import (
-    GraphResourceEstimator,
-    compile_to_native_gates,
-    create_graph_from_full_circuit,
-    get_custom_resource_estimation,
-)
+from benchq.resource_estimators.graph_estimator import GraphResourceEstimator
 
 task_deps = [
     sdk.PythonImports("pyscf==2.2.0", "openfermionpyscf==0.5"),
@@ -66,13 +62,12 @@ def get_operator(problem_size):
 
 @gsc_task
 def gsc_estimates(algorithm, architecture_model):
-    resource_info = get_custom_resource_estimation(
+    estimator = GraphResourceEstimator()
+    implementation_compiler = get_implementation_compiler()
+    resource_info = estimator.compile_and_estimate(
         algorithm,
-        estimator=GraphResourceEstimator(hw_model=architecture_model),
-        transformers=[
-            compile_to_native_gates,
-            create_graph_from_full_circuit(),
-        ],
+        implementation_compiler,
+        architecture_model,
     )
 
     f = open(os.environ["ORQUESTRA_PASSPORT_FILE"], "r")

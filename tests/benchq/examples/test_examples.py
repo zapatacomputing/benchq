@@ -8,21 +8,20 @@ import pytest
 from orquestra.sdk.schema.workflow_run import State
 from qiskit.circuit import QuantumCircuit
 
-from benchq.algorithms.data_structures import (
-    AlgorithmImplementation,
-    ErrorBudget,
-)
-from benchq.compilation.graph_states import jl
-from benchq.conversions import import_circuit
+from benchq.algorithms.data_structures import AlgorithmImplementation, ErrorBudget
 from benchq.compilation.circuits import pyliqtr_transpile_to_clifford_t
-from benchq.compilation.graph_states import get_jabalizer_circuit_compiler
-from benchq.quantum_hardware_modeling import BASIC_SC_ARCHITECTURE_MODEL
-from benchq.resource_estimators.default_estimators import get_precise_graph_estimate
-from benchq.resource_estimators.graph_estimator import GraphResourceEstimator
-from benchq.compilation.graph_states import get_implementation_compiler
+from benchq.compilation.graph_states import (
+    get_implementation_compiler,
+    get_jabalizer_circuit_compiler,
+    jl,
+)
 from benchq.compilation.graph_states.substrate_scheduler.python_substrate_scheduler import (  # noqa: E501
     python_substrate_scheduler,
 )
+from benchq.conversions import import_circuit
+from benchq.quantum_hardware_modeling import BASIC_SC_ARCHITECTURE_MODEL
+from benchq.resource_estimators.default_estimators import get_precise_graph_estimate
+from benchq.resource_estimators.graph_estimator import GraphResourceEstimator
 
 MAIN_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.dirname(MAIN_DIR))

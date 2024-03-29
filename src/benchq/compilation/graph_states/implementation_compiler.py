@@ -47,7 +47,6 @@ def get_implementation_compiler(
     workspace_id: str = "darpa-phase-ii-gsc-resource-estimates-8a7c3b",
     project_id: str = "migration",
 ) -> Callable[[AlgorithmImplementation, str, bool], CompiledAlgorithmImplementation]:
-
     @sdk.workflow(resources=sdk.Resources(cpu=str(num_cores), memory="16Gi"))
     def get_program_compilation_wf(
         algorithm_implementation: AlgorithmImplementation,
@@ -95,7 +94,8 @@ def get_implementation_compiler(
             print("Compilation complete.")
 
         compiled_program = CompiledQuantumProgram.from_program(
-            algorithm_implementation.program, compiled_subroutine_list
+            algorithm_implementation.program,
+            compiled_subroutine_list,  # type: ignore
         )
 
         return CompiledAlgorithmImplementation(

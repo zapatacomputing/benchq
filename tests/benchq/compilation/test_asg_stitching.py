@@ -1,7 +1,7 @@
 import os
 
 import pytest
-import test_rbs_with_pauli_tracking
+import test_rbs_with_pauli_tracking  # type: ignore
 from orquestra.quantum.circuits import CNOT, CZ, RZ, Circuit, H, S, T, X, Y, Z
 
 from benchq.compilation.graph_states import jl

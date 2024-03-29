@@ -6,6 +6,7 @@ from graph_state_generation.optimizers import (
     greedy_stabilizer_measurement_scheduler,
 )
 from graph_state_generation.substrate_scheduler import TwoRowSubstrateScheduler
+
 from benchq.visualization_tools.plot_substrate_scheduling import (
     remove_isolated_nodes_from_graph,
 )

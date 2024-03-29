@@ -1,11 +1,12 @@
 ################################################################################
 # © Copyright 2022-2023 Zapata Computing Inc.
 ################################################################################
+from copy import copy
+from typing import Tuple
+
 import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
-from copy import copy
-from typing import Tuple
 
 
 def plot_graph_state_with_measurement_steps(

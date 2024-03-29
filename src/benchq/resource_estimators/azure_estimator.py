@@ -56,14 +56,14 @@ def azure_estimator(
     """
     if hw_model is not None:
         warnings.warn(
-            "Supplying hardware model to AzureResourceEstimator is " "currently broken."
+            "Supplying hardware model to AzureResourceEstimator is currently broken."
         )
     azure_error_budget: Dict[str, float] = {}
     if algorithm.error_budget is not None:
         azure_error_budget = {}
-        azure_error_budget["rotations"] = (
-            algorithm.error_budget.transpilation_failure_tolerance
-        )
+        azure_error_budget[
+            "rotations"
+        ] = algorithm.error_budget.transpilation_failure_tolerance
         remaining_error = algorithm.error_budget.hardware_failure_tolerance
         azure_error_budget["logical"] = remaining_error / 2
         azure_error_budget["tstates"] = remaining_error / 2
@@ -78,7 +78,9 @@ def azure_estimator(
 
 
 def _estimate_resources_for_circuit(
-    hw_model: BasicArchitectureModel, circuit: Circuit, error_budget: Dict[str, float]
+    hw_model: Optional[BasicArchitectureModel],
+    circuit: Circuit,
+    error_budget: Dict[str, float],
 ) -> AzureResourceInfo:
     if hw_model is not None:
         gate_time = hw_model.surface_code_cycle_time_in_seconds

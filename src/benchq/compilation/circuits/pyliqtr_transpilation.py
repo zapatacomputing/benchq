@@ -3,6 +3,7 @@
 ################################################################################
 import warnings
 from decimal import Decimal, getcontext
+from math import ceil
 from typing import Optional, Union
 
 from cirq.circuits.circuit import Circuit as CirqCircuit
@@ -81,6 +82,8 @@ getcontext().prec = 100
 def get_num_t_gates_per_rotation(
     per_gate_synthesis_accuracy: Union[float, Decimal]
 ) -> int:
-    return SYNTHESIS_SCALING * int(
-        (1 / Decimal(per_gate_synthesis_accuracy)).log10() / Decimal(2).log10()
+    return ceil(
+        SYNTHESIS_SCALING
+        * (1 / Decimal(per_gate_synthesis_accuracy)).log10()
+        / Decimal(2).log10()
     )

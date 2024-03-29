@@ -61,7 +61,7 @@ class GraphResourceEstimator:
         compiled_program: CompiledQuantumProgram,
         hardware_failure_tolerance: float,
         magic_state_factory: MagicStateFactory,
-        n_t_gates_per_rotation: float,
+        n_t_gates_per_rotation: int,
         hw_model: BasicArchitectureModel,
         min_d: int = 4,
         max_d: int = 200,
@@ -95,7 +95,7 @@ class GraphResourceEstimator:
         self,
         compiled_program: CompiledQuantumProgram,
         magic_state_factory: MagicStateFactory,
-        n_t_gates_per_rotation: float,
+        n_t_gates_per_rotation: int,
         code_distance: int,
     ) -> Tuple[int, int]:
         cycles_per_subroutine = [0 for _ in range(len(compiled_program.subroutines))]
@@ -140,8 +140,9 @@ class GraphResourceEstimator:
                 2 * num_factories_per_logical_qubit * code_distance
             )
 
-            num_factories_per_logical_qubit /= ceil(
-                magic_state_factory.n_t_gates_produced_per_distillation
+            num_factories_per_logical_qubit = ceil(
+                num_factories_per_logical_qubit
+                / magic_state_factory.n_t_gates_produced_per_distillation
             )
 
             factory_width = magic_state_factory.space[1]
@@ -183,8 +184,8 @@ class GraphResourceEstimator:
             )
 
         num_cycles = 0
-        for subroutine in compiled_program.subroutine_sequence:
-            num_cycles += cycles_per_subroutine[subroutine]
+        for subroutine_index in compiled_program.subroutine_sequence:
+            num_cycles += cycles_per_subroutine[subroutine_index]
 
         return num_logical_qubits, num_cycles
 
@@ -251,7 +252,7 @@ class GraphResourceEstimator:
                     n_physical_qubits=0,
                     magic_state_factory_name="No MagicStateFactory Found",
                     decoder_info=None,
-                    extra=compiled_implementation.program,
+                    extra=compiled_implementation,
                 )
             if this_transpilation_failure_tolerance < this_logical_cell_error_rate:
                 # if the t gates typically do not come from rotation gates, then

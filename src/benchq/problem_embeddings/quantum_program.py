@@ -4,7 +4,7 @@
 import time
 from copy import copy
 from decimal import Decimal
-from typing import Callable, Sequence
+from typing import Callable, List, Sequence
 
 from orquestra.quantum.circuits import Circuit, GateOperation, I, ResetOperation
 
@@ -160,7 +160,7 @@ class QuantumProgram:
 
     def split_into_smaller_subroutines(self, max_size: int) -> "QuantumProgram":
         new_subroutines = []
-        subroutine_splits = [[] for _ in range(len(self.subroutines))]
+        subroutine_splits: List[List[int]] = [[] for _ in range(len(self.subroutines))]
         num_new_subroutines = 0
         n_qubits = self.subroutines[0].n_qubits
         for i, sub in enumerate(self.subroutines):

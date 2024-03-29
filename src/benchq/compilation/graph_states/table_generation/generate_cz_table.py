@@ -1,21 +1,21 @@
 import numpy as np
 
-Id = np.matrix([[1, 0], [0, 1]])
+I = np.matrix([[1, 0], [0, 1]])  # noqa: E741
 
 X = np.matrix([[0, 1], [1, 0]])
 Y = np.matrix([[0, -1j], [1j, 0]])
 Z = np.matrix([[1, 0], [0, -1]])
 
 H = (2**-0.5) * np.matrix([[1, 1], [1, -1]])
-S = np.matrix([[1, 0], [0, 1j]])
+S = np.matrix([[1, 0], [0, 1j]])  # type: ignore
 
 CZ = np.matrix([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, -1]])
 
 ZERO_STATE = np.matrix([[1], [0], [0], [0]])
 START_STATE = np.kron(H, H) * ZERO_STATE
 
-SQS = {"I": Id, "S": S, "H": H, "HSH": H * S * H, "SH": S * H, "HS": H * S}
-SQP = {"I": Id, "X": X, "Y": Y, "Z": Z}
+SQS = {"I": I, "S": S, "H": H, "HSH": H * S * H, "SH": S * H, "HS": H * S}
+SQP = {"I": I, "X": X, "Y": Y, "Z": Z}
 
 
 def mat_conj(mat1, mat2):
@@ -40,8 +40,8 @@ for connected_before_cz_was_applied in [False, True]:
             clif = np.kron(P1 * S1, P2 * S2)
             if connected_before_cz_was_applied:
                 clif = clif * CZ
-            stab_1 = mat_conj(np.kron(X, Id), clif)
-            stab_2 = mat_conj(np.kron(Id, X), clif)
+            stab_1 = mat_conj(np.kron(X, I), clif)
+            stab_2 = mat_conj(np.kron(I, X), clif)
             full_stab_group = [stab_1, stab_2, stab_1 * stab_2]
             for perm in perms:
                 trial_stab_group_perm = np.array(
@@ -114,9 +114,11 @@ for connected_before_cz_was_applied in [False, True]:
             clif = CZ * np.kron(S1, S2)
             if connected_before_cz_was_applied:
                 clif = clif * CZ
-            stab_1 = mat_conj(np.kron(X, Id), clif)
-            stab_2 = mat_conj(np.kron(Id, X), clif)
-            full_stab_group = np.array([stab_1, stab_2, stab_1 * stab_2])
+            stab_1 = mat_conj(np.kron(X, I), clif)
+            stab_2 = mat_conj(np.kron(I, X), clif)
+            full_stab_group = np.array(
+                [stab_1, stab_2, stab_1 * stab_2]
+            )  # type: ignore
 
             do_break = (
                 connected_before_cz_was_applied and S1_name == "H" and S2_name == "H"

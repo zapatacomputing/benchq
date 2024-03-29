@@ -184,6 +184,6 @@ def _molecule_hamiltonian_from_hdf5(data: h5py.File) -> PauliSum:
         one_body_tensor=one_body_term,
         two_body_tensor=two_body_term,
     )
-    hamiltonian = jordan_wigner(hamiltonian)
-    hamiltonian = from_openfermion(hamiltonian)
-    return hamiltonian
+    mapped_hamiltonian = jordan_wigner(hamiltonian)
+    paulisum_hamiltonian = from_openfermion(mapped_hamiltonian)
+    return paulisum_hamiltonian

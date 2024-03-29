@@ -7,7 +7,7 @@ Y = np.matrix([[0, -1j], [1j, 0]])
 Z = np.matrix([[1, 0], [0, -1]])
 
 H = (2**-0.5) * np.matrix([[1, 1], [1, -1]])
-S = np.matrix([[1, 0], [0, 1j]])
+S = np.matrix([[1, 0], [0, 1j]])  # type: ignore
 
 CZ = np.matrix([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, -1]])
 
@@ -99,7 +99,7 @@ pauli_mult_table = {
 clif = np.kron(H, H) * CZ
 stab_1 = mat_conj(np.kron(X, I), clif)
 stab_2 = mat_conj(np.kron(I, X), clif)
-full_stab_group = np.array([stab_1, stab_2, stab_1 * stab_2])
+full_stab_group = np.array([stab_1, stab_2, stab_1 * stab_2])  # type: ignore
 for (
     trial_connected_before_cz_was_applied,
     trial_S1_name,
