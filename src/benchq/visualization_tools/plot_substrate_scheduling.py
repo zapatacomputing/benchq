@@ -4,6 +4,8 @@
 import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
+from copy import copy
+from typing import Tuple
 
 
 def plot_graph_state_with_measurement_steps(
@@ -21,9 +23,10 @@ def plot_graph_state_with_measurement_steps(
     integers. The cmap is the color map to use for the measurement steps.
     Note: Only works when substrate scheduler is run in "fast" mode."""
     graph_state_graph = nx.Graph()
-    for node, neighbors in asg["edge_data"].items():
+    for node, neighbors in enumerate(asg["edge_data"]):
         for neighbor in neighbors:
             graph_state_graph.add_edge(node, neighbor)
+    _, graph_state_graph = remove_isolated_nodes_from_graph(graph_state_graph)
 
     node_measurement_groupings = [
         [node[0] for node in row] for row in measurement_steps
@@ -35,8 +38,20 @@ def plot_graph_state_with_measurement_steps(
             if int(node) in group:
                 color_map.append(colors[i])
                 break
+
     nx.draw(graph_state_graph, node_color=color_map, node_size=10)
     # uncomment following lines to save graph image as well as show it
     # plt.savefig(name + ".pdf")
     # plt.clf()
     plt.show()
+
+
+def remove_isolated_nodes_from_graph(graph: nx.Graph) -> Tuple[int, nx.Graph]:
+    cleaned_graph = copy(graph)
+    isolated_nodes = list(nx.isolates(cleaned_graph))
+    n_nodes_removed = len(isolated_nodes)
+
+    cleaned_graph.remove_nodes_from(isolated_nodes)
+    cleaned_graph = nx.convert_node_labels_to_integers(cleaned_graph)
+
+    return n_nodes_removed, cleaned_graph

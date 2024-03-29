@@ -39,7 +39,7 @@ def get_resources(lattice_type: str, size: int, decoder_data_file: str):
 
     print("Getting algorithm implementation...")
     evolution_time = 1
-    failure_tolerance = 1e-4
+    failure_tolerance = 1e-3
     algorithm_implementation = qsp_time_evolution_algorithm(
         operator, evolution_time, failure_tolerance
     )
@@ -52,7 +52,7 @@ def get_resources(lattice_type: str, size: int, decoder_data_file: str):
     implementation_compiler = get_implementation_compiler(
         circuit_compiler, destination="single-thread"
     )
-    estimator = GraphResourceEstimator(optimization="Time", verbose=True)
+    estimator = GraphResourceEstimator(optimization="Space", verbose=True)
 
     print("Estimating resources via graph state compilation...")
     gsc_resources = estimator.compile_and_estimate(

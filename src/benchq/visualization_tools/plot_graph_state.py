@@ -32,7 +32,7 @@ def plot_graph_state(asg, pauli_tracker):
         for neighbor in neighbors:
             adjacency_matrix[node][neighbor] = 1
 
-    graph = nx.from_numpy_matrix(np.array(adjacency_matrix))
+    graph = nx.from_numpy_array(np.array(adjacency_matrix))
 
     # Remove isolated nodes
     # isolated_nodes = [

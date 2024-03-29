@@ -9,11 +9,6 @@ function run_jabalizer(circuit, optimization, debug_flag=false, space_optimizati
         circuit, optimization, debug_flag, space_optimization_timeout
     )
 
-
-    println("here!")
-    println(asg)
-    println(pauli_tracker)
-
     num_logical_qubits = get_num_logical_qubits(pauli_tracker.layering, asg, optimization, debug_flag)
     debug_flag && println("Running substrate scheduler...")
     if debug_flag && num_logical_qubits == parse(Int, "$(best_path.time)") && optimization == "Space"
@@ -32,9 +27,9 @@ function run_jabalizer(circuit, optimization, debug_flag=false, space_optimizati
     python_compiled_data = Dict(
         "num_logical_qubits" => num_logical_qubits,
         "num_layers" => num_layers,
-        "graph_creation_tocks_per_layer" => graph_creation_tocks_per_layer,
-        "t_states_per_layer" => t_states_per_layer,
-        "rotations_per_layer" => rotations_per_layer,
+        "graph_creation_tocks_per_layer" => pylist(graph_creation_tocks_per_layer),
+        "t_states_per_layer" => pylist(t_states_per_layer),
+        "rotations_per_layer" => pylist(rotations_per_layer),
     )
 
     return python_compiled_data
@@ -48,7 +43,6 @@ function get_jabalizer_graph_state_data(circuit, optimization, debug_flag=false,
     end
 
     registers = [i for i in 1:pyconvert(Int, circuit.n_qubits)]
-    println("circuit: $(circuit)")
 
     # Reading and caching the orquestra circuit
     input_circuit::Vector{Jabalizer.Gate} = []
@@ -127,7 +121,6 @@ function get_jabalizer_graph_state_data(circuit, optimization, debug_flag=false,
     python_sparse_rep = [e .- 1 for e in sparse_rep]
     for (s, i) in zip(data_qubits[:state], data_qubits[:input])
         insert!(python_sparse_rep, s, [i])
-        println("s: $(s), i: $(i)")
     end
     python_sparse_rep = SpacialGraph(python_sparse_rep)
 

@@ -1,6 +1,4 @@
 import time
-from copy import copy
-from typing import Tuple
 
 import networkx as nx
 from graph_state_generation.optimizers import (
@@ -8,10 +6,13 @@ from graph_state_generation.optimizers import (
     greedy_stabilizer_measurement_scheduler,
 )
 from graph_state_generation.substrate_scheduler import TwoRowSubstrateScheduler
+from benchq.visualization_tools.plot_substrate_scheduling import (
+    remove_isolated_nodes_from_graph,
+)
 
 
 def python_substrate_scheduler(
-    graph: nx.Graph, preset: str, verbose: bool = False
+    asg, preset: str, verbose: bool = False
 ) -> TwoRowSubstrateScheduler:
     """A simple interface for running the substrate scheduler. Can be run quickly or
     optimized for smaller runtime. Using the "optimized" preset can halve the number
@@ -27,6 +28,7 @@ def python_substrate_scheduler(
         TwoRowSubstrateScheduler: A substrate scheduler object with the schedule
             already created.
     """
+    graph = get_nx_graph_from_adj_list(asg["edge_data"])
     cleaned_graph = remove_isolated_nodes_from_graph(graph)[1]
 
     if verbose:
@@ -56,12 +58,10 @@ def get_n_measurement_steps(optimization, graph, verbose: bool = False) -> int:
     return n_measurement_steps
 
 
-def remove_isolated_nodes_from_graph(graph: nx.Graph) -> Tuple[int, nx.Graph]:
-    cleaned_graph = copy(graph)
-    isolated_nodes = list(nx.isolates(cleaned_graph))
-    n_nodes_removed = len(isolated_nodes)
+def get_nx_graph_from_adj_list(adj: list) -> nx.Graph:
+    graph = nx.empty_graph(len(adj))
+    for vertex_id, neighbors in enumerate(adj):
+        for neighbor in neighbors:
+            graph.add_edge(vertex_id, neighbor)
 
-    cleaned_graph.remove_nodes_from(isolated_nodes)
-    cleaned_graph = nx.convert_node_labels_to_integers(cleaned_graph)
-
-    return n_nodes_removed, cleaned_graph
+    return graph

@@ -8,14 +8,21 @@ import pytest
 from orquestra.sdk.schema.workflow_run import State
 from qiskit.circuit import QuantumCircuit
 
-from benchq.algorithms.data_structures import AlgorithmImplementation, ErrorBudget
+from benchq.algorithms.data_structures import (
+    AlgorithmImplementation,
+    ErrorBudget,
+)
+from benchq.compilation.graph_states import jl
+from benchq.conversions import import_circuit
 from benchq.compilation.circuits import pyliqtr_transpile_to_clifford_t
 from benchq.compilation.graph_states import get_jabalizer_circuit_compiler
-from benchq.magic_state_distillation.litinski_factories import iter_litinski_factories
-from benchq.problem_embeddings.quantum_program import QuantumProgram
 from benchq.quantum_hardware_modeling import BASIC_SC_ARCHITECTURE_MODEL
 from benchq.resource_estimators.default_estimators import get_precise_graph_estimate
 from benchq.resource_estimators.graph_estimator import GraphResourceEstimator
+from benchq.compilation.graph_states import get_implementation_compiler
+from benchq.compilation.graph_states.substrate_scheduler.python_substrate_scheduler import (  # noqa: E501
+    python_substrate_scheduler,
+)
 
 MAIN_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.dirname(MAIN_DIR))
@@ -71,42 +78,60 @@ def test_packages_comparison_example():
     packages_comparison_main()
 
 
-def test_extrapolation_example():
+def test_fast_graph_example():
     fast_graph()
 
 
 def test_utility_scale_example():
     decoder_data = os.path.join("examples", "data", "sample_decoder_data.csv")
-    gsc, footprint = utility_scale(decoder_data, False, "triangular", 3)
+    gsc, footprint = utility_scale(decoder_data, False, "triangular", 2)
     assert gsc
     assert footprint
 
 
 def test_toy_example_notebook():
     """Test all of the lines in the toy model work."""
-    file_path = os.path.join("examples", "data", "example_circuit.qasm")
+    file_path = os.path.join("examples", "data", "single_rotation.qasm")
     demo_circuit = QuantumCircuit.from_qasm_file(file_path)
     architecture_model = BASIC_SC_ARCHITECTURE_MODEL
 
     clifford_t_circuit = pyliqtr_transpile_to_clifford_t(
-        demo_circuit, circuit_precision=1e-6
+        demo_circuit, circuit_precision=1e-2
     )
 
     compiler = get_jabalizer_circuit_compiler()
     optimization = "Time"  # or "Space"
     verbose = False
-    circuit_graph = compiler(clifford_t_circuit, optimization, verbose)
+    compiler(clifford_t_circuit, optimization, verbose)
 
-    budget = ErrorBudget.from_even_split(
-        1e-2
-    )  # 1% error margin split evenly between all sources of error
+    asg, pauli_tracker, _ = jl.get_rbs_graph_state_data(
+        clifford_t_circuit,
+        takes_graph_input=False,
+        gives_graph_output=False,
+        verbose=verbose,
+        optimization=optimization,
+    )
+    asg = jl.python_asg(asg)
+    pauli_tracker = jl.python_pauli_tracker(pauli_tracker)
+
+    # 1% error margin split evenly between all sources of error
+    budget = ErrorBudget.from_even_split(1e-2)
+    # Specify the circuit and the margins of error we allow in the results
     implementation = AlgorithmImplementation.from_circuit(
         clifford_t_circuit, budget, n_shots=1
     )
 
+    # Specify how to run the circuit
     estimator = GraphResourceEstimator(optimization, verbose)
 
-    estimator.compile_and_estimate(implementation, compiler, architecture_model)
+    # Modify our compiler to compile AlgorithmImplementation objects rather than
+    # just circuits
+    implementation_compiler = get_implementation_compiler(compiler)
+
+    # run the estimator
+    estimator.compile_and_estimate(
+        implementation, implementation_compiler, architecture_model
+    )
 
     # only allow a failure to occur 1% of the time
     budget = ErrorBudget.from_even_split(1e-2)
@@ -114,45 +139,49 @@ def test_toy_example_notebook():
     optimization = "Time"
     get_precise_graph_estimate(implementation, architecture_model, optimization)
 
-    compiler = get_jabalizer_circuit_compiler()
     compiler(clifford_t_circuit, optimization="Time", verbose=True)
 
     get_icm(clifford_t_circuit)
 
-    graph_partition = GraphPartition(program, [circuit_graph])
+    asg, _, __ = jl.get_rbs_graph_state_data(
+        clifford_t_circuit,
+        takes_graph_input=False,
+        gives_graph_output=False,
+        verbose=False,
+    )
+    asg = jl.python_asg(asg)
 
-    graph_data = estimator._get_graph_data_for_single_graph(graph_partition)
+    compiled_implementation = implementation_compiler(implementation, optimization)
+    compiled_implementation.program.subroutines[0]
 
-    magic_state_factory = iter_litinski_factories(architecture_model)[0]
-
-    len(circuit_graph)
-
-    n_total_t_gates = estimator.get_n_total_t_gates(
-        graph_data.n_t_gates,
-        graph_data.n_rotation_gates,
-        budget.transpilation_failure_tolerance,
+    estimator.estimate_resources_from_compiled_implementation(
+        compiled_implementation,
+        architecture_model,
     )
 
-    distance = estimator._minimize_code_distance(
-        n_total_t_gates,
-        graph_data,
-        architecture_model.physical_qubit_error_rate,  # physical error
-        magic_state_factory,
+    schedule = python_substrate_scheduler(asg, "fast")
+
+    [[node[0] for node in step] for step in schedule.measurement_steps]
+
+    file_path = os.path.join("examples", "data", "ghz_circuit.qasm")
+    ghz_circuit = import_circuit(QuantumCircuit.from_qasm_file(file_path))
+
+    asg, _, __ = jl.get_rbs_graph_state_data(
+        ghz_circuit, takes_graph_input=False, gives_graph_output=False, verbose=False
     )
-    estimator._get_n_physical_qubits(graph_data, distance, magic_state_factory)
-    estimator._get_time_per_circuit_in_seconds(
-        graph_data, distance, n_total_t_gates, magic_state_factory
+    asg = jl.python_asg(asg)
+
+    schedule = python_substrate_scheduler(asg, "fast")
+
+    file_path = os.path.join("examples", "data", "h_chain_circuit.qasm")
+    h_chain_circuit = import_circuit(QuantumCircuit.from_qasm_file(file_path))
+
+    asg, _, __ = jl.get_rbs_graph_state_data(
+        h_chain_circuit,
+        takes_graph_input=False,
+        gives_graph_output=False,
+        verbose=False,
     )
+    asg = jl.python_asg(asg)
 
-    from benchq.resource_estimators.graph_estimator import substrate_scheduler
-
-    compiler = substrate_scheduler(circuit_graph, "fast")
-    [[node[0] for node in step] for step in compiler.measurement_steps]
-
-    circuit = QuantumCircuit.from_qasm_file(file_path)
-
-    clifford_t_circuit = pyliqtr_transpile_to_clifford_t(
-        circuit, circuit_precision=1e-10
-    )
-    circuit_graph = Jabalizer_circuit_compiler(clifford_t_circuit)
-    substrate_scheduler(circuit_graph, "fast")
+    schedule = python_substrate_scheduler(asg, "fast")
