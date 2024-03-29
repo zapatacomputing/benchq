@@ -12,7 +12,7 @@ import numpy as np
 def plot_graph_state_with_measurement_steps(
     asg,
     measurement_steps,
-    cmap=plt.cm.rainbow,
+    cmap=plt.cm.rainbow,  # pyright: ignore[reportAttributeAccessIssue]
     name="extrapolation_plot",
 ):
     """Plot a graph state with the measurement steps highlighted in different

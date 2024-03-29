@@ -98,7 +98,8 @@ def check_correctness_for_single_init(
     n = len(pdf)
 
     all_bitstrings = [
-        format(i, f"0{full_circuit.n_qubits}b") for i in range(2**full_circuit.n_qubits)
+        format(i, f"0{full_circuit.n_qubits}b")
+        for i in range(2**full_circuit.n_qubits)
     ]
 
     for i in range(n):

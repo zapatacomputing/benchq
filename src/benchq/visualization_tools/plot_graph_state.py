@@ -1,3 +1,5 @@
+from typing import List
+
 import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 import networkx as nx
@@ -133,7 +135,7 @@ def plot_graph_state(asg, pauli_tracker):
                 lambda x: x[1]["shape"] == aShape, graph.nodes(data=True)
             )
         ]
-        colors_for_nodes_with_this_shape = [
+        colors_for_nodes_with_this_shape: List[mpatches.Patch] = [
             color_map[i] for i in nodes_with_this_shape if 0 <= i < len(color_map)
         ]
 
@@ -213,10 +215,10 @@ def plot_graph_state(asg, pauli_tracker):
 
     plt.tight_layout()
     # Create a legend
-    red_patch = plt.Line2D(
+    red_patch = plt.Line2D(  # pyright: ignore[reportPrivateImportUsage]
         [0], [0], marker="o", color="w", markerfacecolor="red", markersize=8, label="X"
     )
-    blue_patch = plt.Line2D(
+    blue_patch = plt.Line2D(  # pyright: ignore[reportPrivateImportUsage]
         [0], [0], marker="o", color="w", markerfacecolor="blue", markersize=8, label="Z"
     )
 
