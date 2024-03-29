@@ -135,7 +135,7 @@ def plot_graph_state(asg, pauli_tracker):
                 lambda x: x[1]["shape"] == aShape, graph.nodes(data=True)
             )
         ]
-        colors_for_nodes_with_this_shape: List[mpatches.Patch] = [
+        colors = [
             color_map[i] for i in nodes_with_this_shape if 0 <= i < len(color_map)
         ]
 
@@ -144,7 +144,7 @@ def plot_graph_state(asg, pauli_tracker):
             nodePos,
             node_shape=aShape,
             nodelist=nodes_with_this_shape,
-            node_color=colors_for_nodes_with_this_shape,  # pyright: ignore[reportArgumentType]
+            node_color=colors,  # pyright: ignore[reportArgumentType]
             node_size=120,
         )
     nx.draw_networkx_labels(graph, nodePos)
