@@ -6,7 +6,7 @@ from benchq.quantum_hardware_modeling.hardware_architecture_models import (
 
 from .magic_state_factory import MagicStateFactory
 
-_ALLOWED_PHYSICAL_ERROR_RATES = 1e-5
+_ALLOWED_PHYSICAL_ERROR_RATES = {1e-5}
 
 _ERROR_RATE_FACTORY_MAPPING = {
     1e-5: (
