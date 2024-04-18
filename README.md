@@ -29,6 +29,11 @@ On some systems, the installation of PySCF can be problematic. If you're a Windo
 #### Azure Quantum Resource Estimation
 To run resource estimation using Azure Quantum Resource Estimation (QRE) tool, one needs to have Azure QRE package configure. See [this tutorial](https://learn.microsoft.com/en-us/azure/quantum/intro-to-resource-estimation) for more information.
 
+#### Jabalizer
+Jabalizer is an alternate graph state compilation toolchain to ruby slippers. To install Jabalizer, you will need to have the Rust programming language installed on your machine and run `pip install '.[jabalizer]'` from the top-level directory of this repository.
+
+Jabalizer can provide drastically reduced resource counts for some circuits, but it is considerably slower than ruby slippers. It is recommended to use Jabalizer only for smaller circuits.
+
 ## Usage
 See the [`examples`](examples) directory to learn more about how to use Bench-Q.
 
