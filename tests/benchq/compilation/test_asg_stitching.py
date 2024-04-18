@@ -1,4 +1,5 @@
 import os
+import numpy as np
 
 import pytest
 import test_rbs_with_pauli_tracking  # type: ignore
@@ -108,29 +109,6 @@ def get_graph(circuit, hyperparams, connection_type, optimization, max_num_qubit
         raise ValueError(f"connection_type {connection_type} not supported.")
 
     return asg, pauli_tracker
-
-
-# def get_stitched_graphs(circuit_1, circuit_2, circuit_3, hyperparams, optimization):
-#     asg_1, pauli_tracker_1 = get_graph(circuit_1, hyperparams, "output", optimization)
-#     # plot_graph_state(*to_python(asg_1, pauli_tracker_1))
-
-#     asg_2, pauli_tracker_2 = get_graph(circuit_2, hyperparams, "both", optimization)
-#     # plot_graph_state(*to_python(asg_2, pauli_tracker_2))
-
-#     asg, pauli_tracker = jl.stitch_graphs(
-#         asg_1, pauli_tracker_1, asg_2, pauli_tracker_2
-#     )
-#     # plot_graph_state(*to_python(asg, pauli_tracker))
-
-#     asg_3, pauli_tracker_3 = get_graph(circuit_3, hyperparams, "input", optimization)
-#     # plot_graph_state(*to_python(asg_3, pauli_tracker_3))
-
-#     # combine graphs
-#     asg, pauli_tracker = jl.stitch_graphs(asg, pauli_tracker, asg_3, pauli_tracker_3)
-
-#     # plot_graph_state(*to_python(asg, pauli_tracker))
-
-#     return asg, pauli_tracker
 
 
 def to_python(asg, pauli_tracker):
@@ -332,3 +310,62 @@ def test_double_stitched_circuit_produces_correct_result(
         show_graph=False,
         show_circuit=True,
     )
+
+
+# If you run this test, it will take a long time to complete. Make sure to
+# run it with the -s option so that you can see the circuits being printed
+# as well as the progress of the test.
+@SKIP_SLOW
+def test_1000_large_random_circuits():
+    for n_circuits_checked in range(1000):
+        # randomize hyperparams
+        teleportation_threshold = np.random.randint(1, 10)
+        teleportation_depth = np.random.randint(1, 3) * 2
+        min_neighbor_degree = np.random.randint(5, 20)
+        hyperparams = jl.RbSHyperparams(
+            teleportation_threshold, teleportation_depth, min_neighbor_degree, 1e5, 0
+        )
+
+        init = Circuit([H(0), H(1), H(2)])
+
+        optimization = np.random.choice(["Space", "Time", "Variable"])
+
+        n_qubits = 4
+        depth = 10
+        circuit_1 = test_rbs_with_pauli_tracking.generate_random_circuit(
+            n_qubits, depth
+        )
+        circuit_2 = test_rbs_with_pauli_tracking.generate_random_circuit(
+            n_qubits, depth
+        )
+        asg_1, pauli_tracker_1 = get_graph(
+            init + circuit_1, hyperparams, "output", optimization
+        )
+        # plot_graph_state(*to_python(asg_1, pauli_tracker_1))
+        asg_2, pauli_tracker_2 = get_graph(
+            circuit_2, hyperparams, "input", optimization
+        )
+        # plot_graph_state(*to_python(asg_2, pauli_tracker_2))
+
+        # combine graphs
+        asg_12, pauli_tracker_12 = jl.stitch_graphs(
+            asg_1, pauli_tracker_1, asg_2, pauli_tracker_2
+        )
+        # plot_graph_state(*to_python(asg_12, pauli_tracker_12))
+
+        asg, pauli_tracker = to_python(asg_12, pauli_tracker_12)
+        check_correctness_for_stitched_circuits(
+            circuit_1 + circuit_2,
+            asg,
+            pauli_tracker,
+            init,
+            show_graph=False,
+            show_circuit=True,
+        )
+
+        print(
+            "\033[92m"
+            + f"{n_circuits_checked} circuits checked successfully!"
+            + "\033[0m"
+        )
+        n_circuits_checked += 1

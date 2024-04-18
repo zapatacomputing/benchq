@@ -5,16 +5,15 @@ import Graphs.SimpleGraphs
 
 function run_jabalizer(circuit, optimization, debug_flag=false, space_optimization_timeout=1)
 
-    asg, pauli_tracker, best_path = get_jabalizer_graph_state_data(
+    asg, pauli_tracker, num_layers = get_jabalizer_graph_state_data(
         circuit, optimization, debug_flag, space_optimization_timeout
     )
 
     num_logical_qubits = get_num_logical_qubits(pauli_tracker.layering, asg, optimization, debug_flag)
     debug_flag && println("Running substrate scheduler...")
-    if debug_flag && num_logical_qubits == parse(Int, "$(best_path.time)") && optimization == "Space"
+    if debug_flag && num_logical_qubits == num_layers && optimization == "Space"
         error("Jabalizer and Ruby Slippers disagree on qubit counts.")
     end
-    num_layers = parse(Int, "$(best_path.time)")
     (graph_creation_tocks_per_layer, t_states_per_layer, rotations_per_layer) =
         two_row_scheduler(
             asg,
@@ -42,8 +41,6 @@ function get_jabalizer_graph_state_data(circuit, optimization, debug_flag=false,
         println("Converting to Jabalizer Circuit...")
     end
 
-    registers = [i for i in 1:pyconvert(Int, circuit.n_qubits)]
-
     # Reading and caching the orquestra circuit
     input_circuit::Vector{Jabalizer.Gate} = []
     num_circuit_qubits = pyconvert(Int, circuit.n_qubits)
@@ -62,6 +59,12 @@ function get_jabalizer_graph_state_data(circuit, optimization, debug_flag=false,
                 )
             elseif Jabalizer.pyconvert(String, op.gate.name) == "I"
                 continue
+            elseif Jabalizer.pyconvert(String, op.gate.name) == "RZ"
+                new_gate = Jabalizer.Gate(
+                    "RZ",
+                    [Jabalizer.pyconvert(Float64, op.gate.params[0])],
+                    [Jabalizer.pyconvert(Int, qubit) + 1 for qubit in op.qubit_indices]
+                )
             else
                 new_gate = Jabalizer.Gate(
                     Jabalizer.pyconvert(String, op.gate.name),
@@ -69,12 +72,15 @@ function get_jabalizer_graph_state_data(circuit, optimization, debug_flag=false,
                     [Jabalizer.pyconvert(Int, qubit) + 1 for qubit in op.qubit_indices]
                 )
             end
+
         end
         push!(input_circuit, new_gate)
         for qubit in op.qubit_indices
             num_circuit_qubits = max(num_circuit_qubits, pyconvert(Int, qubit) + 1)
         end
     end
+
+    registers = [i for i in 1:pyconvert(Int, circuit.n_qubits)]
 
     jabalizer_quantum_circuit = Jabalizer.QuantumCircuit(
         registers,
@@ -85,119 +91,39 @@ function get_jabalizer_graph_state_data(circuit, optimization, debug_flag=false,
         println("Compiling to Algorithm Specific Graph...")
     end
 
-    mbqc_scheduling = pyimport("mbqc_scheduling")
-    SpacialGraph = pyimport("mbqc_scheduling").SpacialGraph
-    PartialOrderGraph = pyimport("mbqc_scheduling").PartialOrderGraph
-
-    graph, loc_corr, mseq, data_qubits, frames_array = Jabalizer.gcompile(
+    jabalizer_out = Jabalizer.mbqccompile(
         jabalizer_quantum_circuit;
         universal=true,
         ptracking=true,
         teleport=["T", "T_Dagger", "RZ"]
     )
-    graph_input_nodes = Vector{Qubit}(eval(Meta.parse("$(data_qubits.state)")))
-    graph_output_nodes = Vector{Qubit}(eval(Meta.parse("$(data_qubits.output)")))
 
-    measurements = []
-    for gate in mseq
-        if gate.name == "T"
-            push!(measurements, [T_code, 0.0])
-        elseif gate.name == "T_Dagger"
-            push!(measurements, [T_Dagger_code, 0.0])
-        elseif gate.name == "RZ"
+    n_nodes = length(jabalizer_out["spatialgraph"])
+    julia_spacial_graph = [Set{UInt32}(neighborhood .+ 1) for neighborhood in jabalizer_out["spatialgraph"]]
+    graph_input_nodes = jabalizer_out["statenodes"] .+ 1
+    graph_output_nodes = jabalizer_out["outputnodes"] .+ 1
+
+
+    measurements = [[] for _ in 1:n_nodes]
+    for gate in jabalizer_out["measurements"]
+        if gate[1] == "T"
+            measurements[gate[2]+1] = [T_code, 0.0]
+        elseif gate[1] == "T_Dagger"
+            measurements[gate[2]+1] = [T_Dagger_code, 0.0]
+        elseif gate[1] == "RZ"
             # Jabalizer doesn't keep track of the angles of rotations yet
-            push!(measurements, [RZ_code, 0.0])
-        elseif gate.name == "X"
-            push!(measurements, [H_code, 0.0])
+            measurements[gate[2]+1] = [T_Dagger_code, gate[3]]
+        elseif gate[1] == "X"
+            measurements[gate[2]+1] = [H_code, 0.0]
         else
             error("Invalid measurement type.")
         end
     end
 
-    frames, frame_flags, buffer, buffer_flags = frames_array
+    layering = [layer .+ 1 for layer in jabalizer_out["steps"]]
 
-    sparse_rep = SimpleGraphs.adj(graph)
-    # prepare graph to be scheudled by mbqc_scheduling
-    python_sparse_rep = [e .- 1 for e in sparse_rep]
-    for (s, i) in zip(data_qubits[:state], data_qubits[:input])
-        insert!(python_sparse_rep, s, [i])
-    end
-    python_sparse_rep = SpacialGraph(python_sparse_rep)
-
-    # make sparse rep compatible with benchq
-    sparse_rep = eval(Meta.parse("$(sparse_rep)"))
-    benchq_sparse_rep = Vector{Set{Qubit}}([])
-    for neighborhood in sparse_rep
-        push!(benchq_sparse_rep, Set([]))
-        for neighbor in neighborhood
-            push!(benchq_sparse_rep[end], Qubit(neighbor))
-        end
-    end
-
-
-    for (o, i, s) in zip(data_qubits[:output], data_qubits[:input], data_qubits[:state])
-        push!(benchq_sparse_rep, Set([i]))
-        push!(benchq_sparse_rep[i], s)
-    end
-
-    order = frames.get_py_order(frame_flags)
-    order = PartialOrderGraph(order)
-
-    debug_flag && println("Ordering non-clifford measurements...")
-    index_of_best_path = 1
-    if optimization == "Time"
-        # Find time optimal paths
-        paths = mbqc_scheduling.run(python_sparse_rep, order)
-        all_paths = paths.into_py_paths()
-        # extract the most time efficient path
-        num_layers = typemax(UInt)
-        for (this_path_index, path) in enumerate(all_paths)
-            converted_time = parse(Int, "$(path.space)")
-            if converted_time < num_layers
-                num_layers = converted_time
-                index_of_best_path = this_path_index
-            end
-        end
-    elseif optimization == "Space"
-        # Search probabilistially for space optimal path
-        AcceptFunc = pyimport("mbqc_scheduling.probabilistic").AcceptFunc
-        paths = mbqc_scheduling.run(
-            python_sparse_rep,
-            order;
-            do_search=true,
-            nthreads=1,
-            timeout=space_optimization_timeout,
-            probabilistic=(AcceptFunc(), nothing)
-        )
-        all_paths = paths.into_py_paths()
-        # extract the most space efficient path
-        num_logical_qubits = typemax(Qubit)
-        for (this_path_index, path) in enumerate(all_paths)
-            converted_space = parse(Int, "$(path.space)")
-            if converted_space < num_logical_qubits
-                num_logical_qubits = converted_space
-                index_of_best_path = this_path_index
-            end
-        end
-    elseif optimization == "Variable"
-        error("Variable optimization not implemented for jaablizer compiler.")
-    end
-
-    index_of_best_path -= 1
-
-    # add dummy nodes in ASG that would represent the next nodes to teleport to
-    # as these are not included in the current version of the jabalizer output.
-    # This will result in a slight underestimate of resources that will be
-    # corrected once Jabalizer is updated.
-    layering = eval(Meta.parse("$(all_paths[index_of_best_path].steps)"))
-    layering = Vector{Vector{Qubit}}([e .+ 1 for e in layering])
-    for _ in 1:num_circuit_qubits
-        push!(measurements, [H_code, 0.0])
-    end
-    # dummy asg and pauli tracker for substrate scheduler
-    n_nodes = length(benchq_sparse_rep)
     asg = AlgorithmSpecificGraph(
-        benchq_sparse_rep,
+        julia_spacial_graph,
         [],
         [],
         n_nodes,
@@ -220,5 +146,5 @@ function get_jabalizer_graph_state_data(circuit, optimization, debug_flag=false,
         false,
     )
 
-    return asg, pauli_tracker, all_paths[index_of_best_path]
+    return asg, pauli_tracker, length(jabalizer_out["steps"])
 end
