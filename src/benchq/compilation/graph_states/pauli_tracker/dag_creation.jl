@@ -52,8 +52,15 @@ function get_dag(pauli_tracker, nodes_to_include, final_depth=1, verbose::Bool=f
         end
     end
 
-    pushable_dag = get_reversed_dag(pushable_dag)
-    static_dag = get_reversed_dag(static_dag)
+    if final_depth == 1
+        for node in VerboseIterator(nodes_to_include, verbose, "Densifying single-qubit measurement DAG...")
+            union!(pushable_dag[node], static_dag[node])
+        end
+        return pushable_dag
+    end
+
+    pushable_dag = get_reversed_dag(pushable_dag, verbose)
+    static_dag = get_reversed_dag(static_dag, verbose)
 
     function dag_densifier(control::Qubit, depth::Int)
         if depth == 0

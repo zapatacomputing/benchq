@@ -68,7 +68,7 @@ def main():
     # terminal. Additional settings as well as using a remote cluster can be
     # configured by using other settings available in the get_implementation_compiler
     implementation_compiler = get_implementation_compiler(
-        circuit_compiler=get_jabalizer_circuit_compiler(4),
+        circuit_compiler=get_ruby_slippers_circuit_compiler(),
         destination="single-thread",
     )
     estimator = GraphResourceEstimator(optimization="Space", verbose=True)
