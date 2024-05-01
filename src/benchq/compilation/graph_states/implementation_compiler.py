@@ -17,12 +17,15 @@ from .compiled_data_structures import (
 #     dependency_imports=[sdk.PythonImports("benchq[dev]")],
 #     custom_image="hub.stage.nexus.orquestra.io/zapatacomputing/benchq-ce:3eec2c8-sdk0.60.0",
 # )
+
+
 @sdk.task(
     source_import=sdk.GithubImport(
         "zapatacomputing/benchq",
         git_ref="ac/DTA2-270-implement-pauli-tracker",
     ),
-    custom_image="hub.nexus.orquestra.io/zapatacomputing/benchq-ce:3eec2c8-sdk0.60.0",
+    custom_image="hub.stage.nexus.orquestra.io/"
+    "zapatacomputing/benchq-ce:3eec2c8-sdk0.62.0",
 )
 def distributed_graph_creation(
     circuit: Circuit,

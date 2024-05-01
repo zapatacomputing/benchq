@@ -76,7 +76,7 @@ def main():
     # Azure QRE takes in quantum circuits as input and performs compilation internally,
     # so there's no need for using any transformers.
     with measure_time() as t_info:
-        azure_resource_estimates = azure_estimator.estimate(
+        azure_resource_estimates = azure_estimator(
             algorithm,
             architecture_model=architecture_model,
         )

@@ -1,8 +1,11 @@
 from dataclasses import dataclass
 from typing import Callable, List, Sequence
 
+from ..circuits import get_num_t_gates_per_rotation
 from ...problem_embeddings.quantum_program import QuantumProgram
 from ..circuits import get_num_t_gates_per_rotation
+from decimal import Decimal
+
 from decimal import Decimal
 
 
@@ -93,6 +96,7 @@ class CompiledQuantumProgram:
         )
 
     @property
+<<<<<<< HEAD
     def t_depth(self) -> int:
         return sum(
             self.subroutines[subroutine].num_layers
@@ -103,6 +107,9 @@ class CompiledQuantumProgram:
         if self.n_rotation_gates == 0:
             return self.n_t_gates
 
+=======
+    def get_n_t_gates_after_transpilation(self, transpilation_failure_tolerance: float):
+>>>>>>> e7d65e92198aff17e1c18d37d5b9cb39d9d0430b
         per_gate_synthesis_accuracy = 1 - (
             1 - Decimal(transpilation_failure_tolerance)
         ) ** Decimal(1 / self.n_rotation_gates)
