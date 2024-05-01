@@ -69,6 +69,11 @@ _ERROR_RATE_FACTORY_MAPPING = {
 def iter_small_footprint_factories(
     architecture_model: BasicArchitectureModel,
 ) -> Iterable[MagicStateFactory]:
+    """
+    An iterator which yields magic state factories which are optimized in order
+    to minimize the number of physical qubits.
+    """
+
     assert architecture_model.physical_qubit_error_rate in _ALLOWED_PHYSICAL_ERROR_RATES
 
     return _ERROR_RATE_FACTORY_MAPPING[architecture_model.physical_qubit_error_rate]
