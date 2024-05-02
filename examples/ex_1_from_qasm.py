@@ -54,7 +54,9 @@ def main(file_name):
     print("Resource estimation results:")
     print(gsc_resource_estimates)
 
+    breakpoint()
+
 
 if __name__ == "__main__":
     current_directory = os.path.dirname(__file__)
-    main(current_directory + "/data/example_circuit.qasm")
+    main(current_directory + "/data/ghz_circuit.qasm")

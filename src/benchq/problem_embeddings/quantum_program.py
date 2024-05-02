@@ -159,6 +159,7 @@ class QuantumProgram:
         )
 
     def split_into_smaller_subroutines(self, max_size: int) -> "QuantumProgram":
+        max_size = int(max_size)
         new_subroutines = []
         subroutine_splits: List[List[int]] = [[] for _ in range(len(self.subroutines))]
         num_new_subroutines = 0

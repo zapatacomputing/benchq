@@ -8,20 +8,22 @@ Holds data for tracking conditional Pauli operators through a circuit.
         A vector containing the information on the conditional paulis
         for each qubit. The first index is the qubit which the pauli is
         conditioned on, the second index is the type of pauli (1 for X,
-        2 for Z), and the third index is the qubit which the pauli
-        acts on. For example, cond_paulis[3][1] = [6, 7] means that we must
+        2 for Z). The innermost vector is the list of target qubit indices.         
+        For example, cond_paulis[3][1] = [6, 7] means that we must
         apply an X gate to qubits 6 and 7 if qubit 3 is measured to be 1.
     measurements: Vector{Vector{Union{UInt8,Float64}}}
-        A vector containing the information on the measurements
-        performed on each qubit. The first index is the qubit, and the
-        vector contained in that index is the operation applied before
-        measurement, the second index is the phase of the RZ gate. If
-        the second index is 0.0, then no RZ gate is applied and the first
-        index should not be RZ. We asume that an H gate is applied to
-        each qubit before measurement right after the gate specified by
-        the first index. For example, measurements[3] = [H_code, 0.0]
-        means that we must apply an H gate to qubit 3 before measurement and
-        measurements[3] = [RZ_code, 0.5] means that we must apply an RZ(0.5)
+        A vector containing the information on the basis in which each
+        qubit is measured. We assume that two operations will be applied before
+        measurement in the Z basis: the first is specified by this array and the second
+        is always a Hadamard gate. The first index of the measurements array is the
+        qubit index, and the vector contained in that index describes the operation to
+        be applied before the Hadamard. The first element is the tye of operation, and
+        if the operation is an RZ, then the second element is the phase of the RZ gate.
+        If the operation is not an RZ, the second element is zero.
+        For example, measurements[3] = [H_code, 0.0] means that we must apply two H
+        gates (i.e. identity) to qubit 3 before measurement and
+        measurements[3] = [RZ_code, 0.5] means that we must apply RZ(0.5) followed by H
+        before measurement.
     n_nodes: Qubit
         The number of qubits in the circuit.
     layering: Vector{Vector{Qubit}}

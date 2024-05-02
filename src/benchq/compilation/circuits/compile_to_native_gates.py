@@ -20,6 +20,7 @@ from orquestra.quantum.decompositions._decomposition import (
     DecompositionRule,
     decompose_operation,
 )
+import time
 
 from ...conversions._circuit_translations import import_circuit
 
@@ -56,12 +57,44 @@ def decompose_benchq_circuit(
     return Circuit(decompose_benchq_operations(circuit.operations, decomposition_rules))
 
 
+class ProgressIterator:
+    def __init__(self, iterable):
+        self.iterable = iterable
+        self.iterator = iter(iterable)
+        self.length = len(
+            iterable
+        )  # Assumes the iterable has a length (e.g., list, tuple)
+        self.index = 0
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        if self.index == 0:
+            self.start_time_time = time.time()
+        if self.index >= self.length:
+            print("\rProgress: 100.00% ")
+            raise StopIteration
+        self.index += 1
+        self.show_progress()
+        return next(self.iterator)
+
+    def show_progress(self):
+        if self.index % 10000 == 0:
+            progress = (self.index / self.length) * 100
+            elapsed_time = time.time() - self.start_time_time
+            print(
+                f"\r{progress:.2f}% ({self.index})  completed in {elapsed_time:.2f}s",
+                end="",
+            )
+
+
 def decompose_benchq_operations(
     operations: Iterable[Operation],
     decomposition_rules: Sequence[DecompositionRule[GateOperation]],
 ):
     decomposed_operation_sequence = []
-    for op in operations:
+    for op in ProgressIterator(operations):
         if isinstance(op, GateOperation):
             for decomposed_op in decompose_operation(op, decomposition_rules):
                 decomposed_operation_sequence += [decomposed_op]

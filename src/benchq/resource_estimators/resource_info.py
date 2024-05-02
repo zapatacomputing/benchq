@@ -5,10 +5,16 @@
 
 from dataclasses import dataclass, field
 from typing import Generic, Optional, TypeVar
+import itertools
+import pandas as pd
+from ..visualization_tools.cycle_allocation import ResourceAllocation, QubitAllocation
+
 
 from benchq.compilation.graph_states.compiled_data_structures import (
     CompiledAlgorithmImplementation,
 )
+import matplotlib.pyplot as plt
+from matplotlib_venn import venn3, venn3_circles
 
 TExtra = TypeVar("TExtra")
 
@@ -59,13 +65,18 @@ class ResourceInfo(Generic[TExtra]):
     There are several variants of this class aliased below.
     """
 
+    n_physical_qubits: int
+    total_time_in_seconds: float
+    optimization: str
     code_distance: int
     logical_error_rate: float
     n_logical_qubits: int
-    n_physical_qubits: int
-    total_time_in_seconds: float
+    st_volume_in_logical_qubit_tocks: float
+    total_tocks: float
     decoder_info: Optional[DecoderInfo]
     magic_state_factory_name: str
+    cycle_allocation: ResourceAllocation
+    qubit_allocation: QubitAllocation
     extra: TExtra
     hardware_resource_info: Optional[DetailedIonTrapResourceInfo] = None
 

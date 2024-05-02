@@ -246,6 +246,7 @@ function get_rbs_graph_state_data(
 
     n_qubits = pyconvert(Int, orquestra_circuit.n_qubits)
 
+    verbose && println("Allocating memory for ASG and Pauli Tracker...")
     if takes_graph_input
         asg, pauli_tracker = initialize_for_graph_input(max_graph_size, n_qubits, optimization, max_num_qubits, optimal_dag_density, use_fully_optimized_dag)
     else

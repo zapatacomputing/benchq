@@ -3,6 +3,8 @@
 ################################################################################
 import os
 import pathlib
+import pkg_resources
+
 
 from .circuit_compilers import (
     default_ruby_slippers_circuit_compiler,
@@ -13,9 +15,10 @@ from .circuit_compilers import (
 from .implementation_compiler import get_implementation_compiler
 from .initialize_julia import jl, juliapkg
 
-jl.include(
-    os.path.join(pathlib.Path(__file__).parent.resolve(), "jabalizer_wrapper.jl"),
-)
+if "pauli_tracker" in {pkg.key for pkg in pkg_resources.working_set}:
+    jl.include(
+        os.path.join(pathlib.Path(__file__).parent.resolve(), "jabalizer_wrapper.jl"),
+    )
 jl.include(
     os.path.join(
         pathlib.Path(__file__).parent.resolve(), "ruby_slippers/ruby_slippers.jl"

@@ -103,7 +103,7 @@ function space_optimal_two_row_scheduler(asg, pauli_tracker, num_logical_qubits,
     curr_physical_nodes = get_neighborhood(pauli_tracker.layering[1], asg)
     measured_nodes = Set{Qubit}([])
     new_nodes_to_add = curr_physical_nodes
-    satisfied_nodes = Set{Qubit}([])
+    satisfied_edges = copy(asg.edge_data)
 
     patches_to_node = [-1 for _ in 1:num_logical_qubits]
     node_to_patch = [-1 for _ in 1:asg.n_nodes]
@@ -114,62 +114,88 @@ function space_optimal_two_row_scheduler(asg, pauli_tracker, num_logical_qubits,
 
     for layer_num in VerboseIterator(1:length(pauli_tracker.layering), verbose, "Scheduling Clifford operations...")
         # assign nodes to patches by simply finding the first open patch and placing the node there
-        for new_node in new_nodes_to_add
-            node_placement_found = false
-            for (patch, node_in_patch) in enumerate(patches_to_node)
-                if node_in_patch == -1
-                    patches_to_node[patch] = new_node
-                    node_to_patch[new_node] = patch
-                    node_placement_found = true
-                    break
+        # println("Assigning Nodes to Patches...")
+        begin
+            for new_node in new_nodes_to_add
+                node_placement_found = false
+                for (patch, node_in_patch) in enumerate(patches_to_node)
+                    if node_in_patch == -1
+                        patches_to_node[patch] = new_node
+                        node_to_patch[new_node] = patch
+                        node_placement_found = true
+                        break
+                    end
                 end
-            end
-            if !node_placement_found
-                println("Error: No patch found for node ", new_node)
+                if !node_placement_found
+                    println("Error: No patch found for node ", new_node)
+                end
             end
         end
 
         # Enact each of the edges of the graph individually
-        bars = []
-        nodes_to_satisfy_this_layer = setdiff(get_neighborhood(pauli_tracker.layering[layer_num], asg), satisfied_nodes)
-        for node_1 in nodes_to_satisfy_this_layer
-            for node_2 in nodes_to_satisfy_this_layer
-                if node_to_patch[node_1] < node_to_patch[node_2]
-                    push!(bars, [node_to_patch[node_1], node_to_patch[node_2]])
+        # println("layer_num: ", layer_num)
+        # println("Getting Bars...")
+        begin
+            bars = []
+            for node in pauli_tracker.layering[layer_num]
+                for neighbor in asg.edge_data[node]
+                    if neighbor in satisfied_edges[node] && node in satisfied_edges[neighbor]
+                        toggle_edge!(satisfied_edges, node, neighbor)
+                        push!(bars, [node_to_patch[node], node_to_patch[neighbor]])
+                    end
                 end
             end
         end
+        # println("nodes_to_satisfy_this_layer: ", Set([Int(x) for x in pauli_tracker.layering[layer_num]]))
+        # println("patches_to_node: ", patches_to_node)
+
         sort!(bars, by=x -> x[2])
 
         # layer the bars to parallelize them
-        while length(bars) > 0
-            bar = bars[1]
-            bars = bars[2:end]
-            i = 1
-            bars_length = length(bars)
-            while i <= bars_length
-                if bars[i][1] > bar[2]
-                    bar[2] = bars[i][2]
-                    deleteat!(bars, i)
-                    bars_length -= 1
+        # println("bars: ", bars)
+        # println("Layering Bars...")
+        begin
+            while length(bars) > 0
+                bar = bars[1]
+                bars = bars[2:end]
+                i = 1
+                bars_length = length(bars)
+                while i <= bars_length
+                    if bars[i][1] > bar[2]
+                        bar[2] = bars[i][2]
+                        deleteat!(bars, i)
+                        bars_length -= 1
+                    end
+                    i += 1
                 end
-                i += 1
+                num_tocks_for_graph_creation[layer_num] += 1
             end
-            num_tocks_for_graph_creation[layer_num] += 1
+            # each cz requires 2 tocks
+            num_tocks_for_graph_creation[layer_num] *= 2
         end
-        # each cz requires 2 tocks
-        num_tocks_for_graph_creation[layer_num] *= 2
 
-        if layer_num < length(pauli_tracker.layering)
-            union!(measured_nodes, pauli_tracker.layering[layer_num])
-            for measured_node in pauli_tracker.layering[layer_num]
-                patches_to_node[node_to_patch[measured_node]] = -1
+        for node in pauli_tracker.layering[layer_num]
+            if pauli_tracker.measurements[node][1] in [T_code, T_Dagger_code]
+                num_t_states_per_layer[layer_num] += 1
             end
-            added_nodes = pauli_tracker.layering[layer_num+1]
+            if pauli_tracker.measurements[node][1] == RZ_code
+                num_rotations_per_layer[layer_num] += 1
+            end
+        end
 
-            setdiff!(curr_physical_nodes, pauli_tracker.layering[layer_num])
-            new_nodes_to_add = setdiff(setdiff(get_neighborhood(added_nodes, asg), measured_nodes), curr_physical_nodes)
-            union!(curr_physical_nodes, new_nodes_to_add)
+        # println("preparing for next layer")
+        begin
+            if layer_num < length(pauli_tracker.layering)
+                union!(measured_nodes, pauli_tracker.layering[layer_num])
+                for measured_node in pauli_tracker.layering[layer_num]
+                    patches_to_node[node_to_patch[measured_node]] = -1
+                end
+                added_nodes = pauli_tracker.layering[layer_num+1]
+
+                setdiff!(curr_physical_nodes, pauli_tracker.layering[layer_num])
+                new_nodes_to_add = setdiff(setdiff(get_neighborhood(added_nodes, asg), measured_nodes), curr_physical_nodes)
+                union!(curr_physical_nodes, new_nodes_to_add)
+            end
         end
     end
 

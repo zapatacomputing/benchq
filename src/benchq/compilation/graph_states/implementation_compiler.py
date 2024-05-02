@@ -32,12 +32,13 @@ def distributed_graph_creation(
     verbose: bool,
     circuit_compiler,
     circuit_num: int,
+    n_subroutines: int,
 ) -> GSCInfo:
     if verbose:
-        print(f"\nCompiling subroutine {circuit_num+1}...")
+        print(f"\nCompiling subroutine {circuit_num+1} of {n_subroutines}...")
     circuit = compile_to_native_gates(circuit, verbose)
     if verbose:
-        print("Initializing graph state compilation...")
+        print("Transferring Data to Julia...")
     return circuit_compiler(circuit, optimization, verbose)
 
 
@@ -61,7 +62,12 @@ def get_implementation_compiler(
         ):
             compiled_subroutine_list.append(
                 distributed_graph_creation(
-                    circuit, optimization, verbose, circuit_compiler, circuit_num
+                    circuit,
+                    optimization,
+                    verbose,
+                    circuit_compiler,
+                    circuit_num,
+                    len(algorithm_implementation.program.subroutines),
                 )
             )
 

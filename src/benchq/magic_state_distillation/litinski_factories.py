@@ -18,6 +18,7 @@ _ERROR_RATE_FACTORY_MAPPING = {
             (387, 155),
             43300,
             130,
+            n_t_gates_produced_per_distillation=4,
         ),
         MagicStateFactory(
             "(15-to-1)^4_13,5,5 x (20-to-4)_27,13,15",
@@ -25,7 +26,7 @@ _ERROR_RATE_FACTORY_MAPPING = {
             (382, 142),
             46800,
             157,
-            n_t_gates_produced_per_distillation=1,
+            n_t_gates_produced_per_distillation=4,
         ),
         MagicStateFactory(
             "(15-to-1)^6_11,5,5 x (15-to-1)_25,11,11",
