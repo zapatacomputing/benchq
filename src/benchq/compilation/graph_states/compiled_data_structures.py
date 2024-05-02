@@ -1,10 +1,9 @@
 from dataclasses import dataclass
+from decimal import Decimal
 from typing import Callable, List, Sequence
 
-from ..circuits import get_num_t_gates_per_rotation
 from ...problem_embeddings.quantum_program import QuantumProgram
-
-from decimal import Decimal
+from ..circuits import get_num_t_gates_per_rotation
 
 
 @dataclass
@@ -93,7 +92,6 @@ class CompiledQuantumProgram:
             for subroutine in self.subroutine_sequence
         )
 
-    @property
     def get_n_t_gates_after_transpilation(self, transpilation_failure_tolerance: float):
         per_gate_synthesis_accuracy = 1 - (
             1 - Decimal(transpilation_failure_tolerance)

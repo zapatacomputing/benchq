@@ -12,7 +12,6 @@ from .compiled_data_structures import (
     GSCInfo,
 )
 
-
 # @sdk.task(
 #     dependency_imports=[sdk.PythonImports("benchq[dev]")],
 #     custom_image="hub.stage.nexus.orquestra.io/zapatacomputing/benchq-ce:3eec2c8-sdk0.60.0",

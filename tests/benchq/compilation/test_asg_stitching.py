@@ -1,9 +1,9 @@
 import os
-import numpy as np
 
+import numpy as np
 import pytest
 import test_rbs_with_pauli_tracking  # type: ignore
-from orquestra.quantum.circuits import CNOT, CZ, RZ, Circuit, H, S, T, X, Y, Z
+from orquestra.quantum.circuits import CNOT, CZ, RZ, Circuit, H, I, S, T, X, Y, Z
 
 from benchq.compilation.graph_states import jl
 from benchq.visualization_tools.plot_graph_state import plot_graph_state
@@ -369,3 +369,11 @@ def test_1000_large_random_circuits():
             + "\033[0m"
         )
         n_circuits_checked += 1
+
+
+# if __name__ == "__main__":
+#     test_double_stitched_circuit_produces_correct_result(
+#         "Time",
+#         Circuit([H(0), CNOT(0, 1), CNOT(0, 2), CNOT(0, 3)]),
+#         Circuit([H(0), CNOT(0, 1), CNOT(0, 2), CNOT(0, 3)]),
+#     )
