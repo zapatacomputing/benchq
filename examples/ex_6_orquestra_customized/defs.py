@@ -2,6 +2,7 @@
 
 To run this on Orquestra or locally use ``run.py`` script in the same directory.
 """
+
 from dataclasses import replace
 from typing import List
 
@@ -98,7 +99,7 @@ def estimate_resources(
 
 
 @sdk.workflow(resources=sdk.Resources(memory="8Gi", nodes=2))
-def estimation_workflow() -> List[GraphResourceInfo]:
+def estimation_workflow() -> List[sdk.ArtifactFuture[GraphResourceInfo]]:
     """The workflow for estimating resources.
 
     The workflow does the following:
