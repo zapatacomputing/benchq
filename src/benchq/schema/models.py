@@ -64,9 +64,10 @@ class Task(BaseModel):
     logical_abstract: LogicalAbstractResourceEstimate = Field(
         serialization_alias="logical-abstract", description="Abstract logical estimates"
     )
-    physical: PhysicalResourceEstimate = Field(
-        description="Physical resource estimates"
+    physical: Optional[PhysicalResourceEstimate] = Field(
+        description="Physical resource estimates", default=None
     )
+    # TODO: add logical compiled
 
 
 class ApplicationInstance(BaseModel):
