@@ -14,16 +14,15 @@ from pathlib import Path
 from pprint import pprint
 
 from benchq.algorithms.time_evolution import qsp_time_evolution_algorithm
+from benchq.compilation.graph_states import (
+    get_implementation_compiler,
+    get_ruby_slippers_circuit_compiler,
+)
 from benchq.decoder_modeling import DecoderModel
 from benchq.problem_ingestion import get_vlasov_hamiltonian
 from benchq.quantum_hardware_modeling import BASIC_SC_ARCHITECTURE_MODEL
-from benchq.resource_estimators.azure_estimator import AzureResourceEstimator
-from benchq.resource_estimators.graph_estimators import (
-    GraphResourceEstimator,
-    create_big_graph_from_subcircuits,
-    get_custom_resource_estimation,
-    transpile_to_native_gates,
-)
+from benchq.resource_estimators.azure_estimator import azure_estimator
+from benchq.resource_estimators.graph_estimator import GraphResourceEstimator
 from benchq.timing import measure_time
 
 
@@ -46,34 +45,40 @@ def main():
 
     print("Circuit generation time:", t_info.total)
 
+    # We can adjust some of the parameters of the graph state compilation method.
+    # Here I've included some of the most important ones as an example.
+    circuit_compiler = get_ruby_slippers_circuit_compiler(
+        optimal_dag_density=10,
+        teleportation_threshold=60,
+    )
+
     # We run the resource estimation pipeline using the graph state compilation method.
     # In this example we do not transpile to a clifford + T circuit, as this is more
     # similar to how Azure QRE works.
     with measure_time() as t_info:
-        gsc_resource_estimates = get_custom_resource_estimation(
+        implementation_compiler = get_implementation_compiler(
+            circuit_compiler=circuit_compiler, destination="single-thread"
+        )
+        gsc_estimator = GraphResourceEstimator(optimization="Time", verbose=True)
+        gsc_resource_estimates = gsc_estimator.compile_and_estimate(
             algorithm,
-            estimator=GraphResourceEstimator(
-                hw_model=architecture_model, decoder_model=decoder_model
-            ),
-            transformers=[
-                transpile_to_native_gates,
-                create_big_graph_from_subcircuits(),
-            ],
+            implementation_compiler,
+            architecture_model,
+            decoder_model=decoder_model,
         )
 
     print("Resource estimation time with GSC:", t_info.total)
     pprint(gsc_resource_estimates)
 
-    # AzureResourceEstimator is a wrapper around Azure QRE. It takes the same arguments
+    # azure_estimator is a wrapper around Azure QRE. It takes the same arguments
     # as GraphResourceEstimator, but instead of running the graph state compilation
     # method, it runs the Azure QRE.
     # Azure QRE takes in quantum circuits as input and performs compilation internally,
     # so there's no need for using any transformers.
     with measure_time() as t_info:
-        azure_resource_estimates = get_custom_resource_estimation(
+        azure_resource_estimates = azure_estimator(
             algorithm,
-            estimator=AzureResourceEstimator(),
-            transformers=[],
+            architecture_model=architecture_model,
         )
 
     print("Resource estimation time with Azure:", t_info.total)

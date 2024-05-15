@@ -2,6 +2,7 @@
 # © Copyright 2023 Zapata Computing Inc.
 ################################################################################
 
+from math import ceil
 from typing import Tuple
 
 import numpy as np
@@ -58,7 +59,7 @@ def get_single_factorized_qpe_toffoli_and_qubit_cost(
         lam,
         allowable_phase_estimation_error,
         L=rank,
-        chi=bits_precision_coefficients,
+        chi=ceil(bits_precision_coefficients),
         stps=20000,
     )[0]
 
@@ -67,7 +68,7 @@ def get_single_factorized_qpe_toffoli_and_qubit_cost(
         lam,
         allowable_phase_estimation_error,
         L=rank,
-        chi=bits_precision_coefficients,
+        chi=ceil(bits_precision_coefficients),
         stps=stps1,
     )
     return sf_total_toffoli_cost, sf_logical_qubits

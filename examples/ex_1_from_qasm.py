@@ -9,19 +9,14 @@ to install the extra.
 
 import os
 
-from orquestra.integrations.qiskit.conversions import import_from_qiskit
 from qiskit.circuit import QuantumCircuit
 
 from benchq.algorithms.data_structures import AlgorithmImplementation, ErrorBudget
-from benchq.problem_embeddings import get_program_from_circuit
-from benchq.quantum_hardware_modeling import BASIC_SC_ARCHITECTURE_MODEL
-from benchq.resource_estimators.graph_estimators import (
-    GraphResourceEstimator,
-    create_big_graph_from_subcircuits,
-    get_custom_resource_estimation,
-    synthesize_clifford_t,
-    transpile_to_native_gates,
+from benchq.compilation.graph_states.implementation_compiler import (
+    get_implementation_compiler,
 )
+from benchq.quantum_hardware_modeling import BASIC_SC_ARCHITECTURE_MODEL
+from benchq.resource_estimators.graph_estimator import GraphResourceEstimator
 
 
 def main(file_name):
@@ -43,27 +38,18 @@ def main(file_name):
         qiskit_circuit, error_budget, 1
     )
 
+    # Here we run the resource estimation pipeline:
     # Architecture model is used to define the hardware model.
     architecture_model = BASIC_SC_ARCHITECTURE_MODEL
-
-    # Here we run the resource estimation pipeline.
-    # In this case before performing estimation we use the following transformers:
-    # 1. Simplify rotations – it is a simple transpilation that removes redundant
-    # rotations from the circuit, such as RZ(0) or RZ(2pi) and replaces RX and RY
-    # gates with RZs
-    # 2. Gate synthesis – replaces all RZ gates with Clifford+T gates
-    # 3. Create big graph from subcircuits – this transformer is used to create
-    # a graph from subcircuits. It is needed to perform resource estimation using
-    # the graph resource estimator. In this case we use delayed gate synthesis, as
-    # we have already performed gate synthesis in the previous step.
-    gsc_resource_estimates = get_custom_resource_estimation(
+    # Create the estimator object, we can optimize for "Time" or "Space"
+    estimator = GraphResourceEstimator(optimization="Time", verbose=True)
+    # Use the default compiler
+    compiler = get_implementation_compiler()
+    # Put all the pieces together to get a resource estimate
+    gsc_resource_estimates = estimator.compile_and_estimate(
         algorithm_implementation,
-        estimator=GraphResourceEstimator(architecture_model),
-        transformers=[
-            transpile_to_native_gates,
-            synthesize_clifford_t(error_budget),
-            create_big_graph_from_subcircuits(),
-        ],
+        compiler,
+        architecture_model,
     )
     print("Resource estimation results:")
     print(gsc_resource_estimates)
@@ -71,4 +57,4 @@ def main(file_name):
 
 if __name__ == "__main__":
     current_directory = os.path.dirname(__file__)
-    main(current_directory + "/data/example_circuit.qasm")
+    main(current_directory + "/data/ghz_circuit.qasm")

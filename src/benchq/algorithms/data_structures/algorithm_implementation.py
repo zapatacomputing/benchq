@@ -1,17 +1,13 @@
 from dataclasses import dataclass
-from typing import Generic, TypeVar
 
 from ...conversions import SUPPORTED_CIRCUITS, import_circuit
-from ...problem_embeddings import QuantumProgram, get_program_from_circuit
+from ...problem_embeddings import QuantumProgram
 from .error_budget import ErrorBudget
-from .graph_partition import GraphPartition
-
-T = TypeVar("T", QuantumProgram, GraphPartition)
 
 
 @dataclass
-class AlgorithmImplementation(Generic[T]):
-    program: T
+class AlgorithmImplementation:
+    program: QuantumProgram
     error_budget: ErrorBudget
     n_shots: int
 
@@ -19,5 +15,27 @@ class AlgorithmImplementation(Generic[T]):
     def from_circuit(
         cls, circuit: SUPPORTED_CIRCUITS, error_budget: ErrorBudget, n_shots: int = 1
     ):
-        program = get_program_from_circuit(import_circuit(circuit))
+        program = QuantumProgram.from_circuit(import_circuit(circuit))
         return AlgorithmImplementation(program, error_budget, n_shots)
+
+    def transpile_to_clifford_t(self):
+        return AlgorithmImplementation(
+            self.program.transpile_to_clifford_t(
+                self.error_budget.transpilation_failure_tolerance
+            ),
+            self.error_budget,
+            self.n_shots,
+        )
+
+    @property
+    def n_t_gates_after_transpilation(self):
+        return self.program.get_n_t_gates_after_transpilation(
+            self.error_budget.transpilation_failure_tolerance
+        )
+
+    def compile_to_native_gates(self, verbose: bool = False):
+        return AlgorithmImplementation(
+            self.program.compile_to_native_gates(verbose),
+            self.error_budget,
+            self.n_shots,
+        )

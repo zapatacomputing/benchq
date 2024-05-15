@@ -12,7 +12,7 @@ def get_decoder_info(
     hw_model,
     decoder_model: Optional[DecoderModel],
     code_distance: int,
-    space_time_volume: float,
+    space_time_volume_in_logical_qubit_tocks: float,
     n_logical_qubits: int,
 ) -> Optional[DecoderInfo]:
     if not decoder_model:
@@ -21,8 +21,8 @@ def get_decoder_info(
         speed_limit = get_decoder_distance_limit_due_to_speed(hw_model, decoder_model)
         if code_distance >= decoder_model.highest_calculated_distance:
             warnings.warn(
-                f"Code distance {code_distance} is too high to get resource estimates "
-                "because resource estimates have not been calculated for "
+                f"Code distance {code_distance} is too high to get decoder resource "
+                "estimates because decoder properties have not been calculated for "
                 f"distances beyond {decoder_model.highest_calculated_distance}.",
                 RuntimeWarning,
             )
@@ -36,7 +36,7 @@ def get_decoder_info(
             return None
         else:
             decoder_total_energy_in_joules = (
-                space_time_volume
+                space_time_volume_in_logical_qubit_tocks
                 * decoder_model.power_in_nanowatts(code_distance)
                 * decoder_model.delay_in_nanoseconds(code_distance)
                 * 1e-18

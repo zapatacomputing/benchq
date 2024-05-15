@@ -29,7 +29,7 @@ def iter_auto_ccz_factories(
                 space=(w, h),
                 qubits=w * h * physical_qubits_per_logical_qubit(l2_distance),
                 distillation_time_in_cycles=int(d * l2_distance),
-                n_t_gates_produced_per_distillation=2,
+                t_gates_per_distillation=2,
             )
 
 
@@ -102,7 +102,7 @@ def _two_level_t_state_factory_1p1000(
         space=(12 * 8, 4),
         qubits=(12 * 8) * (4) * physical_qubits_per_logical_qubit(31),
         distillation_time_in_cycles=6 * 31,
-        n_t_gates_produced_per_distillation=2,
+        t_gates_per_distillation=2,
     )
 
 

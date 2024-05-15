@@ -34,7 +34,7 @@ from benchq.resource_estimators.resource_info import ResourceInfo
                 "code_distance": 19,
                 "decoder_info": None,
                 "extra": {
-                    "max_graph_degree": 51,
+                    "num_logical_qubits": 51,
                     "n_measurement_steps": 81,
                     "n_nodes": 1550,
                     "n_rotation_gates": 0,
@@ -49,7 +49,7 @@ from benchq.resource_estimators.resource_info import ResourceInfo
             {
                 "code_distance": 19,
                 "decoder_info": None,
-                "extra.max_graph_degree": 51,
+                "extra.num_logical_qubits": 51,
                 "extra.n_measurement_steps": 81,
                 "extra.n_nodes": 1550,
                 "extra.n_rotation_gates": 0,
@@ -111,9 +111,9 @@ def test_log_resource_info_to_mlflow(mock_mlflow):
         logical_error_rate=0.1,
         n_logical_qubits=1,
         n_physical_qubits=1,
-        routing_to_measurement_volume_ratio=1,
         total_time_in_seconds=0.01,
         decoder_info=None,
+        optimization="gamma",
         magic_state_factory_name="tau",
         extra=None,
     )

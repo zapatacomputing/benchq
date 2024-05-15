@@ -6,4 +6,3 @@ from .algorithm_implementation import AlgorithmImplementation
 
 # Data structures used to represent algorithms and how they are implemented
 from .error_budget import ErrorBudget
-from .graph_partition import GraphPartition

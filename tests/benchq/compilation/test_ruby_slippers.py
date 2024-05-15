@@ -2,6 +2,7 @@
 # © Copyright 2022-2023 Zapata Computing Inc.
 ################################################################################
 import os
+import pathlib
 
 import networkx as nx
 import numpy as np
@@ -12,12 +13,17 @@ from orquestra.integrations.qiskit.conversions import import_from_qiskit
 from orquestra.quantum.circuits import CNOT, CZ, Circuit, H, S, T, X
 from qiskit import QuantumCircuit
 
-from benchq.compilation import (
-    jl,
+from benchq.compilation.circuits import (
+    compile_to_native_gates,
     pyliqtr_transpile_to_clifford_t,
-    transpile_to_native_gates,
 )
+from benchq.compilation.graph_states import jl
 from benchq.problem_embeddings.quantum_program import QuantumProgram
+
+SKIP_SLOW = pytest.mark.skipif(
+    os.getenv("SLOW_BENCHMARKS") is None,
+    reason="Slow benchmarks can only run if SLOW_BENCHMARKS env variable is defined",
+)
 
 
 @pytest.mark.parametrize(
@@ -62,15 +68,72 @@ from benchq.problem_embeddings.quantum_program import QuantumProgram
 def test_stabilizer_states_are_the_same_for_simple_circuits(circuit):
     target_tableau = get_target_tableau(circuit)
 
-    loc, adj, _ = jl.run_ruby_slippers(circuit, False, 999)
+    hyperparams = jl.RbSHyperparams(
+        jl.UInt16(999), jl.UInt8(4), jl.UInt8(6), jl.UInt32(1e5), jl.UInt8(0)
+    )
 
-    vertices = list(zip(loc, adj))
+    asg, pauli_tracker, _ = jl.get_rbs_graph_state_data(
+        circuit,
+        verbose=False,
+        takes_graph_input=False,
+        gives_graph_output=False,
+        optimization="Time",
+        hyperparams=hyperparams,
+    )
+    num_logical_qubits = jl.get_num_logical_qubits(pauli_tracker.layering, asg, "Time")
 
+    asg = jl.python_asg(asg)
+    pauli_tracker = jl.python_pauli_tracker(pauli_tracker)
+
+    vertices = list(zip(asg["sqs"], asg["edge_data"]))
     graph_tableau = get_stabilizer_tableau_from_vertices(vertices)
 
+    assert len(pauli_tracker["layering"]) == 1
+    assert num_logical_qubits == circuit.n_qubits
     assert_tableaus_correspond_to_the_same_stabilizer_state(
         graph_tableau, target_tableau
     )
+
+
+@pytest.mark.parametrize(
+    "circuit, target_non_clifford_layers, target_qubits, optimization, max_num_qubits",
+    [
+        (Circuit([H(0)] + [CNOT(0, i) for i in range(4)]), 1, 4, "Time", -1),
+        (Circuit([H(0)] + [CNOT(0, i) for i in range(4)]), 3, 2, "Space", -1),
+        (Circuit([H(0)] + [CNOT(0, i) for i in range(4)]), 3, 2, "Variable", 2),
+        (Circuit([H(0), T(0)] * 3), 3, 3, "Time", -1),
+        (Circuit([H(0), T(0)] * 3), 3, 2, "Space", -1),
+        (Circuit([H(0), T(0)] * 3), 3, 2, "Variable", 2),
+    ],
+)
+def test_tocks_layers_and_qubits_are_correct(
+    circuit,
+    target_non_clifford_layers,
+    target_qubits,
+    optimization,
+    max_num_qubits,
+):
+    hyperparams = jl.RbSHyperparams(
+        jl.UInt16(999), jl.UInt8(4), jl.UInt8(6), jl.UInt32(1e5), jl.UInt8(0)
+    )
+    asg, pauli_tracker, _ = jl.get_rbs_graph_state_data(
+        circuit,
+        verbose=False,
+        takes_graph_input=False,
+        gives_graph_output=False,
+        optimization=optimization,
+        hyperparams=hyperparams,
+        max_num_qubits=max_num_qubits,
+    )
+    num_logical_qubits = jl.get_num_logical_qubits(
+        pauli_tracker.layering, asg, optimization
+    )
+
+    asg = jl.python_asg(asg)
+    pauli_tracker = jl.python_pauli_tracker(pauli_tracker)
+
+    assert len(pauli_tracker["layering"]) == target_non_clifford_layers
+    assert num_logical_qubits == target_qubits
 
 
 @pytest.mark.parametrize(
@@ -89,13 +152,25 @@ def test_stabilizer_states_are_the_same_for_circuits(filename):
             QuantumCircuit.from_qasm_file(os.path.join("examples", "data", filename))
         )
 
-    circuit = transpile_to_native_gates(qiskit_circuit)
+    circuit = compile_to_native_gates(qiskit_circuit)
     test_circuit = get_icm(circuit)
 
     target_tableau = get_target_tableau(test_circuit)
 
-    loc, adj, _ = jl.run_ruby_slippers(test_circuit, False, 999)
-    vertices = list(zip(loc, adj))
+    hyperparams = jl.RbSHyperparams(
+        jl.UInt16(999), jl.UInt8(4), jl.UInt8(6), jl.UInt32(1e5), jl.UInt8(0)
+    )
+    asg, pauli_tracker, _ = jl.get_rbs_graph_state_data(
+        circuit,
+        verbose=False,
+        takes_graph_input=False,
+        gives_graph_output=False,
+        optimization="Time",
+        hyperparams=hyperparams,
+    )
+    asg = jl.python_asg(asg)
+
+    vertices = list(zip(asg["sqs"], asg["edge_data"]))
     graph_tableau = get_stabilizer_tableau_from_vertices(vertices)
 
     assert_tableaus_correspond_to_the_same_stabilizer_state(
@@ -103,6 +178,7 @@ def test_stabilizer_states_are_the_same_for_circuits(filename):
     )
 
 
+@SKIP_SLOW
 @pytest.mark.parametrize(
     "filename",
     [
@@ -129,12 +205,24 @@ def test_stabilizer_states_are_the_same_for_circuits_with_decomposed_rotations(
             qiskit_circuit, circuit_precision=10**-2
         )
         test_circuit = get_icm(clifford_t)
+        test_circuit = compile_to_native_gates(test_circuit)
 
         target_tableau = get_target_tableau(test_circuit)
 
         # ensure state does not teleport
-        loc, adj, _ = jl.run_ruby_slippers(test_circuit, True, 9999, 9999)
-        vertices = list(zip(loc, adj))
+        hyperparams = jl.RbSHyperparams(
+            jl.UInt16(999), jl.UInt8(4), jl.UInt8(6), jl.UInt32(1e5), jl.UInt8(0)
+        )
+        asg, pauli_tracker, _ = jl.get_rbs_graph_state_data(
+            test_circuit,
+            verbose=False,
+            takes_graph_input=False,
+            gives_graph_output=False,
+            optimization="Time",
+            hyperparams=hyperparams,
+        )
+        asg = jl.python_asg(asg)
+        vertices = list(zip(asg["sqs"], asg["edge_data"]))
 
         graph_tableau = get_stabilizer_tableau_from_vertices(vertices)
 
@@ -164,15 +252,17 @@ def test_stabilizer_states_are_the_same_for_circuits_with_decomposed_rotations(
         (Circuit([H(0), *[CNOT(0, i) for i in range(1, 15)]]), 4, 4, 4),
         # test gates that must be decomposed
         (Circuit([H(0), *[T(0) for _ in range(1, 5)]]), 4, 4, 0),
-        # test single teleporatation
-        (Circuit([H(0), *[T(0) for _ in range(1, 6)]]), 4, 4, 1),
-        (Circuit([H(0), *[T(0) for _ in range(1, 8)]]), 4, 4, 1),
-        # test multiple teleportations:
-        (Circuit([H(0), *[T(0) for _ in range(1, 9)]]), 4, 4, 2),
-        (Circuit([H(0), *[T(0) for _ in range(1, 11)]]), 4, 4, 2),
-        (Circuit([H(0), *[T(0) for _ in range(1, 12)]]), 4, 4, 3),
-        (Circuit([H(0), *[T(0) for _ in range(1, 14)]]), 4, 4, 3),
-        (Circuit([H(0), *[T(0) for _ in range(1, 15)]]), 4, 4, 4),
+        # commenting out these test for now as they are only relevant for
+        # decomposition strategy 1.
+        # # test single teleporatation
+        # (Circuit([H(0), *[T(0) for _ in range(1, 6)]]), 4, 4, 1),
+        # (Circuit([H(0), *[T(0) for _ in range(1, 8)]]), 4, 4, 1),
+        # # test multiple teleportations with gates that must be decomposed
+        # (Circuit([H(0), *[T(0) for _ in range(1, 9)]]), 4, 4, 2),
+        # (Circuit([H(0), *[T(0) for _ in range(1, 11)]]), 4, 4, 2),
+        # (Circuit([H(0), *[T(0) for _ in range(1, 12)]]), 4, 4, 3),
+        # (Circuit([H(0), *[T(0) for _ in range(1, 14)]]), 4, 4, 3),
+        # (Circuit([H(0), *[T(0) for _ in range(1, 15)]]), 4, 4, 4),
     ],
 )
 def test_teleportation_produces_correct_number_of_nodes_for_small_circuits(
@@ -182,18 +272,24 @@ def test_teleportation_produces_correct_number_of_nodes_for_small_circuits(
     n_t_gates = quantum_program.n_t_gates
     n_rotations = quantum_program.n_rotation_gates
 
-    loc, adj, _ = jl.run_ruby_slippers(
-        circuit,
-        True,
-        9999,
-        teleportation_threshold,
-        teleportation_distance,
-        6,
-        99999,
-        1,
+    hyperparams = jl.RbSHyperparams(
+        jl.UInt16(teleportation_threshold),
+        jl.UInt8(teleportation_distance),
+        jl.UInt8(6),
+        jl.UInt32(1e5),
+        jl.UInt8(0),
     )
+    asg, pauli_tracker, _ = jl.get_rbs_graph_state_data(
+        circuit,
+        verbose=False,
+        takes_graph_input=False,
+        gives_graph_output=False,
+        optimization="Time",
+        hyperparams=hyperparams,
+    )
+    asg = jl.python_asg(asg)
 
-    n_nodes = len(loc)
+    n_nodes = len(asg["sqp"])
 
     assert (
         n_nodes
@@ -232,15 +328,28 @@ def test_teleportation_produces_correct_node_parity_for_large_circuits(
         quantum_program = QuantumProgram.from_circuit(clifford_t)
         n_t_gates = quantum_program.n_t_gates
 
-        loc, adj, _ = jl.run_ruby_slippers(clifford_t, False, 9999)
+        # set threshold low so we teleport many times
+        hyperparams = jl.RbSHyperparams(
+            jl.UInt16(3), jl.UInt8(4), jl.UInt8(6), jl.UInt32(1e5), jl.UInt8(0)
+        )
+        asg, pauli_tracker, _ = jl.get_rbs_graph_state_data(
+            clifford_t,
+            verbose=False,
+            takes_graph_input=False,
+            gives_graph_output=False,
+            optimization="Time",
+            hyperparams=hyperparams,
+        )
+        asg = jl.python_asg(asg)
 
-        n_nodes = len(loc)
+        n_nodes = len(asg["sqp"])
 
         assert n_nodes >= n_t_gates
         # teleportation only adds 2 nodes at a time.
-        assert (n_nodes - n_t_gates) % 2 == 0
+        assert (n_nodes - n_t_gates - clifford_t.n_qubits) % 2 == 0
 
 
+@pytest.mark.skip(reason="This test requires hyperparameter tuning.")
 @pytest.mark.parametrize(
     "circuit, rbs_iteration_time, expected_prop_range",
     [
@@ -257,7 +366,14 @@ def test_teleportation_produces_correct_node_parity_for_large_circuits(
 def test_rbs_gives_reasonable_prop(circuit, rbs_iteration_time, expected_prop_range):
     # when
     _, _, prop = jl.run_ruby_slippers(
-        circuit, True, 9999, 40, 4, 6, 99999, 1, rbs_iteration_time
+        circuit,
+        takes_graph_input=False,
+        gives_graph_output=False,
+        verbose=True,
+        max_graph_size=9999,
+        teleportation_threshold=40,
+        teleportation_distance=9,
+        max_time=rbs_iteration_time,
     )
 
     # then

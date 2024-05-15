@@ -18,7 +18,7 @@ from orquestra.quantum.circuits import (
     Z,
 )
 
-from benchq.compilation import transpile_to_native_gates
+from benchq.compilation.circuits import compile_to_native_gates
 
 TOFFOLI_DECOMPOSITION = [
     H(2),
@@ -102,7 +102,7 @@ CCZ_DECOMPOSITION = [
     ],
 )
 def test_simplify_rotation_handles_rotation_gates(input_circuit, output_circuit):
-    simplified_circuit = transpile_to_native_gates(input_circuit)
+    simplified_circuit = compile_to_native_gates(input_circuit)
     assert simplified_circuit == output_circuit
 
 
@@ -123,7 +123,7 @@ def test_simplify_rotation_handles_rotation_gates(input_circuit, output_circuit)
 def test_simplify_rotation_handles_special_angles(angle, output_gates):
     qubit_id = 0
     circuit = Circuit([RZ(angle)(qubit_id)])
-    simplified_circuit = transpile_to_native_gates(circuit)
+    simplified_circuit = compile_to_native_gates(circuit)
     assert simplified_circuit == Circuit(
         [output_gate(qubit_id) for output_gate in output_gates]
     )

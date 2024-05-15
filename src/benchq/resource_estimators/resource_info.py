@@ -4,14 +4,20 @@
 """Data structures describing estimated resources and related info."""
 
 from dataclasses import dataclass, field
-from typing import Generic, List, Optional, TypeVar
+from typing import Generic, Optional, TypeVar
+
+from benchq.compilation.graph_states.compiled_data_structures import (
+    CompiledAlgorithmImplementation,
+)
+
+from ..visualization_tools.resource_allocation import CycleAllocation, QubitAllocation
 
 TExtra = TypeVar("TExtra")
 
 
 @dataclass
 class DecoderInfo:
-    """Information relating the deceoder."""
+    """Information relating the decoder."""
 
     total_energy_in_joules: float
     power_in_watts: float
@@ -55,50 +61,29 @@ class ResourceInfo(Generic[TExtra]):
     There are several variants of this class aliased below.
     """
 
+    n_physical_qubits: int
+    total_time_in_seconds: float
+    optimization: str
     code_distance: int
     logical_error_rate: float
     n_logical_qubits: int
-    n_physical_qubits: int
-    total_time_in_seconds: float
     decoder_info: Optional[DecoderInfo]
     magic_state_factory_name: str
-    routing_to_measurement_volume_ratio: float
     extra: TExtra
     hardware_resource_info: Optional[DetailedIonTrapResourceInfo] = None
 
 
 @dataclass
-class GraphData:
-    """Minimal set of graph-related data needed for resource estimation."""
+class GraphExtra:
+    """Extra info relating to resource estimation using Graph State Compilation."""
 
-    max_graph_degree: int
-    n_nodes: int
-    n_t_gates: int
-    n_rotation_gates: int
-    n_measurement_steps: int
+    implementation: CompiledAlgorithmImplementation
+    time_allocation: Optional[CycleAllocation]
+    qubit_allocation: Optional[QubitAllocation]
 
 
 # Alias for type of resource info returned by GraphResourceEstimator
-GraphResourceInfo = ResourceInfo[GraphData]
-
-
-@dataclass
-class ExtrapolatedGraphData(GraphData):
-    """GraphData extended with extrapolation-related info."""
-
-    n_logical_qubits_r_squared: float
-    n_measurement_steps_r_squared: float
-    n_nodes_r_squared: float
-    data_used_to_extrapolate: List[GraphData] = field(repr=False)
-    steps_to_extrapolate_to: int
-
-    @property
-    def max_graph_degree_r_squared(self) -> float:
-        return self.n_logical_qubits_r_squared
-
-
-# Alias for type of resource info returned by ExtrapolationResourceEstimator
-ExtrapolatedGraphResourceInfo = ResourceInfo[ExtrapolatedGraphData]
+GraphResourceInfo = ResourceInfo[GraphExtra]
 
 
 @dataclass
@@ -110,7 +95,7 @@ class AzureExtra:
     raw_data: dict
 
 
-# Alias for type of resource info returned by AzureResourceEstimator
+# Alias for type of resource info returned by azure_estimator
 AzureResourceInfo = ResourceInfo[AzureExtra]
 
 
@@ -119,7 +104,7 @@ class OpenFermionExtra:
     """Extra info relating to resource estimation using OpenFermion."""
 
     fail_rate_msFactory: float
-    rounds_magicstateFactory: int
+    rounds_magicstateFactory: float
     scc_time: float
     physical_qubit_error_rate: float
 

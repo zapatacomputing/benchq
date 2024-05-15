@@ -27,9 +27,7 @@ from benchq.problem_ingestion.molecular_hamiltonians import (
     get_hydrogen_chain_hamiltonian_generator,
 )
 from benchq.quantum_hardware_modeling import BasicArchitectureModel
-from benchq.resource_estimators.footprint_estimators.openfermion_estimator import (
-    footprint_estimator,
-)
+from benchq.resource_estimators.openfermion_estimator import openfermion_estimator
 
 
 @pytest.mark.parametrize(
@@ -105,7 +103,7 @@ def test_physical_qubits_larger_than_logical_qubits():
     BAM.physical_qubit_error_rate = 1.0e-4
     BAM.surface_code_cycle_time_in_seconds = 1e-7
 
-    resource_estimate = footprint_estimator(
+    resource_estimate = openfermion_estimator(
         num_toffoli=n_toffoli,
         num_logical_qubits=n_logical_qubits,
         architecture_model=BAM,
@@ -132,7 +130,7 @@ def test_monotonicity_of_duration_wrt_scc_time(scc_time_low, scc_time_high):
     BAM_fast = BasicArchitectureModel
     BAM_fast.physical_qubit_error_rate = 1.0e-4
     BAM_fast.surface_code_cycle_time_in_seconds = scc_time_low
-    resource_estimates_low = footprint_estimator(
+    resource_estimates_low = openfermion_estimator(
         num_toffoli=n_toffoli,
         num_logical_qubits=n_logical_qubits,
         architecture_model=BAM_fast,
@@ -141,7 +139,7 @@ def test_monotonicity_of_duration_wrt_scc_time(scc_time_low, scc_time_high):
     BAM_slow = BasicArchitectureModel
     BAM_slow.physical_qubit_error_rate = 1.0e-4
     BAM_slow.surface_code_cycle_time_in_seconds = scc_time_high
-    resource_estimates_high = footprint_estimator(
+    resource_estimates_high = openfermion_estimator(
         num_toffoli=n_toffoli,
         num_logical_qubits=n_logical_qubits,
         architecture_model=BAM_slow,
@@ -174,7 +172,7 @@ def test_linearity_of_duration_wrt_scc_time(scc_time_low, scc_time_high):
     BAM_fast.physical_qubit_error_rate = 1.0e-4
     BAM_fast.surface_code_cycle_time_in_seconds = scc_time_low
 
-    resource_estimates_low = footprint_estimator(
+    resource_estimates_low = openfermion_estimator(
         num_toffoli=n_toffoli,
         num_logical_qubits=n_logical_qubits,
         architecture_model=BAM_fast,
@@ -183,7 +181,7 @@ def test_linearity_of_duration_wrt_scc_time(scc_time_low, scc_time_high):
     BAM_slow = BasicArchitectureModel
     BAM_slow.physical_qubit_error_rate = 1.0e-4
     BAM_slow.surface_code_cycle_time_in_seconds = scc_time_high
-    resource_estimates_high = footprint_estimator(
+    resource_estimates_high = openfermion_estimator(
         num_toffoli=n_toffoli,
         num_logical_qubits=n_logical_qubits,
         architecture_model=BAM_slow,
@@ -216,13 +214,13 @@ def test_ratio_of_failure_prob_of_magicstateFactory(num_toffoli, num_t):
     BAM.physical_qubit_error_rate = 1.0e-4
     BAM.surface_code_cycle_time_in_seconds = 2e-6
 
-    best_toffoli = footprint_estimator(
+    best_toffoli = openfermion_estimator(
         num_logical_qubits=num_logical_qubits,
         num_toffoli=num_toffoli,
         architecture_model=BAM,
         hardware_failure_tolerance=1e-1,
     )
-    best_T = footprint_estimator(
+    best_T = openfermion_estimator(
         num_logical_qubits=num_logical_qubits,
         num_t=num_t,
         architecture_model=BAM,
@@ -255,13 +253,13 @@ def test_calc_of_algorithm_failure_prob(n_toffoli, n_T):
     BAM = BasicArchitectureModel
     BAM.physical_qubit_error_rate = 1.0e-4
     BAM.surface_code_cycle_time_in_seconds = 2e-6
-    best_toffoli = footprint_estimator(
+    best_toffoli = openfermion_estimator(
         num_logical_qubits=num_logical_qubits,
         num_toffoli=n_toffoli,
         architecture_model=BAM,
         hardware_failure_tolerance=1e-1,
     )
-    best_T = footprint_estimator(
+    best_T = openfermion_estimator(
         num_logical_qubits=num_logical_qubits,
         num_t=n_T,
         architecture_model=BAM,
@@ -284,14 +282,14 @@ def test_algorithm_failure_prob_calculation():
     BAM = BasicArchitectureModel
     BAM.physical_qubit_error_rate = 1.0e-4
     BAM.surface_code_cycle_time_in_seconds = 2e-6
-    best_cost_toffoli = footprint_estimator(
+    best_cost_toffoli = openfermion_estimator(
         num_logical_qubits=num_logical_qubits,
         num_toffoli=20,
         num_t=20,
         architecture_model=BAM,
         hardware_failure_tolerance=1e-1,
     )
-    best_cost_t = footprint_estimator(
+    best_cost_t = openfermion_estimator(
         num_logical_qubits=num_logical_qubits,
         num_toffoli=30,
         num_t=0,
@@ -316,7 +314,7 @@ def test_default_values():
     BAM.physical_qubit_error_rate = 1.0e-4
     BAM.surface_code_cycle_time_in_seconds = 2 * 1e-6
     with pytest.raises(ValueError) as dvalue:
-        a, b = footprint_estimator(
+        a, b = openfermion_estimator(
             num_logical_qubits=num_logical_qubits,
             architecture_model=BAM,
             hardware_failure_tolerance=1e-1,
@@ -334,7 +332,7 @@ def test_all_default_values():
     """
     num_logical_qubits = 12
     with pytest.raises(ValueError) as dvalue:
-        footprint_estimator(
+        openfermion_estimator(
             num_logical_qubits=num_logical_qubits,
             hardware_failure_tolerance=1e-1,
         )
@@ -348,7 +346,7 @@ def test_default_scc_time():
     This test will verify attributes of
     default Architecture Model i.e. BASIC_SC_ARCHITECTURE_MODEL
     """
-    cost = footprint_estimator(
+    cost = openfermion_estimator(
         num_logical_qubits=num_logical_qubits,
         num_t=25,
         num_toffoli=25,
@@ -358,10 +356,10 @@ def test_default_scc_time():
     assert cost.extra.scc_time == 0.1e-6
 
 
-def test_footprint_estimator_supports_large_circuits():
+def test_openfermion_estimator_supports_large_circuits():
     n_logical_qubits = 4e3
     n_toffoli = 1e12
-    resource_estimate = footprint_estimator(
+    resource_estimate = openfermion_estimator(
         n_logical_qubits, n_toffoli, hardware_failure_tolerance=1e-1
     )
     assert resource_estimate.n_physical_qubits > n_logical_qubits

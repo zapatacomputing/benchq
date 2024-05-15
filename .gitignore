@@ -146,3 +146,6 @@ juliapkg.json
 
 # igonore mlflow run files
 *mlruns*
+
+# ignore jabalizer files
+jabalizer_temp/

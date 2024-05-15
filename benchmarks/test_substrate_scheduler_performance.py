@@ -1,7 +1,9 @@
 import networkx as nx
 import pytest
 
-from benchq.resource_estimators.graph_estimators import substrate_scheduler
+from benchq.compilation.graph_states.substrate_scheduler.python_substrate_scheduler import (
+    python_substrate_scheduler,
+)
 
 
 @pytest.mark.parametrize("preset", ["fast", "optimized"])
@@ -13,7 +15,7 @@ class TestSubstrateScheduler:
     @pytest.mark.parametrize("size", [10, 100, 1000])
     def test_substrate_scheduler_timing(self, benchmark, graph, size, preset):
         graph = graph(size)
-        benchmark(substrate_scheduler, graph, preset)
+        benchmark(python_substrate_scheduler, graph, preset)
 
     @pytest.mark.parametrize(
         "graph",
@@ -24,7 +26,7 @@ class TestSubstrateScheduler:
         self, benchmark, graph, size, preset
     ):
         graph = graph(size)
-        benchmark(substrate_scheduler, graph, preset)
+        benchmark(python_substrate_scheduler, graph, preset)
 
     @pytest.mark.parametrize("chain_size", [10, 100])
     @pytest.mark.parametrize("bell_size", [10, 100])
@@ -32,7 +34,7 @@ class TestSubstrateScheduler:
         self, benchmark, chain_size, bell_size, preset
     ):
         graph = nx.barbell_graph(chain_size, bell_size)
-        benchmark(substrate_scheduler, graph, preset)
+        benchmark(python_substrate_scheduler, graph, preset)
 
     @pytest.mark.parametrize("size", [10, 100])
     @pytest.mark.parametrize("probablity_of_edge", [0.01, 0.1])
@@ -40,4 +42,4 @@ class TestSubstrateScheduler:
         self, benchmark, size, probablity_of_edge, preset
     ):
         graph = nx.erdos_renyi_graph(size, probablity_of_edge, seed=123)
-        benchmark(substrate_scheduler, graph, preset)
+        benchmark(python_substrate_scheduler, graph, preset)

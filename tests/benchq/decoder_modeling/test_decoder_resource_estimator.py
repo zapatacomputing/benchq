@@ -24,7 +24,7 @@ def test_none_decoder_model_returns_non_decoder_info():
         (17, "the decoder is too slow", "decoder_test_data_speed_limited"),
         (
             32,
-            "resource estimates have not been calculated",
+            "decoder properties have not been calculated",
             "decoder_test_data_size_limited",
         ),
     ],

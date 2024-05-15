@@ -7,13 +7,12 @@ from typing import Dict, Generic, Iterable, List, Optional, Sequence, TypeVar, c
 import cirq
 import numpy as np
 import pyLIQTR.QSP as QSP
-from orquestra.integrations.cirq.conversions import import_from_cirq, to_openfermion
+from orquestra.integrations.cirq.conversions import import_from_cirq
 from orquestra.quantum.circuits import Circuit, GateOperation
-from orquestra.quantum.operators import PauliRepresentation
 from pyLIQTR.QSP import gen_qsp
 from pyLIQTR.QSP.qsp_helpers import qsp_decompose_once
 
-from ...conversions import openfermion_to_pyliqtr
+from ...conversions import SUPPORTED_OPERATORS, get_pyliqtr_operator
 from ..quantum_program import QuantumProgram
 
 TCircuit = TypeVar("TCircuit")
@@ -49,14 +48,14 @@ class _Indices:
 
 
 def get_qsp_circuit(
-    operator: PauliRepresentation,
+    operator: SUPPORTED_OPERATORS,
     required_precision: float,
     dt: float,
     tmax: float,
     sclf: float,
     use_random_angles: bool = False,
 ) -> Circuit:
-    pyliqtr_operator = openfermion_to_pyliqtr(to_openfermion(operator))
+    pyliqtr_operator = get_pyliqtr_operator(operator)
 
     # Ns = int(np.ceil(tmax / dt))  # Total number of timesteps
     timestep_vec = np.arange(0, tmax + dt, sclf * dt)  # Define array of timesteps
@@ -95,11 +94,11 @@ def get_qsp_circuit(
 
 
 def get_qsp_program(
-    operator: PauliRepresentation,
+    operator: SUPPORTED_OPERATORS,
     n_block_encodings: int,
-    decompose_select_v: bool = True,
+    decompose_select_v: bool = False,
 ) -> QuantumProgram:
-    pyliqtr_operator = openfermion_to_pyliqtr(to_openfermion(operator))
+    pyliqtr_operator = get_pyliqtr_operator(operator)
     angles = np.random.random(3)
 
     qsp_generator = QSP.QSP.QSP(

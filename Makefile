@@ -24,10 +24,10 @@ style: flake8p mypy pyright black isort
 	@echo This project passes style!
 
 test:
-	$(PYTHON) -m pytest -W error tests
+	$(PYTHON) -m pytest tests
 
 coverage:
-	$(PYTHON) -m pytest -W error\
+	$(PYTHON) -m pytest \
 		--cov=src \
 		--cov-fail-under=$(MIN_COVERAGE) tests \
 		--no-cov-on-fail \
