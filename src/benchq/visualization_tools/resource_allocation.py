@@ -1,20 +1,19 @@
 import itertools
-import pandas as pd
 from copy import copy
-from typing import Tuple
+from typing import Optional
 
+import matplotlib
 import matplotlib.pyplot as plt
-
-from upsetplot import UpSet
-
-from matplotlib.colors import LinearSegmentedColormap
 import numpy as np
+import pandas as pd
+from matplotlib.axes import Axes
+from matplotlib.colors import LinearSegmentedColormap
+from upsetplot import UpSet
 
 default_process_types = {"distillation", "Tstate-to-Tgate", "entanglement"}
 
 
 class ResourceAllocation:
-
     def __init__(self, resource_name, process_types=default_process_types):
         """Initialize the ResourceAllocation object. We use the object to track
         the number of resources used by different combinations of processes.
@@ -39,8 +38,10 @@ class ResourceAllocation:
         """Add the resources used by processes that start at the same time.
 
         Args:
-            resource_tuple (tuple): a tuple of the number of resources used by each process.
-            processes_tuple (tuple): a tuple of the processes that start at the same time.
+            resource_tuple (tuple): a tuple of the number of resources used by each
+                process.
+            processes_tuple (tuple): a tuple of the processes that start at the same
+                time.
         """
         assert len(resource_tuple) == len(processes_tuple)
         for resources in resource_tuple:
@@ -83,7 +84,7 @@ class ResourceAllocation:
             [
                 self.allocation_data[combo]
                 for combo in self.allocation_data
-                if processes in combo
+                if all([process in combo for process in processes])
             ]
         )
 
@@ -101,23 +102,24 @@ class ResourceAllocation:
         for processes, resources in self.allocation_data.items():
             if resources != 0:
                 row = {process: process in processes for process in self.process_types}
-                row["resources"] = resources
+                row[self.resource_name] = resources
                 data.append(row)
         df = pd.DataFrame(data)
         df.fillna(False, inplace=True)
         return df
 
     def plot(self):
-        upset = self.plot_upset_plot(show_immediately=False)
-        self.plot_stacked_bar_chart(show_immediately=False, ax=upset["totals"])
+        upset = self.plot_upset_plot(is_subplot=True)
+        self.plot_stacked_bar_chart(is_subplot=True, ax=upset["totals"])
+        plt.close(2)  # Closes the empty second figure
         plt.show()
 
-    def plot_upset_plot(self, show_immediately=True):
+    def plot_upset_plot(self, is_subplot=False):
         """Plot a bar chart showing the time used by each process type."""
         df = self.to_pandas_dataframe()
         # Prepare the dataset for the upset plot by
         # summing up the resources for each combination
-        subset_data = df.groupby(list(self.process_types))["resources"].sum()
+        subset_data = df.groupby(list(self.process_types))[self.resource_name].sum()
         # Generating the upset plot
         upset = UpSet(
             subset_data,
@@ -135,19 +137,20 @@ class ResourceAllocation:
         plt.title("Parallelization Breakdown")
 
         # Show the plot
-        if show_immediately:
+        if not is_subplot:
             plt.show()
-
-        # plt.close()
 
         return axes_dict
 
-    def plot_stacked_bar_chart(self, show_immediately=True, ax=None):
+    def plot_stacked_bar_chart(self, is_subplot=False, ax=None):
         if ax is None:
             ax = plt
             process_types = self.process_types
-        else:
+        elif is_subplot:
+            assert isinstance(ax, Axes)
             process_types = [tick.get_text() for tick in ax.get_xticklabels()]
+        else:
+            raise ValueError("Axes can only be provided the plot is a subplot")
 
         init_resources = [0] * len(process_types)
         data = {i + 1: copy(init_resources) for i in range(len(process_types))}
@@ -173,18 +176,22 @@ class ResourceAllocation:
         height_cumulative = np.zeros(n_categories)
 
         # Labeling and legend
-        if show_immediately:
-            ax.ylabel(self.resource_name)
-            ax.title("Total " + self.resource_name + " for each Process")
-            ax.xticks(ind, process_types)
-            ax.xlabel("Process Types")
-        else:
+        if is_subplot:
+            assert isinstance(ax, Axes)
             ax.cla()
             ax.set_ylabel(self.resource_name)
             ax.set_title("Total " + self.resource_name + " \nfor each Process")
             ax.set_xticks(ind)
             ax.set_xticklabels(process_types)
             ax.set_xlabel("Process Types")
+        else:
+            # can't get pyright to recognize the type of ax as plt here
+            ax.ylabel(self.resource_name)  # type: ignore
+            ax.title(  # type: ignore
+                "Total " + self.resource_name + " for each Process"
+            )
+            ax.xticks(ind, process_types)  # type: ignore
+            ax.xlabel("Process Types")  # type: ignore
 
         # Plot each sub-category
         for i, (sub_category, values) in reversed(list(enumerate(data.items()))):
@@ -204,12 +211,11 @@ class ResourceAllocation:
             loc="upper left",
         )
 
-        if show_immediately:
-            ax.tight_layout()
+        if not is_subplot:
+            ax.tight_layout()  # type: ignore
             plt.show()
 
         fig, axes = plt.subplots()
-        # plt.close()
 
         return axes
 
@@ -237,9 +243,7 @@ class CycleAllocation(ResourceAllocation):
 
 
 class QubitAllocation(ResourceAllocation):
-    def __init__(
-        self, physical_qubits_per_logical_qubit, process_types=default_process_types
-    ):
+    def __init__(self, process_types=default_process_types):
         super().__init__("qubits", process_types)
 
     def get_num_logical_qubits(self, physical_qubits_per_logical_qubit):
@@ -248,10 +252,27 @@ class QubitAllocation(ResourceAllocation):
         computation."""
         physical_qubits_not_used_for_distillation = 0
         for combo in all_combinations(self.process_types):
-            if not "distillation" in combo:
+            if "distillation" not in combo:
                 physical_qubits_not_used_for_distillation += self.exclusive(*combo)
 
-        return (
+        num_logical_qubits = (
             physical_qubits_not_used_for_distillation
             / physical_qubits_per_logical_qubit
         )
+
+        if num_logical_qubits != int(num_logical_qubits):
+            raise ValueError("The number of logical qubits must be an integer.")
+
+        return int(num_logical_qubits)
+
+    def get_num_factories(self, physical_qubits_per_factory):
+        """Return the number of magic state factories that are being used by the
+        computation. Assumes that all qubits being used for exclusively distillation
+        are in factories."""
+        num_distillation_qubits = self.exclusive("distillation")
+        num_factories = num_distillation_qubits / physical_qubits_per_factory
+
+        if num_factories != int(num_factories):
+            raise ValueError("The number of factories must be an integer.")
+
+        return int(num_factories)

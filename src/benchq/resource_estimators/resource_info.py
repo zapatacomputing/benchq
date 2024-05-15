@@ -5,16 +5,12 @@
 
 from dataclasses import dataclass, field
 from typing import Generic, Optional, TypeVar
-import itertools
-import pandas as pd
-from ..visualization_tools.cycle_allocation import ResourceAllocation, QubitAllocation
-
 
 from benchq.compilation.graph_states.compiled_data_structures import (
     CompiledAlgorithmImplementation,
 )
-import matplotlib.pyplot as plt
-from matplotlib_venn import venn3, venn3_circles
+
+from ..visualization_tools.resource_allocation import CycleAllocation, QubitAllocation
 
 TExtra = TypeVar("TExtra")
 
@@ -71,18 +67,23 @@ class ResourceInfo(Generic[TExtra]):
     code_distance: int
     logical_error_rate: float
     n_logical_qubits: int
-    st_volume_in_logical_qubit_tocks: float
-    total_tocks: float
     decoder_info: Optional[DecoderInfo]
     magic_state_factory_name: str
-    cycle_allocation: ResourceAllocation
-    qubit_allocation: QubitAllocation
     extra: TExtra
     hardware_resource_info: Optional[DetailedIonTrapResourceInfo] = None
 
 
+@dataclass
+class GraphExtra:
+    """Extra info relating to resource estimation using Graph State Compilation."""
+
+    implementation: CompiledAlgorithmImplementation
+    time_allocation: Optional[CycleAllocation]
+    qubit_allocation: Optional[QubitAllocation]
+
+
 # Alias for type of resource info returned by GraphResourceEstimator
-GraphResourceInfo = ResourceInfo[CompiledAlgorithmImplementation]
+GraphResourceInfo = ResourceInfo[GraphExtra]
 
 
 @dataclass

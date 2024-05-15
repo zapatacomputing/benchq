@@ -217,10 +217,11 @@ def openfermion_estimator(
 
     resource_info = OpenFermionResourceInfo(
         n_physical_qubits=best_cost.physical_qubit_count,
-        n_logical_qubits=best_params.max_allocated_logical_qubits,
         total_time_in_seconds=best_cost.duration,
+        optimization="Space",
         code_distance=best_params.logical_data_qubit_distance,
         logical_error_rate=best_cost.algorithm_failure_probability,
+        n_logical_qubits=best_params.max_allocated_logical_qubits,
         decoder_info=decoder_info,
         magic_state_factory_name=best_params.magic_state_factory.name,
         extra=OpenFermionExtra(

@@ -45,6 +45,9 @@ module = [
     'numba.*',
     'juliapkg.*',
     'urllib3.*',
+    'pandas.*',
+    'upsetplot.*',
+    'pkg_resources.*',
 ]
 ignore_missing_imports = true
 

@@ -113,6 +113,7 @@ def test_log_resource_info_to_mlflow(mock_mlflow):
         n_physical_qubits=1,
         total_time_in_seconds=0.01,
         decoder_info=None,
+        optimization="gamma",
         magic_state_factory_name="tau",
         extra=None,
     )

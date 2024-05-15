@@ -153,7 +153,8 @@ end
 
 """
 Get the maximum number of nodes that the graph could possibly need. Helps to reduce
-memory usage when creating the graph state and the pauli tracker.
+memory usage when creating the graph state and the pauli tracker. Tends to be a
+massive overestimate, but is better than running out of memory.
 """
 function get_max_n_nodes(
     orquestra_circuit,

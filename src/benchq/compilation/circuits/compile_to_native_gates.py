@@ -1,3 +1,4 @@
+import time
 from typing import Iterable, Sequence
 
 import numpy as np
@@ -20,7 +21,6 @@ from orquestra.quantum.decompositions._decomposition import (
     DecompositionRule,
     decompose_operation,
 )
-import time
 
 from ...conversions._circuit_translations import import_circuit
 

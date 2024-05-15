@@ -18,12 +18,13 @@ from .resource_info import AzureExtra, AzureResourceInfo
 def _azure_result_to_resource_info(job_results: dict) -> AzureResourceInfo:
     return AzureResourceInfo(
         n_physical_qubits=job_results["physicalCounts"]["physicalQubits"],
+        total_time_in_seconds=job_results["physicalCounts"]["runtime_in_s"],
+        optimization="Space",
+        code_distance=job_results["logicalQubit"]["codeDistance"],
+        logical_error_rate=job_results["errorBudget"]["logical"],
         n_logical_qubits=job_results["physicalCounts"]["breakdown"][
             "algorithmicLogicalQubits"
         ],
-        total_time_in_seconds=job_results["physicalCounts"]["runtime_in_s"],
-        code_distance=job_results["logicalQubit"]["codeDistance"],
-        logical_error_rate=job_results["errorBudget"]["logical"],
         decoder_info=None,
         magic_state_factory_name="default",
         extra=AzureExtra(

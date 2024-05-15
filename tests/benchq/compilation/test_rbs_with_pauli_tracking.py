@@ -14,6 +14,7 @@ from benchq.conversions import export_circuit
 from benchq.visualization_tools.plot_graph_state import plot_graph_state
 
 np.random.seed(0)
+random.seed(0)
 
 SKIP_SLOW = pytest.mark.skipif(
     os.getenv("SLOW_BENCHMARKS") is None,
@@ -164,11 +165,9 @@ def simulate(circuit, init, asg, pauli_tracker, show_circuit=True):
             ):
                 remaining_dag[target][1].append(control)
 
-    sorted_nodes = topological_sort(
-        list(range(asg["n_nodes"])), pauli_tracker["cond_paulis"]
-    )
-
     print("Creating layering in simulation!")
+
+    all_nodes = list(range(asg["n_nodes"]))
 
     for layer_label, layer in enumerate(pauli_tracker["layering"]):
         c.barrier(label=f"Layer:{layer_label}")
@@ -183,7 +182,7 @@ def simulate(circuit, init, asg, pauli_tracker, show_circuit=True):
         c.barrier(label=f"Paulis:{layer_label}")
         # repeat many times to ensure that all possible paulis are enacted
         for _ in range(100):
-            for control in sorted_nodes:
+            for control in all_nodes:
                 # enact paulis which are controlled by that measurement
                 for target, controls in enumerate(remaining_dag):
                     x_controls, z_controls = controls

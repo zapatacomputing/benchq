@@ -71,7 +71,7 @@ def main():
         circuit_compiler=get_ruby_slippers_circuit_compiler(),
         destination="single-thread",
     )
-    estimator = GraphResourceEstimator(optimization="Space", verbose=True)
+    estimator = GraphResourceEstimator(optimization="Time", verbose=True)
 
     with measure_time() as t_info:
         resource_estimate = estimator.compile_and_estimate(

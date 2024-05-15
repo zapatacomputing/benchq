@@ -27,7 +27,7 @@ def test_factory_properties_are_correct(architecture_model):
         )
         assert factory.qubits > 0
         assert factory.distillation_time_in_cycles > 0
-        assert factory.n_t_gates_produced_per_distillation >= 1
+        assert factory.t_gates_per_distillation >= 1
 
 
 def test_factory_based_on_err_rate():

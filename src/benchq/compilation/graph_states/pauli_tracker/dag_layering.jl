@@ -316,13 +316,15 @@ function kahns_algorithm(
         end
 
         # Show progress in real time
-        counter += 1
-        dispcnt += 1
-        if verbose && dispcnt >= 1000
-            percent = round(Int, 100 * counter / total_length)
-            elapsed_time = round(time() - start_time, digits=2)
-            print("\r$(percent)% ($counter) completed in $(elapsed_time)s")
-            dispcnt = 0  # Reset display counter
+        if verbose
+            counter += 1
+            dispcnt += 1
+            if dispcnt >= 1000
+                percent = round(Int, 100 * counter / total_length)
+                elapsed_time = round(time() - start_time, digits=2)
+                print("\r$(percent)% ($counter) completed in $(elapsed_time)s")
+                dispcnt = 0  # Reset display counter
+            end
         end
     end
 

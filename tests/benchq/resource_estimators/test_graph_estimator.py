@@ -84,70 +84,70 @@ def test_resource_estimations_returns_results_for_different_architectures(
                 [Circuit([H(0), RZ(np.pi / 4)(0), CNOT(0, 1)])], 1, lambda x: [0]
             ),
             "Space",
-            {"code_distance": 8, "n_logical_qubits": 4},
+            {"code_distance": 9, "n_logical_qubits": 2},
         ),
         (
             QuantumProgram.from_circuit(
                 Circuit([RX(np.pi / 4)(0), RY(np.pi / 4)(0), CNOT(0, 1)])
             ),
             "Space",
-            {"code_distance": 9, "n_logical_qubits": 4},
+            {"code_distance": 9, "n_logical_qubits": 2},
         ),
         (
             QuantumProgram.from_circuit(
                 Circuit([H(0)] + [CNOT(i, i + 1) for i in range(3)])
             ),
             "Space",
-            {"code_distance": 9, "n_logical_qubits": 4},
+            {"code_distance": 9, "n_logical_qubits": 2},
         ),
         (
             QuantumProgram.from_circuit(
                 Circuit([H(0)] + [CNOT(i, i + 1) for i in range(3)] + [T(1), T(2)])
             ),
             "Space",
-            {"code_distance": 9, "n_logical_qubits": 4},
+            {"code_distance": 9, "n_logical_qubits": 2},
         ),
         (
             QuantumProgram.from_circuit(
                 Circuit([H(0), T(0), CNOT(0, 1), T(2), CNOT(2, 3)])
             ),
             "Space",
-            {"code_distance": 8, "n_logical_qubits": 4},
+            {"code_distance": 9, "n_logical_qubits": 2},
         ),
         (
             QuantumProgram(
                 [Circuit([H(0), RZ(np.pi / 4)(0), CNOT(0, 1)])], 1, lambda x: [0]
             ),
             "Time",
-            {"code_distance": 10, "n_logical_qubits": 18},
+            {"code_distance": 9, "n_logical_qubits": 12},
         ),
         (
             QuantumProgram.from_circuit(
                 Circuit([RX(np.pi / 4)(0), RY(np.pi / 4)(0), CNOT(0, 1)])
             ),
             "Time",
-            {"code_distance": 10, "n_logical_qubits": 18},
+            {"code_distance": 11, "n_logical_qubits": 12},
         ),
         (
             QuantumProgram.from_circuit(
                 Circuit([H(0)] + [CNOT(i, i + 1) for i in range(3)])
             ),
             "Time",
-            {"code_distance": 10, "n_logical_qubits": 24},
+            {"code_distance": 9, "n_logical_qubits": 16},
         ),
         (
             QuantumProgram.from_circuit(
                 Circuit([H(0)] + [CNOT(i, i + 1) for i in range(3)] + [T(1), T(2)])
             ),
             "Time",
-            {"code_distance": 10, "n_logical_qubits": 36},
+            {"code_distance": 9, "n_logical_qubits": 24},
         ),
         (
             QuantumProgram.from_circuit(
                 Circuit([H(0), T(0), CNOT(0, 1), T(2), CNOT(2, 3)])
             ),
             "Time",
-            {"code_distance": 10, "n_logical_qubits": 36},
+            {"code_distance": 9, "n_logical_qubits": 24},
         ),
     ],
 )

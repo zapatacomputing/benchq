@@ -13,6 +13,8 @@ SKIP_SLOW = pytest.mark.skipif(
     reason="Slow benchmarks can only run if SLOW_BENCHMARKS env variable is defined",
 )
 
+np.random.seed(0)
+
 
 def check_correctness_for_stitched_circuits(
     circuit,

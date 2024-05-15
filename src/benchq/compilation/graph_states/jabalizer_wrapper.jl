@@ -120,6 +120,12 @@ function get_jabalizer_graph_state_data(circuit, optimization, debug_flag=false,
         end
     end
 
+    for (i, measurment) in enumerate(measurements)
+        if measurment == []
+            measurements[i] = [I_code, 0.0]
+        end
+    end
+
     layering = [layer .+ 1 for layer in jabalizer_out["steps"]]
 
     asg = AlgorithmSpecificGraph(

@@ -17,6 +17,7 @@ def dummy_resource_info():
         n_logical_qubits=30,
         n_physical_qubits=300,
         total_time_in_seconds=5,
+        optimization="",
         decoder_info=None,
         magic_state_factory_name="",
         extra=None,

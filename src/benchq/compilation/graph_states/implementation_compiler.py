@@ -1,4 +1,4 @@
-from typing import Callable, Sequence
+from typing import Callable, List
 
 from orquestra import sdk
 from orquestra.quantum.circuits import Circuit
@@ -11,11 +11,6 @@ from .compiled_data_structures import (
     CompiledQuantumProgram,
     GSCInfo,
 )
-
-# @sdk.task(
-#     dependency_imports=[sdk.PythonImports("benchq[dev]")],
-#     custom_image="hub.stage.nexus.orquestra.io/zapatacomputing/benchq-ce:3eec2c8-sdk0.60.0",
-# )
 
 
 @sdk.task(
@@ -44,6 +39,7 @@ def distributed_graph_creation(
 
 def get_implementation_compiler(
     circuit_compiler=default_ruby_slippers_circuit_compiler,
+    max_subroutine_size: int = int(1e6),
     destination: str = "single-thread",
     num_cores: int = 3,
     config_name: str = "darpa-ta1",
@@ -55,11 +51,11 @@ def get_implementation_compiler(
         algorithm_implementation: AlgorithmImplementation,
         optimization: str = "Space",
         verbose: bool = False,
-    ) -> Sequence[GSCInfo]:
+    ) -> List[sdk.ArtifactFuture[GSCInfo]]:
         compiled_subroutine_list = []
-        for circuit_num, circuit in enumerate(
-            algorithm_implementation.program.subroutines
-        ):
+        program = algorithm_implementation.program
+        program = program.split_into_smaller_subroutines(max_subroutine_size)
+        for circuit_num, circuit in enumerate(program.subroutines):
             compiled_subroutine_list.append(
                 distributed_graph_creation(
                     circuit,
@@ -81,7 +77,9 @@ def get_implementation_compiler(
         if verbose:
             print("Beginning compilation...")
         program_compilation_wf = get_program_compilation_wf(
-            algorithm_implementation, optimization, verbose
+            algorithm_implementation,
+            optimization,
+            verbose,
         )
         if destination == "single-thread":
             wf_run = program_compilation_wf.run("in_process")

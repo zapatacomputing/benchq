@@ -9,4 +9,4 @@ class MagicStateFactory:
     space: Tuple[int, int]
     qubits: int
     distillation_time_in_cycles: float
-    n_t_gates_produced_per_distillation: int = 1
+    t_gates_per_distillation: int = 1  # number of T-gates produced per distillation
