@@ -26,8 +26,8 @@ class DecoderInfo:
 
 
 @dataclass
-class DetailedIonTrapResourceInfo:
-    """Info relating to detailed ion trap architecture model resources."""
+class ELUResourceInfo:
+    """Info relating to elementary logic unit (ELU) resources."""
 
     power_consumed_per_elu_in_kilowatts: float
     num_communication_ports_per_elu: int
@@ -37,6 +37,18 @@ class DetailedIonTrapResourceInfo:
     num_computational_qubits_per_elu: int
     num_optical_cross_connect_layers: int
     num_ELUs_per_optical_cross_connect: int
+
+
+@dataclass
+class DetailedIonTrapResourceInfo:
+    """Info relating to detailed ion trap architecture model resources."""
+
+    num_data_elus: int
+    data_elu_resource_info: ELUResourceInfo
+    num_bus_elus: int
+    bus_elu_resource_info: ELUResourceInfo
+    num_distillation_elus: int
+    distillation_elu_resource_info: ELUResourceInfo
 
     total_num_ions: int
     total_num_communication_qubits: int
