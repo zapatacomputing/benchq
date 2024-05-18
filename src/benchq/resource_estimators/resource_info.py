@@ -4,11 +4,15 @@
 """Data structures describing estimated resources and related info."""
 
 from dataclasses import dataclass, field
-from typing import Generic, Optional, TypeVar
+from typing import Generic, Optional, TypeVar, Tuple
+
 
 from benchq.compilation.graph_states.compiled_data_structures import (
     CompiledAlgorithmImplementation,
 )
+
+# from ..magic_state_distillation import MagicStateFactory
+
 
 from ..visualization_tools.resource_allocation import CycleAllocation, QubitAllocation
 
@@ -26,21 +30,31 @@ class DecoderInfo:
 
 
 @dataclass
-class ELUResourceInfo:
-    """Info relating to elementary logic unit (ELU) resources."""
-
-    power_consumed_per_elu_in_kilowatts: float
-    num_communication_ports_per_elu: int
-    second_switch_per_elu_necessary: bool
-    num_communication_qubits_per_elu: int
-    num_memory_qubits_per_elu: int
-    num_computational_qubits_per_elu: int
-    num_optical_cross_connect_layers: int
-    num_ELUs_per_optical_cross_connect: int
+class MagicStateFactoryInfo:
+    name: str
+    distilled_magic_state_error_rate: float
+    space: Tuple[int, int]
+    qubits: int
+    distillation_time_in_cycles: float
+    t_gates_per_distillation: int = 1  # number of T-gates produced per distillation
 
 
 @dataclass
-class DetailedIonTrapResourceInfo:
+class ELUResourceInfo:
+    """Info relating to elementary logic unit (ELU) resources."""
+
+    power_consumed_per_elu_in_kilowatts: Optional[float] = None
+    num_communication_ports_per_elu: Optional[int] = None
+    second_switch_per_elu_necessary: Optional[bool] = None
+    num_communication_ions_per_elu: Optional[int] = None
+    num_memory_ions_per_elu: Optional[int] = None
+    num_computational_ions_per_elu: Optional[int] = None
+    num_optical_cross_connect_layers: Optional[int] = None
+    num_ELUs_per_optical_cross_connect: Optional[int] = None
+
+
+@dataclass
+class DetailedIonTrapArchitectureResourceInfo:
     """Info relating to detailed ion trap architecture model resources."""
 
     num_data_elus: int
@@ -50,14 +64,28 @@ class DetailedIonTrapResourceInfo:
     num_distillation_elus: int
     distillation_elu_resource_info: ELUResourceInfo
 
-    total_num_ions: int
-    total_num_communication_qubits: int
-    total_num_memory_qubits: int
-    total_num_computational_qubits: int
-    total_num_communication_ports: int
-    num_elus: int
-    total_elu_power_consumed_in_kilowatts: float
-    total_elu_energy_consumed_in_kilojoules: float
+
+@dataclass
+class BusArchitectureResourceInfo:
+    """Info relating to bus architecture model resources."""
+
+    # The time optimal bus architecture is layed out as follows:
+    # |D|            |D|            |D|            |D|            |D|
+    # |B||B||B||B||B||B||B||B||B||B||B||B||B||B||B||B||B||B||B||B||B|
+    #    |M||M||M||M|   |M||M||M||M|   |M||M||M||M|   |M||M||M||M|
+    # with the spacing between data qubits determined by the number of
+    # teleportations that can happen per distillation.
+
+    # While the space optimal bus architecture is layed out as follows:
+    # |D|   |D|   |D|   |D|   |D|
+    # |B||B||B||B||B||B||B||B||B|
+    #    |M|   |M|   |M|   |M|
+
+    num_logical_data_qubits: int
+    num_logical_bus_qubits: int
+    data_and_bus_code_distance: int
+    num_magic_state_factories: int
+    magic_state_factory: MagicStateFactoryInfo
 
 
 @dataclass
@@ -82,7 +110,8 @@ class ResourceInfo(Generic[TExtra]):
     decoder_info: Optional[DecoderInfo]
     magic_state_factory_name: str
     extra: TExtra
-    hardware_resource_info: Optional[DetailedIonTrapResourceInfo] = None
+    logical_architecture_resource_info: Optional[BusArchitectureResourceInfo] = None
+    hardware_resource_info: Optional[DetailedIonTrapArchitectureResourceInfo] = None
 
 
 @dataclass

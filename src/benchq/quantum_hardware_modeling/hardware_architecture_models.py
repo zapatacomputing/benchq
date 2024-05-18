@@ -5,9 +5,15 @@ from dataclasses import dataclass
 from typing import Protocol, runtime_checkable
 
 from ..resource_estimators.resource_info import (
-    DetailedIonTrapResourceInfo,
+    ELUResourceInfo,
+    BusArchitectureResourceInfo,
+    DetailedIonTrapArchitectureResourceInfo,
     ResourceInfo,
+    MagicStateFactoryInfo,
 )
+
+
+import math
 
 
 class BasicArchitectureModel(Protocol):
@@ -27,12 +33,10 @@ class BasicArchitectureModel(Protocol):
     """
 
     @property
-    def physical_qubit_error_rate(self) -> float:
-        ...
+    def physical_qubit_error_rate(self) -> float: ...
 
     @property
-    def surface_code_cycle_time_in_seconds(self) -> float:
-        ...
+    def surface_code_cycle_time_in_seconds(self) -> float: ...
 
 
 @runtime_checkable
@@ -40,7 +44,9 @@ class DetailedArchitectureModel(BasicArchitectureModel, Protocol):
     """DetailedArchitectureModel extends basic one, with the ability to
     calculate detailed hardware estimates."""
 
-    def get_hardware_resource_estimates(self, resource_info: ResourceInfo):
+    def get_hardware_resource_estimates(
+        self, bus_architecture_resource_info: BusArchitectureResourceInfo
+    ):
         pass
 
 
@@ -69,74 +75,137 @@ class DetailedIonTrapModel:
         self.physical_qubit_error_rate = physical_qubit_error_rate
         self.surface_code_cycle_time_in_seconds = surface_code_cycle_time_in_seconds
 
-    def get_hardware_resource_estimates(self, resource_info: ResourceInfo):
-        code_distance = resource_info.code_distance
+    def get_hardware_resource_estimates(
+        self, bus_architecture_resource_info: BusArchitectureResourceInfo
+    ):
+        code_distance = bus_architecture_resource_info.data_and_bus_code_distance
 
-        # Compute per-elu values
-        (
-            memory_qubits,
-            computational_qubits,
-            communication_qubits,
-        ) = self.functional_designation_of_chains_within_ELU(code_distance)
+        # Check that the resource_info.logical_architecture_resource_info is BusArchitectureResourceInfo
+        if not isinstance(
+            bus_architecture_resource_info,
+            BusArchitectureResourceInfo,
+        ):
+            raise ValueError(
+                "The bus_architecture_resource_info should be of type BusArchitectureResourceInfo"
+            )
 
+        n_logical_data_qubits = bus_architecture_resource_info.num_logical_data_qubits
+        n_logical_bus_qubits = bus_architecture_resource_info.num_logical_bus_qubits
+        n_magic_state_factories = (
+            bus_architecture_resource_info.num_magic_state_factories
+        )
+
+        # Populate info for logical data qubit ELUs
+        data_elu_resource_info = self.model_data_elu_resource_info(code_distance)
+
+        # Populate info for logical bus qubit ELUs
+        bus_elu_resource_info = self.model_bus_elu_resource_info(code_distance)
+
+        # Populate info for distillation ELUs
+        distillation_elu_resource_info = self.model_distillation_elu_resource_info(
+            code_distance, bus_architecture_resource_info.magic_state_factory
+        )
+
+        hardware_resource_estimates = DetailedIonTrapArchitectureResourceInfo(
+            num_data_elus=n_logical_data_qubits,
+            data_elu_resource_info=data_elu_resource_info,
+            num_bus_elus=n_logical_bus_qubits,
+            bus_elu_resource_info=bus_elu_resource_info,
+            num_distillation_elus=n_magic_state_factories,
+            distillation_elu_resource_info=distillation_elu_resource_info,
+        )
+
+        # TODO: Implement the following
+        # hardware_resource_estimates = self.model_switch_network(
+        #     hardware_resource_estimates
+        # )
+
+        return hardware_resource_estimates
+
+    def model_switch_network(
+        self,
+        detailed_ion_trap_resource_info: DetailedIonTrapArchitectureResourceInfo,
+    ):
+        # # Optical cross-connect resources
+        # detailed_ion_trap_resource_info.num_optical_cross_connect_layers = (
+        #     self.num_optical_cross_connect_layers(
+        #         num_elus,
+        #         num_communication_ions_per_elu,
+        #         num_communication_ports_per_elu,
+        #     )
+        # )
+        # detailed_ion_trap_resource_info.num_ELUs_per_optical_cross_connect = None
+
+        raise NotImplementedError("model_switch_network is not implemented yet")
+        # return detailed_ion_trap_resource_info
+
+    def model_comm_and_memory_unit(
+        self, elu_resource_info: ELUResourceInfo, code_distance: int
+    ):
+
+        # Communication resources
         (
             num_communication_ports_per_elu,
             second_switch_per_elu_necessary,
         ) = self.num_communication_ports_per_ELU(code_distance)
-
-        # Compute totals
-
-        # Number of logical qubits can't exceed 1 per ELU
-        # Protocol requires 1 logical qubit per ELU
-        num_elus = resource_info.n_logical_qubits
-
-        # Multiply quantities by number of ELUs
-        total_num_memory_qubits = num_elus * memory_qubits
-        total_num_computational_qubits = num_elus * computational_qubits
-        total_num_communication_qubits = num_elus * communication_qubits
-        total_num_ions = (
-            total_num_memory_qubits
-            + total_num_computational_qubits
-            + total_num_communication_qubits
+        elu_resource_info.num_communication_ports_per_elu = (
+            num_communication_ports_per_elu
         )
-        total_num_communication_ports = num_elus * num_communication_ports_per_elu
-        total_elu_power_consumed_in_kilowatts = (
-            num_elus * self.power_consumed_per_ELU_in_kilowatts()
-        )
-        total_elu_energy_in_kilojoules = (
-            num_elus
-            * self.power_consumed_per_ELU_in_kilowatts()
-            * resource_info.total_time_in_seconds
+        elu_resource_info.num_communication_ions_per_elu = (
+            num_communication_ports_per_elu
         )
 
-        power = self.power_consumed_per_ELU_in_kilowatts()
-
-        hardware_resource_estimates = DetailedIonTrapResourceInfo(
-            power_consumed_per_elu_in_kilowatts=power,
-            num_communication_ports_per_elu=num_communication_ports_per_elu,
-            second_switch_per_elu_necessary=second_switch_per_elu_necessary,
-            num_communication_qubits_per_elu=communication_qubits,
-            num_memory_qubits_per_elu=memory_qubits,
-            num_computational_qubits_per_elu=computational_qubits,
-            num_optical_cross_connect_layers=self.num_optical_cross_connect_layers(
-                num_elus,
-                communication_qubits,
-                num_communication_ports_per_elu,
-            ),
-            num_ELUs_per_optical_cross_connect=self.num_ELUs_per_optical_cross_connect(
-                code_distance, communication_qubits
-            ),
-            total_num_ions=total_num_ions,
-            total_num_communication_qubits=total_num_communication_qubits,
-            total_num_memory_qubits=total_num_memory_qubits,
-            total_num_computational_qubits=total_num_computational_qubits,
-            total_num_communication_ports=total_num_communication_ports,
-            num_elus=num_elus,
-            total_elu_power_consumed_in_kilowatts=total_elu_power_consumed_in_kilowatts,
-            total_elu_energy_consumed_in_kilojoules=total_elu_energy_in_kilojoules,
+        elu_resource_info.second_switch_per_elu_necessary = (
+            second_switch_per_elu_necessary
         )
 
-        return hardware_resource_estimates
+        # Memory resources
+        num_memory_ions_per_elu = (
+            4 * self.find_minimum_n_dist_pairs(code_distance) + 2 * code_distance - 1
+        )
+        elu_resource_info.num_memory_ions_per_elu = num_memory_ions_per_elu
+
+        return elu_resource_info
+
+    def model_data_elu_resource_info(self, code_distance: int):
+        elu_resource_info = ELUResourceInfo()
+        elu_resource_info = self.model_comm_and_memory_unit(
+            elu_resource_info, code_distance
+        )
+        elu_resource_info.power_consumed_per_elu_in_kilowatts = (
+            self.power_consumed_per_ELU_in_kilowatts()
+        )
+        elu_resource_info.num_computational_ions_per_elu = (2 * code_distance - 1) ** 2
+
+        return elu_resource_info
+
+    def model_bus_elu_resource_info(self, code_distance: int):
+        elu_resource_info = ELUResourceInfo()
+        elu_resource_info = self.model_comm_and_memory_unit(
+            elu_resource_info, code_distance
+        )
+        elu_resource_info.power_consumed_per_elu_in_kilowatts = (
+            self.power_consumed_per_ELU_in_kilowatts()
+        )
+        elu_resource_info.num_computational_ions_per_elu = (
+            2 * code_distance - 1
+        ) ** 2 + (2 * code_distance - 1)
+
+        return elu_resource_info
+
+    def model_distillation_elu_resource_info(
+        self, code_distance: int, magic_state_factory: MagicStateFactoryInfo
+    ):
+        elu_resource_info = ELUResourceInfo()
+        elu_resource_info = self.model_comm_and_memory_unit(
+            elu_resource_info, code_distance
+        )
+        elu_resource_info.power_consumed_per_elu_in_kilowatts = (
+            self.power_consumed_per_ELU_in_kilowatts()
+        )
+        elu_resource_info.num_computational_ions_per_elu = magic_state_factory.qubits
+
+        return elu_resource_info
 
     def power_consumed_per_ELU_in_kilowatts(
         self,
@@ -144,63 +213,10 @@ class DetailedIonTrapModel:
         # Value reported by IonQ
         return 5.0
 
-    def num_communication_qubits_per_ELU(self, code_distance: int):
-        # Lookup table generated from simulations of the 3-3-9s protocol by
-        # Hudson Leone of UTS
-        qubit_count_lookup_table = {
-            3: 72,
-            4: 96,
-            5: 120,
-            6: 168,
-            7: 196,
-            8: 224,
-            9: 252,
-            10: 280,
-            11: 308,
-            12: 336,
-            13: 364,
-            14: 392,
-            15: 420,
-            16: 448,
-            17: 476,
-            18: 504,
-            19: 532,
-            20: 560,
-            21: 588,
-            22: 704,
-            23: 736,
-            24: 768,
-            25: 800,
-            26: 832,
-            27: 864,
-            28: 896,
-            29: 928,
-            30: 960,
-            31: 992,
-            32: 1024,
-            33: 1056,
-            34: 1088,
-            35: 1120,
-        }
-
-        # Check if input is an integer
-        if not isinstance(code_distance, int):
-            raise ValueError("Input should be an integer.")
-
-        # Check if the integer is between 3 and 35
-        if 3 <= code_distance <= 35:
-            return qubit_count_lookup_table[code_distance]
-        else:
-            raise ValueError(
-                f"Distance should be between 3 and 35. Got {code_distance}"
-            )
-
     def num_communication_ports_per_ELU(self, code_distance: int):
         # Computes the number of physical ports (optical fibers) going from the
         # ELU to the quantum switch.
-        num_communication_ions_per_elu = self.num_communication_qubits_per_ELU(
-            code_distance
-        )
+        num_communication_ions_per_elu = self.find_minimum_comm_ions(code_distance)
 
         num_ports = num_communication_ions_per_elu
 
@@ -211,17 +227,10 @@ class DetailedIonTrapModel:
 
         return num_ports, second_switch_per_elu_necessary
 
-    def functional_designation_of_chains_within_ELU(self, code_distance: int):
-        # Functional designation of chains within the ELU
-        memory_qubits = code_distance
-        computational_qubits = 2 * code_distance**2
-        communication_qubits = self.num_communication_qubits_per_ELU(code_distance)
-        return memory_qubits, computational_qubits, communication_qubits
-
     def num_optical_cross_connect_layers(
         self,
         num_elus: int,
-        num_communication_qubits_per_elu: int,
+        num_communication_ions_per_elu: int,
         num_communication_ports_per_elu: int,
     ):
         # Description of accounting of optical cross-connect and switch architecture:
@@ -245,6 +254,68 @@ class DetailedIonTrapModel:
     ):
         # Not yet implemented
         return -1
+
+    def find_minimum_n_dist_pairs(self, code_distance):
+        """Finds the minimum number of pairs required to achieve a given fidelity."""
+        p_dist = 0.76  # 4->1 distillation success probability
+        required_fidelity = 0.999  # required distilled fidelity
+        required_number_of_pairs = 2 * code_distance - 1
+
+        targetNum = required_number_of_pairs
+        cdf = 1 - stable_binom_cdf(required_number_of_pairs - 1, targetNum, p_dist)
+
+        while cdf < required_fidelity:
+            targetNum += 1
+            cdf = 1 - stable_binom_cdf(required_number_of_pairs - 1, targetNum, p_dist)
+
+        return targetNum
+
+    # TODO: determine how to handle attempts
+    def find_minimum_comm_ions(self, code_distance, attempts=1000):
+        ion_to_ion_entanglement_success_probability = (
+            0.000218  # ion-ion entanglement success probability
+        )
+        required_number_of_pairs = 4 * self.find_minimum_n_dist_pairs(code_distance)
+        required_fidelity = 0.999  # required distilled fidelity
+
+        targetNum = required_number_of_pairs
+        curSuccProb = 1 - (1 - ion_to_ion_entanglement_success_probability) ** attempts
+        cdf = 1 - stable_binom_cdf(required_number_of_pairs - 1, targetNum, curSuccProb)
+
+        while cdf < required_fidelity:
+            targetNum += 1
+            cdf = 1 - stable_binom_cdf(
+                required_number_of_pairs - 1, targetNum, curSuccProb
+            )
+
+        return targetNum
+
+
+# Helper functions to compute the number of distillation pairs and communication ions
+
+
+def log_binomial_coefficient(n, k):
+    """Compute the logarithm of the binomial coefficient for the purpose of numerical stability."""
+    # Compute the logarithm of the binomial coefficient using log-gamma function
+    return math.lgamma(n + 1) - math.lgamma(k + 1) - math.lgamma(n - k + 1)
+
+
+def stable_binom_cdf(x, n, p):
+    log_p = math.log(p)
+    log_q = math.log(1 - p)
+    cdf = 0
+    cdf_exp = []
+
+    # Calculate the log of the CDF using a sum of exponentials
+    for k in range(x + 1):
+        log_prob = log_binomial_coefficient(n, k) + k * log_p + (n - k) * log_q
+        cdf_exp.append(log_prob)
+
+    # Compute the maximum log-probability to scale the other terms to prevent underflow
+    max_log_prob = max(cdf_exp)
+    cdf = sum(math.exp(log_prob - max_log_prob) for log_prob in cdf_exp)
+
+    return math.exp(max_log_prob) * cdf
 
 
 DETAILED_ION_TRAP_ARCHITECTURE_MODEL = DetailedIonTrapModel()

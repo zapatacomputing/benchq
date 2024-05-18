@@ -23,7 +23,7 @@ from ..quantum_hardware_modeling.devitt_surface_code import (
     physical_qubits_per_logical_qubit,
 )
 from ..visualization_tools.resource_allocation import CycleAllocation, QubitAllocation
-from .resource_info import GraphExtra, GraphResourceInfo
+from .resource_info import GraphExtra, GraphResourceInfo, BusArchitectureResourceInfo
 
 INITIAL_SYNTHESIS_ACCURACY = 0.0001
 
@@ -114,6 +114,94 @@ class GraphResourceEstimator:
 
         return -1
 
+    def get_bus_architecture_resource_breakdown(
+        self,
+        compiled_program: CompiledQuantumProgram,
+        magic_state_factory: MagicStateFactory,
+        n_t_gates_per_rotation: int,
+    ):
+        if self.optimization == "Space":
+            # Not implemented error
+            raise NotImplementedError(
+                "Bus architecture resource breakdown is not yet implemented for Space optimization."
+            )
+        if self.optimization == "Time":
+
+            num_logical_data_qubits = compiled_program.num_logical_qubits
+            num_factories_per_data_qubit, _ = (
+                self.model_bus_architecture_time_optimal_distillation_resources(
+                    n_t_gates_per_rotation,
+                    compiled_program.n_rotation_gates,
+                    magic_state_factory.t_gates_per_distillation,
+                )
+            )
+            factory_width_in_logical_qubit_side_lengths = (
+                self.compute_factory_width_in_logical_qubit_side_lengths(
+                    magic_state_factory, compiled_program.code_distance
+                )
+            )
+            num_logical_bus_qubits = (
+                self.model_bus_architecture_time_optimal_logical_bus_qubits(
+                    num_logical_data_qubits,
+                    num_factories_per_data_qubit,
+                    factory_width_in_logical_qubit_side_lengths,
+                )
+            )
+            num_magic_state_factories = (
+                num_logical_data_qubits * num_factories_per_data_qubit
+            )
+
+        return BusArchitectureResourceInfo(
+            num_logical_data_qubits=num_logical_data_qubits,
+            num_logical_bus_qubits=num_logical_bus_qubits,
+            num_magic_state_factories=num_magic_state_factories,
+        )
+
+    def model_bus_architecture_time_optimal_distillation_resources(
+        n_t_gates_per_rotation, n_rotation_gates, t_gates_per_distillation
+    ):
+        if n_rotation_gates == 0:
+            # If there are no rotation gates, we can use a single factory
+            # for each logical qubit.
+            num_factories_per_data_qubit = 1
+            tocks_for_enacting_cliffords_due_to_rotations = 0
+        else:
+            # Assume that at each layer we need to distill as many T gates
+            # as are needed for performing rotations on each logical qubit.
+            num_factories_per_data_qubit = n_t_gates_per_rotation
+            tocks_for_enacting_cliffords_due_to_rotations = 2
+
+        num_factories_per_data_qubit = ceil(
+            num_factories_per_data_qubit / t_gates_per_distillation
+        )
+        return (
+            num_factories_per_data_qubit,
+            tocks_for_enacting_cliffords_due_to_rotations,
+        )
+
+    def model_bus_architecture_time_optimal_logical_bus_qubits(
+        n_data_qubits,
+        num_factories_per_data_qubit,
+        factory_width_in_logical_qubit_side_lengths,
+    ):
+        return (
+            n_data_qubits
+            * num_factories_per_data_qubit
+            * factory_width_in_logical_qubit_side_lengths
+        )
+
+    def compute_factory_width_in_logical_qubit_side_lengths(
+        self, magic_state_factory, code_distance
+    ):
+        factory_width = magic_state_factory.space[1]
+        # extra factor of 2 for the width of the logical qubit
+        # comes from needing to expose rough an smooth boundaries.
+        logical_qubit_side_length = 2 * 2 ** (1 / 2) * code_distance
+        factory_width_in_logical_qubit_side_lengths = int(
+            ceil(factory_width / logical_qubit_side_length)
+        )
+        return factory_width_in_logical_qubit_side_lengths
+
     def get_qubit_and_time_allocation(
         self,
         compiled_program: CompiledQuantumProgram,
@@ -194,20 +282,14 @@ class GraphResourceEstimator:
                             "Tstate-to-Tgate",
                         )
         elif self.optimization == "Time":
-            if compiled_program.n_rotation_gates == 0:
-                # If there are no rotation gates, we can use a single factory
-                # for each logical qubit.
-                num_factories_per_data_qubit = 1
-                tocks_for_enacting_cliffords_due_to_rotations = 0
-            else:
-                # Assume that at each layer we need to distill as many T gates
-                # as are needed for performing rotations on each logical qubit.
-                num_factories_per_data_qubit = n_t_gates_per_rotation
-                tocks_for_enacting_cliffords_due_to_rotations = 2
 
-            num_factories_per_data_qubit = ceil(
-                num_factories_per_data_qubit
-                / magic_state_factory.t_gates_per_distillation
+            (
+                num_factories_per_data_qubit,
+                tocks_for_enacting_cliffords_due_to_rotations,
+            ) = self.model_bus_architecture_time_optimal_distillation_resources(
+                n_t_gates_per_rotation,
+                compiled_program.n_rotation_gates,
+                magic_state_factory.t_gates_per_distillation,
             )
 
             qubit_allocation.log(
@@ -217,12 +299,10 @@ class GraphResourceEstimator:
                 "distillation",
             )
 
-            factory_width = magic_state_factory.space[1]
-            # extra factor of 2 for the width of the logical qubit
-            # comes from needing to expose rough an smooth boundaries.
-            logical_qubit_side_length = 2 * 2 ** (1 / 2) * code_distance
-            factory_width_in_logical_qubit_side_lengths = int(
-                ceil(factory_width / logical_qubit_side_length)
+            factory_width_in_logical_qubit_side_lengths = (
+                self.compute_factory_width_in_logical_qubit_side_lengths(
+                    magic_state_factory, code_distance
+                )
             )
             # For each logical qubit, add enough factories to cover a single
             # node which can represent a distillation or a rotation.
@@ -486,8 +566,15 @@ class GraphResourceEstimator:
             ),
         )
 
+        resource_info.logical_architecture_resource_info = (
+            self.get_bus_architecture_resource_breakdown(compiled_implementation)
+        )
+
+        # Allocate hardware resources according to logical architecture requirements
         resource_info.hardware_resource_info = (
-            hw_model.get_hardware_resource_estimates(resource_info)
+            hw_model.get_hardware_resource_estimates(
+                resource_info.logical_architecture_resource_info
+            )
             if isinstance(hw_model, DetailedArchitectureModel)
             else None
         )
