@@ -69,18 +69,6 @@ class DetailedIonTrapArchitectureResourceInfo:
 class BusArchitectureResourceInfo:
     """Info relating to bus architecture model resources."""
 
-    # The time optimal bus architecture is layed out as follows:
-    # |D|            |D|            |D|            |D|            |D|
-    # |B||B||B||B||B||B||B||B||B||B||B||B||B||B||B||B||B||B||B||B||B|
-    #    |M||M||M||M|   |M||M||M||M|   |M||M||M||M|   |M||M||M||M|
-    # with the spacing between data qubits determined by the number of
-    # teleportations that can happen per distillation.
-
-    # While the space optimal bus architecture is layed out as follows:
-    # |D|   |D|   |D|   |D|   |D|
-    # |B||B||B||B||B||B||B||B||B|
-    #    |M|   |M|   |M|   |M|
-
     num_logical_data_qubits: int
     num_logical_bus_qubits: int
     data_and_bus_code_distance: int

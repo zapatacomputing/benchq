@@ -117,14 +117,46 @@ class GraphResourceEstimator:
     def get_bus_architecture_resource_breakdown(
         self,
         compiled_program: CompiledQuantumProgram,
+        data_and_bus_code_distance: int,
         magic_state_factory: MagicStateFactory,
         n_t_gates_per_rotation: int,
     ):
+
+        # Qubit resource breakdowns are given by the following layouts
+        # for data qubits |D|, bus qubits |B|, and magic state factories |M|.
+        # The ion trap architecture is designed for each ELU to connect to at most
+        # three other ELUs.
+
+        # The space optimal bus architecture is layed out as follows:
+        #     |D| |D| |D| |D| |D|
+        #      |   |   |   |   |
+        # |B|-|B|-|B|-|B|-|B|-|B|
+        #  |
+        # |M|
+
+        # The time optimal bus architecture is layed out as follows:
+        # |D|                 |D|                 |D|
+        #  |                   |                   |
+        # |B|-|B|-|B|-|B|-|B|-|B|-|B|-|B|-|B|-|B|-|B|-|B|-|B|-|B|-|B|
+        #      |   |   |   |       |   |   |   |       |   |   |   |
+        #     |M| |M| |M| |M|     |M| |M| |M| |M|     |M| |M| |M| |M|
+        # with the spacing between data qubits determined by the number of
+        # teleportations that can happen per distillation according to the
+        # "choral round" method.
+
         if self.optimization == "Space":
-            # Not implemented error
-            raise NotImplementedError(
-                "Bus architecture resource breakdown is not yet implemented for Space optimization."
+            num_logical_data_qubits = compiled_program.num_logical_qubits
+            num_magic_state_factories = 1
+            num_logical_bus_qubits = num_magic_state_factories + num_logical_data_qubits
+
+            return BusArchitectureResourceInfo(
+                num_logical_data_qubits=num_logical_data_qubits,
+                num_logical_bus_qubits=num_logical_bus_qubits,
+                data_and_bus_code_distance=data_and_bus_code_distance,
+                num_magic_state_factories=num_magic_state_factories,
+                magic_state_factory=magic_state_factory,
             )
+
         if self.optimization == "Time":
 
             num_logical_data_qubits = compiled_program.num_logical_qubits
@@ -137,10 +169,11 @@ class GraphResourceEstimator:
             )
             factory_width_in_logical_qubit_side_lengths = (
                 self.compute_factory_width_in_logical_qubit_side_lengths(
-                    magic_state_factory, compiled_program.code_distance
+                    magic_state_factory, data_and_bus_code_distance
                 )
             )
             num_logical_bus_qubits = (
+                # TODO: remove factory width dependence
                 self.model_bus_architecture_time_optimal_logical_bus_qubits(
                     num_logical_data_qubits,
                     num_factories_per_data_qubit,
@@ -154,11 +187,13 @@ class GraphResourceEstimator:
         return BusArchitectureResourceInfo(
             num_logical_data_qubits=num_logical_data_qubits,
             num_logical_bus_qubits=num_logical_bus_qubits,
+            data_and_bus_code_distance=data_and_bus_code_distance,
             num_magic_state_factories=num_magic_state_factories,
+            magic_state_factory=magic_state_factory,
         )
 
     def model_bus_architecture_time_optimal_distillation_resources(
-        n_t_gates_per_rotation, n_rotation_gates, t_gates_per_distillation
+        self, n_t_gates_per_rotation, n_rotation_gates, t_gates_per_distillation
     ):
         if n_rotation_gates == 0:
             # If there are no rotation gates, we can use a single factory
@@ -180,6 +215,7 @@ class GraphResourceEstimator:
         )
 
     def model_bus_architecture_time_optimal_logical_bus_qubits(
+        self,
         n_data_qubits,
         num_factories_per_data_qubit,
         factory_width_in_logical_qubit_side_lengths,
@@ -435,7 +471,7 @@ class GraphResourceEstimator:
                 else:
                     n_t_gates_per_rotation = 0  # no gates to synthesize
 
-                code_distance = self._minimize_code_distance(
+                data_and_bus_code_distance = self._minimize_code_distance(
                     compiled_implementation.program,
                     compiled_implementation.error_budget.hardware_failure_tolerance,
                     this_transpilation_failure_tolerance,
@@ -445,10 +481,10 @@ class GraphResourceEstimator:
                 )
 
                 this_logical_cell_error_rate = logical_cell_error_rate(
-                    hw_model.physical_qubit_error_rate, code_distance
+                    hw_model.physical_qubit_error_rate, data_and_bus_code_distance
                 )
 
-                if code_distance == -1:
+                if data_and_bus_code_distance == -1:
                     continue
                 else:
                     magic_state_factory_found = True
@@ -498,22 +534,22 @@ class GraphResourceEstimator:
             compiled_implementation.program,
             magic_state_factory,
             n_t_gates_per_rotation,
-            code_distance,
+            data_and_bus_code_distance,
         )
         num_logical_qubits = qubit_allocation.get_num_logical_qubits(
-            2 * physical_qubits_per_logical_qubit(code_distance)
+            2 * physical_qubits_per_logical_qubit(data_and_bus_code_distance)
         )
 
         num_cycles = time_allocation.total
 
         st_volume_in_logical_qubit_tocks = (
-            num_logical_qubits * num_cycles / code_distance
+            num_logical_qubits * num_cycles / data_and_bus_code_distance
         )
 
         total_logical_error_rate = get_total_logical_failure_rate(
             hw_model,
             st_volume_in_logical_qubit_tocks,
-            code_distance,
+            data_and_bus_code_distance,
         )
 
         distillation_error_rate = float(
@@ -544,7 +580,7 @@ class GraphResourceEstimator:
         decoder_info = get_decoder_info(
             hw_model,
             decoder_model,
-            code_distance,
+            data_and_bus_code_distance,
             st_volume_in_logical_qubit_tocks,
             num_logical_qubits,
         )
@@ -553,7 +589,7 @@ class GraphResourceEstimator:
             total_time_in_seconds=total_time_in_seconds,
             n_physical_qubits=qubit_allocation.total,
             optimization=self.optimization,
-            code_distance=code_distance,
+            code_distance=data_and_bus_code_distance,
             logical_error_rate=this_hardware_failure_rate,
             # estimate the number of logical qubits using max node degree
             n_logical_qubits=num_logical_qubits,
@@ -565,9 +601,13 @@ class GraphResourceEstimator:
                 qubit_allocation,
             ),
         )
-
         resource_info.logical_architecture_resource_info = (
-            self.get_bus_architecture_resource_breakdown(compiled_implementation)
+            self.get_bus_architecture_resource_breakdown(
+                compiled_implementation.program,
+                data_and_bus_code_distance,
+                magic_state_factory,
+                n_t_gates_per_rotation,
+            )
         )
 
         # Allocate hardware resources according to logical architecture requirements
