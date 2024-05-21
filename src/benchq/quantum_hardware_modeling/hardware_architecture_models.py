@@ -70,7 +70,11 @@ class DetailedIonTrapModel:
     def __init__(
         self,
         physical_qubit_error_rate: float = 1e-4,
-        surface_code_cycle_time_in_seconds: float = 1e-3,
+        # A single inter-ELU lattice surgery operation requires 1ms.
+        # Each inter-ELU lattice surgery operation for a single ELU
+        # happens sequentially and each bus interacts with at most 3 neighbors
+        # so the total time for a single surface code cycle is 3ms.
+        surface_code_cycle_time_in_seconds: float = 3e-3,
     ):
         self.physical_qubit_error_rate = physical_qubit_error_rate
         self.surface_code_cycle_time_in_seconds = surface_code_cycle_time_in_seconds
