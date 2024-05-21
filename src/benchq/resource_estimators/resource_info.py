@@ -11,10 +11,8 @@ from benchq.compilation.graph_states.compiled_data_structures import (
     CompiledAlgorithmImplementation,
 )
 
-# from ..magic_state_distillation import MagicStateFactory
 
-
-from ..visualization_tools.resource_allocation import CycleAllocation, QubitAllocation
+from ..visualization_tools.resource_allocation import CycleAllocation
 
 TExtra = TypeVar("TExtra")
 
@@ -73,7 +71,8 @@ class BusArchitectureResourceInfo:
     num_logical_bus_qubits: int
     data_and_bus_code_distance: int
     num_magic_state_factories: int
-    magic_state_factory: MagicStateFactoryInfo
+    magic_state_factory: Optional[MagicStateFactoryInfo] = None
+    cycle_allocation: Optional[CycleAllocation] = None
 
 
 @dataclass
@@ -107,8 +106,6 @@ class GraphExtra:
     """Extra info relating to resource estimation using Graph State Compilation."""
 
     implementation: CompiledAlgorithmImplementation
-    time_allocation: Optional[CycleAllocation]
-    qubit_allocation: Optional[QubitAllocation]
 
 
 # Alias for type of resource info returned by GraphResourceEstimator
