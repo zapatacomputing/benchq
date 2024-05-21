@@ -80,26 +80,37 @@ class GraphResourceEstimator:
         if distillation_error_rate > hardware_failure_tolerance:
             return -1
 
-        for code_distance in range(min_d, max_d, 2):
-            qubit_allocation, time_allocation = self.get_qubit_and_time_allocation(
+        for data_and_bus_code_distance in range(min_d, max_d, 2):
+
+            logical_architecture_resource_info = (
+                self.get_bus_architecture_resource_breakdown(
+                    compiled_program,
+                    data_and_bus_code_distance,
+                    magic_state_factory,
+                    n_t_gates_per_rotation,
+                )
+            )
+
+            time_allocation = self.get_cycle_allocation(
                 compiled_program,
                 magic_state_factory,
                 n_t_gates_per_rotation,
-                code_distance,
+                data_and_bus_code_distance,
             )
-            num_logical_qubits = qubit_allocation.get_num_logical_qubits(
-                2 * physical_qubits_per_logical_qubit(code_distance)
+            num_logical_qubits = (
+                logical_architecture_resource_info.num_logical_data_qubits
+                + logical_architecture_resource_info.num_logical_bus_qubits
             )
             num_cycles = time_allocation.total
             st_volume_in_logical_qubit_tocks = (
-                num_logical_qubits * num_cycles / code_distance
+                num_logical_qubits * num_cycles / data_and_bus_code_distance
             )
 
             ec_error_rate_at_this_distance = Decimal(
                 get_total_logical_failure_rate(
                     hw_model,
                     st_volume_in_logical_qubit_tocks,
-                    code_distance,
+                    data_and_bus_code_distance,
                 )
             )
 
@@ -110,7 +121,7 @@ class GraphResourceEstimator:
             )
 
             if this_hardware_failure_rate < hardware_failure_tolerance:
-                return code_distance
+                return data_and_bus_code_distance
 
         return -1
 
@@ -162,26 +173,20 @@ class GraphResourceEstimator:
             num_logical_data_qubits = compiled_program.num_logical_qubits
             num_factories_per_data_qubit, _ = (
                 self.model_bus_architecture_time_optimal_distillation_resources(
-                    n_t_gates_per_rotation,
+                    magic_state_factory,
                     compiled_program.n_rotation_gates,
-                    magic_state_factory.t_gates_per_distillation,
-                )
-            )
-            factory_width_in_logical_qubit_side_lengths = (
-                self.compute_factory_width_in_logical_qubit_side_lengths(
-                    magic_state_factory, data_and_bus_code_distance
-                )
-            )
-            num_logical_bus_qubits = (
-                # TODO: remove factory width dependence
-                self.model_bus_architecture_time_optimal_logical_bus_qubits(
-                    num_logical_data_qubits,
-                    num_factories_per_data_qubit,
-                    factory_width_in_logical_qubit_side_lengths,
+                    data_and_bus_code_distance,
                 )
             )
             num_magic_state_factories = (
                 num_logical_data_qubits * num_factories_per_data_qubit
+            )
+
+            num_logical_bus_qubits = (
+                self.model_bus_architecture_time_optimal_logical_bus_qubits(
+                    num_logical_data_qubits,
+                    num_factories_per_data_qubit,
+                )
             )
 
         return BusArchitectureResourceInfo(
@@ -193,8 +198,12 @@ class GraphResourceEstimator:
         )
 
     def model_bus_architecture_time_optimal_distillation_resources(
-        self, n_t_gates_per_rotation, n_rotation_gates, t_gates_per_distillation
+        self,
+        magic_state_factory,
+        n_rotation_gates,
+        data_and_bus_code_distance,
     ):
+
         if n_rotation_gates == 0:
             # If there are no rotation gates, we can use a single factory
             # for each logical qubit.
@@ -202,12 +211,20 @@ class GraphResourceEstimator:
             tocks_for_enacting_cliffords_due_to_rotations = 0
         else:
             # Assume that at each layer we need to distill as many T gates
-            # as are needed for performing rotations on each logical qubit.
-            num_factories_per_data_qubit = n_t_gates_per_rotation
+            # as can be consumed sequentially within a full distillation round
+            # considering the "choral round" method.
+
+            num_tocks_per_distillation = ceil(
+                magic_state_factory.distillation_time_in_cycles
+                / data_and_bus_code_distance
+            )
+
+            num_factories_per_data_qubit = num_tocks_per_distillation
             tocks_for_enacting_cliffords_due_to_rotations = 2
 
+        # Can implement multiple T states per factory in general
         num_factories_per_data_qubit = ceil(
-            num_factories_per_data_qubit / t_gates_per_distillation
+            num_factories_per_data_qubit / magic_state_factory.t_gates_per_distillation
         )
         return (
             num_factories_per_data_qubit,
@@ -216,15 +233,15 @@ class GraphResourceEstimator:
 
     def model_bus_architecture_time_optimal_logical_bus_qubits(
         self,
-        n_data_qubits,
+        num_data_qubits,
         num_factories_per_data_qubit,
-        factory_width_in_logical_qubit_side_lengths,
     ):
-        return (
-            n_data_qubits
-            * num_factories_per_data_qubit
-            * factory_width_in_logical_qubit_side_lengths
+        # Ensure that there is a bus qubit to link to each magic state factory and each data qubit.
+        num_data_linked_bus_qubits = num_data_qubits
+        num_distillation_linked_bus_qubits = (
+            num_data_qubits * num_factories_per_data_qubit
         )
+        return num_data_linked_bus_qubits + num_distillation_linked_bus_qubits
 
     def compute_factory_width_in_logical_qubit_side_lengths(
         self, magic_state_factory, code_distance
@@ -238,29 +255,34 @@ class GraphResourceEstimator:
         )
         return factory_width_in_logical_qubit_side_lengths
 
-    def get_qubit_and_time_allocation(
+    def get_total_number_of_physical_qubits(self, logical_architecture_resource_info):
+        num_data_and_bus_physical_qubits = physical_qubits_per_logical_qubit(
+            logical_architecture_resource_info.data_and_bus_code_distance
+        ) * (
+            logical_architecture_resource_info.num_logical_data_qubits
+            + logical_architecture_resource_info.num_logical_bus_qubits
+        )
+        num_distillation_physical_qubits = (
+            logical_architecture_resource_info.magic_state_factory.qubits
+            * logical_architecture_resource_info.num_magic_state_factories
+        )
+
+        return num_data_and_bus_physical_qubits + num_distillation_physical_qubits
+
+    def get_cycle_allocation(
         self,
         compiled_program: CompiledQuantumProgram,
         magic_state_factory: MagicStateFactory,
         n_t_gates_per_rotation: int,
-        code_distance: int,
-    ) -> Tuple[QubitAllocation, CycleAllocation]:
+        data_and_bus_code_distance: int,
+    ) -> CycleAllocation:
         time_allocation_for_each_subroutine = [
             CycleAllocation() for _ in range(len(compiled_program.subroutines))
         ]
-        qubit_allocation = QubitAllocation()
 
+        # First, generate data for cycle allocation
         if self.optimization == "Space":
-            # Injection and entanglement use the same bus and data qubits
-            qubit_allocation.log(
-                2
-                * compiled_program.num_logical_qubits
-                * physical_qubits_per_logical_qubit(code_distance),
-                "entanglement",
-                "Tstate-to-Tgate",
-            )
-            # Use only 1 magic state factory
-            qubit_allocation.log(magic_state_factory.qubits, "distillation")
+
             for i, subroutine in enumerate(compiled_program.subroutines):
                 for layer in range(subroutine.num_layers):
                     num_t_states_in_this_layer = (
@@ -272,12 +294,12 @@ class GraphResourceEstimator:
                         / magic_state_factory.t_gates_per_distillation
                     )
 
-                    # Paralellize the first distillation and graph state preparation
+                    # Parallelize the first distillation and graph state preparation
                     time_allocation_for_each_subroutine[i].log_parallelized(
                         (
                             magic_state_factory.distillation_time_in_cycles,
                             subroutine.graph_creation_tocks_per_layer[layer]
-                            * code_distance,
+                            * data_and_bus_code_distance,
                         ),
                         ("distillation", "entanglement"),
                     )
@@ -291,13 +313,15 @@ class GraphResourceEstimator:
                         # 1 tock in needed to inject a T state. See the Fig. 2 in the
                         # paper magic state distillation: not as costly as you think.
                         time_allocation_for_each_subroutine[i].log(
-                            num_distillations_in_this_layer * code_distance,
+                            num_distillations_in_this_layer
+                            * data_and_bus_code_distance,
                             "Tstate-to-Tgate",
                         )
                     else:
                         # inject each T state into bus to hold them
                         time_allocation_for_each_subroutine[i].log(
-                            num_distillations_in_this_layer * code_distance,
+                            num_distillations_in_this_layer
+                            * data_and_bus_code_distance,
                             "Tstate-to-Tgate",
                         )
                         # injection from bus can be parallelized with distillation
@@ -307,14 +331,14 @@ class GraphResourceEstimator:
                                 * magic_state_factory.distillation_time_in_cycles,
                                 max(num_distillations_in_this_layer - 1, 0)
                                 * magic_state_factory.t_gates_per_distillation
-                                * code_distance,
+                                * data_and_bus_code_distance,
                             ),
                             ("distillation", "Tstate-to-Tgate"),
                         )
                         # inject gates from the last distillation
                         time_allocation_for_each_subroutine[i].log(
                             magic_state_factory.t_gates_per_distillation
-                            * code_distance,
+                            * data_and_bus_code_distance,
                             "Tstate-to-Tgate",
                         )
         elif self.optimization == "Time":
@@ -323,51 +347,13 @@ class GraphResourceEstimator:
                 num_factories_per_data_qubit,
                 tocks_for_enacting_cliffords_due_to_rotations,
             ) = self.model_bus_architecture_time_optimal_distillation_resources(
-                n_t_gates_per_rotation,
+                magic_state_factory,
                 compiled_program.n_rotation_gates,
-                magic_state_factory.t_gates_per_distillation,
-            )
-
-            qubit_allocation.log(
-                compiled_program.num_logical_qubits
-                * num_factories_per_data_qubit
-                * magic_state_factory.qubits,
-                "distillation",
-            )
-
-            factory_width_in_logical_qubit_side_lengths = (
-                self.compute_factory_width_in_logical_qubit_side_lengths(
-                    magic_state_factory, code_distance
-                )
-            )
-            # For each logical qubit, add enough factories to cover a single
-            # node which can represent a distillation or a rotation.
-            # Note that the logical qubits are twice as wide as they are tall
-            # so that a rough and a smooth boundary can both face the bus.
-            qubit_allocation.log(
-                2 * physical_qubits_per_logical_qubit(code_distance)
-                # bus qubits which span factory sides but are not
-                # used to inject T states
-                * compiled_program.num_logical_qubits
-                * num_factories_per_data_qubit
-                * (factory_width_in_logical_qubit_side_lengths - 1),
-                "entanglement",
-            )
-            qubit_allocation.log(
-                2 * physical_qubits_per_logical_qubit(code_distance)
-                # bus qubits which span factory sides
-                * (
-                    compiled_program.num_logical_qubits * num_factories_per_data_qubit
-                    # logical qubits for computation
-                    + compiled_program.num_logical_qubits
-                ),
-                "entanglement",
-                "Tstate-to-Tgate",
+                data_and_bus_code_distance,
             )
 
             for i, subroutine in enumerate(compiled_program.subroutines):
                 for layer_num, layer in enumerate(range(subroutine.num_layers)):
-
                     if layer_num > 0:
                         # we need to wait for the previous subroutine to finish
                         # measuring the qubits in the T basis before we continue
@@ -391,7 +377,7 @@ class GraphResourceEstimator:
                         > magic_state_factory.distillation_time_in_cycles
                         and layer_num > 0
                     ):
-                        # cannot parallelize injection from previous layer
+                        # cannot parallelize teleportation from previous layer
                         # and graph state preparation
                         time_allocation_for_each_subroutine[i].log(
                             num_factories_per_data_qubit
@@ -403,10 +389,11 @@ class GraphResourceEstimator:
                                 subroutine.graph_creation_tocks_per_layer[layer]
                                 + tocks_for_enacting_cliffords_due_to_rotations
                             )
-                            * code_distance,
+                            * data_and_bus_code_distance,
                             "entanglement",
                         )
                     elif layer_num > 0:
+                        # TODO: have Simon review this
                         # Distill T states and prepare graph state in parallel.
                         time_allocation_for_each_subroutine[i].log_parallelized(
                             (
@@ -416,14 +403,14 @@ class GraphResourceEstimator:
                                     subroutine.graph_creation_tocks_per_layer[layer]
                                     + tocks_for_enacting_cliffords_due_to_rotations
                                 )
-                                * code_distance,
+                                * data_and_bus_code_distance,
                             ),
                             ("distillation", "entanglement"),
                         )
 
                     # 1 tock to deliver T states to the synthilation qubits.
                     time_allocation_for_each_subroutine[i].log(
-                        code_distance, "Tstate-to-Tgate"
+                        data_and_bus_code_distance, "Tstate-to-Tgate"
                     )
 
         else:
@@ -432,13 +419,12 @@ class GraphResourceEstimator:
                 "Should be either 'Time' or 'Space'."
             )
 
-        total_time_allocation = CycleAllocation()
+        # Then initialize cycle allocation object and populate with data
+        cycle_allocation = CycleAllocation()
         for subroutine_index in compiled_program.subroutine_sequence:
-            total_time_allocation += time_allocation_for_each_subroutine[
-                subroutine_index
-            ]
+            cycle_allocation += time_allocation_for_each_subroutine[subroutine_index]
 
-        return qubit_allocation, total_time_allocation
+        return cycle_allocation
 
     def estimate_resources_from_compiled_implementation(
         self,
@@ -529,15 +515,27 @@ class GraphResourceEstimator:
             else:
                 break
 
+        logical_architecture_resource_info = (
+            self.get_bus_architecture_resource_breakdown(
+                compiled_implementation.program,
+                data_and_bus_code_distance,
+                magic_state_factory,
+                n_t_gates_per_rotation,
+            )
+        )
+
         # get error rate after correction
-        qubit_allocation, time_allocation = self.get_qubit_and_time_allocation(
+        time_allocation = self.get_cycle_allocation(
             compiled_implementation.program,
             magic_state_factory,
             n_t_gates_per_rotation,
             data_and_bus_code_distance,
         )
-        num_logical_qubits = qubit_allocation.get_num_logical_qubits(
-            2 * physical_qubits_per_logical_qubit(data_and_bus_code_distance)
+        logical_architecture_resource_info.cycle_allocation = time_allocation
+
+        num_logical_qubits = (
+            logical_architecture_resource_info.num_logical_data_qubits
+            + logical_architecture_resource_info.num_logical_bus_qubits
         )
 
         num_cycles = time_allocation.total
@@ -585,9 +583,13 @@ class GraphResourceEstimator:
             num_logical_qubits,
         )
 
+        n_physical_qubits = self.get_total_number_of_physical_qubits(
+            logical_architecture_resource_info
+        )
+
         resource_info = GraphResourceInfo(
             total_time_in_seconds=total_time_in_seconds,
-            n_physical_qubits=qubit_allocation.total,
+            n_physical_qubits=n_physical_qubits,
             optimization=self.optimization,
             code_distance=data_and_bus_code_distance,
             logical_error_rate=this_hardware_failure_rate,
@@ -595,26 +597,15 @@ class GraphResourceEstimator:
             n_logical_qubits=num_logical_qubits,
             magic_state_factory_name=magic_state_factory.name,
             decoder_info=decoder_info,
+            logical_architecture_resource_info=logical_architecture_resource_info,
             extra=GraphExtra(
                 compiled_implementation,
-                time_allocation,
-                qubit_allocation,
             ),
-        )
-        resource_info.logical_architecture_resource_info = (
-            self.get_bus_architecture_resource_breakdown(
-                compiled_implementation.program,
-                data_and_bus_code_distance,
-                magic_state_factory,
-                n_t_gates_per_rotation,
-            )
         )
 
         # Allocate hardware resources according to logical architecture requirements
         resource_info.hardware_resource_info = (
-            hw_model.get_hardware_resource_estimates(
-                resource_info.logical_architecture_resource_info
-            )
+            hw_model.get_hardware_resource_estimates(logical_architecture_resource_info)
             if isinstance(hw_model, DetailedArchitectureModel)
             else None
         )
