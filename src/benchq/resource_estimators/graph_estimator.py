@@ -22,7 +22,7 @@ from ..quantum_hardware_modeling.devitt_surface_code import (
     logical_cell_error_rate,
     physical_qubits_per_logical_qubit,
 )
-from ..visualization_tools.resource_allocation import CycleAllocation, QubitAllocation
+from ..visualization_tools.resource_allocation import CycleAllocation
 from .resource_info import GraphExtra, GraphResourceInfo, BusArchitectureResourceInfo
 
 INITIAL_SYNTHESIS_ACCURACY = 0.0001
@@ -295,11 +295,14 @@ class GraphResourceEstimator:
                     )
 
                     # Parallelize the first distillation and graph state preparation
+                    cycles_for_graph_creation = (
+                        subroutine.graph_creation_tocks_per_layer[layer]
+                        * data_and_bus_code_distance
+                    )
                     time_allocation_for_each_subroutine[i].log_parallelized(
                         (
                             magic_state_factory.distillation_time_in_cycles,
-                            subroutine.graph_creation_tocks_per_layer[layer]
-                            * data_and_bus_code_distance,
+                            cycles_for_graph_creation,
                         ),
                         ("distillation", "entanglement"),
                     )
@@ -354,6 +357,7 @@ class GraphResourceEstimator:
 
             for i, subroutine in enumerate(compiled_program.subroutines):
                 for layer_num, layer in enumerate(range(subroutine.num_layers)):
+
                     if layer_num > 0:
                         # we need to wait for the previous subroutine to finish
                         # measuring the qubits in the T basis before we continue
@@ -364,6 +368,7 @@ class GraphResourceEstimator:
                         # seminal surface code paper: https://arxiv.org/abs/1208.0928
                         # which puts measurement times at about 1/2 cycle time (see
                         # the middle of page 2).
+
                         time_allocation_for_each_subroutine[i].log_parallelized(
                             (
                                 num_factories_per_data_qubit,
