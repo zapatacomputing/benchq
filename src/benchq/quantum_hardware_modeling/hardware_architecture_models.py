@@ -59,7 +59,7 @@ class IONTrapModel:
 @dataclass(frozen=True)
 class SCModel:
     physical_qubit_error_rate: float = 1e-3
-    surface_code_cycle_time_in_seconds: float = 1e-7
+    surface_code_cycle_time_in_seconds: float = 1e-6
 
 
 BASIC_ION_TRAP_ARCHITECTURE_MODEL = IONTrapModel()
