@@ -17,6 +17,7 @@ from ..quantum_hardware_modeling import (
     BasicArchitectureModel,
     DetailedArchitectureModel,
 )
+
 from ..quantum_hardware_modeling.devitt_surface_code import (
     get_total_logical_failure_rate,
     logical_cell_error_rate,
@@ -69,13 +70,21 @@ class GraphResourceEstimator:
         max_d: int = 200,
     ) -> int:
 
-        distillation_error_rate = 1 - (
-            1 - Decimal(magic_state_factory.distilled_magic_state_error_rate)
-        ) ** Decimal(
+        distillation_error_rate = Decimal(
+            magic_state_factory.distilled_magic_state_error_rate
+        ) * Decimal(
             compiled_program.get_n_t_gates_after_transpilation(
                 transpilation_failure_tolerance
             )
         )
+
+        # distillation_error_rate = 1 - (
+        #     1 - Decimal(magic_state_factory.distilled_magic_state_error_rate)
+        # ) ** Decimal(
+        #     compiled_program.get_n_t_gates_after_transpilation(
+        #         transpilation_failure_tolerance
+        #     )
+        # )
 
         if distillation_error_rate > hardware_failure_tolerance:
             return -1
@@ -345,77 +354,60 @@ class GraphResourceEstimator:
                             "Tstate-to-Tgate",
                         )
         elif self.optimization == "Time":
+            # Temporal accounting for the rate-limiting T gate related process of rotation synthesis:
 
-            (
-                num_factories_per_data_qubit,
-                tocks_for_enacting_cliffords_due_to_rotations,
-            ) = self.model_bus_architecture_time_optimal_distillation_resources(
-                magic_state_factory,
-                compiled_program.n_rotation_gates,
-                data_and_bus_code_distance,
-            )
+            # Tocks |Tock1|Tock2|Tock3|Tock4|Tock5|Tock6|Tock7|Tock8|Tock9|Toc10|Toc11|Toc12|Toc13|
+            # Dat1: |Graph state------------->|CoDT1----->|CoDT2----->|CoDT3----->|CoDT4----->|
+            #                                     ^              ^           ^          ^
+            # Bus1: |Graph state------------->|CoDT1----->|CoDT2----->|CoDT3----->|CoDT4----->|
+            # Bus2: |Graph state------------->|CoDT1----->|     ^           ^           ^
+            # Bus3: |Graph state------------->|  ^        |CoDT2----->|     ^           ^
+            # Bus4: |Graph state------------->|  ^              ^     |CoDT3----->|     ^
+            #                                 ^              ^           ^           ^
+            # MSF1:     |Distill------------->|CoDT1----->| |Dis^ill--------^---->|CoDT4----->|
+            # MSF2:                 |Distill------------->|CoDT2----->|     ^
+            # MSF3:                             |Distill------------->|CoDT3----->|
 
             for i, subroutine in enumerate(compiled_program.subroutines):
+                # print(f"{i}th subroutine number of layers", subroutine.num_layers)
                 for layer_num, layer in enumerate(range(subroutine.num_layers)):
+                    # print(f"{i}th subroutine {layer_num}th layer")
+                    # print(f"number of qubits: {subroutine.num_logical_qubits}")
+                    # print(
+                    #     f"rotations_per_layer: {subroutine.rotations_per_layer[layer_num]}"
+                    # )
+                    # print(
+                    #     f"graph creation tocks per layer: {subroutine.graph_creation_tocks_per_layer[layer_num]}"
+                    # )
+                    # print(
+                    #     "Cycles per distillation",
+                    #     magic_state_factory.distillation_time_in_cycles,
+                    # )
+                    cycles_per_tock = data_and_bus_code_distance
+                    # Distill T states and prepare graph state in parallel.
+                    time_allocation_for_each_subroutine[i].log_parallelized(
+                        (
+                            magic_state_factory.distillation_time_in_cycles,
+                            subroutine.graph_creation_tocks_per_layer[layer]
+                            * cycles_per_tock,
+                        ),
+                        ("distillation", "entanglement"),
+                    )
 
-                    if layer_num > 0:
-                        # we need to wait for the previous subroutine to finish
-                        # measuring the qubits in the T basis before we continue
-                        # with the next subroutine. However, we can distill T states
-                        # and perform these measurements in parallel. We assume that
-                        # it takes 1 cycle to measure these T states, which is a
-                        # conservative assumption according to Fowler et al.'s
-                        # seminal surface code paper: https://arxiv.org/abs/1208.0928
-                        # which puts measurement times at about 1/2 cycle time (see
-                        # the middle of page 2).
+                    cycles_per_t_consumption = 2 * cycles_per_tock
 
+                    if subroutine.rotations_per_layer[layer] > 0:
                         time_allocation_for_each_subroutine[i].log_parallelized(
                             (
-                                num_factories_per_data_qubit,
-                                num_factories_per_data_qubit,
+                                (n_t_gates_per_rotation - 1) * cycles_per_t_consumption,
+                                (n_t_gates_per_rotation - 1) * cycles_per_t_consumption,
                             ),
                             ("distillation", "Tstate-to-Tgate"),
                         )
 
-                    if (
-                        num_factories_per_data_qubit
-                        > magic_state_factory.distillation_time_in_cycles
-                        and layer_num > 0
-                    ):
-                        # cannot parallelize teleportation from previous layer
-                        # and graph state preparation
-                        time_allocation_for_each_subroutine[i].log(
-                            num_factories_per_data_qubit
-                            - magic_state_factory.distillation_time_in_cycles,
-                            "Tstate-to-Tgate",
-                        )
-                        time_allocation_for_each_subroutine[i].log(
-                            (
-                                subroutine.graph_creation_tocks_per_layer[layer]
-                                + tocks_for_enacting_cliffords_due_to_rotations
-                            )
-                            * data_and_bus_code_distance,
-                            "entanglement",
-                        )
-                    elif layer_num > 0:
-                        # TODO: have Simon review this
-                        # Distill T states and prepare graph state in parallel.
-                        time_allocation_for_each_subroutine[i].log_parallelized(
-                            (
-                                magic_state_factory.distillation_time_in_cycles
-                                - num_factories_per_data_qubit,
-                                (
-                                    subroutine.graph_creation_tocks_per_layer[layer]
-                                    + tocks_for_enacting_cliffords_due_to_rotations
-                                )
-                                * data_and_bus_code_distance,
-                            ),
-                            ("distillation", "entanglement"),
-                        )
-
-                    # 1 tock to deliver T states to the synthilation qubits.
                     time_allocation_for_each_subroutine[i].log(
-                        data_and_bus_code_distance, "Tstate-to-Tgate"
+                        cycles_per_t_consumption,
+                        "Tstate-to-Tgate",
                     )
 
         else:
