@@ -78,7 +78,6 @@ def main():
     with measure_time() as t_info:
         azure_resource_estimates = azure_estimator(
             algorithm,
-            architecture_model=architecture_model,
         )
 
     print("Resource estimation time with Azure:", t_info.total)
