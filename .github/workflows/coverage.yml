@@ -52,10 +52,3 @@ jobs:
       - name: Run tests and gather coverage stats
         shell: bash
         run: make coverage
-
-      - name: Comment with code coverage
-        uses: zapatacomputing/command-pr-comment@baca4fb9246eaaee3e47f35f296764acc394fae7
-        with:
-          command: make show-coverage-text-report
-          template: "🚀 Code Coverage\n```\n%command%```"
-          update-text: "🚀 Code Coverage"
