@@ -12,6 +12,11 @@ from benchq.compilation.graph_states import (
 )
 from benchq.decoder_modeling import DecoderModel
 from benchq.problem_embeddings.quantum_program import QuantumProgram
+
+from benchq.compilation.graph_states.compiled_data_structures import (
+    CompiledQuantumProgram,
+    GSCInfo,
+)
 from benchq.quantum_hardware_modeling import (
     BASIC_ION_TRAP_ARCHITECTURE_MODEL,
     BASIC_SC_ARCHITECTURE_MODEL,
@@ -305,3 +310,63 @@ def test_get_resource_estimations_for_program_accounts_for_decoder(optimization)
 
     assert gsc_resource_estimates_no_decoder.decoder_info is None
     assert gsc_resource_estimates_with_decoder.decoder_info is not None
+
+
+def test_get_resource_estimations_for_program_accounts_for_magic_state_factory_with_one_subroutine(
+    optimization,
+):
+
+    dummy_circuit = Circuit()
+    dummy_quantum_program = QuantumProgram.from_circuit(dummy_circuit)
+
+    # Set compilation parameters
+    optimization = "Time"
+
+    # Initialize Graph Resource Estimator
+    estimator = GraphResourceEstimator(optimization)
+
+    gsc_info_no_t_gates = GSCInfo(
+        4,
+        2,
+        [3, 5],
+        [0, 0],
+        [0, 0],
+    )
+
+    compiled_program_no_t_gates = CompiledQuantumProgram.from_program(
+        dummy_quantum_program, [gsc_info_no_t_gates]
+    )
+
+    gsc_info_with_t_gates = GSCInfo(
+        4,
+        2,
+        [3, 5],
+        [0, 7],
+        [0, 0],
+    )
+    compiled_program_with_t_gates = CompiledQuantumProgram.from_program(
+        dummy_quantum_program, [gsc_info_with_t_gates]
+    )
+
+    number_of_magic_state_factories_no_t_gates = (
+        estimator.get_max_number_of_t_states_from_compiled_program(
+            compiled_program_no_t_gates
+        )
+    )
+
+    number_of_magic_state_factories_with_t_gates = (
+        estimator.get_max_number_of_t_states_from_compiled_program(
+            compiled_program_with_t_gates
+        )
+    )
+
+    number_of_data_qubits = (
+        estimator.get_max_number_of_data_qubits_from_compiled_program(
+            compiled_program_no_t_gates
+        )
+    )
+
+    # Check that the number of magic state factories is correct
+    assert number_of_magic_state_factories_no_t_gates == 0
+    assert number_of_magic_state_factories_with_t_gates == 7
+    assert number_of_data_qubits == 4
