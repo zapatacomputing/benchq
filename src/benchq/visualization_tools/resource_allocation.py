@@ -10,7 +10,7 @@ from matplotlib.axes import Axes
 from matplotlib.colors import LinearSegmentedColormap
 from upsetplot import UpSet
 
-default_process_types = {"distillation", "Tstate-to-Tgate", "entanglement"}
+default_process_types = {"distillation", "T measurement", "graph state prep"}
 
 
 class ResourceAllocation:

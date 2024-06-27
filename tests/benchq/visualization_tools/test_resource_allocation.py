@@ -11,7 +11,7 @@ def time_allocation():
 
 @pytest.fixture
 def possible_processes():
-    return ["Tstate-to-Tgate", "distillation", "entanglement"]
+    return ["T measurement", "distillation", "graph state prep"]
 
 
 @pytest.mark.parametrize(
@@ -19,15 +19,15 @@ def possible_processes():
     [
         (
             [
-                ["Tstate-to-Tgate"],
-                ["Tstate-to-Tgate"],
+                ["T measurement"],
+                ["T measurement"],
             ],
             [10, 20],
         ),
         (
             [
-                ["Tstate-to-Tgate", "distillation"],
-                ["Tstate-to-Tgate", "distillation"],
+                ["T measurement", "distillation"],
+                ["T measurement", "distillation"],
             ],
             [30, 40],
         ),
@@ -46,16 +46,16 @@ def test_logg_adds_correctly(time_allocation, processes_list, time_per_process):
     [
         (
             [
-                "Tstate-to-Tgate",
+                "T measurement",
                 "distillation",
             ],
             [10, 20],
         ),
         (
             [
-                "Tstate-to-Tgate",
+                "T measurement",
                 "distillation",
-                "entanglement",
+                "graph state prep",
             ],
             [10, 20, 30],
         ),
@@ -69,25 +69,25 @@ def test_parallel_logging(time_allocation, processes_list, time_per_process):
 
 
 def test_parallel_and_single_logging_non_constructive(time_allocation):
-    time_allocation.log(10, "Tstate-to-Tgate")
-    time_allocation.log_parallelized([30, 50], ["Tstate-to-Tgate", "distillation"])
+    time_allocation.log(10, "T measurement")
+    time_allocation.log_parallelized([30, 50], ["T measurement", "distillation"])
 
-    assert time_allocation.exclusive("Tstate-to-Tgate") == 10
+    assert time_allocation.exclusive("T measurement") == 10
     assert time_allocation.exclusive("distillation") == 20
-    assert time_allocation.exclusive("Tstate-to-Tgate", "distillation") == 30
+    assert time_allocation.exclusive("T measurement", "distillation") == 30
 
-    assert time_allocation.inclusive("Tstate-to-Tgate") == 40
+    assert time_allocation.inclusive("T measurement") == 40
     assert time_allocation.inclusive("distillation") == 50
 
 
 def test_parallel_and_single_logging_constructive(time_allocation):
-    time_allocation.log(10, "Tstate-to-Tgate")
-    time_allocation.log_parallelized([30, 40], ["distillation", "Tstate-to-Tgate"])
+    time_allocation.log(10, "T measurement")
+    time_allocation.log_parallelized([30, 40], ["distillation", "T measurement"])
 
-    assert time_allocation.exclusive("Tstate-to-Tgate") == 20
-    assert time_allocation.exclusive("Tstate-to-Tgate", "distillation") == 30
+    assert time_allocation.exclusive("T measurement") == 20
+    assert time_allocation.exclusive("T measurement", "distillation") == 30
 
-    assert time_allocation.inclusive("Tstate-to-Tgate") == 50
+    assert time_allocation.inclusive("T measurement") == 50
     assert time_allocation.inclusive("distillation") == 30
 
 
@@ -96,29 +96,29 @@ def test_parallel_and_single_logging_constructive(time_allocation):
     [
         (
             [
-                ["Tstate-to-Tgate"],
+                ["T measurement"],
             ],
             [10],
         ),
         (
             [
-                ["Tstate-to-Tgate"],
+                ["T measurement"],
                 ["distillation"],
             ],
             [10],
         ),
         (
             [
-                ["Tstate-to-Tgate", "distillation"],
+                ["T measurement", "distillation"],
             ],
             [10],
         ),
         (
             [
-                ["Tstate-to-Tgate"],
+                ["T measurement"],
                 ["distillation"],
-                ["entanglement"],
-                ["Tstate-to-Tgate", "distillation"],
+                ["graph state prep"],
+                ["T measurement", "distillation"],
             ],
             [10, 20, 30, 40],
         ),
