@@ -89,70 +89,70 @@ def test_resource_estimations_returns_results_for_different_architectures(
                 [Circuit([H(0), RZ(np.pi / 4)(0), CNOT(0, 1)])], 1, lambda x: [0]
             ),
             "Space",
-            {"code_distance": 9, "n_logical_qubits": 2},
+            {"code_distance": 9, "n_logical_qubits": 5},
         ),
         (
             QuantumProgram.from_circuit(
                 Circuit([RX(np.pi / 4)(0), RY(np.pi / 4)(0), CNOT(0, 1)])
             ),
             "Space",
-            {"code_distance": 9, "n_logical_qubits": 2},
+            {"code_distance": 9, "n_logical_qubits": 5},
         ),
         (
             QuantumProgram.from_circuit(
                 Circuit([H(0)] + [CNOT(i, i + 1) for i in range(3)])
             ),
             "Space",
-            {"code_distance": 9, "n_logical_qubits": 2},
+            {"code_distance": 9, "n_logical_qubits": 5},
         ),
         (
             QuantumProgram.from_circuit(
                 Circuit([H(0)] + [CNOT(i, i + 1) for i in range(3)] + [T(1), T(2)])
             ),
             "Space",
-            {"code_distance": 9, "n_logical_qubits": 2},
+            {"code_distance": 11, "n_logical_qubits": 5},
         ),
         (
             QuantumProgram.from_circuit(
                 Circuit([H(0), T(0), CNOT(0, 1), T(2), CNOT(2, 3)])
             ),
             "Space",
-            {"code_distance": 9, "n_logical_qubits": 2},
+            {"code_distance": 11, "n_logical_qubits": 5},
         ),
         (
             QuantumProgram(
                 [Circuit([H(0), RZ(np.pi / 4)(0), CNOT(0, 1)])], 1, lambda x: [0]
             ),
             "Time",
-            {"code_distance": 9, "n_logical_qubits": 12},
+            {"code_distance": 7, "n_logical_qubits": 6},
         ),
         (
             QuantumProgram.from_circuit(
                 Circuit([RX(np.pi / 4)(0), RY(np.pi / 4)(0), CNOT(0, 1)])
             ),
             "Time",
-            {"code_distance": 11, "n_logical_qubits": 12},
+            {"code_distance": 9, "n_logical_qubits": 7},
         ),
         (
             QuantumProgram.from_circuit(
                 Circuit([H(0)] + [CNOT(i, i + 1) for i in range(3)])
             ),
             "Time",
-            {"code_distance": 9, "n_logical_qubits": 16},
+            {"code_distance": 7, "n_logical_qubits": 8},
         ),
         (
             QuantumProgram.from_circuit(
                 Circuit([H(0)] + [CNOT(i, i + 1) for i in range(3)] + [T(1), T(2)])
             ),
             "Time",
-            {"code_distance": 9, "n_logical_qubits": 24},
+            {"code_distance": 9, "n_logical_qubits": 13},
         ),
         (
             QuantumProgram.from_circuit(
                 Circuit([H(0), T(0), CNOT(0, 1), T(2), CNOT(2, 3)])
             ),
             "Time",
-            {"code_distance": 9, "n_logical_qubits": 24},
+            {"code_distance": 9, "n_logical_qubits": 12},
         ),
     ],
 )
@@ -394,16 +394,20 @@ def test_get_cycle_allocation_time_optimal():
         dummy_quantum_program, [gsc_info_no_t_gates]
     )
 
+    tocks_per_graph_state_prep_1 = 3
+    tocks_per_graph_state_prep_2 = 5
+    tocks_per_graph_state_prep_3 = 1
     gsc_info_with_t_gates = GSCInfo(
         4,
-        2,
-        [3, 5],
-        [0, 7],
-        [0, 0],
+        3,
+        [3, 5, 1],
+        [0, 7, 0],
+        [0, 0, 1],
     )
     distillation_time_in_cycles = 27
     n_t_gates_per_rotation = 30
     data_and_bus_code_distance = 9
+    tocks_per_t_measurement = 2
 
     compiled_program_with_t_gates = CompiledQuantumProgram.from_program(
         dummy_quantum_program, [gsc_info_with_t_gates]
@@ -415,5 +419,30 @@ def test_get_cycle_allocation_time_optimal():
         n_t_gates_per_rotation,
         data_and_bus_code_distance,
     )
+
+    # Layer 1
+    expected_cycle_time = tocks_per_graph_state_prep_1 * data_and_bus_code_distance
+    # Layer 2
+    expected_cycle_time += (
+        max(
+            tocks_per_graph_state_prep_2 * data_and_bus_code_distance,
+            distillation_time_in_cycles,
+        )
+        + tocks_per_t_measurement * data_and_bus_code_distance
+    )
+    # Layer 3
+    expected_cycle_time += (
+        max(
+            tocks_per_graph_state_prep_3 * data_and_bus_code_distance,
+            distillation_time_in_cycles,
+        )
+        + tocks_per_t_measurement * data_and_bus_code_distance
+        + (n_t_gates_per_rotation - 1)
+        * (
+            distillation_time_in_cycles
+            + tocks_per_t_measurement * data_and_bus_code_distance
+        )
+    )
+
     # Check that the number of magic state factories is correct
-    assert time_allocation.total == 90
+    assert time_allocation.total == expected_cycle_time
