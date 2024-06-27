@@ -102,7 +102,7 @@ class GraphResourceEstimator:
 
             time_allocation = self.get_cycle_allocation(
                 compiled_program,
-                magic_state_factory,
+                magic_state_factory.distillation_time_in_cycles,
                 n_t_gates_per_rotation,
                 data_and_bus_code_distance,
             )
@@ -500,7 +500,7 @@ class GraphResourceEstimator:
         # get error rate after correction
         time_allocation = self.get_cycle_allocation(
             compiled_implementation.program,
-            magic_state_factory,
+            magic_state_factory.distillation_time_in_cycles,
             n_t_gates_per_rotation,
             data_and_bus_code_distance,
         )
@@ -566,7 +566,6 @@ class GraphResourceEstimator:
             optimization=self.optimization,
             code_distance=data_and_bus_code_distance,
             logical_error_rate=this_hardware_failure_rate,
-            # estimate the number of logical qubits using max node degree
             n_logical_qubits=num_logical_qubits,
             magic_state_factory_name=magic_state_factory.name,
             decoder_info=decoder_info,
