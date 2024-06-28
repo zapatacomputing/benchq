@@ -36,7 +36,7 @@ class TestDetailedIonTrapModel:
             model = DetailedIonTrapModel()
 
             assert model.physical_qubit_error_rate == 1e-4
-            assert model.surface_code_cycle_time_in_seconds == 1e-3
+            assert model.surface_code_cycle_time_in_seconds == 3e-3
 
         def test_parametrized_constructor(self):
             model = DetailedIonTrapModel(22, 36)
@@ -48,69 +48,6 @@ class TestDetailedIonTrapModel:
         def test_power_consumed_per_elu_in_kilowatts(self):
             model = DetailedIonTrapModel()
             assert model.power_consumed_per_ELU_in_kilowatts() == 5.0
-
-    # class TestNumCommunicationQubits:
-    #     @pytest.mark.parametrize(
-    #         "code_distance, qubits, throws",
-    #         [
-    #             (1, 0, True),
-    #             (2, 0, True),
-    #             (3, 72, False),
-    #             (14, 392, False),
-    #             (25, 800, False),
-    #             (35, 1120, False),
-    #             (36, 0, True),
-    #             (1000, 0, True),
-    #         ],
-    #     )
-    #     def test_num_communication_ions_per_elu(self, code_distance, qubits, throws):
-    #         model = DetailedIonTrapModel()
-    #         raises = pytest.raises(ValueError) if throws else do_not_raise()
-
-    #         with raises:
-    #             assert model.num_communication_ions_per_elu(code_distance) == qubits
-
-    # class TestNumCommunicationPorts:
-    #     @pytest.mark.parametrize(
-    #         "code_distance, qubits, throws, second_switch_needed",
-    #         [
-    #             (1, 0, True, False),
-    #             (2, 0, True, False),
-    #             (3, 72, False, False),
-    #             (14, 392, False, False),
-    #             (25, 800, False, True),
-    #             (35, 1120, False, True),
-    #             (36, 0, True, False),
-    #             (1000, 0, True, False),
-    #         ],
-    #     )
-    #     def test_num_communication_ports(
-    #         self, code_distance, qubits, throws, second_switch_needed
-    #     ):
-    #         model = DetailedIonTrapModel()
-    #         raises = pytest.raises(ValueError) if throws else do_not_raise()
-
-    #         with raises:
-    #             assert model.num_communication_ports_per_ELU(code_distance) == (
-    #                 qubits,
-    #                 second_switch_needed,
-    #             )
-
-    # class TestFunctionDesignationOfChains:
-    #     @pytest.mark.parametrize(
-    #         "code_distance, computational_qubits, communication_qubits",
-    #         [(10, 200, 280), (30, 1800, 960), (5, 50, 120)],
-    #     )
-    #     def test_functional_designation_of_chains_within_elu(
-    #         self, code_distance, computational_qubits, communication_qubits
-    #     ):
-    #         model = DetailedIonTrapModel()
-
-    #         assert model.functional_designation_of_chains_within_ELU(code_distance) == (
-    #             code_distance,
-    #             computational_qubits,
-    #             communication_qubits,
-    #         )
 
     class TestFindMinimumCommIons:
         @pytest.mark.parametrize(
@@ -137,9 +74,6 @@ class TestDetailedIonTrapModel:
             n_logical_qubits,
         ):
             # Given
-            # resource_info.n_logical_data_qubits = n_logical_data_qubits
-            # resource_info.n_logical_bus_qubits = n_logical_bus_qubits
-            # resource_info.n_magic_state_factories = n_magic_state_factories
             magic_state_factory_info = MagicStateFactoryInfo(
                 "(15-to-1)_17,7,7", 4.5e-8, (72, 64), 4620, 42.6
             )
