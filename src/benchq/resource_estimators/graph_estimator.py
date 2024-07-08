@@ -78,14 +78,6 @@ class GraphResourceEstimator:
             )
         )
 
-        # distillation_error_rate = 1 - (
-        #     1 - Decimal(magic_state_factory.distilled_magic_state_error_rate)
-        # ) ** Decimal(
-        #     compiled_program.get_n_t_gates_after_transpilation(
-        #         transpilation_failure_tolerance
-        #     )
-        # )
-
         if distillation_error_rate > hardware_failure_tolerance:
             return -1
 
@@ -146,53 +138,31 @@ class GraphResourceEstimator:
             self.get_max_number_of_data_qubits_from_compiled_program(compiled_program)
         )
 
+        # Qubit resource breakdowns are given by the following layouts
+        # for data qubits |D|, bus qubits |B|, and magic state factories |M|.
+        # The ion trap architecture is designed for each ELU to connect to at most
+        # three other ELUs.
+
+        # The two-row bus architecture with degree-three connectivity is layed out as follows:
+        # |D|     |D|     ...     |D| |D| ... |D|
+        #  |       |               |   |       |
+        # |B|-|B|-|B|-|B|-...-|B|-|B|-|B|-...-|B|
+        #      |       |       |
+        #     |M|     |M|     |M|
+        # there is a bus qubit for each data qubit and each magic state factory.
+        # The space optimal compilation uses just one factory, while the time optimal
+        # compilation uses a number of factories determined by the maximum warranted
+        # parallelization of distillation.
         if self.optimization == "Space":
-
-            # Qubit resource breakdowns are given by the following layouts
-            # for data qubits |D|, bus qubits |B|, and magic state factories |M|.
-            # The ion trap architecture is designed for each ELU to connect to at most
-            # three other ELUs.
-
-            # The space optimal bus architecture is layed out as follows:
-            #     |D| |D| |D| |D| |D|
-            #      |   |   |   |   |
-            # |B|-|B|-|B|-|B|-|B|-|B|
-            #  |
-            # |M|
-
             num_magic_state_factories = 1
-            num_logical_bus_qubits = num_magic_state_factories + num_logical_data_qubits
-
-            return BusArchitectureResourceInfo(
-                num_logical_data_qubits=num_logical_data_qubits,
-                num_logical_bus_qubits=num_logical_bus_qubits,
-                data_and_bus_code_distance=data_and_bus_code_distance,
-                num_magic_state_factories=num_magic_state_factories,
-                magic_state_factory=magic_state_factory,
+        elif self.optimization == "Time":
+            num_magic_state_factories = self.get_max_parallel_distillations(
+                compiled_program
             )
 
-        if self.optimization == "Time":
-
-            # Qubit resource breakdowns are given by the following layouts
-            # for data qubits |D|, bus qubits |B|, and magic state factories |M|.
-            # The ion trap architecture is designed for each ELU to connect to at most
-            # three other ELUs.
-
-            # The time optimal bus architecture is layed out as follows:
-            # |D|     |D|     ...     |D| |D| ... |D|
-            #  |       |               |   |       |
-            # |B|-|B|-|B|-|B|-...-|B|-|B|-|B|-...-|B|
-            #      |       |       |
-            #     |M|     |M|     |M|
-            # there is a bus qubit for each data qubit and each magic state factory.
-
-            num_magic_state_factories = (
-                self.get_max_number_of_t_states_from_compiled_program(compiled_program)
-            )
-
-            # The ion trap architecture 3-neighbor constraint requires each data qubit and each magic state factory
-            # to be connected to a unique bus qubit. The bus qubits are connected to each other in a chain.
-            num_logical_bus_qubits = num_logical_data_qubits + num_magic_state_factories
+        # The ion trap architecture 3-neighbor constraint requires each data qubit and each magic state factory
+        # to be connected to a unique bus qubit. The bus qubits are connected to each other in a chain.
+        num_logical_bus_qubits = num_logical_data_qubits + num_magic_state_factories
 
         return BusArchitectureResourceInfo(
             num_logical_data_qubits=num_logical_data_qubits,
@@ -202,12 +172,22 @@ class GraphResourceEstimator:
             magic_state_factory=magic_state_factory,
         )
 
-    def get_max_number_of_t_states_from_compiled_program(self, compiled_program):
-        max_t_states = 0
+    def get_max_parallel_distillations(self, compiled_program):
+        max_parallel_distillations = 0
         for subroutine in compiled_program.subroutines:
-            for t_state_count in subroutine.t_states_per_layer:
-                max_t_states = max(max_t_states, t_state_count)
-        return max_t_states
+            t_states_per_layer = subroutine.t_states_per_layer
+            rotations_per_layer = subroutine.rotations_per_layer
+            parallel_distillations_per_layer = [
+                t_states + rotations
+                for t_states, rotations in zip(t_states_per_layer, rotations_per_layer)
+            ]
+            max_parallel_distillations_in_subroutine = max(
+                parallel_distillations_per_layer
+            )
+            max_parallel_distillations = max(
+                max_parallel_distillations, max_parallel_distillations_in_subroutine
+            )
+        return max_parallel_distillations
 
     def get_max_number_of_data_qubits_from_compiled_program(self, compiled_program):
         max_data_qubits = 0
@@ -257,35 +237,11 @@ class GraphResourceEstimator:
             # Bus2: |Graph state------------->|     ^                                ^
             #                                       ^                                ^
             # MSF1:     |Distill------------->|CoDT1----->|Distill------------->|CoDT2----->|
-            total_dist_cycles = 0
-            total_gsc_cycles = 0
             for i, subroutine in enumerate(compiled_program.subroutines):
-                print(f"{i}th subroutine number of layers", subroutine.num_layers)
                 for layer_num, layer in enumerate(range(subroutine.num_layers)):
-                    print(f"{i}th subroutine {layer_num}th layer")
-                    print(f"number of qubits: {subroutine.num_logical_qubits}")
-                    print(
-                        f"rotations_per_layer: {subroutine.rotations_per_layer[layer_num]}"
-                    )
-                    print(
-                        f"graph creation tocks per layer: {subroutine.graph_creation_tocks_per_layer[layer_num]}"
-                    )
-                    print(
-                        "Cycles per distillation",
-                        distillation_time_in_cycles,
-                    )
+
                     cycles_per_tock = data_and_bus_code_distance
-                    print(
-                        "ratio of gs to distillation",
-                        data_and_bus_code_distance
-                        * subroutine.graph_creation_tocks_per_layer[layer_num]
-                        / distillation_time_in_cycles,
-                    )
-                    total_gsc_cycles += (
-                        data_and_bus_code_distance
-                        * subroutine.graph_creation_tocks_per_layer[layer_num]
-                    )
-                    total_dist_cycles += distillation_time_in_cycles
+
                     # Distill T states and prepare graph state in parallel.
                     time_allocation_for_each_subroutine[i].log_parallelized(
                         (
