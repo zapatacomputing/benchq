@@ -219,30 +219,50 @@ class GraphResourceEstimator:
         time_allocation_for_each_subroutine = [
             CycleAllocation() for _ in range(len(compiled_program.subroutines))
         ]
-        # First, generate data for cycle allocation
-        if self.optimization == "Space":
 
-            # Space optimal temporal accounting for the rate-limiting T gate related process of rotation synthesis:
+        # Legend:
+        # |Graph state->| = "Entanglement" process of graph state creation
+        # |CoDTX------->| = "T measurement" process of consuming the Xth T state as a T basis measurements
+        # |Distill----->| = "Distillation" process of preparing a T state on a magic state factory
 
-            # Legend:
-            # |Graph state->| = "Graph state prep" process of graph state creation
-            # |CoDTX------->| = "T measurement" process of consuming the Xth T state as a T basis measurements
-            # |Distill----->| = "Distillation" process of preparing a T state on a magic state factory
+        # Tocks |Tock1|Tock2|Tock3|Tock4|Tock5|Tock6|Tock7|Tock8|Tock9|Toc10|Toc11|Toc12|Toc13|
+        # Stages:[1: Graph creation      ] [2: Meas1 ] [3: Distill then Meas2          ] ... [N: Distill then MeasN-1]
+        # Dat1: |Graph state------------->|CoDT1----->|                     |CoDT3----->|...
+        # Dat2: |Graph state------------->|CoDT2----->|                     |CoDT4----->|...
+        #                                       ^                                 ^
+        # Bus1: |Graph state------------->|CoDT1----->|                     |CoDT3----->|...
+        # Bus2: |Graph state------------->|CoDT1----->|                     |CoDT3----->|...
+        # Bus3: |Graph state------------->|CoDT2----->|                     |CoDT4----->|...
+        # Bus4: |Graph state------------->|CoDT2----->|                     |CoDT4----->|...
+        #                                       ^                                 ^
+        # MSF1:     |Distill------------->|CoDT1----->|Distill------------->|CoDT3----->|...
+        # MSF2:     |Distill------------->|CoDT2----->|Distill------------->|CoDT4----->|...
 
-            # Tocks |Tock1|Tock2|Tock3|Tock4|Tock5|Tock6|Tock7|Tock8|Tock9|Toc10|Toc11|Toc12|Toc13|
-            # Dat1: |Graph state------------->|CoDT1----->|                     |CoDT2----->|
-            # Dat2: |Graph state------------->|CoDT1----->|                     |CoDT2----->|
-            #                                       ^                                ^
-            # Bus1: |Graph state------------->|CoDT1----->|                     |CoDT2----->|
-            # Bus2: |Graph state------------->|     ^                                ^
-            #                                       ^                                ^
-            # MSF1:     |Distill------------->|CoDT1----->|Distill------------->|CoDT2----->|
-            for i, subroutine in enumerate(compiled_program.subroutines):
-                for layer_num, layer in enumerate(range(subroutine.num_layers)):
+        # For space optimal, a single factory is used and distillation is done serially.
+        # For time optimal, multiple factories are used and distillation is done in parallel.
 
-                    cycles_per_tock = data_and_bus_code_distance
+        for i, subroutine in enumerate(compiled_program.subroutines):
+            for layer_num, layer in enumerate(range(subroutine.num_layers)):
 
-                    # Distill T states and prepare graph state in parallel.
+                cycles_per_tock = data_and_bus_code_distance
+
+                # Check if the number of T gates and number of rotations per layer is zero
+                if (
+                    subroutine.t_states_per_layer[layer] == 0
+                    and subroutine.rotations_per_layer[layer] == 0
+                ):
+                    # In this case, the layer only requires graph state preparation
+                    # Log Stage 1: Graph state creation
+                    time_allocation_for_each_subroutine[i].log(
+                        subroutine.graph_creation_tocks_per_layer[layer]
+                        * cycles_per_tock,
+                        "graph state prep",
+                    )
+
+                else:
+                    # If there are T gates in the layer, then the layer requires graph state preparation,
+                    # distillation, and T state measurement
+                    # Log Stage 1: Graph state creation
                     time_allocation_for_each_subroutine[i].log_parallelized(
                         (
                             distillation_time_in_cycles,
@@ -252,6 +272,7 @@ class GraphResourceEstimator:
                         ("distillation", "graph state prep"),
                     )
 
+                    # Log Stage 2: First T measurement
                     cycles_per_t_measurement = 2 * cycles_per_tock
 
                     time_allocation_for_each_subroutine[i].log(
@@ -259,95 +280,39 @@ class GraphResourceEstimator:
                         "T measurement",
                     )
 
-                    if subroutine.rotations_per_layer[layer] > 0:
-                        time_allocation_for_each_subroutine[i].log(
-                            (n_t_gates_per_rotation - 1) * cycles_per_t_measurement,
-                            ("distillation"),
-                        )
-                        time_allocation_for_each_subroutine[i].log(
-                            cycles_per_t_measurement,
-                            "T measurement",
-                        )
+                    # Log Stage 3: Space optimal entails serially distilling T states
+                    # and a T measurement is made after each distillation, while time optimal
+                    # entails distilling T states in parallel and making a T measurement after,
+                    # though T gates used to synthesize a rotation are still implemented serially.
 
-        elif self.optimization == "Time":
-            # Time optimal temporal accounting for the rate-limiting T gate related process of rotation synthesis:
-
-            # Legend:
-            # |Graph state->| = "Entanglement" process of graph state creation
-            # |CoDTX------->| = "T measurement" process of consuming the Xth T state as a T basis measurements
-            # |Distill----->| = "Distillation" process of preparing a T state on a magic state factory
-
-            # Tocks |Tock1|Tock2|Tock3|Tock4|Tock5|Tock6|Tock7|Tock8|Tock9|Toc10|Toc11|Toc12|Toc13|
-            # Stages:[1: Graph creation      ] [2: Meas1 ] [3: Distill then Meas2          ] ... [N: Distill then MeasN-1]
-            # Dat1: |Graph state------------->|CoDT1----->|                     |CoDT3----->|...
-            # Dat2: |Graph state------------->|CoDT2----->|                     |CoDT4----->|...
-            #                                       ^                                 ^
-            # Bus1: |Graph state------------->|CoDT1----->|                     |CoDT3----->|...
-            # Bus2: |Graph state------------->|CoDT1----->|                     |CoDT3----->|...
-            # Bus3: |Graph state------------->|CoDT2----->|                     |CoDT4----->|...
-            # Bus4: |Graph state------------->|CoDT2----->|                     |CoDT4----->|...
-            #                                       ^                                 ^
-            # MSF1:     |Distill------------->|CoDT1----->|Distill------------->|CoDT3----->|...
-            # MSF2:     |Distill------------->|CoDT2----->|Distill------------->|CoDT4----->|...
-            graph_creation_cycles = []
-            distillation_cycles = []
-            for i, subroutine in enumerate(compiled_program.subroutines):
-                for layer_num, layer in enumerate(range(subroutine.num_layers)):
-
-                    cycles_per_tock = data_and_bus_code_distance
-
-                    # Check if the number of T gates and number of rotations per layer is zero
-                    if (
-                        subroutine.t_states_per_layer[layer] == 0
-                        and subroutine.rotations_per_layer[layer] == 0
-                    ):
-                        # In this case, the layer only requires graph state preparation
-                        # Log Stage 1: Graph state creation
-                        time_allocation_for_each_subroutine[i].log(
-                            subroutine.graph_creation_tocks_per_layer[layer]
-                            * cycles_per_tock,
-                            "graph state prep",
-                        )
-
+                    # Calculate the number of remaining T rounds
+                    if self.optimization == "Space":
+                        number_of_remaining_t_rounds = (
+                            subroutine.t_states_per_layer[layer]
+                            + n_t_gates_per_rotation
+                            * subroutine.rotations_per_layer[layer]
+                        ) - 1
+                    elif self.optimization == "Time":
+                        number_of_remaining_t_rounds = (
+                            n_t_gates_per_rotation
+                            * subroutine.rotations_per_layer[layer]
+                        ) - 1
                     else:
-                        # If there are T gates in the layer, then the layer requires graph state preparation,
-                        # distillation, and T state measurement
-                        # Log Stage 1: Graph state creation
-                        time_allocation_for_each_subroutine[i].log_parallelized(
-                            (
-                                distillation_time_in_cycles,
-                                subroutine.graph_creation_tocks_per_layer[layer]
-                                * cycles_per_tock,
-                            ),
-                            ("distillation", "graph state prep"),
+                        raise ValueError(
+                            f"Unknown optimization: {self.optimization}. "
+                            "Should be either 'Time' or 'Space'."
                         )
 
-                        # Log Stage 2: First T measurement
-                        cycles_per_t_measurement = 2 * cycles_per_tock
-
+                    # Loop over remaining T rounds
+                    for _ in range(number_of_remaining_t_rounds):
+                        time_allocation_for_each_subroutine[i].log(
+                            distillation_time_in_cycles,
+                            "distillation",
+                        )
                         time_allocation_for_each_subroutine[i].log(
                             cycles_per_t_measurement,
                             "T measurement",
                         )
-
-                        # Log Stage 3: Distill T states then T measurement (if rotation synthesis is saved for measurement)
-                        if subroutine.rotations_per_layer[layer] > 0:
-                            # Loop over remaining T gates needed for rotation synthesis
-                            for _ in range(n_t_gates_per_rotation - 1):
-                                time_allocation_for_each_subroutine[i].log(
-                                    distillation_time_in_cycles,
-                                    "distillation",
-                                )
-                                time_allocation_for_each_subroutine[i].log(
-                                    cycles_per_t_measurement,
-                                    "T measurement",
-                                )
-
-        else:
-            raise ValueError(
-                f"Unknown optimization: {self.optimization}. "
-                "Should be either 'Time' or 'Space'."
-            )
 
         # Then initialize cycle allocation object and populate with data
         cycle_allocation = CycleAllocation()
