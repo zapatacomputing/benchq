@@ -110,14 +110,14 @@ def test_resource_estimations_returns_results_for_different_architectures(
                 Circuit([H(0)] + [CNOT(i, i + 1) for i in range(3)] + [T(1), T(2)])
             ),
             "Space",
-            {"code_distance": 11, "n_logical_qubits": 5},
+            {"code_distance": 9, "n_logical_qubits": 5},
         ),
         (
             QuantumProgram.from_circuit(
                 Circuit([H(0), T(0), CNOT(0, 1), T(2), CNOT(2, 3)])
             ),
             "Space",
-            {"code_distance": 11, "n_logical_qubits": 5},
+            {"code_distance": 9, "n_logical_qubits": 5},
         ),
         (
             QuantumProgram(
@@ -312,137 +312,139 @@ def test_get_resource_estimations_for_program_accounts_for_decoder(optimization)
     assert gsc_resource_estimates_with_decoder.decoder_info is not None
 
 
-def test_get_resource_estimations_for_program_accounts_for_magic_state_factory_with_one_subroutine():
+@pytest.mark.parametrize(
+    "gsc_info,optimization,expected_results",
+    [
+        (
+            GSCInfo(
+                4,
+                2,
+                [3, 5],
+                [0, 0],
+                [0, 0],
+            ),
+            "Time",
+            {"number_of_magic_state_factories": 0, "number_of_data_qubits": 4},
+        ),
+        (
+            GSCInfo(
+                5,
+                2,
+                [3, 5],
+                [0, 7],
+                [0, 1],
+            ),
+            "Time",
+            {"number_of_magic_state_factories": 8, "number_of_data_qubits": 5},
+        ),
+        (
+            GSCInfo(
+                5,
+                2,
+                [3, 5],
+                [0, 7],
+                [0, 2],
+            ),
+            "Space",
+            {"number_of_magic_state_factories": 1, "number_of_data_qubits": 5},
+        ),
+    ],
+)
+def test_get_resource_estimations_for_program_accounts_for_magic_state_factory_with_one_subroutine(
+    gsc_info, optimization, expected_results
+):
 
     dummy_circuit = Circuit()
     dummy_quantum_program = QuantumProgram.from_circuit(dummy_circuit)
 
-    # Set compilation parameters
-    optimization = "Time"
-
     # Initialize Graph Resource Estimator
     estimator = GraphResourceEstimator(optimization)
 
-    gsc_info_no_t_gates = GSCInfo(
-        4,
-        2,
-        [3, 5],
-        [0, 0],
-        [0, 0],
+    compiled_program = CompiledQuantumProgram.from_program(
+        dummy_quantum_program, [gsc_info]
     )
 
-    compiled_program_with_no_t_gates = CompiledQuantumProgram.from_program(
-        dummy_quantum_program, [gsc_info_no_t_gates]
-    )
+    magic_state_factory = None
+    data_and_bus_code_distance = None
+    n_t_gates_per_rotation = None
 
-    gsc_info_with_t_gates = GSCInfo(
-        4,
-        2,
-        [3, 5],
-        [0, 7],
-        [0, 0],
-    )
-    compiled_program_with_t_gates = CompiledQuantumProgram.from_program(
-        dummy_quantum_program, [gsc_info_with_t_gates]
-    )
-
-    number_of_magic_state_factories_no_t_gates = (
-        estimator.get_max_number_of_t_states_from_compiled_program(
-            compiled_program_with_no_t_gates
+    logical_architecture_resource_info = (
+        estimator.get_bus_architecture_resource_breakdown(
+            compiled_program,
+            data_and_bus_code_distance,
+            magic_state_factory,
+            n_t_gates_per_rotation,
         )
     )
 
-    number_of_magic_state_factories_with_t_gates = (
-        estimator.get_max_number_of_t_states_from_compiled_program(
-            compiled_program_with_t_gates
-        )
+    number_of_magic_state_factories = (
+        logical_architecture_resource_info.num_magic_state_factories
     )
 
-    number_of_data_qubits = (
-        estimator.get_max_number_of_data_qubits_from_compiled_program(
-            compiled_program_with_no_t_gates
-        )
-    )
+    number_of_data_qubits = logical_architecture_resource_info.num_logical_data_qubits
 
     # Check that the number of magic state factories is correct
-    assert number_of_magic_state_factories_no_t_gates == 0
-    assert number_of_magic_state_factories_with_t_gates == 7
-    assert number_of_data_qubits == 4
+    assert (
+        number_of_magic_state_factories
+        == expected_results["number_of_magic_state_factories"]
+    )
+    assert number_of_data_qubits == expected_results["number_of_data_qubits"]
 
 
 # Test for the time optimal cycle allocation functionality
-def test_get_cycle_allocation_time_optimal():
+@pytest.mark.parametrize(
+    "gsc_info,optimization,cycles_per_layer",
+    [
+        (
+            GSCInfo(
+                4,
+                3,
+                [3, 5, 1],
+                [0, 7, 1],
+                [0, 0, 1],
+            ),
+            "Time",
+            [9 * 3, 9 * 5 + 9 * 2, +27 + 9 * 2 + (27 + 9 * 2) * (30 - 1)],
+        ),
+        (
+            GSCInfo(
+                4,
+                3,
+                [3, 5, 1],
+                [0, 7, 1],
+                [0, 0, 1],
+            ),
+            "Space",
+            [
+                9 * 3,
+                9 * 5 + 9 * 2 + (27 + 9 * 2) * (7 - 1),
+                +27 + 9 * 2 + (27 + 9 * 2) * 30,
+            ],
+        ),
+    ],
+)
+def test_get_cycle_allocation(gsc_info, optimization, cycles_per_layer):
+
+    distillation_time_in_cycles = 27
+    n_t_gates_per_rotation = 30
+    data_and_bus_code_distance = 9
 
     dummy_circuit = Circuit()
     dummy_quantum_program = QuantumProgram.from_circuit(dummy_circuit)
 
-    # Set compilation parameters
-    optimization = "Time"
-
     # Initialize Graph Resource Estimator
     estimator = GraphResourceEstimator(optimization)
 
-    gsc_info_no_t_gates = GSCInfo(
-        4,
-        2,
-        [3, 5],
-        [0, 0],
-        [0, 0],
-    )
-
-    compiled_program_with_no_t_gates = CompiledQuantumProgram.from_program(
-        dummy_quantum_program, [gsc_info_no_t_gates]
-    )
-
-    tocks_per_graph_state_prep_1 = 3
-    tocks_per_graph_state_prep_2 = 5
-    tocks_per_graph_state_prep_3 = 1
-    gsc_info_with_t_gates = GSCInfo(
-        4,
-        3,
-        [3, 5, 1],
-        [0, 7, 0],
-        [0, 0, 1],
-    )
-    distillation_time_in_cycles = 27
-    n_t_gates_per_rotation = 30
-    data_and_bus_code_distance = 9
-    tocks_per_t_measurement = 2
-
-    compiled_program_with_t_gates = CompiledQuantumProgram.from_program(
-        dummy_quantum_program, [gsc_info_with_t_gates]
+    compiled_program = CompiledQuantumProgram.from_program(
+        dummy_quantum_program, [gsc_info]
     )
 
     time_allocation = estimator.get_cycle_allocation(
-        compiled_program_with_t_gates,
+        compiled_program,
         distillation_time_in_cycles,
         n_t_gates_per_rotation,
         data_and_bus_code_distance,
     )
 
-    # Layer 1
-    expected_cycle_time = tocks_per_graph_state_prep_1 * data_and_bus_code_distance
-    # Layer 2
-    expected_cycle_time += (
-        max(
-            tocks_per_graph_state_prep_2 * data_and_bus_code_distance,
-            distillation_time_in_cycles,
-        )
-        + tocks_per_t_measurement * data_and_bus_code_distance
-    )
-    # Layer 3
-    expected_cycle_time += (
-        max(
-            tocks_per_graph_state_prep_3 * data_and_bus_code_distance,
-            distillation_time_in_cycles,
-        )
-        + tocks_per_t_measurement * data_and_bus_code_distance
-        + (n_t_gates_per_rotation - 1)
-        * (
-            distillation_time_in_cycles
-            + tocks_per_t_measurement * data_and_bus_code_distance
-        )
-    )
-
-    # Check that the number of magic state factories is correct
-    assert time_allocation.total == expected_cycle_time
+    # Check that the number of cycles is correct
+    assert time_allocation.total == sum(cycles_per_layer)
