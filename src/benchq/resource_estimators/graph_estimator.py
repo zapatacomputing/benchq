@@ -409,6 +409,8 @@ class GraphResourceEstimator:
             else:
                 break
 
+        # Get logical architecture resource info
+        # Generate spatial layout of data, bus, and magic state factories
         logical_architecture_resource_info = (
             self.get_bus_architecture_resource_breakdown(
                 compiled_implementation.program,
@@ -418,7 +420,7 @@ class GraphResourceEstimator:
             )
         )
 
-        # get error rate after correction
+        # Generate temporal resource accounting
         time_allocation = self.get_cycle_allocation(
             compiled_implementation.program,
             magic_state_factory.distillation_time_in_cycles,
@@ -427,12 +429,13 @@ class GraphResourceEstimator:
         )
         logical_architecture_resource_info.cycle_allocation = time_allocation
 
+        # Compute total failure rate
         num_logical_qubits = (
             logical_architecture_resource_info.num_logical_data_qubits
             + logical_architecture_resource_info.num_logical_bus_qubits
         )
 
-        num_cycles = time_allocation.total
+        num_cycles = logical_architecture_resource_info.cycle_allocation.total
 
         st_volume_in_logical_qubit_tocks = (
             num_logical_qubits * num_cycles / data_and_bus_code_distance
@@ -444,21 +447,14 @@ class GraphResourceEstimator:
             data_and_bus_code_distance,
         )
 
-        distillation_error_rate = float(
-            1
-            - (1 - Decimal(magic_state_factory.distilled_magic_state_error_rate))
-            ** Decimal(
-                compiled_implementation.program.get_n_t_gates_after_transpilation(
-                    this_transpilation_failure_tolerance
-                )
+        distillation_error_rate = (
+            magic_state_factory.distilled_magic_state_error_rate
+            * compiled_implementation.program.get_n_t_gates_after_transpilation(
+                this_transpilation_failure_tolerance
             )
         )
 
-        this_hardware_failure_rate = float(
-            distillation_error_rate
-            + total_logical_error_rate
-            + distillation_error_rate * total_logical_error_rate
-        )
+        this_hardware_failure_rate = distillation_error_rate + total_logical_error_rate
 
         # get time to get a single shot
         time_per_circuit_in_seconds = (
