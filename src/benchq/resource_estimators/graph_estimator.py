@@ -12,7 +12,8 @@ from ..compilation.graph_states.compiled_data_structures import (
     CompiledQuantumProgram,
 )
 from ..decoder_modeling import DecoderModel
-from ..magic_state_distillation import MagicStateFactory, iter_litinski_factories
+from ..magic_state_distillation import iter_litinski_factories
+
 from ..quantum_hardware_modeling import (
     BasicArchitectureModel,
     DetailedArchitectureModel,
@@ -24,7 +25,12 @@ from ..quantum_hardware_modeling.devitt_surface_code import (
     physical_qubits_per_logical_qubit,
 )
 from ..visualization_tools.resource_allocation import CycleAllocation
-from .resource_info import GraphExtra, GraphResourceInfo, BusArchitectureResourceInfo
+from .resource_info import (
+    GraphExtra,
+    GraphResourceInfo,
+    BusArchitectureResourceInfo,
+    MagicStateFactoryInfo,
+)
 
 INITIAL_SYNTHESIS_ACCURACY = 0.0001
 
@@ -42,7 +48,7 @@ class GraphResourceEstimator:
             the resources needed to run the algorithm in the shortest time possible
             ("Time") or the resources needed to run the algorithm with the smallest
             number of physical qubits ("Space").
-        magic_state_factory_iterator (Optional[Iterable[MagicStateFactory]]: iterator
+        magic_state_factory_iterator (Optional[Iterable[MagicStateFactoryInfo]]: iterator
             over all magic_state_factories.
             to be used during estimation. If not provided (or passed None)
             litinski_factory_iterator will select magic_state_factory based
@@ -63,7 +69,7 @@ class GraphResourceEstimator:
         compiled_program: CompiledQuantumProgram,
         hardware_failure_tolerance: float,
         transpilation_failure_tolerance: float,
-        magic_state_factory: MagicStateFactory,
+        magic_state_factory: MagicStateFactoryInfo,
         n_t_gates_per_rotation: int,
         hw_model: BasicArchitectureModel,
         min_d: int = 3,
@@ -130,7 +136,7 @@ class GraphResourceEstimator:
         self,
         compiled_program: CompiledQuantumProgram,
         data_and_bus_code_distance: int,
-        magic_state_factory: MagicStateFactory,
+        magic_state_factory: MagicStateFactoryInfo,
         n_t_gates_per_rotation: int,
     ):
 
@@ -325,7 +331,7 @@ class GraphResourceEstimator:
         compiled_implementation: CompiledAlgorithmImplementation,
         hw_model: BasicArchitectureModel,
         decoder_model: Optional[DecoderModel] = None,
-        magic_state_factory_iterator: Optional[Iterable[MagicStateFactory]] = None,
+        magic_state_factory_iterator: Optional[Iterable[MagicStateFactoryInfo]] = None,
     ) -> GraphResourceInfo:
         magic_state_factory_iterator = iter(
             magic_state_factory_iterator or iter_litinski_factories(hw_model)
@@ -382,7 +388,7 @@ class GraphResourceEstimator:
                     code_distance=-1,
                     logical_error_rate=1.0,
                     n_logical_qubits=-1,
-                    magic_state_factory_name="No MagicStateFactory Found",
+                    magic_state_factory_name="No MagicStateFactoryInfo Found",
                     decoder_info=None,
                     extra=GraphExtra(
                         compiled_implementation,
@@ -507,7 +513,7 @@ class GraphResourceEstimator:
         algorithm_implementation_compiler,
         hw_model: BasicArchitectureModel,
         decoder_model: Optional[DecoderModel] = None,
-        magic_state_factory_iterator: Optional[Iterable[MagicStateFactory]] = None,
+        magic_state_factory_iterator: Optional[Iterable[MagicStateFactoryInfo]] = None,
     ):
         compiled_implementation = algorithm_implementation_compiler(
             algorithm_implementation,

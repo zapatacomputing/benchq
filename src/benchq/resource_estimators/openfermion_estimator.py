@@ -18,7 +18,6 @@ import math
 from typing import Iterable, Optional, Tuple
 
 from ..decoder_modeling.decoder_resource_estimator import get_decoder_info
-from ..magic_state_distillation import MagicStateFactory
 from ..magic_state_distillation.autoccz_factories import iter_all_openfermion_factories
 from ..quantum_hardware_modeling import (
     BASIC_SC_ARCHITECTURE_MODEL,
@@ -28,7 +27,11 @@ from ..quantum_hardware_modeling.fowler_surface_code import (
     logical_cell_error_rate,
     physical_qubits_per_logical_qubit,
 )
-from .resource_info import OpenFermionExtra, OpenFermionResourceInfo
+from .resource_info import (
+    OpenFermionExtra,
+    OpenFermionResourceInfo,
+    MagicStateFactoryInfo,
+)
 
 
 @dataclasses.dataclass(frozen=True, unsafe_hash=True)
@@ -44,7 +47,7 @@ class AlgorithmParameters:
     physical_error_rate: float
     surface_code_cycle_time: float
     logical_data_qubit_distance: int
-    magic_state_factory: MagicStateFactory
+    magic_state_factory: MagicStateFactoryInfo
     max_allocated_logical_qubits: int
     factory_count: int
     routing_overhead_proportion: float
@@ -123,7 +126,7 @@ def _cost_estimator(
     routing_overhead_proportion: float = 0.5,
     hardware_failure_tolerance: float = 1e-3,
     factory_count: int = 4,
-    magic_state_factory_iterator: Optional[Iterable[MagicStateFactory]] = None,
+    magic_state_factory_iterator: Optional[Iterable[MagicStateFactoryInfo]] = None,
 ) -> Tuple[CostEstimate, AlgorithmParameters]:
     """
     Produce best cost in terms of physical qubits and real run time based on
@@ -182,7 +185,7 @@ def openfermion_estimator(
     routing_overhead_proportion=0.5,
     hardware_failure_tolerance=1e-3,
     factory_count: int = 4,
-    magic_state_factory_iterator: Optional[Iterable[MagicStateFactory]] = None,
+    magic_state_factory_iterator: Optional[Iterable[MagicStateFactoryInfo]] = None,
     decoder_model=None,
 ) -> OpenFermionResourceInfo:
     """Get the estimated resources for single factorized QPE as described in PRX Quantum

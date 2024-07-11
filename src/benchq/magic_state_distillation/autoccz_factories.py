@@ -5,12 +5,14 @@ from ..quantum_hardware_modeling.fowler_surface_code import (  # noqa: E501
     get_total_logical_failure_rate,
     physical_qubits_per_logical_qubit,
 )
-from .magic_state_factory import MagicStateFactory
+from ..resource_estimators.resource_info import (
+    MagicStateFactoryInfo,
+)
 
 
 def iter_auto_ccz_factories(
     physical_qubit_error_rate: float,
-) -> Iterator[MagicStateFactory]:
+) -> Iterator[MagicStateFactoryInfo]:
     for l1_distance in range(5, 25, 2):
         for l2_distance in range(l1_distance + 2, 41, 2):
             w, h, d = _autoccz_or_t_factory_dimensions(
@@ -22,7 +24,7 @@ def iter_auto_ccz_factories(
                 physical_qubit_error_rate=physical_qubit_error_rate,
             )
 
-            yield MagicStateFactory(
+            yield MagicStateFactoryInfo(
                 name=f"AutoCCZ({physical_qubit_error_rate},"
                 f"{l1_distance}, {l2_distance})",
                 distilled_magic_state_error_rate=float(f_ccz),
@@ -94,9 +96,9 @@ def _compute_autoccz_distillation_error(
 
 def _two_level_t_state_factory_1p1000(
     physical_qubit_error_rate: float,
-) -> MagicStateFactory:
+) -> MagicStateFactoryInfo:
     assert physical_qubit_error_rate == 0.001
-    return MagicStateFactory(
+    return MagicStateFactoryInfo(
         name="SC Qubit AutoCCZ Factory",
         distilled_magic_state_error_rate=4 * 9 * 1e-17,
         space=(12 * 8, 4),
@@ -108,7 +110,7 @@ def _two_level_t_state_factory_1p1000(
 
 def iter_all_openfermion_factories(
     physical_qubit_error_rate: float,
-) -> Iterator[MagicStateFactory]:
+) -> Iterator[MagicStateFactoryInfo]:
     if physical_qubit_error_rate == 0.001:
         yield _two_level_t_state_factory_1p1000(
             physical_qubit_error_rate=physical_qubit_error_rate
