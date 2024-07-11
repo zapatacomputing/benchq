@@ -67,7 +67,7 @@ def azure_estimator(
         ] = algorithm.error_budget.transpilation_failure_tolerance
         remaining_error = algorithm.error_budget.hardware_failure_tolerance
         azure_error_budget["logical"] = remaining_error / 2
-        azure_error_budget["tstates"] = remaining_error / 2
+        azure_error_budget["tStates"] = remaining_error / 2
     if use_full_circuit:
         circuit = algorithm.program.full_circuit
         return _estimate_resources_for_circuit(hw_model, circuit, azure_error_budget)
