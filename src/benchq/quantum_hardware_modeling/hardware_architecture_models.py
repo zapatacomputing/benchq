@@ -84,13 +84,14 @@ class DetailedIonTrapModel:
     ):
         code_distance = bus_architecture_resource_info.data_and_bus_code_distance
 
-        # Check that the resource_info.logical_architecture_resource_info is BusArchitectureResourceInfo
+        # Check that the resource_info.logical_architecture_resource_info
+        # is BusArchitectureResourceInfo
         if not isinstance(
             bus_architecture_resource_info,
             BusArchitectureResourceInfo,
         ):
             raise ValueError(
-                "The bus_architecture_resource_info should be of type BusArchitectureResourceInfo"
+                "bus_architecture_resource_info should be BusArchitectureResourceInfo"
             )
 
         n_logical_data_qubits = bus_architecture_resource_info.num_logical_data_qubits
@@ -299,8 +300,8 @@ class DetailedIonTrapModel:
 
 
 def log_binomial_coefficient(n, k):
-    """Compute the logarithm of the binomial coefficient for the purpose of numerical stability."""
-    # Compute the logarithm of the binomial coefficient using log-gamma function
+    """Compute the logarithm of the binomial coefficient
+    for the purpose of numerical stability."""
     return math.lgamma(n + 1) - math.lgamma(k + 1) - math.lgamma(n - k + 1)
 
 

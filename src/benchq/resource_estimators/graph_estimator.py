@@ -48,8 +48,8 @@ class GraphResourceEstimator:
             the resources needed to run the algorithm in the shortest time possible
             ("Time") or the resources needed to run the algorithm with the smallest
             number of physical qubits ("Space").
-        magic_state_factory_iterator (Optional[Iterable[MagicStateFactoryInfo]]: iterator
-            over all magic_state_factories.
+        magic_state_factory_iterator (Optional[Iterable[MagicStateFactoryInfo]]:
+            iterator over all magic_state_factories.
             to be used during estimation. If not provided (or passed None)
             litinski_factory_iterator will select magic_state_factory based
             on hw_model parameter.
@@ -149,7 +149,8 @@ class GraphResourceEstimator:
         # The ion trap architecture is designed for each ELU to connect to at most
         # three other ELUs.
 
-        # The two-row bus architecture with degree-three connectivity is layed out as follows:
+        # The two-row bus architecture with degree-three connectivity
+        # is layed out as follows:
         # |D|     |D|     ...     |D| |D| ... |D|
         #  |       |               |   |       |
         # |B|-|B|-|B|-|B|-...-|B|-|B|-|B|-...-|B|
@@ -166,8 +167,9 @@ class GraphResourceEstimator:
                 compiled_program
             )
 
-        # The ion trap architecture 3-neighbor constraint requires each data qubit and each magic state factory
-        # to be connected to a unique bus qubit. The bus qubits are connected to each other in a chain.
+        # The ion trap architecture 3-neighbor constraint requires each data qubit
+        # and each magic state factory to be connected to a unique bus qubit.
+        # The bus qubits are connected to each other in a chain.
         num_logical_bus_qubits = num_logical_data_qubits + num_magic_state_factories
 
         return BusArchitectureResourceInfo(
@@ -228,31 +230,35 @@ class GraphResourceEstimator:
 
         # Legend:
         # |Graph state->| = "Entanglement" process of graph state creation
-        # |CoDTX------->| = "T measurement" process of consuming the Xth T state as a T basis measurements
-        # |Distill----->| = "Distillation" process of preparing a T state on a magic state factory
+        # |CoDTX------->| = "T measurement" process of consuming the Xth T state
+        # as a T basis measurements
+        # |Distill----->| = "Distillation" process of preparing a T state
+        # on a magic state factory
 
-        # Tocks |Tock1|Tock2|Tock3|Tock4|Tock5|Tock6|Tock7|Tock8|Tock9|Toc10|Toc11|Toc12|Toc13|
-        # Stages:[1: Graph creation      ] [2: Meas1 ] [3: Distill then Meas2          ] ... [N: Distill then MeasN-1]
-        # Dat1: |Graph state------------->|CoDT1----->|                     |CoDT3----->|...
-        # Dat2: |Graph state------------->|CoDT2----->|                     |CoDT4----->|...
-        #                                       ^                                 ^
-        # Bus1: |Graph state------------->|CoDT1----->|                     |CoDT3----->|...
-        # Bus2: |Graph state------------->|CoDT1----->|                     |CoDT3----->|...
-        # Bus3: |Graph state------------->|CoDT2----->|                     |CoDT4----->|...
-        # Bus4: |Graph state------------->|CoDT2----->|                     |CoDT4----->|...
-        #                                       ^                                 ^
-        # MSF1:     |Distill------------->|CoDT1----->|Distill------------->|CoDT3----->|...
-        # MSF2:     |Distill------------->|CoDT2----->|Distill------------->|CoDT4----->|...
+        # Stages:[1: Graph creation ] [2: Meas1 ] [3: Distill then Meas2     ] ...
+        # Dat1: |Graph state-------->|CoDT1----->|                |CoDT3----->|...
+        # Dat2: |Graph state-------->|CoDT2----->|                |CoDT4----->|...
+        #                                  ^                            ^
+        # Bus1: |Graph state-------->|CoDT1----->|                |CoDT3----->|...
+        # Bus2: |Graph state-------->|CoDT1----->|                |CoDT3----->|...
+        # Bus3: |Graph state-------->|CoDT2----->|                |CoDT4----->|...
+        # Bus4: |Graph state-------->|CoDT2----->|                |CoDT4----->|...
+        #                                  ^                            ^
+        # MSF1:     |Distill-------->|CoDT1----->|Distill-------->|CoDT3----->|...
+        # MSF2:     |Distill-------->|CoDT2----->|Distill-------->|CoDT4----->|...
 
-        # For space optimal, a single factory is used and distillation is done serially.
-        # For time optimal, multiple factories are used and distillation is done in parallel.
+        # For space optimal, a single factory is used and distillation
+        # is done serially.
+        # For time optimal, multiple factories are used and distillation
+        # is done in parallel.
 
         for i, subroutine in enumerate(compiled_program.subroutines):
             for layer_num, layer in enumerate(range(subroutine.num_layers)):
 
                 cycles_per_tock = data_and_bus_code_distance
 
-                # Check if the number of T gates and number of rotations per layer is zero
+                # Check if the number of T gates and number of rotations
+                # per layer is zero
                 if (
                     subroutine.t_states_per_layer[layer] == 0
                     and subroutine.rotations_per_layer[layer] == 0
@@ -266,8 +272,8 @@ class GraphResourceEstimator:
                     )
 
                 else:
-                    # If there are T gates in the layer, then the layer requires graph state preparation,
-                    # distillation, and T state measurement
+                    # If there are T gates in the layer, then the layer requires
+                    # graph state preparation, distillation, and T state measurement
                     # Log Stage 1: Graph state creation
                     time_allocation_for_each_subroutine[i].log_parallelized(
                         (
@@ -287,9 +293,10 @@ class GraphResourceEstimator:
                     )
 
                     # Log Stage 3: Space optimal entails serially distilling T states
-                    # and a T measurement is made after each distillation, while time optimal
-                    # entails distilling T states in parallel and making a T measurement after,
-                    # though T gates used to synthesize a rotation are still implemented serially.
+                    # and a T measurement is made after each distillation, while time
+                    # optimal entails distilling T states in parallel and making a
+                    # T measurement after, though T gates used to synthesize a
+                    # rotation are still implemented serially.
 
                     # Calculate the number of remaining T rounds
                     if self.optimization == "Space":

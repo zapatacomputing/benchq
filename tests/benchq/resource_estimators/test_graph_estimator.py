@@ -350,7 +350,7 @@ def test_get_resource_estimations_for_program_accounts_for_decoder(optimization)
         ),
     ],
 )
-def test_get_resource_estimations_for_program_accounts_for_magic_state_factory_with_one_subroutine(
+def test_get_resource_estimations_for_program_accounts_for_spatial_resources(
     gsc_info, optimization, expected_results
 ):
 
@@ -436,7 +436,9 @@ def test_get_cycle_allocation(gsc_info, optimization, cycles_per_layer):
 
     dummy_circuit = Circuit()
 
-    calculate_subroutine_sequence = lambda x: [0, 1]
+    def calculate_subroutine_sequence(x):
+        return [0, 1]
+
     dummy_quantum_program = QuantumProgram(
         [dummy_circuit, dummy_circuit],
         steps=2,

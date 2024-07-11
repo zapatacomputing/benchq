@@ -93,8 +93,9 @@ class ResourceInfo(Generic[TExtra]):
     optimization: str
     code_distance: int
     logical_error_rate: float
-    n_logical_qubits: int  # Note: For the GraphEstimator, this value is the sum of the number of data qubits and bus qubits,
-    # while for the openfermion_estimator, this value is the number of abstract logical qubits.
+    n_logical_qubits: int  # Note: For the GraphEstimator, this value is the sum of
+    # the number of data qubits and bus qubits, while for the openfermion_estimator,
+    # this value is the number of abstract logical qubits.
     decoder_info: Optional[DecoderInfo]
     magic_state_factory_name: str
     extra: TExtra
