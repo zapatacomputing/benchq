@@ -355,13 +355,18 @@ def test_get_resource_estimations_for_program_accounts_for_magic_state_factory_w
 ):
 
     dummy_circuit = Circuit()
-    dummy_quantum_program = QuantumProgram.from_circuit(dummy_circuit)
+
+    dummy_quantum_program = QuantumProgram(
+        [dummy_circuit, dummy_circuit],
+        steps=2,
+        calculate_subroutine_sequence=lambda x: [0, 1],
+    )
 
     # Initialize Graph Resource Estimator
     estimator = GraphResourceEstimator(optimization)
 
     compiled_program = CompiledQuantumProgram.from_program(
-        dummy_quantum_program, [gsc_info]
+        dummy_quantum_program, [gsc_info, gsc_info]
     )
 
     magic_state_factory = None
@@ -430,13 +435,19 @@ def test_get_cycle_allocation(gsc_info, optimization, cycles_per_layer):
     data_and_bus_code_distance = 9
 
     dummy_circuit = Circuit()
-    dummy_quantum_program = QuantumProgram.from_circuit(dummy_circuit)
+
+    calculate_subroutine_sequence = lambda x: [0, 1]
+    dummy_quantum_program = QuantumProgram(
+        [dummy_circuit, dummy_circuit],
+        steps=2,
+        calculate_subroutine_sequence=calculate_subroutine_sequence,
+    )
 
     # Initialize Graph Resource Estimator
     estimator = GraphResourceEstimator(optimization)
 
     compiled_program = CompiledQuantumProgram.from_program(
-        dummy_quantum_program, [gsc_info]
+        dummy_quantum_program, [gsc_info, gsc_info]
     )
 
     time_allocation = estimator.get_cycle_allocation(
@@ -447,4 +458,6 @@ def test_get_cycle_allocation(gsc_info, optimization, cycles_per_layer):
     )
 
     # Check that the number of cycles is correct
-    assert time_allocation.total == sum(cycles_per_layer)
+    assert time_allocation.total == sum(cycles_per_layer) * len(
+        calculate_subroutine_sequence(0)
+    )
