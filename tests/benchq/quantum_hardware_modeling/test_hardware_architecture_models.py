@@ -140,11 +140,17 @@ class TestDetailedIonTrapModel:
             )
             distillation_elu_resource_info = ELUResourceInfo(
                 power_consumed_per_elu_in_kilowatts=5.0,
-                num_communication_ports_per_elu=num_communication_ions_per_distillation_elu,
+                num_communication_ports_per_elu=(
+                    num_communication_ions_per_distillation_elu
+                ),
                 second_switch_per_elu_necessary=True,
-                num_communication_ions_per_elu=num_communication_ions_per_distillation_elu,
+                num_communication_ions_per_elu=(
+                    num_communication_ions_per_distillation_elu
+                ),
                 num_memory_ions_per_elu=num_memory_ions_per_distillation_elu,
-                num_computational_ions_per_elu=num_computational_ions_per_distillation_elu,
+                num_computational_ions_per_elu=(
+                    num_computational_ions_per_distillation_elu
+                ),
             )
 
             assert hw_resource_info == DetailedIonTrapArchitectureResourceInfo(
