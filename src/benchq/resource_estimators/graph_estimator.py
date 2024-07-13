@@ -220,7 +220,7 @@ class GraphResourceEstimator:
     def get_cycle_allocation(
         self,
         compiled_program: CompiledQuantumProgram,
-        distillation_time_in_cycles: int,
+        distillation_time_in_cycles: float,
         n_t_gates_per_rotation: int,
         data_and_bus_code_distance: int,
     ) -> CycleAllocation:
@@ -399,8 +399,6 @@ class GraphResourceEstimator:
                     decoder_info=None,
                     extra=GraphExtra(
                         compiled_implementation,
-                        None,
-                        None,
                     ),
                 )
             if this_transpilation_failure_tolerance < this_logical_cell_error_rate:

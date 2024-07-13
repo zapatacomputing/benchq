@@ -2,7 +2,7 @@
 # © Copyright 2022 Zapata Computing Inc.
 ################################################################################
 from dataclasses import dataclass
-from typing import Protocol, runtime_checkable
+from typing import Protocol, runtime_checkable, Optional
 
 from ..resource_estimators.resource_info import (
     ELUResourceInfo,
@@ -201,8 +201,16 @@ class DetailedIonTrapModel:
         return elu_resource_info
 
     def model_distillation_elu_resource_info(
-        self, code_distance: int, magic_state_factory: MagicStateFactoryInfo
+        self,
+        code_distance: int,
+        magic_state_factory: Optional[MagicStateFactoryInfo] = None,
     ):
+        if magic_state_factory is None:
+            print(
+                "Warning: magic_state_factory is None. Returning empty ELUResourceInfo object."
+            )
+            return ELUResourceInfo()
+
         elu_resource_info = ELUResourceInfo()
         elu_resource_info = self.model_comm_and_memory_unit(
             elu_resource_info, code_distance
