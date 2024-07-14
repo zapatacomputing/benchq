@@ -207,7 +207,8 @@ class DetailedIonTrapModel:
     ):
         if magic_state_factory is None:
             print(
-                "Warning: magic_state_factory is None. Returning empty ELUResourceInfo object."
+                "Warning: magic_state_factory is None. "
+                "Returning empty ELUResourceInfo object."
             )
             return ELUResourceInfo()
 
