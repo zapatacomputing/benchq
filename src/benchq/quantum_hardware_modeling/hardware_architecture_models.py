@@ -34,11 +34,11 @@ class BasicArchitectureModel(Protocol):
 
     @property
     def physical_qubit_error_rate(self) -> float:
-        pass
+        raise NotImplementedError("This method should be overridden by subclasses")
 
     @property
     def surface_code_cycle_time_in_seconds(self) -> float:
-        pass
+        raise NotImplementedError("This method should be overridden by subclasses")
 
 
 @runtime_checkable
