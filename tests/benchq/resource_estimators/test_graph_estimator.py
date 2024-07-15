@@ -10,13 +10,12 @@ from benchq.compilation.graph_states import (
     get_implementation_compiler,
     get_ruby_slippers_circuit_compiler,
 )
-from benchq.decoder_modeling import DecoderModel
-from benchq.problem_embeddings.quantum_program import QuantumProgram
-
 from benchq.compilation.graph_states.compiled_data_structures import (
     CompiledQuantumProgram,
     GSCInfo,
 )
+from benchq.decoder_modeling import DecoderModel
+from benchq.problem_embeddings.quantum_program import QuantumProgram
 from benchq.quantum_hardware_modeling import (
     BASIC_ION_TRAP_ARCHITECTURE_MODEL,
     BASIC_SC_ARCHITECTURE_MODEL,

@@ -13,12 +13,10 @@ from ..compilation.graph_states.compiled_data_structures import (
 )
 from ..decoder_modeling import DecoderModel
 from ..magic_state_distillation import iter_litinski_factories
-
 from ..quantum_hardware_modeling import (
     BasicArchitectureModel,
     DetailedArchitectureModel,
 )
-
 from ..quantum_hardware_modeling.devitt_surface_code import (
     get_total_logical_failure_rate,
     logical_cell_error_rate,
@@ -26,9 +24,9 @@ from ..quantum_hardware_modeling.devitt_surface_code import (
 )
 from ..visualization_tools.resource_allocation import CycleAllocation
 from .resource_info import (
+    BusArchitectureResourceInfo,
     GraphExtra,
     GraphResourceInfo,
-    BusArchitectureResourceInfo,
     MagicStateFactoryInfo,
 )
 

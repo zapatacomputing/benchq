@@ -4,13 +4,11 @@
 """Data structures describing estimated resources and related info."""
 
 from dataclasses import dataclass, field
-from typing import Generic, Optional, TypeVar, Tuple
-
+from typing import Generic, Optional, Tuple, TypeVar
 
 from benchq.compilation.graph_states.compiled_data_structures import (
     CompiledAlgorithmImplementation,
 )
-
 
 from ..visualization_tools.resource_allocation import CycleAllocation
 

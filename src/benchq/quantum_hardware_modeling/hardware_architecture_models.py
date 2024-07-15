@@ -1,19 +1,17 @@
 ################################################################################
 # © Copyright 2022 Zapata Computing Inc.
 ################################################################################
+import math
 from dataclasses import dataclass
-from typing import Protocol, runtime_checkable, Optional
+from typing import Optional, Protocol, runtime_checkable
 
 from ..resource_estimators.resource_info import (
-    ELUResourceInfo,
     BusArchitectureResourceInfo,
     DetailedIonTrapArchitectureResourceInfo,
-    ResourceInfo,
+    ELUResourceInfo,
     MagicStateFactoryInfo,
+    ResourceInfo,
 )
-
-
-import math
 
 
 class BasicArchitectureModel(Protocol):

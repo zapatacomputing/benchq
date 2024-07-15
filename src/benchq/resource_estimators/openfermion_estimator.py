@@ -28,9 +28,9 @@ from ..quantum_hardware_modeling.fowler_surface_code import (
     physical_qubits_per_logical_qubit,
 )
 from .resource_info import (
+    MagicStateFactoryInfo,
     OpenFermionExtra,
     OpenFermionResourceInfo,
-    MagicStateFactoryInfo,
 )
 
 

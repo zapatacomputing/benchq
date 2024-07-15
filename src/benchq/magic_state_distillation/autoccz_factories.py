@@ -5,9 +5,7 @@ from ..quantum_hardware_modeling.fowler_surface_code import (  # noqa: E501
     get_total_logical_failure_rate,
     physical_qubits_per_logical_qubit,
 )
-from ..resource_estimators.resource_info import (
-    MagicStateFactoryInfo,
-)
+from ..resource_estimators.resource_info import MagicStateFactoryInfo
 
 
 def iter_auto_ccz_factories(

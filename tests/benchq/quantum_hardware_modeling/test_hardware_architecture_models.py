@@ -2,15 +2,13 @@ from contextlib import suppress as do_not_raise
 
 import pytest
 
-from benchq.quantum_hardware_modeling import (
-    DetailedIonTrapModel,
-)
+from benchq.quantum_hardware_modeling import DetailedIonTrapModel
 from benchq.resource_estimators.resource_info import (
-    ELUResourceInfo,
-    DetailedIonTrapArchitectureResourceInfo,
-    ResourceInfo,
     BusArchitectureResourceInfo,
+    DetailedIonTrapArchitectureResourceInfo,
+    ELUResourceInfo,
     MagicStateFactoryInfo,
+    ResourceInfo,
 )
 
 

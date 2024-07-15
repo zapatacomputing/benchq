@@ -5,9 +5,7 @@ from benchq.quantum_hardware_modeling.hardware_architecture_models import (
     BasicArchitectureModel,
 )
 
-from ..resource_estimators.resource_info import (
-    MagicStateFactoryInfo,
-)
+from ..resource_estimators.resource_info import MagicStateFactoryInfo
 
 _ALLOWED_PHYSICAL_ERROR_RATES = (1e-3, 1e-4)
 
