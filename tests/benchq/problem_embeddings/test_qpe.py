@@ -353,7 +353,7 @@ def test_default_scc_time():
         hardware_failure_tolerance=1e-1,
     )
     assert cost.extra.physical_qubit_error_rate == 1e-3
-    assert cost.extra.scc_time == 0.1e-6
+    assert cost.extra.scc_time == 1e-6
 
 
 def test_openfermion_estimator_supports_large_circuits():

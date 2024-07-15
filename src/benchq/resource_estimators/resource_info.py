@@ -4,13 +4,13 @@
 """Data structures describing estimated resources and related info."""
 
 from dataclasses import dataclass, field
-from typing import Generic, Optional, TypeVar
+from typing import Generic, Optional, Tuple, TypeVar
 
 from benchq.compilation.graph_states.compiled_data_structures import (
     CompiledAlgorithmImplementation,
 )
 
-from ..visualization_tools.resource_allocation import CycleAllocation, QubitAllocation
+from ..visualization_tools.resource_allocation import CycleAllocation
 
 TExtra = TypeVar("TExtra")
 
@@ -26,26 +26,51 @@ class DecoderInfo:
 
 
 @dataclass
-class DetailedIonTrapResourceInfo:
+class MagicStateFactoryInfo:
+    name: str
+    distilled_magic_state_error_rate: float
+    space: Tuple[int, int]
+    qubits: int
+    distillation_time_in_cycles: float
+    t_gates_per_distillation: int = 1  # number of T-gates produced per distillation
+
+
+@dataclass
+class ELUResourceInfo:
+    """Info relating to elementary logic unit (ELU) resources."""
+
+    power_consumed_per_elu_in_kilowatts: Optional[float] = None
+    num_communication_ports_per_elu: Optional[int] = None
+    second_switch_per_elu_necessary: Optional[bool] = None
+    num_communication_ions_per_elu: Optional[int] = None
+    num_memory_ions_per_elu: Optional[int] = None
+    num_computational_ions_per_elu: Optional[int] = None
+    num_optical_cross_connect_layers: Optional[int] = None
+    num_ELUs_per_optical_cross_connect: Optional[int] = None
+
+
+@dataclass
+class DetailedIonTrapArchitectureResourceInfo:
     """Info relating to detailed ion trap architecture model resources."""
 
-    power_consumed_per_elu_in_kilowatts: float
-    num_communication_ports_per_elu: int
-    second_switch_per_elu_necessary: bool
-    num_communication_qubits_per_elu: int
-    num_memory_qubits_per_elu: int
-    num_computational_qubits_per_elu: int
-    num_optical_cross_connect_layers: int
-    num_ELUs_per_optical_cross_connect: int
+    num_data_elus: int
+    data_elu_resource_info: ELUResourceInfo
+    num_bus_elus: int
+    bus_elu_resource_info: ELUResourceInfo
+    num_distillation_elus: int
+    distillation_elu_resource_info: ELUResourceInfo
 
-    total_num_ions: int
-    total_num_communication_qubits: int
-    total_num_memory_qubits: int
-    total_num_computational_qubits: int
-    total_num_communication_ports: int
-    num_elus: int
-    total_elu_power_consumed_in_kilowatts: float
-    total_elu_energy_consumed_in_kilojoules: float
+
+@dataclass
+class BusArchitectureResourceInfo:
+    """Info relating to bus architecture model resources."""
+
+    num_logical_data_qubits: int
+    num_logical_bus_qubits: int
+    data_and_bus_code_distance: int
+    num_magic_state_factories: int
+    magic_state_factory: Optional[MagicStateFactoryInfo] = None
+    cycle_allocation: Optional[CycleAllocation] = None
 
 
 @dataclass
@@ -66,11 +91,14 @@ class ResourceInfo(Generic[TExtra]):
     optimization: str
     code_distance: int
     logical_error_rate: float
-    n_logical_qubits: int
+    n_logical_qubits: int  # Note: For the GraphResourceEstimator, this value
+    # is the sum of the number of data qubits and bus qubits, while for the
+    # openfermion_estimator, this value is the number of abstract logical qubits.
     decoder_info: Optional[DecoderInfo]
     magic_state_factory_name: str
     extra: TExtra
-    hardware_resource_info: Optional[DetailedIonTrapResourceInfo] = None
+    logical_architecture_resource_info: Optional[BusArchitectureResourceInfo] = None
+    hardware_resource_info: Optional[DetailedIonTrapArchitectureResourceInfo] = None
 
 
 @dataclass
@@ -78,8 +106,6 @@ class GraphExtra:
     """Extra info relating to resource estimation using Graph State Compilation."""
 
     implementation: CompiledAlgorithmImplementation
-    time_allocation: Optional[CycleAllocation]
-    qubit_allocation: Optional[QubitAllocation]
 
 
 # Alias for type of resource info returned by GraphResourceEstimator

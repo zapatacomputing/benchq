@@ -10,6 +10,10 @@ from benchq.compilation.graph_states import (
     get_implementation_compiler,
     get_ruby_slippers_circuit_compiler,
 )
+from benchq.compilation.graph_states.compiled_data_structures import (
+    CompiledQuantumProgram,
+    GSCInfo,
+)
 from benchq.decoder_modeling import DecoderModel
 from benchq.problem_embeddings.quantum_program import QuantumProgram
 from benchq.quantum_hardware_modeling import (
@@ -84,70 +88,70 @@ def test_resource_estimations_returns_results_for_different_architectures(
                 [Circuit([H(0), RZ(np.pi / 4)(0), CNOT(0, 1)])], 1, lambda x: [0]
             ),
             "Space",
-            {"code_distance": 9, "n_logical_qubits": 2},
+            {"code_distance": 9, "n_logical_qubits": 5},
         ),
         (
             QuantumProgram.from_circuit(
                 Circuit([RX(np.pi / 4)(0), RY(np.pi / 4)(0), CNOT(0, 1)])
             ),
             "Space",
-            {"code_distance": 9, "n_logical_qubits": 2},
+            {"code_distance": 9, "n_logical_qubits": 5},
         ),
         (
             QuantumProgram.from_circuit(
                 Circuit([H(0)] + [CNOT(i, i + 1) for i in range(3)])
             ),
             "Space",
-            {"code_distance": 9, "n_logical_qubits": 2},
+            {"code_distance": 9, "n_logical_qubits": 5},
         ),
         (
             QuantumProgram.from_circuit(
                 Circuit([H(0)] + [CNOT(i, i + 1) for i in range(3)] + [T(1), T(2)])
             ),
             "Space",
-            {"code_distance": 9, "n_logical_qubits": 2},
+            {"code_distance": 9, "n_logical_qubits": 5},
         ),
         (
             QuantumProgram.from_circuit(
                 Circuit([H(0), T(0), CNOT(0, 1), T(2), CNOT(2, 3)])
             ),
             "Space",
-            {"code_distance": 9, "n_logical_qubits": 2},
+            {"code_distance": 9, "n_logical_qubits": 5},
         ),
         (
             QuantumProgram(
                 [Circuit([H(0), RZ(np.pi / 4)(0), CNOT(0, 1)])], 1, lambda x: [0]
             ),
             "Time",
-            {"code_distance": 9, "n_logical_qubits": 12},
+            {"code_distance": 7, "n_logical_qubits": 6},
         ),
         (
             QuantumProgram.from_circuit(
                 Circuit([RX(np.pi / 4)(0), RY(np.pi / 4)(0), CNOT(0, 1)])
             ),
             "Time",
-            {"code_distance": 11, "n_logical_qubits": 12},
+            {"code_distance": 9, "n_logical_qubits": 7},
         ),
         (
             QuantumProgram.from_circuit(
                 Circuit([H(0)] + [CNOT(i, i + 1) for i in range(3)])
             ),
             "Time",
-            {"code_distance": 9, "n_logical_qubits": 16},
+            {"code_distance": 7, "n_logical_qubits": 8},
         ),
         (
             QuantumProgram.from_circuit(
                 Circuit([H(0)] + [CNOT(i, i + 1) for i in range(3)] + [T(1), T(2)])
             ),
             "Time",
-            {"code_distance": 9, "n_logical_qubits": 24},
+            {"code_distance": 9, "n_logical_qubits": 13},
         ),
         (
             QuantumProgram.from_circuit(
                 Circuit([H(0), T(0), CNOT(0, 1), T(2), CNOT(2, 3)])
             ),
             "Time",
-            {"code_distance": 9, "n_logical_qubits": 24},
+            {"code_distance": 9, "n_logical_qubits": 12},
         ),
     ],
 )
@@ -305,3 +309,156 @@ def test_get_resource_estimations_for_program_accounts_for_decoder(optimization)
 
     assert gsc_resource_estimates_no_decoder.decoder_info is None
     assert gsc_resource_estimates_with_decoder.decoder_info is not None
+
+
+@pytest.mark.parametrize(
+    "gsc_info,optimization,expected_results",
+    [
+        (
+            GSCInfo(
+                4,
+                2,
+                [3, 5],
+                [0, 0],
+                [0, 0],
+            ),
+            "Time",
+            {"number_of_magic_state_factories": 0, "number_of_data_qubits": 4},
+        ),
+        (
+            GSCInfo(
+                5,
+                2,
+                [3, 5],
+                [0, 7],
+                [0, 1],
+            ),
+            "Time",
+            {"number_of_magic_state_factories": 8, "number_of_data_qubits": 5},
+        ),
+        (
+            GSCInfo(
+                5,
+                2,
+                [3, 5],
+                [0, 7],
+                [0, 2],
+            ),
+            "Space",
+            {"number_of_magic_state_factories": 1, "number_of_data_qubits": 5},
+        ),
+    ],
+)
+def test_get_resource_estimations_for_program_accounts_for_spatial_resources(
+    gsc_info, optimization, expected_results
+):
+
+    dummy_circuit = Circuit()
+
+    dummy_quantum_program = QuantumProgram(
+        [dummy_circuit, dummy_circuit],
+        steps=2,
+        calculate_subroutine_sequence=lambda x: [0, 1],
+    )
+
+    # Initialize Graph Resource Estimator
+    estimator = GraphResourceEstimator(optimization)
+
+    compiled_program = CompiledQuantumProgram.from_program(
+        dummy_quantum_program, [gsc_info, gsc_info]
+    )
+
+    magic_state_factory = None
+    data_and_bus_code_distance = None
+    n_t_gates_per_rotation = None
+
+    logical_architecture_resource_info = (
+        estimator.get_bus_architecture_resource_breakdown(
+            compiled_program,
+            data_and_bus_code_distance,
+            magic_state_factory,
+            n_t_gates_per_rotation,
+        )
+    )
+
+    number_of_magic_state_factories = (
+        logical_architecture_resource_info.num_magic_state_factories
+    )
+
+    number_of_data_qubits = logical_architecture_resource_info.num_logical_data_qubits
+
+    # Check that the number of magic state factories is correct
+    assert (
+        number_of_magic_state_factories
+        == expected_results["number_of_magic_state_factories"]
+    )
+    assert number_of_data_qubits == expected_results["number_of_data_qubits"]
+
+
+# Test for the time optimal cycle allocation functionality
+@pytest.mark.parametrize(
+    "gsc_info,optimization,cycles_per_layer",
+    [
+        (
+            GSCInfo(
+                4,
+                3,
+                [3, 5, 1],
+                [0, 7, 1],
+                [0, 0, 1],
+            ),
+            "Time",
+            [9 * 3, 9 * 5 + 9 * 2, +27 + 9 * 2 + (27 + 9 * 2) * (30 - 1)],
+        ),
+        (
+            GSCInfo(
+                4,
+                3,
+                [3, 5, 1],
+                [0, 7, 1],
+                [0, 0, 1],
+            ),
+            "Space",
+            [
+                9 * 3,
+                9 * 5 + 9 * 2 + (27 + 9 * 2) * (7 - 1),
+                +27 + 9 * 2 + (27 + 9 * 2) * 30,
+            ],
+        ),
+    ],
+)
+def test_get_cycle_allocation(gsc_info, optimization, cycles_per_layer):
+
+    distillation_time_in_cycles = 27
+    n_t_gates_per_rotation = 30
+    data_and_bus_code_distance = 9
+
+    dummy_circuit = Circuit()
+
+    def calculate_subroutine_sequence(x):
+        return [0, 1]
+
+    dummy_quantum_program = QuantumProgram(
+        [dummy_circuit, dummy_circuit],
+        steps=2,
+        calculate_subroutine_sequence=calculate_subroutine_sequence,
+    )
+
+    # Initialize Graph Resource Estimator
+    estimator = GraphResourceEstimator(optimization)
+
+    compiled_program = CompiledQuantumProgram.from_program(
+        dummy_quantum_program, [gsc_info, gsc_info]
+    )
+
+    time_allocation = estimator.get_cycle_allocation(
+        compiled_program,
+        distillation_time_in_cycles,
+        n_t_gates_per_rotation,
+        data_and_bus_code_distance,
+    )
+
+    # Check that the number of cycles is correct
+    assert time_allocation.total == sum(cycles_per_layer) * len(
+        calculate_subroutine_sequence(0)
+    )

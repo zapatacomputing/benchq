@@ -82,13 +82,11 @@ class CompiledQuantumProgram:
 
     @property
     def n_t_gates(self) -> int:
-        n_rotation_gates_per_subroutine = [0] * len(self.subroutines)
+        n_t_gates_per_subroutine = [0] * len(self.subroutines)
         for i, compiled_circuit in enumerate(self.subroutines):
-            n_rotation_gates_per_subroutine[i] = sum(
-                compiled_circuit.t_states_per_layer
-            )
+            n_t_gates_per_subroutine[i] = sum(compiled_circuit.t_states_per_layer)
         return sum(
-            n_rotation_gates_per_subroutine[subroutine]
+            n_t_gates_per_subroutine[subroutine]
             for subroutine in self.subroutine_sequence
         )
 

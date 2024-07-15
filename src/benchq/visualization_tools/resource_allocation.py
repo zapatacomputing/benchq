@@ -10,7 +10,7 @@ from matplotlib.axes import Axes
 from matplotlib.colors import LinearSegmentedColormap
 from upsetplot import UpSet
 
-default_process_types = {"distillation", "Tstate-to-Tgate", "entanglement"}
+default_process_types = {"distillation", "T measurement", "graph state prep"}
 
 
 class ResourceAllocation:
@@ -240,39 +240,3 @@ class CycleAllocation(ResourceAllocation):
         for combo in other.allocation_data:
             new_data.allocation_data[combo] += other.allocation_data[combo]
         return new_data
-
-
-class QubitAllocation(ResourceAllocation):
-    def __init__(self, process_types=default_process_types):
-        super().__init__("qubits", process_types)
-
-    def get_num_logical_qubits(self, physical_qubits_per_logical_qubit):
-        """Return the number of logical qubits that are being used by the computation.
-        Assumes that all qubits not being used for distillation are being used for
-        computation."""
-        physical_qubits_not_used_for_distillation = 0
-        for combo in all_combinations(self.process_types):
-            if "distillation" not in combo:
-                physical_qubits_not_used_for_distillation += self.exclusive(*combo)
-
-        num_logical_qubits = (
-            physical_qubits_not_used_for_distillation
-            / physical_qubits_per_logical_qubit
-        )
-
-        if num_logical_qubits != int(num_logical_qubits):
-            raise ValueError("The number of logical qubits must be an integer.")
-
-        return int(num_logical_qubits)
-
-    def get_num_factories(self, physical_qubits_per_factory):
-        """Return the number of magic state factories that are being used by the
-        computation. Assumes that all qubits being used for exclusively distillation
-        are in factories."""
-        num_distillation_qubits = self.exclusive("distillation")
-        num_factories = num_distillation_qubits / physical_qubits_per_factory
-
-        if num_factories != int(num_factories):
-            raise ValueError("The number of factories must be an integer.")
-
-        return int(num_factories)

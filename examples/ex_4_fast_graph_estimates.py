@@ -24,7 +24,7 @@ from benchq.resource_estimators.default_estimators import get_fast_graph_estimat
 from benchq.timing import measure_time
 
 
-def main():
+def main() -> None:
     architecture_model = DETAILED_ION_TRAP_ARCHITECTURE_MODEL
 
     with measure_time() as t_info:
