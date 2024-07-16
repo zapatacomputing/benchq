@@ -7,7 +7,6 @@ import pytest
 import qiskit
 from orquestra.quantum.circuits import CNOT, CZ, RZ, Circuit, H, I, S, T, X, Y, Z
 from qiskit import Aer, ClassicalRegister, QuantumCircuit, QuantumRegister
-from qiskit.transpiler.passes import RemoveBarriers
 
 from benchq.compilation.graph_states import jl
 from benchq.conversions import export_circuit
@@ -225,8 +224,7 @@ def simulate(circuit, init, asg, pauli_tracker, show_circuit=True):
 
     print("Starting simulation!")
     simulator = Aer.get_backend("aer_simulator_matrix_product_state")
-    cc = qiskit.transpile(RemoveBarriers()(c), backend=simulator, optimization_level=3)
-    result = simulator.run(cc, shots=1000).result().get_counts()
+    result = simulator.run(c, shots=1000).result().get_counts()
 
     return counts_to_pdf(asg["data_nodes"], result)
 
@@ -394,8 +392,7 @@ def topological_sort(layer, cond_paulis):
         # All start in Z basis
         Circuit([]),
         # Some start in X basis, one in Z basis
-        # TODO: determine why this pair of parameters is failing (see issue dta2-488)
-        # Circuit([H(0), H(1)]),
+        Circuit([H(0), H(1)]),
         # All start in X basis
         Circuit([H(0), H(1), H(2)]),
         # all start in Y basis
@@ -422,8 +419,7 @@ def topological_sort(layer, cond_paulis):
         Circuit([H(0), CNOT(0, 1)]),
         Circuit([CZ(0, 1), H(2)]),
         Circuit([H(0), S(0), CNOT(0, 1), H(2)]),
-        # TODO: determine why this pair of parameters is failing (see issue dta2-488)
-        # Circuit([CNOT(0, 1), CNOT(1, 2)]),
+        Circuit([CNOT(0, 1), CNOT(1, 2)]),
         Circuit([H(0), RZ(0.034023)(0)]),
         # Test pauli tracker layering
         Circuit(
