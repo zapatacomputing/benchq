@@ -57,7 +57,7 @@ juliapkg.resolve()
 # Context: if IPython.display.set_matplotlib_formats has been called, then the
 # autoloading of the IPython extension seems to cause the program to exit or hang. (The
 # set_matplotlib_formats function gets called, for example, when certain pyLIQTR modules
-#  are imported.)
+# are imported.)
 if "PYTHON_JULIACALL_AUTOLOAD_IPYTHON_EXTENSION" not in os.environ:
     os.environ["PYTHON_JULIACALL_AUTOLOAD_IPYTHON_EXTENSION"] = "no"
 
