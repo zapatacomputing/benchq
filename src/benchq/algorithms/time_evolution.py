@@ -1,7 +1,11 @@
 import numpy as np
 from orquestra.quantum.operators import PauliRepresentation
-from pyLIQTR.QSP import gen_qsp
-from pyLIQTR.QSP.Hamiltonian import Hamiltonian
+from pyLIQTR.phase_factors.fourier_response.fourier_response import (
+    get_steps_from_logeps,
+    getlogepsilon,
+)
+from pyLIQTR.utils.Hamiltonian import Hamiltonian
+
 
 from ..algorithms.data_structures import AlgorithmImplementation, ErrorBudget
 from ..conversions import SUPPORTED_OPERATORS, get_pyliqtr_operator
@@ -12,10 +16,10 @@ from ..problem_embeddings.trotter import get_trotter_program
 # TODO: This logic is copied from pyLIQTR, perhaps we want to change it to our own?
 def _get_steps(tau, req_prec):
     # have tau and epsilon, backtrack in order to get steps
-    steps, close_val = gen_qsp.get_steps_from_logeps(np.log(req_prec), tau, 1)
+    steps, close_val = get_steps_from_logeps(np.log(req_prec), tau, 1)
     # print(':------------------------------------------')
     # print(f': Steps = {steps}')
-    while gen_qsp.getlogepsilon(tau, steps) > np.log(req_prec):
+    while getlogepsilon(tau, steps) > np.log(req_prec):
         steps += 4
     return steps
 

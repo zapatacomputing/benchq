@@ -48,7 +48,10 @@ def get_ruby_slippers_circuit_compiler(
         optimization: str,
         verbose: bool,
     ) -> GSCInfo:
-        (compiled_graph_data, _,) = jl.run_ruby_slippers(
+        (
+            compiled_graph_data,
+            _,
+        ) = jl.run_ruby_slippers(
             circuit,
             verbose=verbose,
             takes_graph_input=takes_graph_input,

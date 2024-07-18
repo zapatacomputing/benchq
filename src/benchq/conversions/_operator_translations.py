@@ -11,7 +11,8 @@ from orquestra.integrations.cirq.conversions._openfermion_conversions import (
     to_openfermion,
 )
 from orquestra.quantum.operators import PauliSum, PauliTerm
-from pyLIQTR.QSP.Hamiltonian import Hamiltonian
+from pyLIQTR.utils.Hamiltonian import Hamiltonian
+
 
 from ._openfermion_pyliqtr import openfermion_to_pyliqtr
 

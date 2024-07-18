@@ -6,11 +6,13 @@ from typing import Dict, Generic, Iterable, List, Optional, Sequence, TypeVar, c
 
 import cirq
 import numpy as np
-import pyLIQTR.QSP as QSP
+import pyLIQTR.QSP as QSP  # Cannot find this in pyLIQTR_v1
+
+# as qsp_generator = pQSP.QSP, I cannot find where this is imported from
 from orquestra.integrations.cirq.conversions import import_from_cirq
 from orquestra.quantum.circuits import Circuit, GateOperation
-from pyLIQTR.QSP import gen_qsp
-from pyLIQTR.QSP.qsp_helpers import qsp_decompose_once
+from pyLIQTR.QSP import gen_qsp  # Cannot find this in pyLIQTR_v1
+from pyLIQTR.QSP.qsp_helpers import qsp_decompose_once  # Cannot find this in pyLIQTR_v1
 
 from ...conversions import SUPPORTED_OPERATORS, get_pyliqtr_operator
 from ..quantum_program import QuantumProgram

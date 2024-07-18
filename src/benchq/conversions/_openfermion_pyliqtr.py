@@ -4,7 +4,7 @@
 from typing import Union
 
 from openfermion import IsingOperator, QubitOperator, count_qubits
-from pyLIQTR.QSP.Hamiltonian import Hamiltonian
+from pyLIQTR.utils.Hamiltonian import Hamiltonian
 
 
 def pyliqtr_to_openfermion(hamiltonian: Hamiltonian) -> QubitOperator:

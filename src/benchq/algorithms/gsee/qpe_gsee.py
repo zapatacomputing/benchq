@@ -1,7 +1,7 @@
 import warnings
 
 import numpy as np
-from pyLIQTR.QSP.Hamiltonian import Hamiltonian
+from pyLIQTR.utils.Hamiltonian import Hamiltonian
 
 from ...algorithms.data_structures import AlgorithmImplementation, ErrorBudget
 from ...conversions import SUPPORTED_OPERATORS, get_pyliqtr_operator

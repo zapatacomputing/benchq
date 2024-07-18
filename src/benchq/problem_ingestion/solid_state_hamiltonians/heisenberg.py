@@ -2,12 +2,12 @@
 # © Copyright 2022-2023 Zapata Computing Inc.
 ################################################################################
 import numpy as np
-import pyLIQTR.sim_methods.quantum_ops as qops
+import pyLIQTR.sim_methods.quantum_ops as qops  # Cannot find this in pyLIQTR_v1
 from orquestra.integrations.cirq.conversions import from_openfermion
 
 # At this stage of development we are aware that there are some issues with methods
 # 2 and 3 and they do not necessarily yield correct results.
-from pyLIQTR.QSP.Hamiltonian import Hamiltonian as pyH
+from pyLIQTR.utils.Hamiltonian import Hamiltonian as pyH
 
 from benchq.conversions import pyliqtr_to_openfermion
 

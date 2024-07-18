@@ -65,7 +65,7 @@ def pyliqtr_transpile_to_clifford_t(
         )
         compiled_cirq_circuit = clifford_plus_t_direct_transform(
             cirq_circuit,
-            precision=gate_precision,
+            gate_precision=gate_precision,
             circuit_precision=circuit_precision,
             use_random_decomp=False,
             num_rotation_gates=n_rotation_gates,

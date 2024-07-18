@@ -43,7 +43,7 @@ def jw_test_case():
     failure_tolerance = 1e-3
     n_hydrogens = 2
 
-    instance = generate_hydrogen_chain_instance(n_hydrogens)
+    instance = get_hydrogen_chain_hamiltonian_generator(n_hydrogens)
     interaction_operator = instance.get_active_space_hamiltonian()
     jw_operator = openfermion.jordan_wigner(interaction_operator)
     pyliqtr_jw_operator = get_pyliqtr_operator(jw_operator)

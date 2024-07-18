@@ -8,7 +8,7 @@ from orquestra.integrations.cirq.conversions import from_openfermion
 
 # At this stage of development we are aware that there are some issues with methods
 # 2 and 3 and they do not necessarily yield correct results.
-from pyLIQTR.QSP.Hamiltonian import Hamiltonian as pyH
+from pyLIQTR.utils.Hamiltonian import Hamiltonian as pyH
 
 from benchq.conversions import pyliqtr_to_openfermion
 
