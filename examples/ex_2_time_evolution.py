@@ -27,9 +27,6 @@ from benchq.compilation.graph_states.implementation_compiler import (
     get_implementation_compiler,
 )
 from benchq.problem_ingestion import get_vlasov_hamiltonian
-from benchq.problem_ingestion.solid_state_hamiltonians.heisenberg import (
-    generate_1d_heisenberg_hamiltonian,
-)
 from benchq.quantum_hardware_modeling import BASIC_SC_ARCHITECTURE_MODEL
 from benchq.resource_estimators.graph_estimator import GraphResourceEstimator
 from benchq.timing import measure_time
@@ -48,8 +45,6 @@ def main():
 
         # Get a Vlasov Hamiltonian for simulation
         operator = get_vlasov_hamiltonian(N=N, k=2.0, alpha=0.6, nu=0)
-        # Alternative operator: 1D Heisenberg model
-        # operator = generate_1d_heisenberg_hamiltonian(N)
 
     print("Operator generation time:", t_info.total)
 
