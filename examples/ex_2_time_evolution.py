@@ -26,7 +26,7 @@ from benchq.compilation.graph_states import get_ruby_slippers_circuit_compiler
 from benchq.compilation.graph_states.implementation_compiler import (
     get_implementation_compiler,
 )
-from benchq.problem_ingestion import get_vlasov_hamiltonian
+from benchq.problem_ingestion import generate_fermi_hubbard_jw_qubit_hamiltonian
 from benchq.quantum_hardware_modeling import BASIC_SC_ARCHITECTURE_MODEL
 from benchq.resource_estimators.graph_estimator import GraphResourceEstimator
 from benchq.timing import measure_time
@@ -41,10 +41,10 @@ def main():
     # measure_time is a utility tool which measures the execution time of
     # the code inside the with statement.
     with measure_time() as t_info:
-        N = 3  # Problem size
+        N = 2  # Problem size
 
-        # Get a Vlasov Hamiltonian for simulation
-        operator = get_vlasov_hamiltonian(N=N, k=2.0, alpha=0.6, nu=0)
+        # Get a Fermi-Hubbard Hamiltonian for simulation
+        operator = generate_fermi_hubbard_jw_qubit_hamiltonian(N, N, 1.0, -2.0)
 
     print("Operator generation time:", t_info.total)
 

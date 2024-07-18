@@ -17,7 +17,7 @@ from benchq.mlflow.data_logging import (
     log_input_objects_to_mlflow,
     log_resource_info_to_mlflow,
 )
-from benchq.problem_ingestion import get_vlasov_hamiltonian
+from benchq.problem_ingestion import generate_fermi_hubbard_jw_qubit_hamiltonian
 from benchq.quantum_hardware_modeling.hardware_architecture_models import (
     BASIC_SC_ARCHITECTURE_MODEL,
 )
@@ -57,7 +57,9 @@ def get_algorithm(operator, evolution_time, error_budget):
 
 @standard_task
 def get_operator(problem_size):
-    return get_vlasov_hamiltonian(N=problem_size, k=2.0, alpha=0.6, nu=0)
+    return generate_fermi_hubbard_jw_qubit_hamiltonian(
+        problem_size, problem_size, 1.0, -2.0
+    )
 
 
 @gsc_task

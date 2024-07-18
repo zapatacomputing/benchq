@@ -16,7 +16,6 @@ from benchq.problem_embeddings.qsp import _qsp
 
 def _make_real_pauli_sum(terms_str: str) -> PauliSum:
     operator = PauliSum(terms_str)
-    # Mimicks the workaround used in pqb.problem_ingestion.get_vlasov_hamiltonian
     for term in operator.terms:
         term.coefficient = term.coefficient.real
 

@@ -19,7 +19,7 @@ from benchq.compilation.graph_states import (
     get_ruby_slippers_circuit_compiler,
 )
 from benchq.decoder_modeling import DecoderModel
-from benchq.problem_ingestion import get_vlasov_hamiltonian
+from benchq.problem_ingestion import generate_fermi_hubbard_jw_qubit_hamiltonian
 from benchq.quantum_hardware_modeling import BASIC_SC_ARCHITECTURE_MODEL
 from benchq.resource_estimators.azure_estimator import azure_estimator
 from benchq.resource_estimators.graph_estimator import GraphResourceEstimator
@@ -36,7 +36,9 @@ def main():
 
     with measure_time() as t_info:
         N = 2  # Problem size
-        operator = get_vlasov_hamiltonian(N=N, k=2.0, alpha=0.6, nu=0)
+
+        # Get a Fermi-Hubbard Hamiltonian for simulation
+        operator = generate_fermi_hubbard_jw_qubit_hamiltonian(N, N, 1.0, -2.0)
 
     print("Operator generation time:", t_info.total)
 

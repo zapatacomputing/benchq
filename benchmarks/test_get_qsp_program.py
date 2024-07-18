@@ -8,7 +8,7 @@ import pytest
 from benchq.algorithms.time_evolution import _n_block_encodings_for_time_evolution
 from benchq.conversions import get_pyliqtr_operator
 from benchq.problem_embeddings.qsp import get_qsp_program
-from benchq.problem_ingestion import get_hamiltonian_from_file, get_vlasov_hamiltonian
+from benchq.problem_ingestion import get_hamiltonian_from_file
 from benchq.problem_ingestion.molecular_hamiltonians import (
     get_hydrogen_chain_hamiltonian_generator,
 )
@@ -17,25 +17,6 @@ SKIP_SLOW = pytest.mark.skipif(
     os.getenv("SLOW_BENCHMARKS") is None,
     reason="Slow benchmarks can only run if SLOW_BENCHMARKS env variable is defined",
 )
-
-
-def vlasov_test_case():
-    k = 2.0
-    alpha = 0.6
-    nu = 0.0
-    N = 2
-
-    evolution_time = 5
-    failure_tolerance = 1e-3
-
-    operator = get_vlasov_hamiltonian(k, alpha, nu, N)
-    pyliqtr_operator = get_pyliqtr_operator(operator)
-
-    n_block_encodings = _n_block_encodings_for_time_evolution(
-        pyliqtr_operator, evolution_time, failure_tolerance
-    )
-
-    return pytest.param(operator, n_block_encodings, id="vlasov")
 
 
 def jw_test_case():
@@ -96,7 +77,7 @@ def fast_load_hamiltonians():
 @pytest.mark.benchmark
 @pytest.mark.parametrize(
     "operator, n_block_encodings",
-    [vlasov_test_case(), jw_test_case(), *fast_load_hamiltonians()],
+    [jw_test_case(), *fast_load_hamiltonians()],
 )
 def test_get_qsp_program(benchmark, operator, n_block_encodings):
     benchmark(get_qsp_program, operator, n_block_encodings)

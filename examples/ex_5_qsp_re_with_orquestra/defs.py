@@ -11,7 +11,7 @@ from orquestra import sdk
 from benchq.algorithms.data_structures import ErrorBudget
 from benchq.algorithms.time_evolution import qsp_time_evolution_algorithm
 from benchq.compilation.graph_states import get_implementation_compiler
-from benchq.problem_ingestion import get_vlasov_hamiltonian
+from benchq.problem_ingestion import generate_fermi_hubbard_jw_qubit_hamiltonian
 from benchq.quantum_hardware_modeling.hardware_architecture_models import (
     BASIC_SC_ARCHITECTURE_MODEL,
 )
@@ -55,7 +55,9 @@ def get_algorithm(operator, evolution_time, error_budget):
 
 @standard_task
 def get_operator(problem_size):
-    return get_vlasov_hamiltonian(N=problem_size, k=2.0, alpha=0.6, nu=0)
+    return generate_fermi_hubbard_jw_qubit_hamiltonian(
+        problem_size, problem_size, 1.0, -2.0
+    )
 
 
 @task_with_julia
