@@ -1,5 +1,6 @@
 import numpy as np
 from orquestra.quantum.operators import PauliRepresentation
+
 from pyLIQTR.phase_factors.fourier_response.fourier_response import (
     get_steps_from_logeps,
     getlogepsilon,
@@ -8,9 +9,13 @@ from pyLIQTR.utils.Hamiltonian import Hamiltonian
 
 
 from ..algorithms.data_structures import AlgorithmImplementation, ErrorBudget
-from ..conversions import SUPPORTED_OPERATORS, get_pyliqtr_operator
-from ..problem_embeddings.qsp import get_qsp_program
+
+from ..problem_embeddings.qsp import (
+    get_qsp_program_from_block_encoding,
+)
 from ..problem_embeddings.trotter import get_trotter_program
+
+from pyLIQTR.BlockEncodings.BlockEncoding import BlockEncoding
 
 
 # TODO: This logic is copied from pyLIQTR, perhaps we want to change it to our own?
@@ -37,23 +42,27 @@ def _n_block_encodings_for_time_evolution(
     return int((steps - 3) // 2)
 
 
-def qsp_time_evolution_algorithm(
-    hamiltonian: SUPPORTED_OPERATORS, time: float, failure_tolerance: float
+def qsp_time_evolution_algorithm_from_block_encoding(
+    block_encoding: BlockEncoding, evolution_time: float, failure_tolerance: float
 ) -> AlgorithmImplementation:
     """Returns a program that implements time evolution using QSP.
 
     Args:
-        hamiltonian: Hamiltonian defining the problem
+        block_encoding: pyLIQTR block encoding defining the encoding of the Hamiltonian
         time: time of the evolution
         failure_tolerance: how often the algorithm can fail
     """
-    pyliqtr_hamiltonian = get_pyliqtr_operator(hamiltonian)
-    n_block_encodings = _n_block_encodings_for_time_evolution(
-        pyliqtr_hamiltonian, time, failure_tolerance
+
+    # Allocate failure tolerance to QSP
+    qsp_failure_tolerance = failure_tolerance / 2
+    remaining_failure_tolerance = failure_tolerance - qsp_failure_tolerance
+
+    program = get_qsp_program_from_block_encoding(
+        block_encoding, evolution_time, qsp_failure_tolerance
     )
-    program = get_qsp_program(hamiltonian, n_block_encodings, decompose_select_v=False)
+
     return AlgorithmImplementation(
-        program, ErrorBudget.from_even_split(failure_tolerance), 1
+        program, ErrorBudget.from_even_split(remaining_failure_tolerance), 1
     )
 
 
