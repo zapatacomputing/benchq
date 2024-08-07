@@ -23,6 +23,7 @@ from .compiled_data_structures import (
 )
 def distributed_graph_creation(
     circuit: Circuit,
+    logical_architecture: str,
     optimization: str,
     verbose: bool,
     circuit_compiler,
@@ -34,8 +35,7 @@ def distributed_graph_creation(
     circuit = compile_to_native_gates(circuit, verbose)
     if verbose:
         print("Transferring Data to Julia...")
-    return circuit_compiler(circuit, optimization, verbose)
-
+    return circuit_compiler(circuit, logical_architecture, optimization, verbose)
 
 def get_implementation_compiler(
     circuit_compiler=default_ruby_slippers_circuit_compiler,
@@ -49,6 +49,7 @@ def get_implementation_compiler(
     @sdk.workflow(resources=sdk.Resources(cpu=str(num_cores), memory="16Gi"))
     def get_program_compilation_wf(
         algorithm_implementation: AlgorithmImplementation,
+        logical_architecture: str = "two_row",
         optimization: str = "Space",
         verbose: bool = False,
     ) -> List[sdk.ArtifactFuture[GSCInfo]]:
@@ -59,6 +60,7 @@ def get_implementation_compiler(
             compiled_subroutine_list.append(
                 distributed_graph_creation(
                     circuit,
+                    logical_architecture,
                     optimization,
                     verbose,
                     circuit_compiler,
@@ -71,6 +73,7 @@ def get_implementation_compiler(
 
     def parallelized_compiler(
         algorithm_implementation: AlgorithmImplementation,
+        logical_architecture: str = "two_row",
         optimization: str = "Space",
         verbose: bool = False,
     ) -> CompiledAlgorithmImplementation:
@@ -78,6 +81,7 @@ def get_implementation_compiler(
             print("Beginning compilation...")
         program_compilation_wf = get_program_compilation_wf(
             algorithm_implementation,
+            logical_architecture,
             optimization,
             verbose,
         )

@@ -18,7 +18,7 @@ def get_nx_graph_from_rbs_adj_list(adj: list) -> nx.Graph:
 
     return graph
 
-
+# TODO: consider updating to incorporate logical_architecture
 def default_ruby_slippers_circuit_compiler(
     circuit: Circuit,
     optimization: str,
@@ -45,6 +45,7 @@ def get_ruby_slippers_circuit_compiler(
 ):
     def rbs_circuit_compiler(
         circuit: Circuit,
+        logical_architecture: str,
         optimization: str,
         verbose: bool,
     ) -> GSCInfo:
@@ -53,6 +54,7 @@ def get_ruby_slippers_circuit_compiler(
             verbose=verbose,
             takes_graph_input=takes_graph_input,
             gives_graph_output=gives_graph_output,
+            logical_architecture=logical_architecture,
             optimization=optimization,
             max_num_qubits=max_num_qubits,
             optimal_dag_density=optimal_dag_density,

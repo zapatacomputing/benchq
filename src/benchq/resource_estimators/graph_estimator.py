@@ -42,6 +42,8 @@ class GraphResourceEstimator:
             BASIC_ION_TRAP_ARCHITECTURE_MODEL.
         decoder_model (Optional[DecoderModel]): The decoder model used to estimate.
             If None, no estimates on the number of decoder are provided.
+        logical_architecture (str): The logical architecture name that determines 
+            the compilation strategy.
         optimization (str): The optimization to use for the estimate. Either estimate
             the resources needed to run the algorithm in the shortest time possible
             ("Time") or the resources needed to run the algorithm with the smallest
@@ -55,9 +57,11 @@ class GraphResourceEstimator:
 
     def __init__(
         self,
+        logical_architecture: str = "two_row",
         optimization: str = "Space",
         verbose: bool = False,
     ):
+        self.logical_architecture = logical_architecture
         self.optimization = optimization
         self.verbose = verbose
         getcontext().prec = 100  # need some extra precision for this calculation
@@ -520,6 +524,7 @@ class GraphResourceEstimator:
     ):
         compiled_implementation = algorithm_implementation_compiler(
             algorithm_implementation,
+            self.logical_architecture,
             self.optimization,
             self.verbose,
         )

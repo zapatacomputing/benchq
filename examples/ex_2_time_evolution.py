@@ -44,7 +44,7 @@ def main():
     # measure_time is a utility tool which measures the execution time of
     # the code inside the with statement.
     with measure_time() as t_info:
-        N = 3  # Problem size
+        N = 4  # Problem size
 
         # Get a Vlasov Hamiltonian for simulation
         operator = get_vlasov_hamiltonian(N=N, k=2.0, alpha=0.6, nu=0)
@@ -71,7 +71,7 @@ def main():
         circuit_compiler=get_ruby_slippers_circuit_compiler(),
         destination="single-thread",
     )
-    estimator = GraphResourceEstimator(optimization="Time", verbose=True)
+    estimator = GraphResourceEstimator(logical_architecture="active_volume", optimization="Time", verbose=True)
 
     with measure_time() as t_info:
         resource_estimate = estimator.compile_and_estimate(
