@@ -467,7 +467,7 @@ class GraphResourceEstimator:
 
         # get time to get a single shot
         time_per_circuit_in_seconds = (
-            6 * num_cycles * hw_model.surface_code_cycle_time_in_seconds
+            num_cycles * hw_model.surface_code_cycle_time_in_seconds
         )
 
         total_time_in_seconds = (
