@@ -100,7 +100,7 @@ function time_optimal_two_row_scheduler(asg, pauli_tracker, num_logical_qubits, 
             # println("neigbors: ", asg.edge_data[node])   
             bar = [node_to_patch[node], node_to_patch[node]]
             # println("initial bar:", bar)
-            print("neighbors", asg.edge_data[node])
+            # println("neighbors", asg.edge_data[node])
             for neighbor in asg.edge_data[node]
                 # println("neighbor: ", neighbor)
                 # println(node_to_patch[neighbor] < bar[1], node_to_patch[neighbor] > bar[2], node in curr_physical_nodes)
@@ -294,8 +294,10 @@ function time_optimal_active_volume_scheduler(asg, pauli_tracker, num_logical_qu
     num_rotations_per_layer = [0 for _ in 1:length(pauli_tracker.layering)]
 
     # print out the number of edges in the original graph
+    println("asg is", asg)
+    println("number of nodes in asg is", asg.n_nodes)
+    println("length of edge data is", length(asg.edge_data))
     verbose && println("Number of edges in the original graph: ", sum(length(asg.edge_data[node])/2 for node in 1:asg.n_nodes))
-
 
     # Construct the neighborhood extension graph that adds edges between nodes 
     # that are at most distance 2 apart in the original graph
@@ -310,15 +312,15 @@ function time_optimal_active_volume_scheduler(asg, pauli_tracker, num_logical_qu
         end
     end
 
-    # println("edge data is", neighbor_extension_graph.edge_data)
+    println("extended edge asg is", neighbor_extension_graph)
+    print("number of nodes in extended edge asg is", neighbor_extension_graph.n_nodes)
+    println("length of edge data is", length(neighbor_extension_graph.edge_data))
 
     # println("Are there any duplicates in the edge set of neighbor_extension_graph? ", length(neighbor_extension_graph.edge_data) != length(Set(neighbor_extension_graph.edge_data)))
     # println("list", length(neighbor_extension_graph.edge_data), "set",  length(Set(neighbor_extension_graph.edge_data)))
 
-    
     # print out the number of edges in the neighbor extension graph
     verbose && println("Number of edges in the neighbor extension graph: ", sum(length(neighbor_extension_graph.edge_data[node])/2 for node in 1:asg.n_nodes))
-
 
     for layer_num in VerboseIterator(1:length(pauli_tracker.layering), verbose, "Scheduling Clifford operations...")
 

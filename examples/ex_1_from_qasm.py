@@ -12,6 +12,7 @@ import os
 from qiskit.circuit import QuantumCircuit
 
 from benchq.algorithms.data_structures import AlgorithmImplementation, ErrorBudget
+from benchq.compilation.graph_states import get_ruby_slippers_circuit_compiler
 from benchq.compilation.graph_states.implementation_compiler import (
     get_implementation_compiler,
 )
@@ -42,9 +43,12 @@ def main(file_name):
     # Architecture model is used to define the hardware model.
     architecture_model = BASIC_SC_ARCHITECTURE_MODEL
     # Create the estimator object, we can optimize for "Time" or "Space"
-    estimator = GraphResourceEstimator(optimization="Time", verbose=True)
+    estimator = GraphResourceEstimator(logical_architecture="active_volume", optimization="Time", verbose=True)
     # Use the default compiler
-    compiler = get_implementation_compiler()
+    compiler = get_implementation_compiler(
+        circuit_compiler=get_ruby_slippers_circuit_compiler(),
+        destination="single-thread",
+    )
     # Put all the pieces together to get a resource estimate
     gsc_resource_estimates = estimator.compile_and_estimate(
         algorithm_implementation,

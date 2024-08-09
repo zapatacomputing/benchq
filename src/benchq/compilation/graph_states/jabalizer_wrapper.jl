@@ -99,7 +99,7 @@ function get_jabalizer_graph_state_data(circuit, optimization, debug_flag=false,
     )
 
     n_nodes = length(jabalizer_out["spatialgraph"])
-    julia_spacial_graph = [Set{UInt32}(neighborhood .+ 1) for neighborhood in jabalizer_out["spatialgraph"]]
+    julia_spatial_graph = [Set{UInt32}(neighborhood .+ 1) for neighborhood in jabalizer_out["spatialgraph"]]
     graph_input_nodes = jabalizer_out["statenodes"] .+ 1
     graph_output_nodes = jabalizer_out["outputnodes"] .+ 1
 
@@ -129,7 +129,7 @@ function get_jabalizer_graph_state_data(circuit, optimization, debug_flag=false,
     layering = [layer .+ 1 for layer in jabalizer_out["steps"]]
 
     asg = AlgorithmSpecificGraph(
-        julia_spacial_graph,
+        julia_spatial_graph,
         [],
         [],
         n_nodes,

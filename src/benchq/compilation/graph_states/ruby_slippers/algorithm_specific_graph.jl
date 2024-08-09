@@ -99,7 +99,7 @@ contain the nodes which are actually used in the graph state. A lack
 of input and output nodes indicate that this graph is not stitchable.
 
 Attributes:
-    edge_data (Vector{AdjList}): adjacency list describing the graph
+    edge_data (Vector{AdjList}): for each node, this list stores a list of that node's neighbors
     sqs (Vector{UInt8}): single qubit clifford symplectic operations
                             on each node. The symplectic operations are
                             just the clifford operators modulo the paulis
