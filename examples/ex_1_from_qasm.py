@@ -17,7 +17,7 @@ from benchq.compilation.graph_states.implementation_compiler import (
     get_implementation_compiler,
 )
 from benchq.quantum_hardware_modeling import BASIC_SC_ARCHITECTURE_MODEL
-from benchq.resource_estimators.graph_estimator import GraphResourceEstimator
+from benchq.resource_estimators.graph_estimator import GraphResourceEstimator, TwoRowBusArchitectureModel, ActiveVolumeArchitectureModel
 
 
 def main(file_name):
@@ -43,16 +43,21 @@ def main(file_name):
     # Architecture model is used to define the hardware model.
     architecture_model = BASIC_SC_ARCHITECTURE_MODEL
     # Create the estimator object, we can optimize for "Time" or "Space"
-    estimator = GraphResourceEstimator(logical_architecture="active_volume", optimization="Time", verbose=True)
+    estimator = GraphResourceEstimator(optimization="Time", verbose=True)
     # Use the default compiler
     compiler = get_implementation_compiler(
         circuit_compiler=get_ruby_slippers_circuit_compiler(),
         destination="single-thread",
     )
+
+    two_row_architecture = TwoRowBusArchitectureModel()
+    active_volume_architecture = ActiveVolumeArchitectureModel()
+
     # Put all the pieces together to get a resource estimate
     gsc_resource_estimates = estimator.compile_and_estimate(
         algorithm_implementation,
         compiler,
+        active_volume_architecture,
         architecture_model,
     )
     print("Resource estimation results:")
@@ -61,4 +66,6 @@ def main(file_name):
 
 if __name__ == "__main__":
     current_directory = os.path.dirname(__file__)
+    # main(current_directory + "/data/single_qubit_clifford_circuit.qasm")
     main(current_directory + "/data/ghz_circuit.qasm")
+    # main(current_directory + "/data/single_rotation.qasm")

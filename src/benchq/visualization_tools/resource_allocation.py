@@ -229,12 +229,12 @@ def all_combinations(iterable):
             yield combo
 
 
-class CycleAllocation(ResourceAllocation):
+class QECCycleAllocation(ResourceAllocation):
     def __init__(self, process_types=default_process_types):
         super().__init__("cycles", process_types)
 
     def __add__(self, other, safe=False):
-        new_data = CycleAllocation(self.process_types)
+        new_data = QECCycleAllocation(self.process_types)
         for combo in self.allocation_data:
             new_data.allocation_data[combo] = self.allocation_data[combo]
         for combo in other.allocation_data:

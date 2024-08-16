@@ -128,13 +128,14 @@ class QuantumProgram:
         ]
         return self.replace_circuits(circuits)
 
-    def get_n_t_gates_after_transpilation(self, transpilation_failure_tolerance: float):
-        per_gate_synthesis_accuracy = 1 - (
-            1 - Decimal(transpilation_failure_tolerance)
-        ) ** Decimal(1 / self.n_rotation_gates)
+    def get_n_t_gates_after_synthesis(self, transpilation_failure_tolerance: float):
+        if self.n_rotation_gates == 0:
+            return self.n_t_gates
+                
+        per_gate_synthesis_failure_tolerance = Decimal(transpilation_failure_tolerance) * Decimal(1 / self.n_rotation_gates)
 
         n_t_gates_per_rotation = get_num_t_gates_per_rotation(
-            per_gate_synthesis_accuracy
+            per_gate_synthesis_failure_tolerance
         )
 
         return self.n_t_gates + self.n_rotation_gates * n_t_gates_per_rotation

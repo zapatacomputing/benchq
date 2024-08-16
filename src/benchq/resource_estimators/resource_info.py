@@ -10,7 +10,7 @@ from benchq.compilation.graph_states.compiled_data_structures import (
     CompiledAlgorithmImplementation,
 )
 
-from ..visualization_tools.resource_allocation import CycleAllocation
+from ..visualization_tools.resource_allocation import QECCycleAllocation
 
 TExtra = TypeVar("TExtra")
 
@@ -60,18 +60,38 @@ class DetailedIonTrapArchitectureResourceInfo:
     num_distillation_elus: int
     distillation_elu_resource_info: ELUResourceInfo
 
+@dataclass
+class LogicalFailureRates:
+    """Logical failure rates for various processes."""
+
+    total_circuit_failure_rate: float
+    total_rotation_failure_rate: float
+    total_distillation_failure_rate: float
+    total_qec_failure_rate: float
+    per_rotation_synthesi_failure_rate: float
+    per_t_gate_failure_rate: float
+    per_qec_failure_rate: float
 
 @dataclass
-class BusArchitectureResourceInfo:
-    """Info relating to bus architecture model resources."""
+class LogicalArchitectureResourceInfo:
+    """Info logical architecture model resources."""
 
     num_logical_data_qubits: int
     num_logical_bus_qubits: int
     data_and_bus_code_distance: int
     num_magic_state_factories: int
     magic_state_factory: Optional[MagicStateFactoryInfo] = None
-    cycle_allocation: Optional[CycleAllocation] = None
+    qec_cycle_allocation: Optional[QECCycleAllocation] = None
+    logical_failure_rates: LogicalFailureRates = None
+    
+    @property
+    def num_logical_qubits(self) -> int:
+        return self.num_logical_data_qubits + self.num_logical_bus_qubits
 
+    @property
+    def spacetime_volume_in_logical_qubit_tocks(self) -> float:
+        st_volume_in_logical_qubit_tocks = self.qec_cycle_allocation.total*self.num_logical_qubits / self.data_and_bus_code_distance
+        return st_volume_in_logical_qubit_tocks
 
 @dataclass
 class ResourceInfo(Generic[TExtra]):
@@ -97,7 +117,7 @@ class ResourceInfo(Generic[TExtra]):
     decoder_info: Optional[DecoderInfo]
     magic_state_factory_name: str
     extra: TExtra
-    logical_architecture_resource_info: Optional[BusArchitectureResourceInfo] = None
+    logical_architecture_resource_info: Optional[LogicalArchitectureResourceInfo] = None
     hardware_resource_info: Optional[DetailedIonTrapArchitectureResourceInfo] = None
 
 

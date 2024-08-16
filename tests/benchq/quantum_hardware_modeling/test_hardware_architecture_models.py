@@ -4,7 +4,7 @@ import pytest
 
 from benchq.quantum_hardware_modeling import DetailedIonTrapModel
 from benchq.resource_estimators.resource_info import (
-    BusArchitectureResourceInfo,
+    LogicalArchitectureResourceInfo,
     DetailedIonTrapArchitectureResourceInfo,
     ELUResourceInfo,
     MagicStateFactoryInfo,
@@ -78,7 +78,7 @@ class TestDetailedIonTrapModel:
 
             n_bus_qubits = 9 * n_logical_qubits
             n_magic_state_factories = n_bus_qubits
-            bus_architecture_resource_info = BusArchitectureResourceInfo(
+            bus_architecture_resource_info = LogicalArchitectureResourceInfo(
                 n_logical_qubits,
                 n_bus_qubits,
                 code_distance,

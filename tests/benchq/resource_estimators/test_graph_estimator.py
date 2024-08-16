@@ -427,9 +427,10 @@ def test_get_resource_estimations_for_program_accounts_for_spatial_resources(
         ),
     ],
 )
-def test_get_cycle_allocation(gsc_info, optimization, cycles_per_layer):
+def test_get_qec_cycle_allocation(gsc_info, optimization, cycles_per_layer):
 
     distillation_time_in_cycles = 27
+    t_gates_per_distillation = 1
     n_t_gates_per_rotation = 30
     data_and_bus_code_distance = 9
 
@@ -451,9 +452,10 @@ def test_get_cycle_allocation(gsc_info, optimization, cycles_per_layer):
         dummy_quantum_program, [gsc_info, gsc_info]
     )
 
-    time_allocation = estimator.get_cycle_allocation(
+    time_allocation = estimator.get_qec_cycle_allocation(
         compiled_program,
         distillation_time_in_cycles,
+        t_gates_per_distillation,
         n_t_gates_per_rotation,
         data_and_bus_code_distance,
     )
