@@ -17,7 +17,8 @@ from benchq.compilation.graph_states.implementation_compiler import (
     get_implementation_compiler,
 )
 from benchq.quantum_hardware_modeling import BASIC_SC_ARCHITECTURE_MODEL
-from benchq.resource_estimators.graph_estimator import GraphResourceEstimator, TwoRowBusArchitectureModel, ActiveVolumeArchitectureModel
+from benchq.resource_estimators.graph_estimator import GraphResourceEstimator
+from benchq.logical_architecture_modeling.graph_based_logical_architectures import TwoRowBusArchitectureModel, ActiveVolumeArchitectureModel
 
 
 def main(file_name):

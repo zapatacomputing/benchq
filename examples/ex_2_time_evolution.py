@@ -31,7 +31,8 @@ from benchq.problem_ingestion.solid_state_hamiltonians.heisenberg import (
     generate_1d_heisenberg_hamiltonian,
 )
 from benchq.quantum_hardware_modeling import BASIC_SC_ARCHITECTURE_MODEL
-from benchq.resource_estimators.graph_estimator import GraphResourceEstimator, TwoRowBusArchitectureModel, ActiveVolumeArchitectureModel
+from benchq.resource_estimators.graph_estimator import GraphResourceEstimator
+from benchq.logical_architecture_modeling.graph_based_logical_architectures import TwoRowBusArchitectureModel, ActiveVolumeArchitectureModel
 from benchq.timing import measure_time
 
 

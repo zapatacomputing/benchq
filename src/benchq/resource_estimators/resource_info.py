@@ -94,6 +94,13 @@ class LogicalArchitectureResourceInfo:
         return st_volume_in_logical_qubit_tocks
 
 @dataclass
+class AbstractLogicalResourceInfo:
+    """Info relating to abstract logical resources."""
+
+    n_abstract_logical_qubits: int
+    n_t_gates: int
+
+@dataclass
 class ResourceInfo(Generic[TExtra]):
     """Generic information about estimated resources with possible extras.
 
@@ -106,19 +113,16 @@ class ResourceInfo(Generic[TExtra]):
     There are several variants of this class aliased below.
     """
 
-    n_physical_qubits: int
-    total_time_in_seconds: float
-    optimization: str
-    code_distance: int
-    logical_error_rate: float
-    n_logical_qubits: int  # Note: For the GraphResourceEstimator, this value
-    # is the sum of the number of data qubits and bus qubits, while for the
-    # openfermion_estimator, this value is the number of abstract logical qubits.
-    decoder_info: Optional[DecoderInfo]
-    magic_state_factory_name: str
-    extra: TExtra
+    n_abstract_logical_qubits: Optional[int] = None
+    n_physical_qubits: Optional[int] = None
+    n_t_gates: Optional[int] = None
+    total_time_in_seconds: Optional[float] = None
+    abstract_logical_resource_info: Optional[AbstractLogicalResourceInfo] = None
     logical_architecture_resource_info: Optional[LogicalArchitectureResourceInfo] = None
     hardware_resource_info: Optional[DetailedIonTrapArchitectureResourceInfo] = None
+    decoder_info: Optional[DecoderInfo] = None
+    optimization: Optional[str] = None
+    extra: Optional[TExtra] = None
 
 
 @dataclass

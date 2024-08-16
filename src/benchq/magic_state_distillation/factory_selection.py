@@ -13,7 +13,6 @@ def find_optimal_factory(per_t_gate_failure_tolerance:float, magic_state_factory
     best_found_factory = None
     min_resource = float('inf')
     for factory in magic_state_factory_iterator:
-        print("Checking factory:", factory.name)
         if factory.distilled_magic_state_error_rate <= per_t_gate_failure_tolerance:
             if optimization == "Space":
                 qubits_per_t_gtate=factory.qubits/factory.t_gates_per_distillation
