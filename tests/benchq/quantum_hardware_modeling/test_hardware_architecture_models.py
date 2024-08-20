@@ -12,22 +12,6 @@ from benchq.resource_estimators.resource_info import (
 )
 
 
-@pytest.fixture(scope="function")
-def dummy_resource_info():
-    resource_info = ResourceInfo(
-        code_distance=17,
-        logical_error_rate=1,
-        n_logical_qubits=30,
-        n_physical_qubits=None,
-        total_time_in_seconds=5,
-        optimization="",
-        decoder_info=None,
-        magic_state_factory_name="",
-        extra=None,
-    )
-    yield resource_info
-
-
 class TestDetailedIonTrapModel:
     class TestConstructor:
         def test_default_constructor(self):
@@ -67,7 +51,6 @@ class TestDetailedIonTrapModel:
         )
         def test_hardware_resource_estimates(
             self,
-            dummy_resource_info,
             code_distance,
             n_logical_qubits,
         ):

@@ -23,7 +23,7 @@ from .compiled_data_structures import (
 )
 def distributed_graph_creation(
     circuit: Circuit,
-    logical_architecture: str,
+    logical_architecture_name: str,
     optimization: str,
     verbose: bool,
     circuit_compiler,
@@ -35,7 +35,13 @@ def distributed_graph_creation(
     circuit = compile_to_native_gates(circuit, verbose)
     if verbose:
         print("Transferring Data to Julia...")
-    return circuit_compiler(circuit, logical_architecture, optimization, verbose)
+
+    if logical_architecture_name == "Time":
+        print("deeper")
+        breakpoint()
+
+    return circuit_compiler(circuit, logical_architecture_name, optimization, verbose)
+
 
 def get_implementation_compiler(
     circuit_compiler=default_ruby_slippers_circuit_compiler,
@@ -73,15 +79,20 @@ def get_implementation_compiler(
 
     def parallelized_compiler(
         algorithm_implementation: AlgorithmImplementation,
-        logical_architecture: str = "two_row_bus",
+        logical_architecture_name: str = "two_row_bus",
         optimization: str = "Space",
         verbose: bool = False,
     ) -> CompiledAlgorithmImplementation:
         if verbose:
             print("Beginning compilation...")
+
+        if logical_architecture_name == "Time":
+            print("deep")
+            breakpoint()
+
         program_compilation_wf = get_program_compilation_wf(
             algorithm_implementation,
-            logical_architecture,
+            logical_architecture_name,
             optimization,
             verbose,
         )

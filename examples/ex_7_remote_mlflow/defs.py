@@ -61,13 +61,14 @@ def get_operator(problem_size):
 
 
 @gsc_task
-def gsc_estimates(algorithm, architecture_model):
+def gsc_estimates(algorithm, logical_architecture_model, hardware_architecture_model):
     estimator = GraphResourceEstimator()
     implementation_compiler = get_implementation_compiler()
     resource_info = estimator.compile_and_estimate(
         algorithm,
         implementation_compiler,
-        architecture_model,
+        logical_architecture_model,
+        hardware_architecture_model,
     )
 
     f = open(os.environ["ORQUESTRA_PASSPORT_FILE"], "r")

@@ -222,16 +222,16 @@ def openfermion_estimator(
         n_physical_qubits=best_cost.physical_qubit_count,
         total_time_in_seconds=best_cost.duration,
         optimization="Space",
-        code_distance=best_params.logical_data_qubit_distance,
-        logical_error_rate=best_cost.algorithm_failure_probability,
-        n_logical_qubits=best_params.max_allocated_logical_qubits,
+        n_abstract_logical_qubits=best_params.max_allocated_logical_qubits,
         decoder_info=decoder_info,
-        magic_state_factory_name=best_params.magic_state_factory.name,
         extra=OpenFermionExtra(
             fail_rate_msFactory=best_params.magic_state_factory.distilled_magic_state_error_rate,  # noqa: E501
             rounds_magicstateFactory=best_params.magic_state_factory.distillation_time_in_cycles,  # noqa: E501
             physical_qubit_error_rate=best_params.physical_error_rate,
             scc_time=best_params.surface_code_cycle_time,
+            code_distance=best_params.logical_data_qubit_distance,
+            logical_error_rate=best_cost.algorithm_failure_probability,
+            magic_state_factory_name=best_params.magic_state_factory.name,
         ),
     )
 

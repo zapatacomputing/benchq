@@ -30,7 +30,7 @@ class GraphBasedLogicalArchitectureModel(LogicalArchitectureModel):
     @property
     def name(self):
         return self._name
-    
+
     def generate_resource_info_with_minimal_code_distance(
         self,
         compiled_program: CompiledQuantumProgram,
@@ -41,8 +41,8 @@ class GraphBasedLogicalArchitectureModel(LogicalArchitectureModel):
         hw_model: BasicArchitectureModel,
         min_d: int = 3,
         max_d: int = 200,
-    ) -> LogicalArchitectureResourceInfo:                
-        
+    ) -> LogicalArchitectureResourceInfo:
+
         lay_out_found = False
 
         # Initialize with fixed spatial layout
@@ -64,7 +64,7 @@ class GraphBasedLogicalArchitectureModel(LogicalArchitectureModel):
                 logical_architecture_resource_info,
                 n_t_gates_per_rotation,
             )
-            
+
             # Get spatial allocation
             num_logical_qubits = (
                 logical_architecture_resource_info.num_logical_data_qubits
@@ -87,14 +87,18 @@ class GraphBasedLogicalArchitectureModel(LogicalArchitectureModel):
             )
 
             # Check if the total qec error rate is below the total qec failure tolerance
-            # and if so, set the layout found flag to True, update the relevant fields, 
+            # and if so, set the layout found flag to True, update the relevant fields,
             # and return the logical architecture resource info
             if total_qec_error_rate_at_this_distance < total_qec_failure_tolerance:
                 lay_out_found = True
 
-                logical_architecture_resource_info.data_and_bus_code_distance = data_and_bus_code_distance
-                logical_architecture_resource_info.qec_cycle_allocation = time_allocation
-                return logical_architecture_resource_info            
+                logical_architecture_resource_info.data_and_bus_code_distance = (
+                    data_and_bus_code_distance
+                )
+                logical_architecture_resource_info.qec_cycle_allocation = (
+                    time_allocation
+                )
+                return logical_architecture_resource_info
 
         if not lay_out_found:
             warnings.warn(
@@ -103,14 +107,14 @@ class GraphBasedLogicalArchitectureModel(LogicalArchitectureModel):
             )
             logical_architecture_resource_info.data_and_bus_code_distance = None
             logical_architecture_resource_info.qec_cycle_allocation = None
-            return logical_architecture_resource_info 
-    
+            return logical_architecture_resource_info
+
     def get_bus_architecture_resource_breakdown(self):
         raise NotImplementedError
-    
+
     def get_qec_cycle_allocation(self):
         raise NotImplementedError
-    
+
     def get_max_parallel_t_states(self, compiled_program):
         max_parallel_t_states = 0
         for subroutine in compiled_program.subroutines:
@@ -150,13 +154,47 @@ class GraphBasedLogicalArchitectureModel(LogicalArchitectureModel):
             )
 
         return num_data_and_bus_physical_qubits + num_distillation_physical_qubits
-    
+
+
+def consume_t_measurements(
+    remaining_t_measurements_per_node,
+    number_of_parallel_t_measurements,
+):
+    """This function helps with accounting for the scheduling of T state measurements
+    given a specified number of T measurements that can be made in parallel.
+    The funtion decrements the number of remaining T measurements needed for each node
+    according to which nodes still need a T measurement and the number of T measurements
+    that can be made in parallel.
+
+    Args:
+        remaining_t_measurements_per_node (List[int]): A list of the number of T measurements
+            still needed for each node that needs a T measurement.
+        number_of_parallel_t_measurements (int): The number of T measurements that can be made in parallel.
+    """
+    # Note: because the rotation nodes are listed first, this function consumes
+    # all available T measurements for rotations before consuming T measurements
+    # for T states. This is because, in general, rotations require more T measurements
+    # and so we ensure that we deplete the T measurements of these rate-limiting
+    # operations first.
+    n_remaining_measurements_in_moment = number_of_parallel_t_measurements
+
+    for non_clifford_node_index in range(len(remaining_t_measurements_per_node)):
+        # Subract 1 from each node that still needs a T measurement
+        # until the n_remaining_measurements_in_moment is 0
+        if remaining_t_measurements_per_node[non_clifford_node_index] > 0:
+            remaining_t_measurements_per_node[non_clifford_node_index] -= 1
+            n_remaining_measurements_in_moment -= 1
+            # If there are no more T measurements to be made, break
+            if n_remaining_measurements_in_moment == 0:
+                return remaining_t_measurements_per_node
+    return remaining_t_measurements_per_node
 
 
 class ActiveVolumeArchitectureModel(GraphBasedLogicalArchitectureModel):
     def __init__(self):
         super().__init__()
         self._name = "active_volume"
+
     def get_bus_architecture_resource_breakdown(
         self,
         compiled_program: CompiledQuantumProgram,
@@ -182,7 +220,7 @@ class ActiveVolumeArchitectureModel(GraphBasedLogicalArchitectureModel):
         # The space optimal compilation uses just one factory, while the time optimal
         # compilation uses a number of factories determined by the maximum warranted
         # parallelization of distillation.
-        if compiled_program.n_t_gates == 0 and compiled_program.n_rotation_gates==0:
+        if compiled_program.n_t_gates == 0 and compiled_program.n_rotation_gates == 0:
             num_magic_state_factories = 0
             magic_state_factory = None
         else:
@@ -194,14 +232,15 @@ class ActiveVolumeArchitectureModel(GraphBasedLogicalArchitectureModel):
                 # Note that if the factory is outputting multiple T states per distillation,
                 # then the factories may produce more T states than the number of T states
                 # needed by any layer.
-                num_magic_state_factories = ceil(self.get_max_parallel_t_states(
-                    compiled_program
-                )/magic_state_factory.t_gates_per_distillation)
+                num_magic_state_factories = ceil(
+                    self.get_max_parallel_t_states(compiled_program)
+                    / magic_state_factory.t_gates_per_distillation
+                )
             else:
                 raise ValueError(
                     f"Unknown optimization: {optimization}. "
                     "Should be either 'Time' or 'Space'."
-                )            
+                )
 
         # The ion trap architecture 3-neighbor constraint requires each data qubit
         # and each magic state factory to be connected to a unique bus qubit.
@@ -227,7 +266,9 @@ class ActiveVolumeArchitectureModel(GraphBasedLogicalArchitectureModel):
         time_allocation_for_each_subroutine = [
             QECCycleAllocation() for _ in range(len(compiled_program.subroutines))
         ]
-        data_and_bus_code_distance=logical_architecture_resource_info.data_and_bus_code_distance
+        data_and_bus_code_distance = (
+            logical_architecture_resource_info.data_and_bus_code_distance
+        )
 
         # Legend:
         # |Graph state->| = "Entanglement" process of graph state creation
@@ -273,26 +314,39 @@ class ActiveVolumeArchitectureModel(GraphBasedLogicalArchitectureModel):
                         "graph state prep",
                     )
                 else:
-                    distillation_time_in_cycles=logical_architecture_resource_info.magic_state_factory.distillation_time_in_cycles
-                    t_gates_per_distillation=logical_architecture_resource_info.magic_state_factory.t_gates_per_distillation
+                    distillation_time_in_cycles = (
+                        logical_architecture_resource_info.magic_state_factory.distillation_time_in_cycles
+                    )
+                    t_gates_per_distillation = (
+                        logical_architecture_resource_info.magic_state_factory.t_gates_per_distillation
+                    )
 
                     # Set number of parallel T measurements according to optimization strategy
                     if optimization == "Space":
-                        # Space optimal entails using just a single factory that outputs 
+                        # Space optimal entails using just a single factory that outputs
                         # t_gates_per_distillation T states per distillation
                         number_of_parallel_t_measurements = t_gates_per_distillation
 
                     elif optimization == "Time":
-                        # Time optimal entails using as many factories as would be needed 
+                        # Time optimal entails using as many factories as would be needed
                         # by any layer in the subroutine to distill T states in parallel
-                        number_of_parallel_t_measurements = subroutine.t_states_per_layer[layer] + subroutine.rotations_per_layer[layer]
+                        number_of_parallel_t_measurements = (
+                            subroutine.t_states_per_layer[layer]
+                            + subroutine.rotations_per_layer[layer]
+                        )
                     else:
                         raise ValueError(
                             f"Unknown optimization: {optimization}. "
                             "Should be either 'Time' or 'Space'."
                         )
                     # Construct a vector of remaining number of T measurements for each node that needs a T measurement
-                    remaining_t_measurements_per_node = [n_t_gates_per_rotation]*subroutine.rotations_per_layer[layer]+[1]*subroutine.t_states_per_layer[layer]
+                    remaining_t_measurements_per_node = [
+                        n_t_gates_per_rotation
+                    ] * subroutine.rotations_per_layer[layer] + [
+                        1
+                    ] * subroutine.t_states_per_layer[
+                        layer
+                    ]
 
                     # If there are T gates in the layer, then the layer requires
                     # graph state preparation, distillation, and T state measurement
@@ -313,38 +367,11 @@ class ActiveVolumeArchitectureModel(GraphBasedLogicalArchitectureModel):
                         cycles_per_t_measurement,
                         "T measurement",
                     )
-                    # TODO: write unit tests for this function and place it in an appropriate correct module
-                    def consume_t_measurements(remaining_t_measurements_per_node, number_of_parallel_t_measurements):
-                        """This function helps with accounting for the scheduling of T state measurements
-                        given a specified number of T measurements that can be made in parallel. 
-                        The funtion decrements the number of remaining T measurements needed for each node 
-                        according to which nodes still need a T measurement and the number of T measurements
-                        that can be made in parallel.
 
-                        Args:
-                            remaining_t_measurements_per_node (List[int]): A list of the number of T measurements
-                                still needed for each node that needs a T measurement.
-                            number_of_parallel_t_measurements (int): The number of T measurements that can be made in parallel.
-                        """
-                        # Note: because the rotation nodes are listed first, this function consumes
-                        # all available T measurements for rotations before consuming T measurements
-                        # for T states. This is because, in general, rotations require more T measurements
-                        # and so we ensure that we deplete the T measurements of these rate-limiting
-                        # operations first.
-                        n_remaining_measurements_in_moment = number_of_parallel_t_measurements
-
-                        for non_clifford_node_index in range(len(remaining_t_measurements_per_node)):
-                            # Subract 1 from each node that still needs a T measurement
-                            # until the n_remaining_measurements_in_moment is 0
-                            if remaining_t_measurements_per_node[non_clifford_node_index] > 0:
-                                remaining_t_measurements_per_node[non_clifford_node_index] -= 1
-                                n_remaining_measurements_in_moment -= 1
-                            else:
-                                # If there are no more T measurements to be made, break
-                                break
-                        return remaining_t_measurements_per_node                        
-
-                    remaining_t_measurements_per_node = consume_t_measurements(remaining_t_measurements_per_node, number_of_parallel_t_measurements)
+                    remaining_t_measurements_per_node = consume_t_measurements(
+                        remaining_t_measurements_per_node,
+                        number_of_parallel_t_measurements,
+                    )
 
                     # Log Stage 3: Space optimal entails serially distilling T states
                     # and a T measurement is made after each distillation, while time
@@ -367,14 +394,18 @@ class ActiveVolumeArchitectureModel(GraphBasedLogicalArchitectureModel):
                         )
 
                         # Update remaining T measurements
-                        remaining_t_measurements_per_node = consume_t_measurements(remaining_t_measurements_per_node, number_of_parallel_t_measurements)
-
+                        remaining_t_measurements_per_node = consume_t_measurements(
+                            remaining_t_measurements_per_node,
+                            number_of_parallel_t_measurements,
+                        )
 
         # Then initialize cycle allocation object and populate with data
         qec_cycle_allocation = QECCycleAllocation()
         for subroutine_index in compiled_program.subroutine_sequence:
-            qec_cycle_allocation += time_allocation_for_each_subroutine[subroutine_index]
-        return qec_cycle_allocation            
+            qec_cycle_allocation += time_allocation_for_each_subroutine[
+                subroutine_index
+            ]
+        return qec_cycle_allocation
 
 
 class TwoRowBusArchitectureModel(GraphBasedLogicalArchitectureModel):
@@ -410,7 +441,7 @@ class TwoRowBusArchitectureModel(GraphBasedLogicalArchitectureModel):
         # The space optimal compilation uses just one factory, while the time optimal
         # compilation uses a number of factories determined by the maximum warranted
         # parallelization of distillation.
-        if compiled_program.n_t_gates == 0 and compiled_program.n_rotation_gates==0:
+        if compiled_program.n_t_gates == 0 and compiled_program.n_rotation_gates == 0:
             num_magic_state_factories = 0
             magic_state_factory = None
         else:
@@ -422,14 +453,15 @@ class TwoRowBusArchitectureModel(GraphBasedLogicalArchitectureModel):
                 # Note that if the factory is outputting multiple T states per distillation,
                 # then the factories may produce more T states than the number of T states
                 # needed by any layer.
-                num_magic_state_factories = ceil(self.get_max_parallel_t_states(
-                    compiled_program
-                )/magic_state_factory.t_gates_per_distillation)
+                num_magic_state_factories = ceil(
+                    self.get_max_parallel_t_states(compiled_program)
+                    / magic_state_factory.t_gates_per_distillation
+                )
             else:
                 raise ValueError(
                     f"Unknown optimization: {optimization}. "
                     "Should be either 'Time' or 'Space'."
-                )            
+                )
 
         # The ion trap architecture 3-neighbor constraint requires each data qubit
         # and each magic state factory to be connected to a unique bus qubit.
@@ -455,7 +487,9 @@ class TwoRowBusArchitectureModel(GraphBasedLogicalArchitectureModel):
         time_allocation_for_each_subroutine = [
             QECCycleAllocation() for _ in range(len(compiled_program.subroutines))
         ]
-        data_and_bus_code_distance=logical_architecture_resource_info.data_and_bus_code_distance
+        data_and_bus_code_distance = (
+            logical_architecture_resource_info.data_and_bus_code_distance
+        )
 
         # Legend:
         # |Graph state->| = "Entanglement" process of graph state creation
@@ -500,26 +534,39 @@ class TwoRowBusArchitectureModel(GraphBasedLogicalArchitectureModel):
                         "graph state prep",
                     )
                 else:
-                    distillation_time_in_cycles=logical_architecture_resource_info.magic_state_factory.distillation_time_in_cycles
-                    t_gates_per_distillation=logical_architecture_resource_info.magic_state_factory.t_gates_per_distillation
+                    distillation_time_in_cycles = (
+                        logical_architecture_resource_info.magic_state_factory.distillation_time_in_cycles
+                    )
+                    t_gates_per_distillation = (
+                        logical_architecture_resource_info.magic_state_factory.t_gates_per_distillation
+                    )
 
                     # Set number of parallel T measurements according to optimization strategy
                     if optimization == "Space":
-                        # Space optimal entails using just a single factory that outputs 
+                        # Space optimal entails using just a single factory that outputs
                         # t_gates_per_distillation T states per distillation
                         number_of_parallel_t_measurements = t_gates_per_distillation
 
                     elif optimization == "Time":
-                        # Time optimal entails using as many factories as would be needed 
+                        # Time optimal entails using as many factories as would be needed
                         # by any layer in the subroutine to distill T states in parallel
-                        number_of_parallel_t_measurements = subroutine.t_states_per_layer[layer] + subroutine.rotations_per_layer[layer]
+                        number_of_parallel_t_measurements = (
+                            subroutine.t_states_per_layer[layer]
+                            + subroutine.rotations_per_layer[layer]
+                        )
                     else:
                         raise ValueError(
                             f"Unknown optimization: {optimization}. "
                             "Should be either 'Time' or 'Space'."
                         )
                     # Construct a vector of remaining number of T measurements for each node that needs a T measurement
-                    remaining_t_measurements_per_node = [n_t_gates_per_rotation]*subroutine.rotations_per_layer[layer]+[1]*subroutine.t_states_per_layer[layer]
+                    remaining_t_measurements_per_node = [
+                        n_t_gates_per_rotation
+                    ] * subroutine.rotations_per_layer[layer] + [
+                        1
+                    ] * subroutine.t_states_per_layer[
+                        layer
+                    ]
 
                     # If there are T gates in the layer, then the layer requires
                     # graph state preparation, distillation, and T state measurement
@@ -540,38 +587,11 @@ class TwoRowBusArchitectureModel(GraphBasedLogicalArchitectureModel):
                         cycles_per_t_measurement,
                         "T measurement",
                     )
-                    # TODO: write unit tests for this function and place it in an appropriate correct module
-                    def consume_t_measurements(remaining_t_measurements_per_node, number_of_parallel_t_measurements):
-                        """This function helps with accounting for the scheduling of T state measurements
-                        given a specified number of T measurements that can be made in parallel. 
-                        The funtion decrements the number of remaining T measurements needed for each node 
-                        according to which nodes still need a T measurement and the number of T measurements
-                        that can be made in parallel.
 
-                        Args:
-                            remaining_t_measurements_per_node (List[int]): A list of the number of T measurements
-                                still needed for each node that needs a T measurement.
-                            number_of_parallel_t_measurements (int): The number of T measurements that can be made in parallel.
-                        """
-                        # Note: because the rotation nodes are listed first, this function consumes
-                        # all available T measurements for rotations before consuming T measurements
-                        # for T states. This is because, in general, rotations require more T measurements
-                        # and so we ensure that we deplete the T measurements of these rate-limiting
-                        # operations first.
-                        n_remaining_measurements_in_moment = number_of_parallel_t_measurements
-
-                        for non_clifford_node_index in range(len(remaining_t_measurements_per_node)):
-                            # Subract 1 from each node that still needs a T measurement
-                            # until the n_remaining_measurements_in_moment is 0
-                            if remaining_t_measurements_per_node[non_clifford_node_index] > 0:
-                                remaining_t_measurements_per_node[non_clifford_node_index] -= 1
-                                n_remaining_measurements_in_moment -= 1
-                            else:
-                                # If there are no more T measurements to be made, break
-                                break
-                        return remaining_t_measurements_per_node                        
-
-                    remaining_t_measurements_per_node = consume_t_measurements(remaining_t_measurements_per_node, number_of_parallel_t_measurements)
+                    remaining_t_measurements_per_node = consume_t_measurements(
+                        remaining_t_measurements_per_node,
+                        number_of_parallel_t_measurements,
+                    )
 
                     # Log Stage 3: Space optimal entails serially distilling T states
                     # and a T measurement is made after each distillation, while time
@@ -581,6 +601,7 @@ class TwoRowBusArchitectureModel(GraphBasedLogicalArchitectureModel):
 
                     # Loop over remaining T rounds
                     while sum(remaining_t_measurements_per_node) > 0:
+
                         # Log distillation time
                         time_allocation_for_each_subroutine[i].log(
                             distillation_time_in_cycles,
@@ -594,14 +615,15 @@ class TwoRowBusArchitectureModel(GraphBasedLogicalArchitectureModel):
                         )
 
                         # Update remaining T measurements
-                        remaining_t_measurements_per_node = consume_t_measurements(remaining_t_measurements_per_node, number_of_parallel_t_measurements)
-
+                        remaining_t_measurements_per_node = consume_t_measurements(
+                            remaining_t_measurements_per_node,
+                            number_of_parallel_t_measurements,
+                        )
 
         # Then initialize cycle allocation object and populate with data
         qec_cycle_allocation = QECCycleAllocation()
         for subroutine_index in compiled_program.subroutine_sequence:
-            qec_cycle_allocation += time_allocation_for_each_subroutine[subroutine_index]
+            qec_cycle_allocation += time_allocation_for_each_subroutine[
+                subroutine_index
+            ]
         return qec_cycle_allocation
-    
-       
-

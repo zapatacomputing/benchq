@@ -46,9 +46,6 @@ class GraphResourceEstimator:
             BASIC_ION_TRAP_ARCHITECTURE_MODEL.
         decoder_model (Optional[DecoderModel]): The decoder model used to estimate.
             If None, no estimates on the number of decoder are provided.
-        # TODO: delete logical_architecture
-        logical_architecture (str): The logical architecture name that determines 
-            the compilation strategy.
         optimization (str): The optimization to use for the estimate. Either estimate
             the resources needed to run the algorithm in the shortest time possible
             ("Time") or the resources needed to run the algorithm with the smallest
@@ -62,11 +59,9 @@ class GraphResourceEstimator:
 
     def __init__(
         self,
-        # logical_architecture: str = "two_row_bus",
         optimization: str = "Space",
         verbose: bool = False,
     ):
-        # self.logical_architecture = logical_architecture
         self.optimization = optimization
         self.verbose = verbose
         getcontext().prec = 100  # need some extra precision for this calculation
@@ -74,27 +69,34 @@ class GraphResourceEstimator:
     def estimate_resources_from_compiled_implementation(
         self,
         compiled_implementation: CompiledAlgorithmImplementation,
-        # TODO: add LogicalArchitectureModel type hint
-        logical_architecture_model,
+        logical_architecture_model: GraphBasedLogicalArchitectureModel,
         hw_model: BasicArchitectureModel,
         decoder_model: Optional[DecoderModel] = None,
         magic_state_factory_iterator: Optional[Iterable[MagicStateFactoryInfo]] = None,
     ) -> GraphResourceInfo:
-        
+
         # Set magic state factory to listinski factory iterator if not provided
-        magic_state_factory_iterator = iter(magic_state_factory_iterator or iter_litinski_factories(hw_model))
+        magic_state_factory_iterator = iter(
+            magic_state_factory_iterator or iter_litinski_factories(hw_model)
+        )
 
         # Budget failure tolerance
         total_synthesis_failure_tolerance = (
             compiled_implementation.error_budget.transpilation_failure_tolerance
         )
-        
+
         # Evenly split the hardware failure tolerance between the t gate and qec error rates
-        total_t_gate_failure_tolerance = compiled_implementation.error_budget.hardware_failure_tolerance/2
-        total_qec_failure_tolerance = compiled_implementation.error_budget.hardware_failure_tolerance/2
+        total_t_gate_failure_tolerance = (
+            compiled_implementation.error_budget.hardware_failure_tolerance / 2
+        )
+        total_qec_failure_tolerance = (
+            compiled_implementation.error_budget.hardware_failure_tolerance / 2
+        )
 
         # Find optimal magic state factory if needed:
-        distillation_is_not_needed = (compiled_implementation.program.n_t_gates ==0) and (compiled_implementation.program.n_rotation_gates == 0)
+        distillation_is_not_needed = (
+            compiled_implementation.program.n_t_gates == 0
+        ) and (compiled_implementation.program.n_rotation_gates == 0)
         if distillation_is_not_needed:
             # If there are no T gates or rotation gates, then there is no need for a magic state factory
             n_t_gates_per_rotation = 0
@@ -108,16 +110,24 @@ class GraphResourceEstimator:
                 per_gate_synthesis_failure_tolerance = 0
                 n_t_states = compiled_implementation.program.n_t_gates
             else:
-                per_gate_synthesis_failure_tolerance = Decimal(total_synthesis_failure_tolerance) * Decimal(1 / compiled_implementation.program.n_rotation_gates)
+                per_gate_synthesis_failure_tolerance = Decimal(
+                    total_synthesis_failure_tolerance
+                ) * Decimal(1 / compiled_implementation.program.n_rotation_gates)
                 n_t_gates_per_rotation = get_num_t_gates_per_rotation(
                     per_gate_synthesis_failure_tolerance
                 )
-                n_t_states = compiled_implementation.program.n_t_gates + compiled_implementation.program.n_rotation_gates * n_t_gates_per_rotation
-            per_t_gate_failure_tolerance = total_t_gate_failure_tolerance/n_t_states
+                n_t_states = (
+                    compiled_implementation.program.n_t_gates
+                    + compiled_implementation.program.n_rotation_gates
+                    * n_t_gates_per_rotation
+                )
+            per_t_gate_failure_tolerance = total_t_gate_failure_tolerance / n_t_states
             # Find minimal space or time factory satisfying error rate
-            magic_state_factory = find_optimal_factory(per_t_gate_failure_tolerance,magic_state_factory_iterator, self.optimization)
-
-
+            magic_state_factory = find_optimal_factory(
+                per_t_gate_failure_tolerance,
+                magic_state_factory_iterator,
+                self.optimization,
+            )
 
         # Find optimal layout by minimizing code distance
         logical_architecture_resource_info = logical_architecture_model.generate_resource_info_with_minimal_code_distance(
@@ -133,7 +143,8 @@ class GraphResourceEstimator:
 
         # Compute runtime to execute a single circuit
         time_per_circuit_in_seconds = (
-            logical_architecture_resource_info.qec_cycle_allocation.total * hw_model.surface_code_cycle_time_in_seconds
+            logical_architecture_resource_info.qec_cycle_allocation.total
+            * hw_model.surface_code_cycle_time_in_seconds
         )
 
         # Compute runtime to execute all circuits
@@ -143,8 +154,10 @@ class GraphResourceEstimator:
 
         # TODO: add this into the logical architecture resource info
         # Compute total number of physical qubits
-        n_physical_qubits = logical_architecture_model.get_total_number_of_physical_qubits(
-            logical_architecture_resource_info
+        n_physical_qubits = (
+            logical_architecture_model.get_total_number_of_physical_qubits(
+                logical_architecture_resource_info
+            )
         )
 
         # TODO: add this into the logical architecture resource info
@@ -154,7 +167,7 @@ class GraphResourceEstimator:
             logical_architecture_resource_info.spacetime_volume_in_logical_qubit_tocks,
             logical_architecture_resource_info.data_and_bus_code_distance,
         )
-        
+
         if distillation_is_not_needed:
             distillation_failure_rate = 0
         else:
@@ -162,8 +175,12 @@ class GraphResourceEstimator:
                 logical_architecture_resource_info.magic_state_factory.distilled_magic_state_error_rate
                 * n_t_states
             )
-        total_synthesis_failure_rate=total_synthesis_failure_tolerance
-        total_circuit_error_rate = distillation_failure_rate + total_logical_error_rate + total_synthesis_failure_rate
+        total_synthesis_failure_rate = total_synthesis_failure_tolerance
+        total_circuit_error_rate = (
+            distillation_failure_rate
+            + total_logical_error_rate
+            + total_synthesis_failure_rate
+        )
 
         # Populate decoder resource info
         decoder_info = get_decoder_info(
@@ -173,12 +190,6 @@ class GraphResourceEstimator:
             logical_architecture_resource_info.spacetime_volume_in_logical_qubit_tocks,
             logical_architecture_resource_info.num_logical_qubits,
         )
-
-        # TODO: create a default empty factory rather than using the if statements
-        if distillation_is_not_needed:
-            magic_state_factory_name = None
-        else:
-            magic_state_factory_name = magic_state_factory.name
 
         resource_info = ResourceInfo(
             n_physical_qubits=n_physical_qubits,
@@ -198,8 +209,7 @@ class GraphResourceEstimator:
             else None
         )
 
-        return resource_info        
-        
+        return resource_info
 
     def compile_and_estimate(
         self,
@@ -210,12 +220,13 @@ class GraphResourceEstimator:
         decoder_model: Optional[DecoderModel] = None,
         magic_state_factory_iterator: Optional[Iterable[MagicStateFactoryInfo]] = None,
     ):
-        
-        
+
+        logical_architecture_model_name = logical_architecture_model.name
+
         # Compile the algorithm implementation
         compiled_implementation = algorithm_implementation_compiler(
             algorithm_implementation,
-            logical_architecture_model.name,
+            logical_architecture_model_name,
             self.optimization,
             self.verbose,
         )
@@ -234,10 +245,12 @@ class GraphResourceEstimator:
             n_abstract_logical_qubits=algorithm_implementation.program.num_data_qubits,
             n_t_gates=algorithm_implementation.program.n_t_gates,
         )
-        
+
         # Add abstract logical resource info to resource info
         resource_info.abstract_logical_resource_info = abstract_logical_resource_info
-        resource_info.n_abstract_logical_qubits = abstract_logical_resource_info.n_abstract_logical_qubits
+        resource_info.n_abstract_logical_qubits = (
+            abstract_logical_resource_info.n_abstract_logical_qubits
+        )
         resource_info.n_t_gates = abstract_logical_resource_info.n_t_gates
 
         return resource_info

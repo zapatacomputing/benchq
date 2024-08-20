@@ -60,6 +60,7 @@ class DetailedIonTrapArchitectureResourceInfo:
     num_distillation_elus: int
     distillation_elu_resource_info: ELUResourceInfo
 
+
 @dataclass
 class LogicalFailureRates:
     """Logical failure rates for various processes."""
@@ -72,6 +73,7 @@ class LogicalFailureRates:
     per_t_gate_failure_rate: float
     per_qec_failure_rate: float
 
+
 @dataclass
 class LogicalArchitectureResourceInfo:
     """Info logical architecture model resources."""
@@ -83,15 +85,20 @@ class LogicalArchitectureResourceInfo:
     magic_state_factory: Optional[MagicStateFactoryInfo] = None
     qec_cycle_allocation: Optional[QECCycleAllocation] = None
     logical_failure_rates: LogicalFailureRates = None
-    
+
     @property
     def num_logical_qubits(self) -> int:
         return self.num_logical_data_qubits + self.num_logical_bus_qubits
 
     @property
     def spacetime_volume_in_logical_qubit_tocks(self) -> float:
-        st_volume_in_logical_qubit_tocks = self.qec_cycle_allocation.total*self.num_logical_qubits / self.data_and_bus_code_distance
+        st_volume_in_logical_qubit_tocks = (
+            self.qec_cycle_allocation.total
+            * self.num_logical_qubits
+            / self.data_and_bus_code_distance
+        )
         return st_volume_in_logical_qubit_tocks
+
 
 @dataclass
 class AbstractLogicalResourceInfo:
@@ -99,6 +106,7 @@ class AbstractLogicalResourceInfo:
 
     n_abstract_logical_qubits: int
     n_t_gates: int
+
 
 @dataclass
 class ResourceInfo(Generic[TExtra]):
@@ -157,6 +165,9 @@ class OpenFermionExtra:
     rounds_magicstateFactory: float
     scc_time: float
     physical_qubit_error_rate: float
+    code_distance: int
+    logical_error_rate: float
+    magic_state_factory_name: str
 
 
 # Alias for type of resource info returned by OpenFermion
