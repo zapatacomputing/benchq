@@ -137,8 +137,14 @@ def test_get_resource_estimations_for_program_accounts_for_spatial_resources(
             "Space",
             [
                 9 * 3,
-                9 * 5 + 9 * 2 + (27 + 9 * 2) * (7 - 1),
-                27 + 9 * 2 + (27 + 9 * 2) * 30,
+                9 * 5
+                + 9 * 2 * 2 / 2
+                + (27 + 9 * 2)
+                * ((7 - 2) / 2 + 0.5),  # rounding up due to discrete number of T states
+                27
+                + 9 * 2 * 2 / 2
+                + (27 + 9 * 2)
+                * (30 - 1),  # sequential T states for rotations can be parallelized
             ],
         ),
     ],
@@ -146,7 +152,7 @@ def test_get_resource_estimations_for_program_accounts_for_spatial_resources(
 def test_get_qec_cycle_allocation(gsc_info, optimization, cycles_per_layer):
 
     distillation_time_in_cycles = 27
-    t_gates_per_distillation = 1
+    t_gates_per_distillation = 2
     n_t_gates_per_rotation = 30
     data_and_bus_code_distance = 9
 
