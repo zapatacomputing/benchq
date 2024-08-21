@@ -83,7 +83,7 @@ def gsc_estimates(algorithm, logical_architecture_model, hardware_architecture_m
         log_input_objects_to_mlflow(
             algorithm,
             "qsp_time_evolution_algorithm",
-            architecture_model,
+            hardware_architecture_model,
         )
         log_resource_info_to_mlflow(resource_info)
 

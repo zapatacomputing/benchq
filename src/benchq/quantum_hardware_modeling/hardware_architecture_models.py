@@ -91,7 +91,7 @@ class DetailedIonTrapModel:
             LogicalArchitectureResourceInfo,
         ):
             raise ValueError(
-                "bus_architecture_resource_info should be LogicalArchitectureResourceInfo"
+                "Set bus_architecture_resource_info to LogicalArchitectureResourceInfo"
             )
 
         n_logical_data_qubits = bus_architecture_resource_info.num_logical_data_qubits

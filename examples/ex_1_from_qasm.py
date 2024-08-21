@@ -18,7 +18,10 @@ from benchq.compilation.graph_states.implementation_compiler import (
 )
 from benchq.quantum_hardware_modeling import BASIC_SC_ARCHITECTURE_MODEL
 from benchq.resource_estimators.graph_estimator import GraphResourceEstimator
-from benchq.logical_architecture_modeling.graph_based_logical_architectures import TwoRowBusArchitectureModel, ActiveVolumeArchitectureModel
+from benchq.logical_architecture_modeling.graph_based_logical_architectures import (
+    TwoRowBusArchitectureModel,
+    ActiveVolumeArchitectureModel,
+)
 
 
 def main(file_name):
@@ -51,7 +54,6 @@ def main(file_name):
         destination="single-thread",
     )
 
-    two_row_architecture = TwoRowBusArchitectureModel()
     active_volume_architecture = ActiveVolumeArchitectureModel()
 
     # Put all the pieces together to get a resource estimate

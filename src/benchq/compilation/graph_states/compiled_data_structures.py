@@ -108,13 +108,16 @@ class CompiledQuantumProgram:
         if self.n_rotation_gates == 0:
             return self.n_t_gates
 
-        per_gate_synthesis_failure_tolerance = Decimal(transpilation_failure_tolerance) * Decimal(1 / self.n_rotation_gates)
+        per_gate_synthesis_failure_tolerance = Decimal(
+            transpilation_failure_tolerance
+        ) * Decimal(1 / self.n_rotation_gates)
 
         n_t_gates_per_rotation = get_num_t_gates_per_rotation(
             per_gate_synthesis_failure_tolerance
         )
 
         return self.n_t_gates + self.n_rotation_gates * n_t_gates_per_rotation
+
 
 class CompiledAlgorithmImplementation:
     def __init__(

@@ -1,4 +1,3 @@
-
 class LogicalArchitectureModel:
     def __init__(self):
         self._name = None

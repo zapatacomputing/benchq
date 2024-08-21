@@ -7,7 +7,8 @@ from . import BasicArchitectureModel
 
 getcontext().prec = 100
 
-# TODO: convert this into a class called DevittSurfaceCodeModel with base class QECModel
+# TODO: convert this to a class called DevittSurfaceCodeModel with base class QECModel
+
 
 def logical_cell_error_rate(physical_qubit_error_rate: float, distance: int) -> float:
     precise_physical_qubit_error_rate = Decimal(physical_qubit_error_rate)

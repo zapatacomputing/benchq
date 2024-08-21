@@ -85,7 +85,8 @@ class GraphResourceEstimator:
             compiled_implementation.error_budget.transpilation_failure_tolerance
         )
 
-        # Evenly split the hardware failure tolerance between the t gate and qec error rates
+        # Evenly split the hardware failure tolerance between the t gate and
+        # qec error rates
         total_t_gate_failure_tolerance = (
             compiled_implementation.error_budget.hardware_failure_tolerance / 2
         )
@@ -98,14 +99,16 @@ class GraphResourceEstimator:
             compiled_implementation.program.n_t_gates == 0
         ) and (compiled_implementation.program.n_rotation_gates == 0)
         if distillation_is_not_needed:
-            # If there are no T gates or rotation gates, then there is no need for a magic state factory
+            # If there are no T gates or rotation gates, then there is
+            # no need for a magic state factory
             n_t_gates_per_rotation = 0
             per_t_gate_failure_tolerance = 0
             magic_state_factory = None
             n_t_states = 0
         else:
             if compiled_implementation.program.n_rotation_gates == 0:
-                # If there are no rotation gates, then no T gates for rotations are needed
+                # If there are no rotation gates, then no T gates for
+                # rotations are needed
                 n_t_gates_per_rotation = 0
                 per_gate_synthesis_failure_tolerance = 0
                 n_t_states = compiled_implementation.program.n_t_gates
@@ -152,34 +155,11 @@ class GraphResourceEstimator:
             time_per_circuit_in_seconds * compiled_implementation.n_shots
         )
 
-        # TODO: add this into the logical architecture resource info
         # Compute total number of physical qubits
         n_physical_qubits = (
             logical_architecture_model.get_total_number_of_physical_qubits(
                 logical_architecture_resource_info
             )
-        )
-
-        # TODO: add this into the logical architecture resource info
-        # Compute total failure rate
-        total_logical_error_rate = get_total_logical_failure_rate(
-            hw_model,
-            logical_architecture_resource_info.spacetime_volume_in_logical_qubit_tocks,
-            logical_architecture_resource_info.data_and_bus_code_distance,
-        )
-
-        if distillation_is_not_needed:
-            distillation_failure_rate = 0
-        else:
-            distillation_failure_rate = (
-                logical_architecture_resource_info.magic_state_factory.distilled_magic_state_error_rate
-                * n_t_states
-            )
-        total_synthesis_failure_rate = total_synthesis_failure_tolerance
-        total_circuit_error_rate = (
-            distillation_failure_rate
-            + total_logical_error_rate
-            + total_synthesis_failure_rate
         )
 
         # Populate decoder resource info

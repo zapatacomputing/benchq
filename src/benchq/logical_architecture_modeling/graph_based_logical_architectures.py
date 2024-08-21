@@ -167,9 +167,10 @@ def consume_t_measurements(
     that can be made in parallel.
 
     Args:
-        remaining_t_measurements_per_node (List[int]): A list of the number of T measurements
+        remaining_t_measurements_per_node (List[int]): A list of T measurement counts
             still needed for each node that needs a T measurement.
-        number_of_parallel_t_measurements (int): The number of T measurements that can be made in parallel.
+        number_of_parallel_t_measurements (int): The number of T measurements that can
+            be made in parallel.
     """
     # Note: because the rotation nodes are listed first, this function consumes
     # all available T measurements for rotations before consuming T measurements
@@ -228,10 +229,10 @@ class ActiveVolumeArchitectureModel(GraphBasedLogicalArchitectureModel):
                 # For space optimal, a single factory is used
                 num_magic_state_factories = 1
             elif optimization == "Time":
-                # For time optimal, we use as many factories as would be needed by any layer
-                # Note that if the factory is outputting multiple T states per distillation,
-                # then the factories may produce more T states than the number of T states
-                # needed by any layer.
+                # For time optimal, we use as many factories as would be needed by
+                # any layer. Note that if the factory is outputting multiple T states
+                # per distillation, then the factories may produce more T states than
+                # the number of T states needed by any layer.
                 num_magic_state_factories = ceil(
                     self.get_max_parallel_t_states(compiled_program)
                     / magic_state_factory.t_gates_per_distillation
@@ -299,6 +300,7 @@ class ActiveVolumeArchitectureModel(GraphBasedLogicalArchitectureModel):
             for layer_num, layer in enumerate(range(subroutine.num_layers)):
 
                 cycles_per_tock = data_and_bus_code_distance
+                msf = logical_architecture_resource_info.magic_state_factory
 
                 # Check if the number of T gates and number of rotations
                 # per layer is zero
@@ -314,22 +316,20 @@ class ActiveVolumeArchitectureModel(GraphBasedLogicalArchitectureModel):
                         "graph state prep",
                     )
                 else:
-                    distillation_time_in_cycles = (
-                        logical_architecture_resource_info.magic_state_factory.distillation_time_in_cycles
-                    )
-                    t_gates_per_distillation = (
-                        logical_architecture_resource_info.magic_state_factory.t_gates_per_distillation
-                    )
+                    distillation_time_in_cycles = msf.distillation_time_in_cycles
+                    t_gates_per_distillation = msf.t_gates_per_distillation
 
-                    # Set number of parallel T measurements according to optimization strategy
+                    # Set number of parallel T measurements according to
+                    # optimization strategy
                     if optimization == "Space":
-                        # Space optimal entails using just a single factory that outputs
-                        # t_gates_per_distillation T states per distillation
+                        # Space optimal entails using just a single factory that
+                        # outputs t_gates_per_distillation T states per distillation
                         number_of_parallel_t_measurements = t_gates_per_distillation
 
                     elif optimization == "Time":
-                        # Time optimal entails using as many factories as would be needed
-                        # by any layer in the subroutine to distill T states in parallel
+                        # Time optimal entails using as many factories as would be
+                        # needed by any layer in the subroutine to distill T states
+                        # in parallel
                         number_of_parallel_t_measurements = (
                             subroutine.t_states_per_layer[layer]
                             + subroutine.rotations_per_layer[layer]
@@ -339,7 +339,8 @@ class ActiveVolumeArchitectureModel(GraphBasedLogicalArchitectureModel):
                             f"Unknown optimization: {optimization}. "
                             "Should be either 'Time' or 'Space'."
                         )
-                    # Construct a vector of remaining number of T measurements for each node that needs a T measurement
+                    # Construct a vector of remaining number of T measurements
+                    # for each node that needs a T measurement
                     remaining_t_measurements_per_node = [
                         n_t_gates_per_rotation
                     ] * subroutine.rotations_per_layer[layer] + [
@@ -449,10 +450,11 @@ class TwoRowBusArchitectureModel(GraphBasedLogicalArchitectureModel):
                 # For space optimal, a single factory is used
                 num_magic_state_factories = 1
             elif optimization == "Time":
-                # For time optimal, we use as many factories as would be needed by any layer
-                # Note that if the factory is outputting multiple T states per distillation,
-                # then the factories may produce more T states than the number of T states
-                # needed by any layer.
+                # For time optimal, we use as many factories as would be needed by
+                # any layer
+                # Note that if the factory is outputting multiple T states per
+                # distillation, then the factories may produce more T states than
+                # the number of T states needed by any layer.
                 num_magic_state_factories = ceil(
                     self.get_max_parallel_t_states(compiled_program)
                     / magic_state_factory.t_gates_per_distillation
@@ -519,6 +521,7 @@ class TwoRowBusArchitectureModel(GraphBasedLogicalArchitectureModel):
             for layer_num, layer in enumerate(range(subroutine.num_layers)):
 
                 cycles_per_tock = data_and_bus_code_distance
+                msf = logical_architecture_resource_info.magic_state_factory
 
                 # Check if the number of T gates and number of rotations
                 # per layer is zero
@@ -534,22 +537,20 @@ class TwoRowBusArchitectureModel(GraphBasedLogicalArchitectureModel):
                         "graph state prep",
                     )
                 else:
-                    distillation_time_in_cycles = (
-                        logical_architecture_resource_info.magic_state_factory.distillation_time_in_cycles
-                    )
-                    t_gates_per_distillation = (
-                        logical_architecture_resource_info.magic_state_factory.t_gates_per_distillation
-                    )
+                    distillation_time_in_cycles = msf.distillation_time_in_cycles
+                    t_gates_per_distillation = msf.t_gates_per_distillation
 
-                    # Set number of parallel T measurements according to optimization strategy
+                    # Set number of parallel T measurements according to
+                    # optimization strategy
                     if optimization == "Space":
                         # Space optimal entails using just a single factory that outputs
                         # t_gates_per_distillation T states per distillation
                         number_of_parallel_t_measurements = t_gates_per_distillation
 
                     elif optimization == "Time":
-                        # Time optimal entails using as many factories as would be needed
-                        # by any layer in the subroutine to distill T states in parallel
+                        # Time optimal entails using as many factories as would
+                        # be needed by any layer in the subroutine to distill
+                        # T states in parallel
                         number_of_parallel_t_measurements = (
                             subroutine.t_states_per_layer[layer]
                             + subroutine.rotations_per_layer[layer]
@@ -559,7 +560,8 @@ class TwoRowBusArchitectureModel(GraphBasedLogicalArchitectureModel):
                             f"Unknown optimization: {optimization}. "
                             "Should be either 'Time' or 'Space'."
                         )
-                    # Construct a vector of remaining number of T measurements for each node that needs a T measurement
+                    # Construct a vector of remaining number of T measurements for each
+                    # node that needs a T measurement
                     remaining_t_measurements_per_node = [
                         n_t_gates_per_rotation
                     ] * subroutine.rotations_per_layer[layer] + [

@@ -205,7 +205,7 @@ def test_get_qec_cycle_allocation(gsc_info, optimization, cycles_per_layer):
 
 
 @pytest.mark.parametrize(
-    "remaining_t_measurements_per_node,number_of_parallel_t_measurements,expected_output",
+    "remaining_t_measurements_per_node,n_parallel_t_measurements,expected_output",
     [
         ([3, 2, 1], 1, [2, 2, 1]),
         ([3, 2, 1], 2, [2, 1, 1]),
@@ -213,12 +213,12 @@ def test_get_qec_cycle_allocation(gsc_info, optimization, cycles_per_layer):
 )
 def test_consume_t_measurements(
     remaining_t_measurements_per_node,
-    number_of_parallel_t_measurements,
+    n_parallel_t_measurements,
     expected_output,
 ):
     assert (
         consume_t_measurements(
-            remaining_t_measurements_per_node, number_of_parallel_t_measurements
+            remaining_t_measurements_per_node, n_parallel_t_measurements
         )
         == expected_output
     )

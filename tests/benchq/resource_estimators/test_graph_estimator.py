@@ -231,13 +231,16 @@ def test_better_architecture_does_not_require_more_resources(
         high_noise_architecture_model,
     )
 
+    low_noise_re = low_noise_resource_estimates.logical_architecture_resource_info
+    high_noise_re = high_noise_resource_estimates.logical_architecture_resource_info
+
     assert (
         low_noise_resource_estimates.n_physical_qubits
         <= high_noise_resource_estimates.n_physical_qubits
     )
     assert (
-        low_noise_resource_estimates.logical_architecture_resource_info.data_and_bus_code_distance
-        <= high_noise_resource_estimates.logical_architecture_resource_info.data_and_bus_code_distance
+        low_noise_re.data_and_bus_code_distance
+        <= high_noise_re.data_and_bus_code_distance
     )
     assert (
         low_noise_resource_estimates.total_time_in_seconds
@@ -292,14 +295,14 @@ def test_higher_error_budget_does_not_require_more_resources(
         architecture_model,
     )
 
+    high_re = high_error_resource_estimates.logical_architecture_resource_info
+    low_re = low_error_resource_estimates.logical_architecture_resource_info
+
     assert (
         high_error_resource_estimates.n_physical_qubits
         <= low_error_resource_estimates.n_physical_qubits
     )
-    assert (
-        high_error_resource_estimates.logical_architecture_resource_info.data_and_bus_code_distance
-        <= low_error_resource_estimates.logical_architecture_resource_info.data_and_bus_code_distance
-    )
+    assert high_re.data_and_bus_code_distance <= low_re.data_and_bus_code_distance
     assert (
         high_error_resource_estimates.total_time_in_seconds
         <= low_error_resource_estimates.total_time_in_seconds

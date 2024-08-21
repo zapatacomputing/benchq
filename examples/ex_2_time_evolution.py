@@ -32,7 +32,10 @@ from benchq.problem_ingestion.solid_state_hamiltonians.heisenberg import (
 )
 from benchq.quantum_hardware_modeling import BASIC_SC_ARCHITECTURE_MODEL
 from benchq.resource_estimators.graph_estimator import GraphResourceEstimator
-from benchq.logical_architecture_modeling.graph_based_logical_architectures import TwoRowBusArchitectureModel, ActiveVolumeArchitectureModel
+from benchq.logical_architecture_modeling.graph_based_logical_architectures import (
+    TwoRowBusArchitectureModel,
+    ActiveVolumeArchitectureModel,
+)
 from benchq.timing import measure_time
 
 
@@ -80,7 +83,6 @@ def main():
     active_volume_architecture = ActiveVolumeArchitectureModel()
 
     graph_estimator = GraphResourceEstimator(optimization="Time", verbose=True)
-    # active_volume_estimator = GraphResourceEstimator(optimization="Time", verbose=True)
 
     with measure_time() as t_info:
         two_row_resource_estimate = graph_estimator.compile_and_estimate(
@@ -96,19 +98,30 @@ def main():
             BASIC_SC_ARCHITECTURE_MODEL,
         )
 
-    # print("Resource estimation time without synthesis:", t_info.total)
-    # pprint(two_row_resource_estimate.total_time_in_seconds)
+    tr_info = two_row_resource_estimate.logical_architecture_resource_info
+    av_info = active_volume_resource_estimate.logical_architecture_resource_info
 
     print("Two row resource estimate", two_row_resource_estimate)
     print("Active volume resource estimate", active_volume_resource_estimate)
-    # pprint("Runtime", active_volume_resource_estimate.total_time_in_seconds)
-    # print("Total error rate", active_volume_resource_estimate.logical_error_rate)
-    print("Two row graph state cycles", two_row_resource_estimate.logical_architecture_resource_info.qec_cycle_allocation.inclusive("graph state prep"))
-    print("Active volume graph state cycles", active_volume_resource_estimate.logical_architecture_resource_info.qec_cycle_allocation.inclusive("graph state prep"))
-    print("Two row total cycles", two_row_resource_estimate.logical_architecture_resource_info.qec_cycle_allocation.total)
-    print("Active volume total cycles", active_volume_resource_estimate.logical_architecture_resource_info.qec_cycle_allocation.total)
+    print(
+        "Two row graph state cycles",
+        tr_info.qec_cycle_allocation.inclusive("graph state prep"),
+    )
+    print(
+        "Active volume graph state cycles",
+        av_info.qec_cycle_allocation.inclusive("graph state prep"),
+    )
+    print(
+        "Two row total cycles",
+        tr_info.qec_cycle_allocation.total,
+    )
+    print(
+        "Active volume total cycles",
+        av_info.qec_cycle_allocation.total,
+    )
 
     print("Total time to estimate resources:", time() - start_time)
+
 
 if __name__ == "__main__":
     main()
