@@ -59,7 +59,7 @@ def transpile_to_clifford_t(request):
         (DETAILED_ION_TRAP_ARCHITECTURE_MODEL, True),
     ],
 )
-def test_resource_estimations_returns_results_for_different_architectures(
+def test_resource_estimations_returns_results_for_different_hardware_architectures(
     optimization,
     architecture_model,
     supports_hardware_resources,
@@ -197,7 +197,7 @@ def test_get_resource_estimations_for_program_gives_correct_results(
     )
 
 
-def test_better_architecture_does_not_require_more_resources(
+def test_better_hardware_architecture_does_not_require_more_resources(
     optimization,
     transpile_to_clifford_t,
 ):

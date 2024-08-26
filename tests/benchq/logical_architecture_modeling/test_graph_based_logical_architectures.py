@@ -7,6 +7,7 @@ from benchq.compilation.graph_states.compiled_data_structures import (
     GSCInfo,
 )
 from benchq.logical_architecture_modeling.graph_based_logical_architectures import (
+    GraphBasedLogicalArchitectureModel,
     TwoRowBusArchitectureModel,
     ActiveVolumeArchitectureModel,
     consume_t_measurements,
@@ -20,7 +21,7 @@ from benchq.resource_estimators.resource_info import (
 
 
 @pytest.mark.parametrize(
-    "gsc_info,optimization,expected_results",
+    "gsc_info,optimization,expected_results,logical_architecture_model",
     [
         (
             GSCInfo(
@@ -31,7 +32,12 @@ from benchq.resource_estimators.resource_info import (
                 [0, 0],
             ),
             "Time",
-            {"number_of_magic_state_factories": 0, "number_of_data_qubits": 4},
+            {
+                "number_of_magic_state_factories": 0,
+                "number_of_data_qubits": 4,
+                "number_of_bus_qubits": 4,
+            },
+            TwoRowBusArchitectureModel(),
         ),
         (
             GSCInfo(
@@ -42,7 +48,12 @@ from benchq.resource_estimators.resource_info import (
                 [0, 1],
             ),
             "Time",
-            {"number_of_magic_state_factories": 8, "number_of_data_qubits": 5},
+            {
+                "number_of_magic_state_factories": 8,
+                "number_of_data_qubits": 5,
+                "number_of_bus_qubits": 13,
+            },
+            TwoRowBusArchitectureModel(),
         ),
         (
             GSCInfo(
@@ -53,12 +64,33 @@ from benchq.resource_estimators.resource_info import (
                 [0, 2],
             ),
             "Space",
-            {"number_of_magic_state_factories": 1, "number_of_data_qubits": 5},
+            {
+                "number_of_magic_state_factories": 1,
+                "number_of_data_qubits": 5,
+                "number_of_bus_qubits": 6,
+            },
+            TwoRowBusArchitectureModel(),
+        ),
+        (
+            GSCInfo(
+                5,
+                2,
+                [3, 5],
+                [0, 7],
+                [0, 2],
+            ),
+            "Space",
+            {
+                "number_of_magic_state_factories": 1,
+                "number_of_data_qubits": 5,
+                "number_of_bus_qubits": 0,
+            },
+            ActiveVolumeArchitectureModel(),
         ),
     ],
 )
 def test_get_resource_estimations_for_program_accounts_for_spatial_resources(
-    gsc_info, optimization, expected_results
+    gsc_info, optimization, expected_results, logical_architecture_model
 ):
 
     dummy_circuit = Circuit()
@@ -68,9 +100,6 @@ def test_get_resource_estimations_for_program_accounts_for_spatial_resources(
         steps=2,
         calculate_subroutine_sequence=lambda x: [0, 1],
     )
-
-    # Initialize Graph Resource Estimator
-    # estimator = GraphResourceEstimator(optimization)
 
     compiled_program = CompiledQuantumProgram.from_program(
         dummy_quantum_program, [gsc_info, gsc_info]
@@ -86,10 +115,8 @@ def test_get_resource_estimations_for_program_accounts_for_spatial_resources(
     )
     data_and_bus_code_distance = None
 
-    logical_architecture_model = TwoRowBusArchitectureModel()
-
     logical_architecture_resource_info = (
-        logical_architecture_model.get_bus_architecture_resource_breakdown(
+        logical_architecture_model.generate_spatial_resource_breakdown(
             compiled_program,
             optimization,
             data_and_bus_code_distance,
@@ -103,12 +130,16 @@ def test_get_resource_estimations_for_program_accounts_for_spatial_resources(
 
     number_of_data_qubits = logical_architecture_resource_info.num_logical_data_qubits
 
+    number_of_bus_qubits = logical_architecture_resource_info.num_logical_bus_qubits
+
     # Check that the number of magic state factories is correct
     assert (
         number_of_magic_state_factories
         == expected_results["number_of_magic_state_factories"]
     )
     assert number_of_data_qubits == expected_results["number_of_data_qubits"]
+
+    assert number_of_bus_qubits == expected_results["number_of_bus_qubits"]
 
 
 # Test for the time optimal cycle allocation functionality
@@ -167,9 +198,6 @@ def test_get_qec_cycle_allocation(gsc_info, optimization, cycles_per_layer):
         calculate_subroutine_sequence=calculate_subroutine_sequence,
     )
 
-    # # Initialize Graph Resource Estimator
-    # estimator = GraphResourceEstimator(optimization)
-
     compiled_program = CompiledQuantumProgram.from_program(
         dummy_quantum_program, [gsc_info, gsc_info]
     )
@@ -182,7 +210,7 @@ def test_get_qec_cycle_allocation(gsc_info, optimization, cycles_per_layer):
         distillation_time_in_cycles,
         t_gates_per_distillation,
     )
-    logical_architecture_model = TwoRowBusArchitectureModel()
+    logical_architecture_model = GraphBasedLogicalArchitectureModel()
     logical_architecture_resource_info = LogicalArchitectureResourceInfo(
         num_logical_data_qubits=None,
         num_logical_bus_qubits=None,
