@@ -46,13 +46,11 @@ class GraphBasedLogicalArchitectureModel(LogicalArchitectureModel):
         lay_out_found = False
 
         # Initialize with fixed spatial layout
-        logical_architecture_resource_info = (
-            self.get_bus_architecture_resource_breakdown(
-                compiled_program,
-                optimization,
-                min_d,
-                magic_state_factory,
-            )
+        logical_architecture_resource_info = self.generate_spatial_resource_breakdown(
+            compiled_program,
+            optimization,
+            min_d,
+            magic_state_factory,
         )
 
         for data_and_bus_code_distance in range(min_d, max_d, 2):
@@ -109,8 +107,54 @@ class GraphBasedLogicalArchitectureModel(LogicalArchitectureModel):
             logical_architecture_resource_info.qec_cycle_allocation = None
             return logical_architecture_resource_info
 
-    def get_bus_architecture_resource_breakdown(self):
-        raise NotImplementedError
+    def generate_spatial_resource_breakdown(
+        self,
+        compiled_program: CompiledQuantumProgram,
+        optimization: str,
+        data_and_bus_code_distance: int,
+        magic_state_factory: MagicStateFactoryInfo,
+    ) -> LogicalArchitectureResourceInfo:
+
+        raise NotImplementedError("Subclasses should implement this method.")
+
+    def _generate_data_and_distillation_counts(
+        self,
+        compiled_program: CompiledQuantumProgram,
+        optimization: str,
+        data_and_bus_code_distance: int,
+        magic_state_factory: MagicStateFactoryInfo,
+    ) -> LogicalArchitectureResourceInfo:
+
+        num_logical_data_qubits = (
+            self.get_max_number_of_data_qubits_from_compiled_program(compiled_program)
+        )
+
+        # The space optimal compilation uses just one factory, while the time optimal
+        # compilation uses a number of factories determined by the maximum warranted
+        # parallelization of distillation.
+        if compiled_program.n_t_gates == 0 and compiled_program.n_rotation_gates == 0:
+            num_magic_state_factories = 0
+            magic_state_factory = None
+        else:
+            if optimization == "Space":
+                # For space optimal, a single factory is used
+                num_magic_state_factories = 1
+            elif optimization == "Time":
+                # For time optimal, we use as many factories as would be needed by
+                # any layer. Note that if the factory is outputting multiple T states
+                # per distillation, then the factories may produce more T states than
+                # the number of T states needed by any layer.
+                num_magic_state_factories = ceil(
+                    self.get_max_parallel_t_states(compiled_program)
+                    / magic_state_factory.t_gates_per_distillation
+                )
+            else:
+                raise ValueError(
+                    f"Unknown optimization: {optimization}. "
+                    "Should be either 'Time' or 'Space'."
+                )
+
+        return num_logical_data_qubits, num_magic_state_factories
 
     def get_qec_cycle_allocation(self):
         raise NotImplementedError
@@ -196,7 +240,7 @@ class ActiveVolumeArchitectureModel(GraphBasedLogicalArchitectureModel):
         super().__init__()
         self._name = "active_volume"
 
-    def get_bus_architecture_resource_breakdown(
+    def generate_spatial_resource_breakdown(
         self,
         compiled_program: CompiledQuantumProgram,
         optimization: str,
@@ -204,48 +248,16 @@ class ActiveVolumeArchitectureModel(GraphBasedLogicalArchitectureModel):
         magic_state_factory: MagicStateFactoryInfo,
     ) -> LogicalArchitectureResourceInfo:
 
-        num_logical_data_qubits = (
-            self.get_max_number_of_data_qubits_from_compiled_program(compiled_program)
+        num_logical_data_qubits, num_magic_state_factories = (
+            self._generate_data_and_distillation_counts(
+                compiled_program,
+                optimization,
+                data_and_bus_code_distance,
+                magic_state_factory,
+            )
         )
 
-        # Qubit resource breakdowns are given by the following layouts
-        # for data qubits |D|, bus qubits |B|, and magic state factories |M|.
-
-        # Active volume architecture has all-to-all connectivity
-        # TODO: redo this diagram
-        # |D|     |D|     ...     |D| |D| ... |D|
-        #  |       |               |   |       |
-        #   ---*---*---*---*---*---*---*---*---*---
-        #  |       |       |
-        # |M|     |M|     |M|
-        # The space optimal compilation uses just one factory, while the time optimal
-        # compilation uses a number of factories determined by the maximum warranted
-        # parallelization of distillation.
-        if compiled_program.n_t_gates == 0 and compiled_program.n_rotation_gates == 0:
-            num_magic_state_factories = 0
-            magic_state_factory = None
-        else:
-            if optimization == "Space":
-                # For space optimal, a single factory is used
-                num_magic_state_factories = 1
-            elif optimization == "Time":
-                # For time optimal, we use as many factories as would be needed by
-                # any layer. Note that if the factory is outputting multiple T states
-                # per distillation, then the factories may produce more T states than
-                # the number of T states needed by any layer.
-                num_magic_state_factories = ceil(
-                    self.get_max_parallel_t_states(compiled_program)
-                    / magic_state_factory.t_gates_per_distillation
-                )
-            else:
-                raise ValueError(
-                    f"Unknown optimization: {optimization}. "
-                    "Should be either 'Time' or 'Space'."
-                )
-
-        # The ion trap architecture 3-neighbor constraint requires each data qubit
-        # and each magic state factory to be connected to a unique bus qubit.
-        # The bus qubits are connected to each other in a chain.
+        # The active volume architecture uses no bus qubits
         num_logical_bus_qubits = 0
 
         return LogicalArchitectureResourceInfo(
@@ -414,7 +426,7 @@ class TwoRowBusArchitectureModel(GraphBasedLogicalArchitectureModel):
         super().__init__()
         self._name = "two_row_bus"
 
-    def get_bus_architecture_resource_breakdown(
+    def generate_spatial_resource_breakdown(
         self,
         compiled_program: CompiledQuantumProgram,
         optimization: str,
@@ -422,8 +434,13 @@ class TwoRowBusArchitectureModel(GraphBasedLogicalArchitectureModel):
         magic_state_factory: MagicStateFactoryInfo,
     ) -> LogicalArchitectureResourceInfo:
 
-        num_logical_data_qubits = (
-            self.get_max_number_of_data_qubits_from_compiled_program(compiled_program)
+        num_logical_data_qubits, num_magic_state_factories = (
+            self._generate_data_and_distillation_counts(
+                compiled_program,
+                optimization,
+                data_and_bus_code_distance,
+                magic_state_factory,
+            )
         )
 
         # Qubit resource breakdowns are given by the following layouts
@@ -442,28 +459,6 @@ class TwoRowBusArchitectureModel(GraphBasedLogicalArchitectureModel):
         # The space optimal compilation uses just one factory, while the time optimal
         # compilation uses a number of factories determined by the maximum warranted
         # parallelization of distillation.
-        if compiled_program.n_t_gates == 0 and compiled_program.n_rotation_gates == 0:
-            num_magic_state_factories = 0
-            magic_state_factory = None
-        else:
-            if optimization == "Space":
-                # For space optimal, a single factory is used
-                num_magic_state_factories = 1
-            elif optimization == "Time":
-                # For time optimal, we use as many factories as would be needed by
-                # any layer
-                # Note that if the factory is outputting multiple T states per
-                # distillation, then the factories may produce more T states than
-                # the number of T states needed by any layer.
-                num_magic_state_factories = ceil(
-                    self.get_max_parallel_t_states(compiled_program)
-                    / magic_state_factory.t_gates_per_distillation
-                )
-            else:
-                raise ValueError(
-                    f"Unknown optimization: {optimization}. "
-                    "Should be either 'Time' or 'Space'."
-                )
 
         # The ion trap architecture 3-neighbor constraint requires each data qubit
         # and each magic state factory to be connected to a unique bus qubit.
