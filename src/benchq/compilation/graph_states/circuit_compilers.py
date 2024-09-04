@@ -53,8 +53,6 @@ def get_ruby_slippers_circuit_compiler(
         optimization: str,
         verbose: bool,
     ) -> GSCInfo:
-        if not isinstance(logical_architecture_name, str):
-            breakpoint()
         (
             compiled_graph_data,
             _,

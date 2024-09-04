@@ -398,13 +398,63 @@ def test_rbs_with_active_volume_gives_fewer_graph_creation_cycles_than_two_row()
 
     # given
     circuit = Circuit(
-        [H(0), *[CNOT(j, i) for i in range(1, 300) for j in range(2, 300)]]
+        [
+            H(0),
+            T(0),
+            *[CNOT(j, i) for i in range(1, 300) for j in range(2, 300)],
+        ]
     )
     optimization = "Time"
 
     compiled_data_two_row, _ = jl.run_ruby_slippers(
         circuit,
         verbose=False,
+        logical_architecture_name="two_row_bus",
+        optimization=optimization,
+    )
+
+    compiled_data_active_volume, _ = jl.run_ruby_slippers(
+        circuit,
+        verbose=False,
+        logical_architecture_name="active_volume",
+        optimization=optimization,
+    )
+
+    # then
+    assert sum(compiled_data_active_volume["graph_creation_tocks_per_layer"]) < sum(
+        compiled_data_two_row["graph_creation_tocks_per_layer"]
+    )
+
+
+def test_active_volume_has_fewer_tocks_than_two_row():
+
+    # given
+    circuit = Circuit(
+        [
+            H(0),
+            H(1),
+            H(2),
+            H(3),
+            H(4),
+            T(0),
+            T(1),
+            T(2),
+            T(3),
+            T(4),
+            CNOT(0, 1),
+            CNOT(1, 2),
+            CNOT(2, 3),
+            CNOT(3, 4),
+            T(1),
+            T(2),
+            T(3),
+        ]
+    )
+    optimization = "Time"
+
+    compiled_data_two_row, _ = jl.run_ruby_slippers(
+        circuit,
+        verbose=True,
         logical_architecture_name="two_row_bus",
         optimization=optimization,
     )

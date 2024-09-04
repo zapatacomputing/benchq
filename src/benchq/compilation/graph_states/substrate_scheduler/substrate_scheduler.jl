@@ -74,7 +74,8 @@ function time_optimal_two_row_scheduler(asg, pauli_tracker, num_logical_qubits, 
         nodes_to_satisfy_this_layer = setdiff(get_neighborhood(pauli_tracker.layering[layer_num], asg), satisfied_nodes)
         union!(satisfied_nodes, nodes_to_satisfy_this_layer)
         bars = []
-        for node in setdiff(nodes_to_satisfy_this_layer, nodes_satisfied_by_initialization)
+        subnodes_this_layer = setdiff(nodes_to_satisfy_this_layer, nodes_satisfied_by_initialization)
+        for node in subnodes_this_layer
             bar = [node_to_patch[node], node_to_patch[node]]
             for neighbor in asg.edge_data[node]
                 if node_to_patch[neighbor] < bar[1] && node in curr_physical_nodes
@@ -93,7 +94,7 @@ function time_optimal_two_row_scheduler(asg, pauli_tracker, num_logical_qubits, 
             end
         end
         sort!(bars, by=x -> x[2])
-
+        
         # layer the bars
         while length(bars) > 0
             bar = bars[1]
@@ -254,7 +255,6 @@ function time_optimal_active_volume_scheduler(asg, pauli_tracker, num_logical_qu
     # Phase 2: For each layer of nodes in the remaining graph, group the multi-qubit stabilizer measurements 
     # into co-measurable sets to determine the number of tocks required to prepare the graph state of that layer.
     for layer_num in VerboseIterator(1:length(pauli_tracker.layering), verbose, "Scheduling Clifford operations...")
-
         # Get the subnodes this layer
         nodes_to_satisfy_this_layer = setdiff(get_neighborhood(pauli_tracker.layering[layer_num], asg), satisfied_nodes)
         union!(satisfied_nodes, nodes_to_satisfy_this_layer)
@@ -270,18 +270,13 @@ function time_optimal_active_volume_scheduler(asg, pauli_tracker, num_logical_qu
             end
         end
 
-        # Account for the number of tocks needed for graph state creation
-        # Construct Graphs.jl SimpleGraph from the subgraph of the AlgorithmSpecificGraph
-        layer_subgraph = construct_subgraph_from_asg(asg, subnodes_this_layer)
         
         # Compute number of tocks for graph state creation using greedy graph coloring on extension graph
-        num_tocks_for_graph_creation[layer_num] += compute_active_volume_tocks(layer_subgraph)
+        num_tocks_for_graph_creation[layer_num] += compute_active_volume_tocks_to_prepare_subgraph(asg.edge_data, subnodes_this_layer)
         
-        # TODO: determine what this does
         if layer_num < length(pauli_tracker.layering)
             union!(measured_nodes, pauli_tracker.layering[layer_num])
             for measured_node in pauli_tracker.layering[layer_num]
-                # patches_to_node[node_to_patch[measured_node]] = -1
                 measured_node = -1
             end
             added_nodes = pauli_tracker.layering[layer_num+1]
@@ -386,57 +381,81 @@ function active_volume_greedy_group_neighborhoods(asg, subnodes_this_layer)
     return num_tocks
 end
 
+"""
+Constructs a subgraph from the edge data of the AlgorithmSpecificGraph that contains
+only the nodes in the input set. The subgraph is constructed by adding edges between
+nodes that are neighbors in the original graph.
 
-function construct_subgraph_from_asg(asg::AlgorithmSpecificGraph, nodes::Set{UInt32})
+Args:
+    edge_data::List{List{Int}}          Edge data describing a graph
+    nodes::Set{Int}                     Set of nodes to include in the subgraph
+"""
+function construct_subgraph_from_edge_data(edge_data::Vector{Set{UInt32}}, nodes::Set{UInt32})
     # Create a SimpleGraph with the same number of nodes as the input set
     n = length(nodes)
     g = SimpleGraph(n)
     
     # Create a mapping from original node indices to new subgraph indices
     node_map = Dict{UInt32, Int64}(node => i for (i, node) in enumerate(nodes))
-    
     for original_node in nodes
         i = node_map[original_node]  # Get the index in the subgraph
-        for neighbor in asg.edge_data[Int(original_node)]
+        for neighbor in edge_data[Int(original_node)]
             if haskey(node_map, neighbor)
                 j = node_map[neighbor]  # Get the index of the neighbor in the subgraph
                 if i != j
                     Graphs.add_edge!(g, i, j)  # Add edge between the two nodes in the subgraph
                 end
+            else
+                # Add a new entry to the node map for the neighbor
+                node_map[neighbor] = length(node_map) + 1
+                Graphs.add_vertex!(g)
+                Graphs.add_edge!(g, i, node_map[neighbor])
             end
         end
     end
-
     return g
 end
 
 
-# Function that generates the extension graph for a given graph such that
-# the output graph has edges added to the original graph between any two nodes 
-# that are distance 2 apart in the original graph.
-# This is used to group nodes that are 2-independent in the original graph.
-function generate_extension_graph(graph::SimpleGraph)
-    # Create a new graph with the same number of nodes as the input graph
-    n = nv(graph)
-    extension_graph = SimpleGraph(n)
+# Function that generates the extension graph for a given set of edges and
+# subnodes such that the output graph has edges added to the original graph 
+# between any two nodes that are distance 2 apart in the original edge data.
+# This is helpful for grouping nodes that are 2-independent in the original graph.
+function generate_extension_graph(edge_data::Vector{Set{UInt32}}, nodes::Set{UInt32})
+    # Initialize an empty graph with Int64 type for vertices
+    extension_graph = SimpleGraph{Int64}(length(nodes))
 
-    # Iterate over all nodes in the graph
-    for node in 1:n
-        # Iterate over the neighbors of the current node
-        for neighbor in neighbors(graph, node)
+    # Create a mapping from node indices to vertex indices
+    node_to_vertex_map = Dict{UInt32, Int}()
+    for (i, node) in enumerate(nodes)
+        node_to_vertex_map[node] = i
+    end
+    
+    # Iterate over nodes and add edges
+    for node in nodes
+        node_index = node_to_vertex_map[node]
+        for neighbor in edge_data[node]
+            # Add edge between the current node and neighbor
+            # if that neighbor is in nodes
+            if haskey(node_to_vertex_map, neighbor) && neighbor != node
+                Graphs.add_edge!(extension_graph, node_index, node_to_vertex_map[neighbor])
+            end
+            
             # Iterate over the neighbors of the neighbor node
-            for neighbor_node in neighbors(graph, neighbor)
-                # Check if the neighbor node is different from the current node
-                # and if it is not already connected to the current node
-                if neighbor_node != node && !(has_edge(extension_graph, node, neighbor_node))
-                    # Add an edge between the nodes in the extension graph
-                    Graphs.add_edge!(extension_graph, node, neighbor_node)
+            for nn_neighbor in edge_data[neighbor]
+                # Skip to avoid creating self loops in the graph
+                if nn_neighbor == node
+                    continue
+                end
+
+                if haskey(node_to_vertex_map, node) && haskey(node_to_vertex_map, nn_neighbor)
+                    nn_neighbor_index = node_to_vertex_map[nn_neighbor]
+                    Graphs.add_edge!(extension_graph, node_index, nn_neighbor_index)
                 end
             end
         end
     end
-
-    return extension_graph
+    return extension_graph, node_to_vertex_map
 end
 
 # Function that generates the extension graph and solves graph coloring using 
@@ -444,18 +463,16 @@ end
 # Note: this function doesn't keep track of the groups as would be
 # needed by a compiler, but only accounts for the number of tocks that would 
 # result from a lattice surgery compilation.
-function compute_active_volume_tocks(graph::Graph, coloring_algorithm=Graphs.degree_greedy_color)
+function compute_active_volume_tocks_to_prepare_subgraph(edge_data, subnodes, coloring_algorithm=Graphs.degree_greedy_color)
     # Check if the graph is empty
-    if nv(graph) == 0
+    if length(subnodes) == 0
         return 0
     end
     
     # Generate extension graph
-    extension_graph = generate_extension_graph(graph)
-
+    extension_graph, _ = generate_extension_graph(edge_data, subnodes)
     # Solve graph coloring using the specified algorithm
     coloring = coloring_algorithm(extension_graph)
-    
     # Return the number of colors used
     return coloring.num_colors
 end
