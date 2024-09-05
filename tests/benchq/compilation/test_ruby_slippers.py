@@ -10,7 +10,7 @@ import pytest
 import stim
 from numba import njit
 from orquestra.integrations.qiskit.conversions import import_from_qiskit
-from orquestra.quantum.circuits import CNOT, CZ, Circuit, H, S, T, X
+from orquestra.quantum.circuits import CNOT, CZ, Circuit, H, S, T, X, Dagger
 from qiskit import QuantumCircuit
 
 from benchq.compilation.circuits import (
@@ -429,38 +429,38 @@ def test_rbs_with_active_volume_gives_fewer_graph_creation_cycles_than_two_row()
 def test_active_volume_has_fewer_tocks_than_two_row():
 
     # given
-    circuit = Circuit(
+    toffoli_circuit = Circuit(
         [
-            H(0),
-            H(1),
-            H(2),
-            H(3),
-            H(4),
             T(0),
             T(1),
+            H(2),
+            CNOT(0, 1),
             T(2),
-            T(3),
-            T(4),
+            CNOT(1, 2),
+            T.dagger(1),
+            T(2),
             CNOT(0, 1),
             CNOT(1, 2),
-            CNOT(2, 3),
-            CNOT(3, 4),
-            T(1),
-            T(2),
-            T(3),
+            CNOT(0, 1),
+            T.dagger(2),
+            CNOT(1, 2),
+            CNOT(0, 1),
+            T.dagger(2),
+            CNOT(1, 2),
+            H(2),
         ]
     )
     optimization = "Time"
 
     compiled_data_two_row, _ = jl.run_ruby_slippers(
-        circuit,
+        toffoli_circuit,
         verbose=True,
         logical_architecture_name="two_row_bus",
         optimization=optimization,
     )
 
     compiled_data_active_volume, _ = jl.run_ruby_slippers(
-        circuit,
+        toffoli_circuit,
         verbose=False,
         logical_architecture_name="active_volume",
         optimization=optimization,
@@ -470,6 +470,50 @@ def test_active_volume_has_fewer_tocks_than_two_row():
     assert sum(compiled_data_active_volume["graph_creation_tocks_per_layer"]) < sum(
         compiled_data_two_row["graph_creation_tocks_per_layer"]
     )
+
+
+def test_number_of_t_measurements_equals_number_of_t_gates():
+    toffoli_circuit = Circuit(
+        [
+            T(0),
+            T(1),
+            H(2),
+            CNOT(0, 1),
+            T(2),
+            CNOT(1, 2),
+            T.dagger(1),
+            T(2),
+            CNOT(0, 1),
+            CNOT(1, 2),
+            CNOT(0, 1),
+            T.dagger(2),
+            CNOT(1, 2),
+            CNOT(0, 1),
+            T.dagger(2),
+            CNOT(1, 2),
+            H(2),
+        ]
+    )
+    optimization = "Time"
+    number_of_t_gates = sum(
+        [1 for op in toffoli_circuit.operations if op.gate.name in ["T", "T_Dagger"]]
+    )
+
+    compiled_data_two_row, _ = jl.run_ruby_slippers(
+        toffoli_circuit,
+        verbose=True,
+        logical_architecture_name="two_row_bus",
+        optimization=optimization,
+    )
+
+    compiled_data_active_volume, _ = jl.run_ruby_slippers(
+        toffoli_circuit,
+        verbose=False,
+        logical_architecture_name="active_volume",
+        optimization=optimization,
+    )
+    assert sum(compiled_data_active_volume["t_states_per_layer"]) == number_of_t_gates
+    assert sum(compiled_data_two_row["t_states_per_layer"]) == number_of_t_gates
 
 
 ########################################################################################
