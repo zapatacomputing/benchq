@@ -69,6 +69,4 @@ def main(file_name):
 
 if __name__ == "__main__":
     current_directory = os.path.dirname(__file__)
-    # main(current_directory + "/data/single_qubit_clifford_circuit.qasm")
     main(current_directory + "/data/ghz_circuit.qasm")
-    # main(current_directory + "/data/single_rotation.qasm")

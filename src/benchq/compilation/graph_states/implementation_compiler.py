@@ -36,10 +36,6 @@ def distributed_graph_creation(
     if verbose:
         print("Transferring Data to Julia...")
 
-    if logical_architecture_name == "Time":
-        print("deeper")
-        breakpoint()
-
     return circuit_compiler(circuit, logical_architecture_name, optimization, verbose)
 
 

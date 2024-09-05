@@ -64,7 +64,7 @@ def main():
         algorithm = qsp_time_evolution_algorithm(operator, evolution_time, 1e-3)
 
     # Transpile the circuit to a Clifford+T circuit
-    # cliff_t_algorithm = algorithm.transpile_to_clifford_t()
+    cliff_t_algorithm = algorithm.transpile_to_clifford_t()
     cliff_t_algorithm = algorithm
     print("Circuit generation time:", t_info.total)
     print("n qubits in circuit:", cliff_t_algorithm.program.subroutines[0].n_qubits)
