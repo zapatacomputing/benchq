@@ -47,6 +47,17 @@ function time_optimal_two_row_scheduler(asg, pauli_tracker, num_logical_qubits, 
     num_rotations_per_layer = [0 for _ in 1:length(pauli_tracker.layering)]
 
     for layer_num in VerboseIterator(1:length(pauli_tracker.layering), verbose, "Scheduling Clifford operations...")
+        
+        # Account for the number of t measurements and number of rotations in the layer
+        for node in pauli_tracker.layering[layer_num]
+            if pauli_tracker.measurements[node][1] in [T_code, T_Dagger_code]
+                num_t_states_per_layer[layer_num] += 1
+            end
+            if pauli_tracker.measurements[node][1] == RZ_code
+                num_rotations_per_layer[layer_num] += 1
+            end
+        end
+
         # assign nodes to patches randomly by simply finding the first open patch and placing the node there
         for new_node in new_nodes_to_add
             node_placement_found = false
@@ -86,12 +97,6 @@ function time_optimal_two_row_scheduler(asg, pauli_tracker, num_logical_qubits, 
                 end
             end
             push!(bars, bar)
-            if pauli_tracker.measurements[node][1] in [T_code, T_Dagger_code]
-                num_t_states_per_layer[layer_num] += 1
-            end
-            if pauli_tracker.measurements[node][1] == RZ_code
-                num_rotations_per_layer[layer_num] += 1
-            end
         end
         sort!(bars, by=x -> x[2])
         
@@ -207,7 +212,6 @@ function space_optimal_two_row_scheduler(asg, pauli_tracker, num_logical_qubits,
             end
         end
 
-        # println("preparing for next layer")
         begin
             if layer_num < length(pauli_tracker.layering)
                 union!(measured_nodes, pauli_tracker.layering[layer_num])
@@ -255,13 +259,9 @@ function time_optimal_active_volume_scheduler(asg, pauli_tracker, num_logical_qu
     # Phase 2: For each layer of nodes in the remaining graph, group the multi-qubit stabilizer measurements 
     # into co-measurable sets to determine the number of tocks required to prepare the graph state of that layer.
     for layer_num in VerboseIterator(1:length(pauli_tracker.layering), verbose, "Scheduling Clifford operations...")
-        # Get the subnodes this layer
-        nodes_to_satisfy_this_layer = setdiff(get_neighborhood(pauli_tracker.layering[layer_num], asg), satisfied_nodes)
-        union!(satisfied_nodes, nodes_to_satisfy_this_layer)
-        subnodes_this_layer = setdiff(nodes_to_satisfy_this_layer, nodes_satisfied_by_initialization)
 
         # Account for the number of t measurements and number of rotations in the layer
-        for node in subnodes_this_layer
+        for node in pauli_tracker.layering[layer_num]
             if pauli_tracker.measurements[node][1] in [T_code, T_Dagger_code]
                 num_t_states_per_layer[layer_num] += 1
             end
@@ -269,6 +269,11 @@ function time_optimal_active_volume_scheduler(asg, pauli_tracker, num_logical_qu
                 num_rotations_per_layer[layer_num] += 1
             end
         end
+
+        # Get the subnodes that require stablizer measurements this layer
+        nodes_to_satisfy_this_layer = setdiff(get_neighborhood(pauli_tracker.layering[layer_num], asg), satisfied_nodes)
+        union!(satisfied_nodes, nodes_to_satisfy_this_layer)
+        subnodes_this_layer = setdiff(nodes_to_satisfy_this_layer, nodes_satisfied_by_initialization)
 
         
         # Compute number of tocks for graph state creation using greedy graph coloring on extension graph
