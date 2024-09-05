@@ -78,13 +78,13 @@ class LogicalFailureRates:
 class LogicalArchitectureResourceInfo:
     """Info logical architecture model resources."""
 
-    num_logical_data_qubits: int
-    num_logical_bus_qubits: int
-    data_and_bus_code_distance: int
-    num_magic_state_factories: int
+    num_logical_data_qubits: Optional[int] = None
+    num_logical_bus_qubits: Optional[int] = None
+    data_and_bus_code_distance: Optional[int] = None
+    num_magic_state_factories: Optional[int] = None
     magic_state_factory: Optional[MagicStateFactoryInfo] = None
     qec_cycle_allocation: Optional[QECCycleAllocation] = None
-    logical_failure_rates: LogicalFailureRates = None
+    logical_failure_rates: Optional[LogicalFailureRates] = None
 
     @property
     def num_logical_qubits(self) -> int:
@@ -92,12 +92,15 @@ class LogicalArchitectureResourceInfo:
 
     @property
     def spacetime_volume_in_logical_qubit_tocks(self) -> float:
-        st_volume_in_logical_qubit_tocks = (
-            self.qec_cycle_allocation.total
-            * self.num_logical_qubits
-            / self.data_and_bus_code_distance
-        )
-        return st_volume_in_logical_qubit_tocks
+        try:
+            st_volume_in_logical_qubit_tocks = (
+                self.qec_cycle_allocation.total
+                * self.num_logical_qubits
+                / self.data_and_bus_code_distance
+            )
+            return st_volume_in_logical_qubit_tocks
+        except AttributeError:
+            return None
 
 
 @dataclass

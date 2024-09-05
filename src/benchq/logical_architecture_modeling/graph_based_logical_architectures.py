@@ -31,7 +31,7 @@ class GraphBasedLogicalArchitectureModel(LogicalArchitectureModel):
     def name(self):
         return self._name
 
-    def generate_resource_info_with_minimal_code_distance(
+    def generate_minimal_code_distance_resources(
         self,
         compiled_program: CompiledQuantumProgram,
         optimization: str,
@@ -105,7 +105,8 @@ class GraphBasedLogicalArchitectureModel(LogicalArchitectureModel):
             )
             logical_architecture_resource_info.data_and_bus_code_distance = None
             logical_architecture_resource_info.qec_cycle_allocation = None
-            return logical_architecture_resource_info
+
+        return logical_architecture_resource_info
 
     def generate_spatial_resource_breakdown(
         self,
@@ -134,7 +135,6 @@ class GraphBasedLogicalArchitectureModel(LogicalArchitectureModel):
         # parallelization of distillation.
         if compiled_program.n_t_gates == 0 and compiled_program.n_rotation_gates == 0:
             num_magic_state_factories = 0
-            magic_state_factory = None
         else:
             if optimization == "Space":
                 # For space optimal, a single factory is used

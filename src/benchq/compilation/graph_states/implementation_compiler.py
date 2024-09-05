@@ -51,7 +51,9 @@ def get_implementation_compiler(
     config_name: str = "darpa-ta1",
     workspace_id: str = "darpa-phase-ii-gsc-resource-estimates-8a7c3b",
     project_id: str = "migration",
-) -> Callable[[AlgorithmImplementation, str, bool], CompiledAlgorithmImplementation]:
+) -> Callable[
+    [AlgorithmImplementation, str, str, bool], CompiledAlgorithmImplementation
+]:
     @sdk.workflow(resources=sdk.Resources(cpu=str(num_cores), memory="16Gi"))
     def get_program_compilation_wf(
         algorithm_implementation: AlgorithmImplementation,

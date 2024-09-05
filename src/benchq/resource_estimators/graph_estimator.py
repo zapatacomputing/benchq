@@ -133,13 +133,15 @@ class GraphResourceEstimator:
             )
 
         # Find optimal layout by minimizing code distance
-        logical_architecture_resource_info = logical_architecture_model.generate_resource_info_with_minimal_code_distance(
-            compiled_implementation.program,
-            self.optimization,
-            n_t_gates_per_rotation,
-            total_qec_failure_tolerance,
-            magic_state_factory,
-            hw_model,
+        logical_architecture_resource_info = (
+            logical_architecture_model.generate_minimal_code_distance_resources(
+                compiled_implementation.program,
+                self.optimization,
+                n_t_gates_per_rotation,
+                total_qec_failure_tolerance,
+                magic_state_factory,
+                hw_model,
+            )
         )
 
         # Populate resource info
