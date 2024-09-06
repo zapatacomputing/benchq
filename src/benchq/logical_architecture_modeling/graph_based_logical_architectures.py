@@ -45,15 +45,17 @@ class GraphBasedLogicalArchitectureModel(LogicalArchitectureModel):
 
         lay_out_found = False
 
-        # Initialize with fixed spatial layout
-        logical_architecture_resource_info = self.generate_spatial_resource_breakdown(
-            compiled_program,
-            optimization,
-            min_d,
-            magic_state_factory,
-        )
-
         for data_and_bus_code_distance in range(min_d, max_d, 2):
+
+            # Initialize logical architecyture with fixed spatial layout and code distance
+            logical_architecture_resource_info = (
+                self.generate_spatial_resource_breakdown(
+                    compiled_program,
+                    optimization,
+                    data_and_bus_code_distance,
+                    magic_state_factory,
+                )
+            )
 
             # Get time allocation for each subroutine
             time_allocation = self.get_qec_cycle_allocation(
@@ -90,9 +92,6 @@ class GraphBasedLogicalArchitectureModel(LogicalArchitectureModel):
             if total_qec_error_rate_at_this_distance < total_qec_failure_tolerance:
                 lay_out_found = True
 
-                logical_architecture_resource_info.data_and_bus_code_distance = (
-                    data_and_bus_code_distance
-                )
                 logical_architecture_resource_info.qec_cycle_allocation = (
                     time_allocation
                 )
@@ -214,6 +213,17 @@ class GraphBasedLogicalArchitectureModel(LogicalArchitectureModel):
                         * cycles_per_tock,
                         "graph state prep",
                     )
+                    print(
+                        "In subroutine",
+                        i,
+                        "layer",
+                        layer_num,
+                        "no T gates",
+                        "no rotations",
+                        "graph state prep cycles logged is",
+                        subroutine.graph_creation_tocks_per_layer[layer]
+                        * cycles_per_tock,
+                    )
                 else:
                     distillation_time_in_cycles = msf.distillation_time_in_cycles
                     t_gates_per_distillation = msf.t_gates_per_distillation
@@ -259,6 +269,17 @@ class GraphBasedLogicalArchitectureModel(LogicalArchitectureModel):
                         ),
                         ("distillation", "graph state prep"),
                     )
+
+                    print(
+                        "In subroutine",
+                        i,
+                        "layer",
+                        layer_num,
+                        "graph state prep cycles logged is",
+                        subroutine.graph_creation_tocks_per_layer[layer]
+                        * cycles_per_tock,
+                    )
+                    print("Cycles per tock is", cycles_per_tock)
 
                     # Log Stage 2: First T measurement
                     cycles_per_t_measurement = 2 * cycles_per_tock
