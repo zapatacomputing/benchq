@@ -213,17 +213,6 @@ class GraphBasedLogicalArchitectureModel(LogicalArchitectureModel):
                         * cycles_per_tock,
                         "graph state prep",
                     )
-                    print(
-                        "In subroutine",
-                        i,
-                        "layer",
-                        layer_num,
-                        "no T gates",
-                        "no rotations",
-                        "graph state prep cycles logged is",
-                        subroutine.graph_creation_tocks_per_layer[layer]
-                        * cycles_per_tock,
-                    )
                 else:
                     distillation_time_in_cycles = msf.distillation_time_in_cycles
                     t_gates_per_distillation = msf.t_gates_per_distillation
@@ -269,17 +258,6 @@ class GraphBasedLogicalArchitectureModel(LogicalArchitectureModel):
                         ),
                         ("distillation", "graph state prep"),
                     )
-
-                    print(
-                        "In subroutine",
-                        i,
-                        "layer",
-                        layer_num,
-                        "graph state prep cycles logged is",
-                        subroutine.graph_creation_tocks_per_layer[layer]
-                        * cycles_per_tock,
-                    )
-                    print("Cycles per tock is", cycles_per_tock)
 
                     # Log Stage 2: First T measurement
                     cycles_per_t_measurement = 2 * cycles_per_tock
