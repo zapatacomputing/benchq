@@ -16,7 +16,6 @@ from benchq.compilation.graph_states.compiled_data_structures import (
 )
 from benchq.logical_architecture_modeling.graph_based_logical_architectures import (
     TwoRowBusArchitectureModel,
-    ActiveVolumeArchitectureModel,
 )
 from benchq.decoder_modeling import DecoderModel
 from benchq.problem_embeddings.quantum_program import QuantumProgram

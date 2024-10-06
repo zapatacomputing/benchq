@@ -17,9 +17,9 @@ function two_row_scheduler(asg, pauli_tracker, num_logical_qubits, optimization,
 end
 
 
-function active_volume_scheduler(asg, pauli_tracker, num_logical_qubits, optimization, verbose=false)
+function all_to_all_scheduler(asg, pauli_tracker, num_logical_qubits, optimization, verbose=false)
     if optimization == "Time"
-        return time_optimal_active_volume_scheduler(asg, pauli_tracker, num_logical_qubits, verbose)
+        return time_optimal_all_to_all_scheduler(asg, pauli_tracker, num_logical_qubits, verbose)
     else
         throw(ArgumentError("Invalid optimization type."))
     end
@@ -232,8 +232,8 @@ function space_optimal_two_row_scheduler(asg, pauli_tracker, num_logical_qubits,
     return num_tocks_for_graph_creation, num_t_states_per_layer, num_rotations_per_layer
 end
 
-function time_optimal_active_volume_scheduler(asg, pauli_tracker, num_logical_qubits, verbose=false)
-    # Here we model the active volume scheduler as a two row scheduler with the following modifications:
+function time_optimal_all_to_all_scheduler(asg, pauli_tracker, num_logical_qubits, verbose=false)
+    # Here we model the all-to-all scheduler as a two row scheduler with the following modifications:
     # 1. The order of patches can be reconfigured "for free"
     # 2. No bus is needed because stabilizer measurements can be made via lattice
     #    surgery operations on the boundaries of patches
@@ -277,7 +277,7 @@ function time_optimal_active_volume_scheduler(asg, pauli_tracker, num_logical_qu
 
         
         # Compute number of tocks for graph state creation using greedy graph coloring on extension graph
-        num_tocks_for_graph_creation[layer_num] += compute_active_volume_tocks_to_prepare_subgraph(asg.edge_data, subnodes_this_layer)
+        num_tocks_for_graph_creation[layer_num] += compute_all_to_all_tocks_to_prepare_subgraph(asg.edge_data, subnodes_this_layer)
         
         if layer_num < length(pauli_tracker.layering)
             union!(measured_nodes, pauli_tracker.layering[layer_num])
@@ -336,7 +336,7 @@ Args:
 Returns:
     num_tocks::Int                               Number of tocks to prepare the graph state
 """
-function active_volume_greedy_group_neighborhoods(asg, subnodes_this_layer)
+function all_to_all_greedy_group_neighborhoods(asg, subnodes_this_layer)
     # Construct set of neighborhoods
     neighborhoods = []
     for node in subnodes_this_layer
@@ -468,7 +468,7 @@ end
 # Note: this function doesn't keep track of the groups as would be
 # needed by a compiler, but only accounts for the number of tocks that would 
 # result from a lattice surgery compilation.
-function compute_active_volume_tocks_to_prepare_subgraph(edge_data, subnodes, coloring_algorithm=Graphs.degree_greedy_color)
+function compute_all_to_all_tocks_to_prepare_subgraph(edge_data, subnodes, coloring_algorithm=Graphs.degree_greedy_color)
     # Check if the graph is empty
     if length(subnodes) == 0
         return 0

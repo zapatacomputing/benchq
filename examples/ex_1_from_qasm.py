@@ -20,7 +20,7 @@ from benchq.quantum_hardware_modeling import BASIC_SC_ARCHITECTURE_MODEL
 from benchq.resource_estimators.graph_estimator import GraphResourceEstimator
 from benchq.logical_architecture_modeling.graph_based_logical_architectures import (
     TwoRowBusArchitectureModel,
-    ActiveVolumeArchitectureModel,
+    AllToAllArchitectureModel,
 )
 
 
@@ -54,13 +54,13 @@ def main(file_name):
         destination="single-thread",
     )
 
-    active_volume_architecture = ActiveVolumeArchitectureModel()
+    all_to_all_architecture = AllToAllArchitectureModel()
 
     # Put all the pieces together to get a resource estimate
     gsc_resource_estimates = estimator.compile_and_estimate(
         algorithm_implementation,
         compiler,
-        active_volume_architecture,
+        all_to_all_architecture,
         architecture_model,
     )
     print("Resource estimation results:")

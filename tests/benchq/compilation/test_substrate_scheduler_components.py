@@ -60,22 +60,22 @@ def test_generate_extension_graph():
     )
 
 
-def test_compute_active_volume_tocks():
+def test_compute_all_to_all_tocks():
     # Define the edge_data and nodes in Python
     edge_data = [{3}, {3}, {1, 2, 4}, {3, 5}, {4}]
     nodes = {1, 2, 5}
 
     # Define the expected outputs
-    expected_active_volume_tocks = 2
+    expected_all_to_all_tocks = 2
 
     # Convert Python sets and lists to Julia-compatible formats using utility functions
     edge_data_julia_vector = to_julia_vector_of_sets(edge_data)
     nodes_julia = to_julia_set(nodes)
 
     # Call the Julia function
-    output = jl.compute_active_volume_tocks_to_prepare_subgraph(
+    output = jl.compute_all_to_all_tocks_to_prepare_subgraph(
         edge_data_julia_vector, nodes_julia
     )
 
     # then
-    assert output == expected_active_volume_tocks
+    assert output == expected_all_to_all_tocks

@@ -9,7 +9,7 @@ from benchq.compilation.graph_states.compiled_data_structures import (
 from benchq.logical_architecture_modeling.graph_based_logical_architectures import (
     GraphBasedLogicalArchitectureModel,
     TwoRowBusArchitectureModel,
-    ActiveVolumeArchitectureModel,
+    AllToAllArchitectureModel,
     consume_t_measurements,
 )
 
@@ -85,7 +85,7 @@ from benchq.resource_estimators.resource_info import (
                 "number_of_data_qubits": 5,
                 "number_of_bus_qubits": 0,
             },
-            ActiveVolumeArchitectureModel(),
+            AllToAllArchitectureModel(),
         ),
     ],
 )

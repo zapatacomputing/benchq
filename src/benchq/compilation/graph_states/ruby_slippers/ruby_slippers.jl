@@ -138,11 +138,11 @@ function run_ruby_slippers(
         if logical_architecture_name == "two_row_bus"
             (graph_creation_tocks_per_layer, t_states_per_layer, rotations_per_layer) =
                 two_row_scheduler(asg, pauli_tracker, num_logical_qubits, optimization, verbose)
-        elseif logical_architecture_name == "active_volume"
+        elseif logical_architecture_name == "all_to_all"
                 (graph_creation_tocks_per_layer, t_states_per_layer, rotations_per_layer) =
-                active_volume_scheduler(asg, pauli_tracker, num_logical_qubits, optimization, verbose)
+                all_to_all_scheduler(asg, pauli_tracker, num_logical_qubits, optimization, verbose)
         else
-            throw(ArgumentError("Logical architecture must be either two_row_bus or active_volume."))
+            throw(ArgumentError("Logical architecture must be either two_row_bus or all_to_all."))
         end
         python_compiled_data = Dict(
             "num_logical_qubits" => num_logical_qubits,

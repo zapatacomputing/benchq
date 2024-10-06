@@ -391,10 +391,10 @@ def consume_t_measurements(
     return remaining_t_measurements_per_node
 
 
-class ActiveVolumeArchitectureModel(GraphBasedLogicalArchitectureModel):
+class AllToAllArchitectureModel(GraphBasedLogicalArchitectureModel):
     def __init__(self):
         super().__init__()
-        self._name = "active_volume"
+        self._name = "all_to_all"
 
     def generate_spatial_resource_breakdown(
         self,
@@ -413,7 +413,7 @@ class ActiveVolumeArchitectureModel(GraphBasedLogicalArchitectureModel):
             )
         )
 
-        # The active volume architecture uses no bus qubits
+        # The all-to-all architecture uses no bus qubits
         num_logical_bus_qubits = 0
 
         return LogicalArchitectureResourceInfo(
