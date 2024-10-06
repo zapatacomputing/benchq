@@ -62,16 +62,24 @@ class DetailedIonTrapArchitectureResourceInfo:
 
 
 @dataclass
-class LogicalFailureRates:
+class LogicalFailureRateInfo:
     """Logical failure rates for various processes."""
 
-    total_circuit_failure_rate: float
-    total_rotation_failure_rate: float
-    total_distillation_failure_rate: float
-    total_qec_failure_rate: float
-    per_rotation_synthesi_failure_rate: float
-    per_t_gate_failure_rate: float
-    per_qec_failure_rate: float
+    total_rotation_failure_rate: Optional[float] = None
+    total_distillation_failure_rate: Optional[float] = None
+    total_qec_failure_rate: Optional[float] = None
+    per_rotation_failure_rate: Optional[float] = None
+    per_t_gate_failure_rate: Optional[float] = None
+    per_qec_failure_rate: Optional[float] = None
+
+    @property
+    def total_circuit_failure_rate(self) -> float:
+        """Dynamically calculate total circuit failure rate."""
+        return (
+            (float(self.total_rotation_failure_rate) or 0)
+            + (float(self.total_distillation_failure_rate) or 0)
+            + (float(self.total_qec_failure_rate) or 0)
+        )
 
 
 @dataclass
@@ -84,7 +92,7 @@ class LogicalArchitectureResourceInfo:
     num_magic_state_factories: Optional[int] = None
     magic_state_factory: Optional[MagicStateFactoryInfo] = None
     qec_cycle_allocation: Optional[QECCycleAllocation] = None
-    logical_failure_rates: Optional[LogicalFailureRates] = None
+    logical_failure_rate_info: Optional[LogicalFailureRateInfo] = None
 
     @property
     def num_logical_qubits(self) -> int:
@@ -128,6 +136,7 @@ class ResourceInfo(Generic[TExtra]):
     n_physical_qubits: Optional[int] = None
     n_t_gates: Optional[int] = None
     total_time_in_seconds: Optional[float] = None
+    total_circuit_failure_rate: Optional[float] = None
     abstract_logical_resource_info: Optional[AbstractLogicalResourceInfo] = None
     logical_architecture_resource_info: Optional[LogicalArchitectureResourceInfo] = None
     hardware_resource_info: Optional[DetailedIonTrapArchitectureResourceInfo] = None

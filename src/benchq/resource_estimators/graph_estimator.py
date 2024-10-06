@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import warnings
 from decimal import Decimal, getcontext
 from math import ceil
@@ -81,7 +83,7 @@ class GraphResourceEstimator:
         )
 
         # Budget failure tolerance
-        total_synthesis_failure_tolerance = (
+        total_rotation_failure_tolerance = (
             compiled_implementation.error_budget.transpilation_failure_tolerance
         )
 
@@ -110,14 +112,14 @@ class GraphResourceEstimator:
                 # If there are no rotation gates, then no T gates for
                 # rotations are needed
                 n_t_gates_per_rotation = 0
-                per_gate_synthesis_failure_tolerance = 0
+                per_rotation_failure_tolerance = 0
                 n_t_states = compiled_implementation.program.n_t_gates
             else:
-                per_gate_synthesis_failure_tolerance = Decimal(
-                    total_synthesis_failure_tolerance
+                per_rotation_failure_tolerance = Decimal(
+                    total_rotation_failure_tolerance
                 ) * Decimal(1 / compiled_implementation.program.n_rotation_gates)
                 n_t_gates_per_rotation = get_num_t_gates_per_rotation(
-                    per_gate_synthesis_failure_tolerance
+                    per_rotation_failure_tolerance
                 )
                 n_t_states = (
                     compiled_implementation.program.n_t_gates
@@ -125,6 +127,7 @@ class GraphResourceEstimator:
                     * n_t_gates_per_rotation
                 )
             per_t_gate_failure_tolerance = total_t_gate_failure_tolerance / n_t_states
+
             # Find minimal space or time factory satisfying error rate
             magic_state_factory = find_optimal_factory(
                 per_t_gate_failure_tolerance,
@@ -164,6 +167,25 @@ class GraphResourceEstimator:
             )
         )
 
+        # Populate remaining logical failure rates
+
+        # Rotations
+        logical_architecture_resource_info.logical_failure_rate_info.per_rotation_failure_rate = (
+            per_rotation_failure_tolerance
+        )
+        logical_architecture_resource_info.logical_failure_rate_info.total_rotation_failure_rate = (
+            per_rotation_failure_tolerance
+            * compiled_implementation.program.n_rotation_gates
+        )
+
+        # Distillation
+        logical_architecture_resource_info.logical_failure_rate_info.per_t_gate_failure_rate = (
+            magic_state_factory.distilled_magic_state_error_rate
+        )
+        logical_architecture_resource_info.logical_failure_rate_info.total_distillation_failure_rate = (
+            magic_state_factory.distilled_magic_state_error_rate * n_t_states
+        )
+
         # Populate decoder resource info
         decoder_info = get_decoder_info(
             hw_model,
@@ -173,9 +195,15 @@ class GraphResourceEstimator:
             logical_architecture_resource_info.num_logical_qubits,
         )
 
+        # Extract nested attribute into a local variable
+        logical_failure_info = (
+            logical_architecture_resource_info.logical_failure_rate_info
+        )
+        total_circuit_failure_rate = logical_failure_info.total_circuit_failure_rate
         resource_info = ResourceInfo(
             n_physical_qubits=n_physical_qubits,
             total_time_in_seconds=total_time_in_seconds,
+            total_circuit_failure_rate=total_circuit_failure_rate,
             logical_architecture_resource_info=logical_architecture_resource_info,
             decoder_info=decoder_info,
             optimization=self.optimization,

@@ -84,10 +84,6 @@ def get_implementation_compiler(
         if verbose:
             print("Beginning compilation...")
 
-        if logical_architecture_name == "Time":
-            print("deep")
-            breakpoint()
-
         program_compilation_wf = get_program_compilation_wf(
             algorithm_implementation,
             logical_architecture_name,

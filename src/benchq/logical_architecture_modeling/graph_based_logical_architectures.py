@@ -18,6 +18,7 @@ from ..visualization_tools.resource_allocation import QECCycleAllocation
 from ..resource_estimators.resource_info import (
     LogicalArchitectureResourceInfo,
     MagicStateFactoryInfo,
+    LogicalFailureRateInfo,
 )
 
 from .basic_logical_architectures import LogicalArchitectureModel
@@ -94,6 +95,13 @@ class GraphBasedLogicalArchitectureModel(LogicalArchitectureModel):
 
                 logical_architecture_resource_info.qec_cycle_allocation = (
                     time_allocation
+                )
+                logical_architecture_resource_info.logical_failure_rate_info = (
+                    LogicalFailureRateInfo(
+                        total_qec_failure_rate=float(
+                            total_qec_error_rate_at_this_distance
+                        )
+                    )
                 )
                 return logical_architecture_resource_info
 
@@ -228,9 +236,10 @@ class GraphBasedLogicalArchitectureModel(LogicalArchitectureModel):
                         # Time optimal entails using as many factories as would be
                         # needed by any layer in the subroutine to distill T states
                         # in parallel
-                        number_of_parallel_t_measurements = (
+                        number_of_parallel_t_measurements = max(
                             subroutine.t_states_per_layer[layer]
-                            + subroutine.rotations_per_layer[layer]
+                            + subroutine.rotations_per_layer[layer],
+                            t_gates_per_distillation,
                         )
                     else:
                         raise ValueError(
@@ -353,7 +362,7 @@ def consume_t_measurements(
 ):
     """This function helps with accounting for the scheduling of T state measurements
     given a specified number of T measurements that can be made in parallel.
-    The funtion decrements the number of remaining T measurements needed for each node
+    The function decrements the number of remaining T measurements needed for each node
     according to which nodes still need a T measurement and the number of T measurements
     that can be made in parallel.
 

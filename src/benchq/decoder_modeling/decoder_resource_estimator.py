@@ -16,6 +16,10 @@ def get_decoder_info(
     n_logical_qubits: int,
 ) -> Optional[DecoderInfo]:
     if not decoder_model:
+        warnings.warn(
+            "No decoder model provided, cannot estimate decoder resources.",
+            RuntimeWarning,
+        )
         return None
     else:
         speed_limit = get_decoder_distance_limit_due_to_speed(hw_model, decoder_model)
