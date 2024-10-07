@@ -2,6 +2,8 @@ import warnings
 from decimal import Decimal
 from math import ceil
 
+from typing import List
+
 from benchq.decoder_modeling.decoder_resource_estimator import get_decoder_info
 
 from ..compilation.graph_states.compiled_data_structures import (
@@ -48,7 +50,8 @@ class GraphBasedLogicalArchitectureModel(LogicalArchitectureModel):
 
         for data_and_bus_code_distance in range(min_d, max_d, 2):
 
-            # Initialize logical architecyture with fixed spatial layout and code distance
+            # Initialize logical architecyture with fixed spatial layout
+            # and code distance
             logical_architecture_resource_info = (
                 self.generate_spatial_resource_breakdown(
                     compiled_program,
@@ -357,9 +360,8 @@ class GraphBasedLogicalArchitectureModel(LogicalArchitectureModel):
 
 
 def consume_t_measurements(
-    remaining_t_measurements_per_node,
-    number_of_parallel_t_measurements,
-):
+    remaining_t_measurements_per_node: List[int], number_of_parallel_t_measurements: int
+) -> List[int]:
     """This function helps with accounting for the scheduling of T state measurements
     given a specified number of T measurements that can be made in parallel.
     The function decrements the number of remaining T measurements needed for each node

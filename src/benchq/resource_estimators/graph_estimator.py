@@ -136,7 +136,7 @@ class GraphResourceEstimator:
             )
 
         # Find optimal layout by minimizing code distance
-        logical_architecture_resource_info = (
+        log_arch_info = (
             logical_architecture_model.generate_minimal_code_distance_resources(
                 compiled_implementation.program,
                 self.optimization,
@@ -151,7 +151,7 @@ class GraphResourceEstimator:
 
         # Compute runtime to execute a single circuit
         time_per_circuit_in_seconds = (
-            logical_architecture_resource_info.qec_cycle_allocation.total
+            log_arch_info.qec_cycle_allocation.total
             * hw_model.surface_code_cycle_time_in_seconds
         )
 
@@ -163,26 +163,26 @@ class GraphResourceEstimator:
         # Compute total number of physical qubits
         n_physical_qubits = (
             logical_architecture_model.get_total_number_of_physical_qubits(
-                logical_architecture_resource_info
+                log_arch_info
             )
         )
 
         # Populate remaining logical failure rates
 
         # Rotations
-        logical_architecture_resource_info.logical_failure_rate_info.per_rotation_failure_rate = (
+        log_arch_info.logical_failure_rate_info.per_rotation_failure_rate = (
             per_rotation_failure_tolerance
         )
-        logical_architecture_resource_info.logical_failure_rate_info.total_rotation_failure_rate = (
+        log_arch_info.logical_failure_rate_info.total_rotation_failure_rate = (
             per_rotation_failure_tolerance
             * compiled_implementation.program.n_rotation_gates
         )
 
         # Distillation
-        logical_architecture_resource_info.logical_failure_rate_info.per_t_gate_failure_rate = (
+        log_arch_info.logical_failure_rate_info.per_t_gate_failure_rate = (
             magic_state_factory.distilled_magic_state_error_rate
         )
-        logical_architecture_resource_info.logical_failure_rate_info.total_distillation_failure_rate = (
+        log_arch_info.logical_failure_rate_info.total_distillation_failure_rate = (
             magic_state_factory.distilled_magic_state_error_rate * n_t_states
         )
 
@@ -190,21 +190,19 @@ class GraphResourceEstimator:
         decoder_info = get_decoder_info(
             hw_model,
             decoder_model,
-            logical_architecture_resource_info.data_and_bus_code_distance,
-            logical_architecture_resource_info.spacetime_volume_in_logical_qubit_tocks,
-            logical_architecture_resource_info.num_logical_qubits,
+            log_arch_info.data_and_bus_code_distance,
+            log_arch_info.spacetime_volume_in_logical_qubit_tocks,
+            log_arch_info.num_logical_qubits,
         )
 
         # Extract nested attribute into a local variable
-        logical_failure_info = (
-            logical_architecture_resource_info.logical_failure_rate_info
-        )
+        logical_failure_info = log_arch_info.logical_failure_rate_info
         total_circuit_failure_rate = logical_failure_info.total_circuit_failure_rate
         resource_info = ResourceInfo(
             n_physical_qubits=n_physical_qubits,
             total_time_in_seconds=total_time_in_seconds,
             total_circuit_failure_rate=total_circuit_failure_rate,
-            logical_architecture_resource_info=logical_architecture_resource_info,
+            logical_architecture_resource_info=log_arch_info,
             decoder_info=decoder_info,
             optimization=self.optimization,
             extra=GraphExtra(
@@ -214,7 +212,7 @@ class GraphResourceEstimator:
 
         # Allocate hardware resources according to logical architecture requirements
         resource_info.hardware_resource_info = (
-            hw_model.get_hardware_resource_estimates(logical_architecture_resource_info)
+            hw_model.get_hardware_resource_estimates(log_arch_info)
             if isinstance(hw_model, DetailedArchitectureModel)
             else None
         )
