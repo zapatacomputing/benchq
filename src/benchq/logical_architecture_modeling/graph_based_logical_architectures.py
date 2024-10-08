@@ -40,7 +40,7 @@ class GraphBasedLogicalArchitectureModel(LogicalArchitectureModel):
         optimization: str,
         n_t_gates_per_rotation: int,
         total_qec_failure_tolerance: float,
-        magic_state_factory: MagicStateFactoryInfo,
+        magic_state_factory: MagicStateFactoryInfo | None,
         hw_model: BasicArchitectureModel,
         min_d: int = 3,
         max_d: int = 200,
@@ -123,7 +123,7 @@ class GraphBasedLogicalArchitectureModel(LogicalArchitectureModel):
         compiled_program: CompiledQuantumProgram,
         optimization: str,
         data_and_bus_code_distance: int,
-        magic_state_factory: MagicStateFactoryInfo,
+        magic_state_factory: MagicStateFactoryInfo | None,
     ) -> LogicalArchitectureResourceInfo:
 
         raise NotImplementedError("Subclasses should implement this method.")
@@ -403,7 +403,7 @@ class AllToAllArchitectureModel(GraphBasedLogicalArchitectureModel):
         compiled_program: CompiledQuantumProgram,
         optimization: str,
         data_and_bus_code_distance: int,
-        magic_state_factory: MagicStateFactoryInfo,
+        magic_state_factory: MagicStateFactoryInfo | None,
     ) -> LogicalArchitectureResourceInfo:
 
         num_logical_data_qubits, num_magic_state_factories = (
@@ -437,7 +437,7 @@ class TwoRowBusArchitectureModel(GraphBasedLogicalArchitectureModel):
         compiled_program: CompiledQuantumProgram,
         optimization: str,
         data_and_bus_code_distance: int,
-        magic_state_factory: MagicStateFactoryInfo,
+        magic_state_factory: MagicStateFactoryInfo | None,
     ) -> LogicalArchitectureResourceInfo:
 
         num_logical_data_qubits, num_magic_state_factories = (

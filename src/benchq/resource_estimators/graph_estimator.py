@@ -104,6 +104,7 @@ class GraphResourceEstimator:
             # If there are no T gates or rotation gates, then there is
             # no need for a magic state factory
             n_t_gates_per_rotation = 0
+            per_rotation_failure_tolerance = 0
             per_t_gate_failure_tolerance = 0
             magic_state_factory = None
             n_t_states = 0
@@ -179,12 +180,18 @@ class GraphResourceEstimator:
         )
 
         # Distillation
-        log_arch_info.logical_failure_rate_info.per_t_gate_failure_rate = (
-            magic_state_factory.distilled_magic_state_error_rate
-        )
-        log_arch_info.logical_failure_rate_info.total_distillation_failure_rate = (
-            magic_state_factory.distilled_magic_state_error_rate * n_t_states
-        )
+        if magic_state_factory is None:
+            log_arch_info.logical_failure_rate_info.per_t_gate_failure_rate = 0.0
+            log_arch_info.logical_failure_rate_info.total_distillation_failure_rate = (
+                0.0
+            )
+        else:
+            log_arch_info.logical_failure_rate_info.per_t_gate_failure_rate = (
+                magic_state_factory.distilled_magic_state_error_rate
+            )
+            log_arch_info.logical_failure_rate_info.total_distillation_failure_rate = (
+                magic_state_factory.distilled_magic_state_error_rate * n_t_states
+            )
 
         # Populate decoder resource info
         decoder_info = get_decoder_info(
