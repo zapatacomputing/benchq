@@ -40,7 +40,7 @@ class GraphBasedLogicalArchitectureModel(LogicalArchitectureModel):
         optimization: str,
         n_t_gates_per_rotation: int,
         total_qec_failure_tolerance: float,
-        magic_state_factory: Union(MagicStateFactoryInfo, None),
+        magic_state_factory: Union[MagicStateFactoryInfo, None],
         hw_model: BasicArchitectureModel,
         min_d: int = 3,
         max_d: int = 200,
