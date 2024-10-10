@@ -10,7 +10,7 @@ from benchq.compilation.graph_states.compiled_data_structures import (
     CompiledAlgorithmImplementation,
 )
 
-from ..visualization_tools.resource_allocation import CycleAllocation
+from ..visualization_tools.resource_allocation import QECCycleAllocation
 
 TExtra = TypeVar("TExtra")
 
@@ -62,15 +62,61 @@ class DetailedIonTrapArchitectureResourceInfo:
 
 
 @dataclass
-class BusArchitectureResourceInfo:
-    """Info relating to bus architecture model resources."""
+class LogicalFailureRateInfo:
+    """Logical failure rates for various processes."""
 
-    num_logical_data_qubits: int
-    num_logical_bus_qubits: int
-    data_and_bus_code_distance: int
-    num_magic_state_factories: int
+    total_rotation_failure_rate: Optional[float] = None
+    total_distillation_failure_rate: Optional[float] = None
+    total_qec_failure_rate: Optional[float] = None
+    per_rotation_failure_rate: Optional[float] = None
+    per_t_gate_failure_rate: Optional[float] = None
+    per_qec_failure_rate: Optional[float] = None
+
+    @property
+    def total_circuit_failure_rate(self) -> float:
+        """Dynamically calculate total circuit failure rate."""
+        return (
+            (float(self.total_rotation_failure_rate) or 0)
+            + (float(self.total_distillation_failure_rate) or 0)
+            + (float(self.total_qec_failure_rate) or 0)
+        )
+
+
+@dataclass
+class LogicalArchitectureResourceInfo:
+    """Info logical architecture model resources."""
+
+    num_logical_data_qubits: Optional[int] = None
+    num_logical_bus_qubits: Optional[int] = None
+    data_and_bus_code_distance: Optional[int] = None
+    num_magic_state_factories: Optional[int] = None
     magic_state_factory: Optional[MagicStateFactoryInfo] = None
-    cycle_allocation: Optional[CycleAllocation] = None
+    qec_cycle_allocation: Optional[QECCycleAllocation] = None
+    logical_failure_rate_info: Optional[LogicalFailureRateInfo] = None
+
+    @property
+    def num_logical_qubits(self) -> int:
+        return self.num_logical_data_qubits + self.num_logical_bus_qubits
+
+    @property
+    def spacetime_volume_in_logical_qubit_tocks(self) -> float:
+        try:
+            st_volume_in_logical_qubit_tocks = (
+                self.qec_cycle_allocation.total
+                * self.num_logical_qubits
+                / self.data_and_bus_code_distance
+            )
+            return st_volume_in_logical_qubit_tocks
+        except AttributeError:
+            return None
+
+
+@dataclass
+class AbstractLogicalResourceInfo:
+    """Info relating to abstract logical resources."""
+
+    n_abstract_logical_qubits: int
+    n_t_gates: int
 
 
 @dataclass
@@ -86,19 +132,17 @@ class ResourceInfo(Generic[TExtra]):
     There are several variants of this class aliased below.
     """
 
-    n_physical_qubits: int
-    total_time_in_seconds: float
-    optimization: str
-    code_distance: int
-    logical_error_rate: float
-    n_logical_qubits: int  # Note: For the GraphResourceEstimator, this value
-    # is the sum of the number of data qubits and bus qubits, while for the
-    # openfermion_estimator, this value is the number of abstract logical qubits.
-    decoder_info: Optional[DecoderInfo]
-    magic_state_factory_name: str
-    extra: TExtra
-    logical_architecture_resource_info: Optional[BusArchitectureResourceInfo] = None
+    n_abstract_logical_qubits: Optional[int] = None
+    n_physical_qubits: Optional[int] = None
+    n_t_gates: Optional[int] = None
+    total_time_in_seconds: Optional[float] = None
+    total_circuit_failure_rate: Optional[float] = None
+    abstract_logical_resource_info: Optional[AbstractLogicalResourceInfo] = None
+    logical_architecture_resource_info: Optional[LogicalArchitectureResourceInfo] = None
     hardware_resource_info: Optional[DetailedIonTrapArchitectureResourceInfo] = None
+    decoder_info: Optional[DecoderInfo] = None
+    optimization: Optional[str] = None
+    extra: Optional[TExtra] = None
 
 
 @dataclass
@@ -133,6 +177,9 @@ class OpenFermionExtra:
     rounds_magicstateFactory: float
     scc_time: float
     physical_qubit_error_rate: float
+    code_distance: int
+    logical_error_rate: float
+    magic_state_factory_name: str
 
 
 # Alias for type of resource info returned by OpenFermion

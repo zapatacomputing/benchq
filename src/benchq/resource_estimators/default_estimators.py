@@ -9,6 +9,9 @@ from ..compilation.circuits.pyliqtr_transpilation import SYNTHESIS_SCALING
 from ..compilation.graph_states import get_implementation_compiler
 from ..decoder_modeling import DecoderModel
 from ..problem_embeddings.quantum_program import QuantumProgram
+from ..logical_architecture_modeling.basic_logical_architectures import (
+    LogicalArchitectureModel,
+)
 from ..quantum_hardware_modeling.hardware_architecture_models import (
     BasicArchitectureModel,
     IONTrapModel,
@@ -23,6 +26,7 @@ DEFAULT_STEPS_TO_EXTRAPOLATE_FROM = [1, 2, 3]
 
 def get_precise_graph_estimate(
     algorithm_implementation: AlgorithmImplementation,
+    logical_architecture_model: LogicalArchitectureModel,
     hardware_model: BasicArchitectureModel,
     optimization: str,
     decoder_model: Optional[DecoderModel] = None,
@@ -56,6 +60,7 @@ def get_precise_graph_estimate(
     return GraphResourceEstimator(optimization).compile_and_estimate(
         algorithm_implementation,
         get_implementation_compiler(),
+        logical_architecture_model,
         hardware_model,
         decoder_model=decoder_model,
     )
@@ -63,6 +68,7 @@ def get_precise_graph_estimate(
 
 def get_fast_graph_estimate(
     algorithm_implementation: AlgorithmImplementation,
+    logical_architecture_model: LogicalArchitectureModel,
     hardware_model: BasicArchitectureModel,
     optimization: str,
     decoder_model: Optional[DecoderModel] = None,
@@ -96,6 +102,7 @@ def get_fast_graph_estimate(
     return GraphResourceEstimator(optimization).compile_and_estimate(
         algorithm_implementation,
         get_implementation_compiler(),
+        logical_architecture_model,
         hardware_model,
         decoder_model=decoder_model,
     )
@@ -103,6 +110,7 @@ def get_fast_graph_estimate(
 
 def get_precise_stitched_estimate(
     algorithm_implementation: AlgorithmImplementation,
+    logical_architecture_model: LogicalArchitectureModel,
     hardware_model: BasicArchitectureModel,
     optimization: str,
     decoder_model: Optional[DecoderModel] = None,
@@ -131,6 +139,7 @@ def get_precise_stitched_estimate(
     return GraphResourceEstimator(optimization).compile_and_estimate(
         algorithm_implementation,
         get_implementation_compiler(),
+        logical_architecture_model,
         hardware_model,
         decoder_model=decoder_model,
     )
@@ -138,6 +147,7 @@ def get_precise_stitched_estimate(
 
 def get_fast_stitched_estimate(
     algorithm_implementation: AlgorithmImplementation,
+    logical_architecture_model: LogicalArchitectureModel,
     hardware_model: BasicArchitectureModel,
     optimization: str,
     decoder_model: Optional[DecoderModel] = None,
@@ -164,6 +174,7 @@ def get_fast_stitched_estimate(
     return GraphResourceEstimator(optimization).compile_and_estimate(
         algorithm_implementation,
         get_implementation_compiler(),
+        logical_architecture_model,
         hardware_model,
         decoder_model=decoder_model,
     )

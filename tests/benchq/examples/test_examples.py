@@ -22,6 +22,10 @@ from benchq.conversions import import_circuit
 from benchq.quantum_hardware_modeling import BASIC_SC_ARCHITECTURE_MODEL
 from benchq.resource_estimators.default_estimators import get_precise_graph_estimate
 from benchq.resource_estimators.graph_estimator import GraphResourceEstimator
+from benchq.logical_architecture_modeling.graph_based_logical_architectures import (
+    TwoRowBusArchitectureModel,
+)
+
 
 MAIN_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.dirname(MAIN_DIR))
@@ -92,7 +96,9 @@ def test_toy_example_notebook():
     """Test all of the lines in the toy model work."""
     file_path = os.path.join("examples", "data", "single_rotation.qasm")
     demo_circuit = QuantumCircuit.from_qasm_file(file_path)
-    architecture_model = BASIC_SC_ARCHITECTURE_MODEL
+    hardware_architecture_model = BASIC_SC_ARCHITECTURE_MODEL
+    logical_architecture_model = TwoRowBusArchitectureModel()
+    logical_architecture_name = logical_architecture_model.name
 
     clifford_t_circuit = pyliqtr_transpile_to_clifford_t(
         demo_circuit, circuit_precision=1e-2
@@ -101,7 +107,12 @@ def test_toy_example_notebook():
     compiler = get_jabalizer_circuit_compiler()
     optimization = "Time"  # or "Space"
     verbose = False
-    compiler(clifford_t_circuit, optimization, verbose)
+    compiler(
+        clifford_t_circuit,
+        logical_architecture_name,
+        optimization,
+        verbose,
+    )
 
     asg, pauli_tracker, _ = jl.get_rbs_graph_state_data(
         clifford_t_circuit,
@@ -129,16 +140,29 @@ def test_toy_example_notebook():
 
     # run the estimator
     estimator.compile_and_estimate(
-        implementation, implementation_compiler, architecture_model
+        implementation,
+        implementation_compiler,
+        logical_architecture_model,
+        hardware_architecture_model,
     )
 
     # only allow a failure to occur 1% of the time
     budget = ErrorBudget.from_even_split(1e-2)
     implementation = AlgorithmImplementation.from_circuit(demo_circuit, budget, 1)
     optimization = "Time"
-    get_precise_graph_estimate(implementation, architecture_model, optimization)
+    get_precise_graph_estimate(
+        implementation,
+        logical_architecture_model,
+        hardware_architecture_model,
+        optimization,
+    )
 
-    compiler(clifford_t_circuit, optimization="Time", verbose=True)
+    compiler(
+        clifford_t_circuit,
+        logical_architecture_name,
+        "Time",
+        True,
+    )
 
     get_icm(clifford_t_circuit)
 
@@ -150,12 +174,21 @@ def test_toy_example_notebook():
     )
     asg = jl.python_asg(asg)
 
-    compiled_implementation = implementation_compiler(implementation, optimization)
+    if logical_architecture_name == "Time":
+        print("shallow")
+        breakpoint()
+
+    compiled_implementation = implementation_compiler(
+        implementation,
+        logical_architecture_name=logical_architecture_name,
+        optimization=optimization,
+    )
     compiled_implementation.program.subroutines[0]
 
     estimator.estimate_resources_from_compiled_implementation(
         compiled_implementation,
-        architecture_model,
+        logical_architecture_model,
+        hardware_architecture_model,
     )
 
     schedule = python_substrate_scheduler(asg, "fast")

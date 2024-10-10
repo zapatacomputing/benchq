@@ -22,10 +22,14 @@ from benchq.problem_ingestion.solid_state_hamiltonians.ising import (
 from benchq.quantum_hardware_modeling import DETAILED_ION_TRAP_ARCHITECTURE_MODEL
 from benchq.resource_estimators.default_estimators import get_fast_graph_estimate
 from benchq.timing import measure_time
+from benchq.logical_architecture_modeling.graph_based_logical_architectures import (
+    TwoRowBusArchitectureModel,
+)
 
 
 def main() -> None:
-    architecture_model = DETAILED_ION_TRAP_ARCHITECTURE_MODEL
+    hardware_architecture_model = DETAILED_ION_TRAP_ARCHITECTURE_MODEL
+    logical_architecture_model = TwoRowBusArchitectureModel()
 
     with measure_time() as t_info:
         lattice_size = 3
@@ -46,7 +50,10 @@ def main() -> None:
 
     with measure_time() as t_info:
         fast_gsc_resources = get_fast_graph_estimate(
-            algorithm, architecture_model, optimization="Time"
+            algorithm,
+            logical_architecture_model,
+            hardware_architecture_model,
+            optimization="Time",
         )
 
     print("Resource estimation time with GSC:", t_info.total)

@@ -3,26 +3,39 @@ using Graphs
 using PythonCall
 import Graphs.SimpleGraphs
 
-function run_jabalizer(circuit, optimization, debug_flag=false, space_optimization_timeout=1)
-
-    asg, pauli_tracker, num_layers = get_jabalizer_graph_state_data(
-        circuit, optimization, debug_flag, space_optimization_timeout
+function run_jabalizer(
+    circuit, 
+    logical_architecture_name::String="two_row_bus", 
+    optimization::String="Space",
+    verbose::Bool=false,
+    space_optimization_timeout=1
     )
 
-    num_logical_qubits = get_num_logical_qubits(pauli_tracker.layering, asg, optimization, debug_flag)
-    debug_flag && println("Running substrate scheduler...")
-    if debug_flag && num_logical_qubits == num_layers && optimization == "Space"
+    asg, pauli_tracker, num_layers = get_jabalizer_graph_state_data(
+        circuit, optimization, verbose, space_optimization_timeout
+    )
+
+    num_logical_qubits = get_num_logical_qubits(pauli_tracker.layering, asg, optimization, verbose)
+    verbose && println("Running substrate scheduler...")
+    if verbose && num_logical_qubits == num_layers && optimization == "Space"
         error("Jabalizer and Ruby Slippers disagree on qubit counts.")
     end
-    (graph_creation_tocks_per_layer, t_states_per_layer, rotations_per_layer) =
+
+    if logical_architecture_name == "two_row_bus"
+        (graph_creation_tocks_per_layer, t_states_per_layer, rotations_per_layer) =
         two_row_scheduler(
             asg,
             pauli_tracker,
             num_logical_qubits,
             optimization,
-            debug_flag,
+            verbose,
         )
-
+    elseif logical_architecture_name == "all_to_all"
+            (graph_creation_tocks_per_layer, t_states_per_layer, rotations_per_layer) =
+            all_to_all_scheduler(asg, pauli_tracker, num_logical_qubits, optimization, verbose)
+    else
+        throw(ArgumentError("Logical architecture must be either two_row_bus or all_to_all."))
+    end
     python_compiled_data = Dict(
         "num_logical_qubits" => num_logical_qubits,
         "num_layers" => num_layers,
@@ -35,8 +48,8 @@ function run_jabalizer(circuit, optimization, debug_flag=false, space_optimizati
 end
 
 
-function get_jabalizer_graph_state_data(circuit, optimization, debug_flag=false, space_optimization_timeout=1)
-    if debug_flag
+function get_jabalizer_graph_state_data(circuit, optimization, verbose=false, space_optimization_timeout=1)
+    if verbose
         println("Compiling using Jabalizer...")
         println("Converting to Jabalizer Circuit...")
     end
@@ -87,7 +100,7 @@ function get_jabalizer_graph_state_data(circuit, optimization, debug_flag=false,
         input_circuit
     )
 
-    if debug_flag
+    if verbose
         println("Compiling to Algorithm Specific Graph...")
     end
 
@@ -99,7 +112,7 @@ function get_jabalizer_graph_state_data(circuit, optimization, debug_flag=false,
     )
 
     n_nodes = length(jabalizer_out["spatialgraph"])
-    julia_spacial_graph = [Set{UInt32}(neighborhood .+ 1) for neighborhood in jabalizer_out["spatialgraph"]]
+    julia_spatial_graph = [Set{UInt32}(neighborhood .+ 1) for neighborhood in jabalizer_out["spatialgraph"]]
     graph_input_nodes = jabalizer_out["statenodes"] .+ 1
     graph_output_nodes = jabalizer_out["outputnodes"] .+ 1
 
@@ -129,7 +142,7 @@ function get_jabalizer_graph_state_data(circuit, optimization, debug_flag=false,
     layering = [layer .+ 1 for layer in jabalizer_out["steps"]]
 
     asg = AlgorithmSpecificGraph(
-        julia_spacial_graph,
+        julia_spatial_graph,
         [],
         [],
         n_nodes,

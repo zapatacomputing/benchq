@@ -32,11 +32,15 @@ from benchq.problem_ingestion.solid_state_hamiltonians.heisenberg import (
 )
 from benchq.quantum_hardware_modeling import BASIC_SC_ARCHITECTURE_MODEL
 from benchq.resource_estimators.graph_estimator import GraphResourceEstimator
+from benchq.logical_architecture_modeling.graph_based_logical_architectures import (
+    TwoRowBusArchitectureModel,
+    AllToAllArchitectureModel,
+)
 from benchq.timing import measure_time
 
 
 def main():
-    evolution_time = 5
+    evolution_time = 4
 
     start_time = time()
     # Generating Hamiltonian for a given set of parameters, which
@@ -44,7 +48,7 @@ def main():
     # measure_time is a utility tool which measures the execution time of
     # the code inside the with statement.
     with measure_time() as t_info:
-        N = 3  # Problem size
+        N = 6  # Problem size
 
         # Get a Vlasov Hamiltonian for simulation
         operator = get_vlasov_hamiltonian(N=N, k=2.0, alpha=0.6, nu=0)
@@ -59,8 +63,11 @@ def main():
     with measure_time() as t_info:
         algorithm = qsp_time_evolution_algorithm(operator, evolution_time, 1e-3)
 
+    # Transpile the circuit to a Clifford+T circuit
+    cliff_t_algorithm = algorithm.transpile_to_clifford_t()
+    cliff_t_algorithm = algorithm
     print("Circuit generation time:", t_info.total)
-    print("n qubits in circuit:", algorithm.program.subroutines[0].n_qubits)
+    print("n qubits in circuit:", cliff_t_algorithm.program.subroutines[0].n_qubits)
 
     # Allows for parallelized compilation. Uses ruby slippers compiler by default.
     # The single-thread setting is simplest to use. You can parallelize on a local
@@ -71,17 +78,47 @@ def main():
         circuit_compiler=get_ruby_slippers_circuit_compiler(),
         destination="single-thread",
     )
-    estimator = GraphResourceEstimator(optimization="Time", verbose=True)
+
+    two_row_architecture = TwoRowBusArchitectureModel()
+    active_volume_architecture = AllToAllArchitectureModel()
+
+    graph_estimator = GraphResourceEstimator(optimization="Time", verbose=True)
 
     with measure_time() as t_info:
-        resource_estimate = estimator.compile_and_estimate(
-            algorithm,
+        two_row_resource_estimate = graph_estimator.compile_and_estimate(
+            cliff_t_algorithm,
             implementation_compiler,
+            two_row_architecture,
+            BASIC_SC_ARCHITECTURE_MODEL,
+        )
+        active_volume_resource_estimate = graph_estimator.compile_and_estimate(
+            cliff_t_algorithm,
+            implementation_compiler,
+            active_volume_architecture,
             BASIC_SC_ARCHITECTURE_MODEL,
         )
 
-    print("Resource estimation time without synthesis:", t_info.total)
-    pprint(resource_estimate)
+    tr_info = two_row_resource_estimate.logical_architecture_resource_info
+    av_info = active_volume_resource_estimate.logical_architecture_resource_info
+
+    print("Two row resource estimate", two_row_resource_estimate)
+    print("Active volume resource estimate", active_volume_resource_estimate)
+    print(
+        "Two row graph state cycles",
+        tr_info.qec_cycle_allocation.inclusive("graph state prep"),
+    )
+    print(
+        "Active volume graph state cycles",
+        av_info.qec_cycle_allocation.inclusive("graph state prep"),
+    )
+    print(
+        "Two row total cycles",
+        tr_info.qec_cycle_allocation.total,
+    )
+    print(
+        "Active volume total cycles",
+        av_info.qec_cycle_allocation.total,
+    )
 
     print("Total time to estimate resources:", time() - start_time)
 

@@ -23,6 +23,7 @@ from .compiled_data_structures import (
 )
 def distributed_graph_creation(
     circuit: Circuit,
+    logical_architecture_name: str,
     optimization: str,
     verbose: bool,
     circuit_compiler,
@@ -34,7 +35,8 @@ def distributed_graph_creation(
     circuit = compile_to_native_gates(circuit, verbose)
     if verbose:
         print("Transferring Data to Julia...")
-    return circuit_compiler(circuit, optimization, verbose)
+
+    return circuit_compiler(circuit, logical_architecture_name, optimization, verbose)
 
 
 def get_implementation_compiler(
@@ -45,10 +47,13 @@ def get_implementation_compiler(
     config_name: str = "darpa-ta1",
     workspace_id: str = "darpa-phase-ii-gsc-resource-estimates-8a7c3b",
     project_id: str = "migration",
-) -> Callable[[AlgorithmImplementation, str, bool], CompiledAlgorithmImplementation]:
+) -> Callable[
+    [AlgorithmImplementation, str, str, bool], CompiledAlgorithmImplementation
+]:
     @sdk.workflow(resources=sdk.Resources(cpu=str(num_cores), memory="16Gi"))
     def get_program_compilation_wf(
         algorithm_implementation: AlgorithmImplementation,
+        logical_architecture: str = "two_row_bus",
         optimization: str = "Space",
         verbose: bool = False,
     ) -> List[sdk.ArtifactFuture[GSCInfo]]:
@@ -59,6 +64,7 @@ def get_implementation_compiler(
             compiled_subroutine_list.append(
                 distributed_graph_creation(
                     circuit,
+                    logical_architecture,
                     optimization,
                     verbose,
                     circuit_compiler,
@@ -71,13 +77,16 @@ def get_implementation_compiler(
 
     def parallelized_compiler(
         algorithm_implementation: AlgorithmImplementation,
+        logical_architecture_name: str = "two_row_bus",
         optimization: str = "Space",
         verbose: bool = False,
     ) -> CompiledAlgorithmImplementation:
         if verbose:
             print("Beginning compilation...")
+
         program_compilation_wf = get_program_compilation_wf(
             algorithm_implementation,
+            logical_architecture_name,
             optimization,
             verbose,
         )
@@ -98,12 +107,10 @@ def get_implementation_compiler(
 
         if verbose:
             print("Compilation complete.")
-
         compiled_program = CompiledQuantumProgram.from_program(
             algorithm_implementation.program,
             compiled_subroutine_list,  # type: ignore
         )
-
         return CompiledAlgorithmImplementation(
             compiled_program, algorithm_implementation
         )
