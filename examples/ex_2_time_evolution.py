@@ -80,7 +80,7 @@ def main():
     )
 
     two_row_architecture = TwoRowBusArchitectureModel()
-    active_volume_architecture = AllToAllArchitectureModel()
+    all_to_all_architecture = AllToAllArchitectureModel()
 
     graph_estimator = GraphResourceEstimator(optimization="Time", verbose=True)
 
@@ -91,33 +91,33 @@ def main():
             two_row_architecture,
             BASIC_SC_ARCHITECTURE_MODEL,
         )
-        active_volume_resource_estimate = graph_estimator.compile_and_estimate(
+        all_to_all_resource_estimate = graph_estimator.compile_and_estimate(
             cliff_t_algorithm,
             implementation_compiler,
-            active_volume_architecture,
+            all_to_all_architecture,
             BASIC_SC_ARCHITECTURE_MODEL,
         )
 
     tr_info = two_row_resource_estimate.logical_architecture_resource_info
-    av_info = active_volume_resource_estimate.logical_architecture_resource_info
+    a2a_info = all_to_all_resource_estimate.logical_architecture_resource_info
 
     print("Two row resource estimate", two_row_resource_estimate)
-    print("Active volume resource estimate", active_volume_resource_estimate)
+    print("All to all resource estimate", all_to_all_resource_estimate)
     print(
         "Two row graph state cycles",
         tr_info.qec_cycle_allocation.inclusive("graph state prep"),
     )
     print(
-        "Active volume graph state cycles",
-        av_info.qec_cycle_allocation.inclusive("graph state prep"),
+        "All to all graph state cycles",
+        a2a_info.qec_cycle_allocation.inclusive("graph state prep"),
     )
     print(
         "Two row total cycles",
         tr_info.qec_cycle_allocation.total,
     )
     print(
-        "Active volume total cycles",
-        av_info.qec_cycle_allocation.total,
+        "All to all total cycles",
+        a2a_info.qec_cycle_allocation.total,
     )
 
     print("Total time to estimate resources:", time() - start_time)
