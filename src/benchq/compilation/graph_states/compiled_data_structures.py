@@ -90,20 +90,6 @@ class CompiledQuantumProgram:
             for subroutine in self.subroutine_sequence
         )
 
-    @property
-    def t_depth(self) -> int:
-        """If the circuit is transpiled to a gate set containing T-gates, this
-        function returns the depth of the circuit in terms of T-gates. If not,
-        then it returns the depth in terms of non-clifford rotations.
-
-        Returns:
-            int: number of T-gates in the circuit.
-        """
-        return sum(
-            self.subroutines[subroutine].num_layers
-            for subroutine in self.subroutine_sequence
-        )
-
     def get_n_t_gates_after_synthesis(self, transpilation_failure_tolerance: float):
         if self.n_rotation_gates == 0:
             return self.n_t_gates
