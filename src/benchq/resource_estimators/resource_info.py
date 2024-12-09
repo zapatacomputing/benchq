@@ -53,12 +53,12 @@ class ELUResourceInfo:
 class DetailedIonTrapArchitectureResourceInfo:
     """Info relating to detailed ion trap architecture model resources."""
 
-    num_data_elus: int
-    data_elu_resource_info: ELUResourceInfo
-    num_bus_elus: int
-    bus_elu_resource_info: ELUResourceInfo
-    num_distillation_elus: int
-    distillation_elu_resource_info: ELUResourceInfo
+    num_data_elus: Optional[int] = None
+    data_elu_resource_info: Optional[ELUResourceInfo] = None
+    num_bus_elus: Optional[int] = None
+    bus_elu_resource_info: Optional[ELUResourceInfo] = None
+    num_distillation_elus: Optional[int] = None
+    distillation_elu_resource_info: Optional[ELUResourceInfo] = None
 
 
 @dataclass
@@ -76,9 +76,21 @@ class LogicalFailureRateInfo:
     def total_circuit_failure_rate(self) -> float:
         """Dynamically calculate total circuit failure rate."""
         return (
-            (float(self.total_rotation_failure_rate) or 0)
-            + (float(self.total_distillation_failure_rate) or 0)
-            + (float(self.total_qec_failure_rate) or 0)
+            (
+                float(self.total_rotation_failure_rate)
+                if self.total_rotation_failure_rate is not None
+                else 0
+            )
+            + (
+                float(self.total_distillation_failure_rate)
+                if self.total_distillation_failure_rate is not None
+                else 0
+            )
+            + (
+                float(self.total_qec_failure_rate)
+                if self.total_qec_failure_rate is not None
+                else 0
+            )
         )
 
 
@@ -96,19 +108,30 @@ class LogicalArchitectureResourceInfo:
 
     @property
     def num_logical_qubits(self) -> int:
-        return self.num_logical_data_qubits + self.num_logical_bus_qubits
+        if (
+            not isinstance(self.num_logical_data_qubits, int)
+            and self.num_logical_data_qubits is not None
+        ):
+            raise TypeError("num_logical_data_qubits must be an integer")
+        if (
+            not isinstance(self.num_logical_bus_qubits, int)
+            and self.num_logical_bus_qubits is not None
+        ):
+            raise TypeError("num_logical_bus_qubits must be an integer")
+        return (self.num_logical_data_qubits or 0) + (self.num_logical_bus_qubits or 0)
 
     @property
     def spacetime_volume_in_logical_qubit_tocks(self) -> float:
-        try:
-            st_volume_in_logical_qubit_tocks = (
-                self.qec_cycle_allocation.total
-                * self.num_logical_qubits
-                / self.data_and_bus_code_distance
-            )
-            return st_volume_in_logical_qubit_tocks
-        except AttributeError:
-            return None
+        if self.qec_cycle_allocation is None:
+            raise ValueError("qec_cycle_allocation must not be None")
+        if self.data_and_bus_code_distance is None:
+            raise ValueError("data_and_bus_code_distance must not be None")
+        st_volume_in_logical_qubit_tocks = (
+            self.qec_cycle_allocation.total
+            * self.num_logical_qubits
+            / self.data_and_bus_code_distance
+        )
+        return st_volume_in_logical_qubit_tocks
 
 
 @dataclass

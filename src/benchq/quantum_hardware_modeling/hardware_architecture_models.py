@@ -94,6 +94,10 @@ class DetailedIonTrapModel:
                 "Set bus_architecture_resource_info to LogicalArchitectureResourceInfo"
             )
 
+        # Check that code_distance is an int
+        if not isinstance(code_distance, int):
+            raise ValueError("code_distance must be an integer")
+
         n_logical_data_qubits = bus_architecture_resource_info.num_logical_data_qubits
         n_logical_bus_qubits = bus_architecture_resource_info.num_logical_bus_qubits
         n_magic_state_factories = (

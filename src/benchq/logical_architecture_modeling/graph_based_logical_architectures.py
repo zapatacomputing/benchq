@@ -69,11 +69,14 @@ class GraphBasedLogicalArchitectureModel(LogicalArchitectureModel):
                 n_t_gates_per_rotation,
             )
 
-            # Get spatial allocation
-            num_logical_qubits = (
-                logical_architecture_resource_info.num_logical_data_qubits
-                + logical_architecture_resource_info.num_logical_bus_qubits
+            # Get spatial allocation (set values to zero if not available)
+            num_logical_data_qubits = (
+                logical_architecture_resource_info.num_logical_data_qubits or 0
             )
+            num_logical_bus_qubits = (
+                logical_architecture_resource_info.num_logical_bus_qubits or 0
+            )
+            num_logical_qubits = num_logical_data_qubits + num_logical_bus_qubits
 
             # Compute total spacetime volume
             num_cycles = time_allocation.total
@@ -134,7 +137,7 @@ class GraphBasedLogicalArchitectureModel(LogicalArchitectureModel):
         optimization: str,
         data_and_bus_code_distance: int,
         magic_state_factory: MagicStateFactoryInfo,
-    ) -> LogicalArchitectureResourceInfo:
+    ) -> tuple[int, int]:
 
         num_logical_data_qubits = (
             self.get_max_number_of_data_qubits_from_compiled_program(compiled_program)
