@@ -12,6 +12,9 @@ from ..problem_embeddings.quantum_program import QuantumProgram
 from ..logical_architecture_modeling.basic_logical_architectures import (
     LogicalArchitectureModel,
 )
+from ..logical_architecture_modeling.graph_based_logical_architectures import (
+    GraphBasedLogicalArchitectureModel,
+)
 from ..quantum_hardware_modeling.hardware_architecture_models import (
     BasicArchitectureModel,
     IONTrapModel,
@@ -110,7 +113,7 @@ def get_fast_graph_estimate(
 
 def get_precise_stitched_estimate(
     algorithm_implementation: AlgorithmImplementation,
-    logical_architecture_model: LogicalArchitectureModel,
+    logical_architecture_model: GraphBasedLogicalArchitectureModel,
     hardware_model: BasicArchitectureModel,
     optimization: str,
     decoder_model: Optional[DecoderModel] = None,
@@ -147,7 +150,7 @@ def get_precise_stitched_estimate(
 
 def get_fast_stitched_estimate(
     algorithm_implementation: AlgorithmImplementation,
-    logical_architecture_model: LogicalArchitectureModel,
+    logical_architecture_model: GraphBasedLogicalArchitectureModel,
     hardware_model: BasicArchitectureModel,
     optimization: str,
     decoder_model: Optional[DecoderModel] = None,
@@ -205,94 +208,6 @@ def get_footprint_estimate(
         num_t=total_t_gates,
         architecture_model=hardware_model,
         hardware_failure_tolerance=hardware_failure_tolerance,
-        decoder_model=decoder_model,
-    )
-
-
-def automatic_resource_estimator(
-    algorithm_implementation: AlgorithmImplementation,
-    hardware_model: BasicArchitectureModel,
-    decoder_model: Optional[DecoderModel] = None,
-    optimization: Optional[str] = None,
-) -> ResourceInfo:
-    """Pick the appropriate resource estimator based on the size of the program.
-
-    Currently, chooses between GraphResourceEstimator and
-    ExtrapolationResourceEstimator and whether to use delayed gate synthesis
-    in the following order:
-        1. GraphResourceEstimator without delayed gate synthesis
-        2. ExtrapolationResourceEstimator without delayed gate synthesis
-        3. GraphResourceEstimator with delayed gate synthesis
-        4. ExtrapolationResourceEstimator with delayed gate synthesis
-        5. Footprint estimator as a last-ditch effort
-
-    Decision is based on graph complexity, which is roughly the number
-    of remove_sqs operations one needs to do. Check out Ruby slippers compiler
-    for more details on remove_sqs.
-
-    Args:
-        algorithm_implementation (AlgorithmImplementation): The algorithm to estimate
-            resources for.
-        hardware_model (BasicArchitectureModel): The hardware model to estimate
-            resources for.
-        decoder_model (Optional[DecoderModel], optional): The decoder model to
-            run the algorithm with. Defaults to None and returns no estimate in
-            that case.
-
-    Returns:
-        ResourceInfo: The resources required to run the algorithm.
-    """
-    assert isinstance(algorithm_implementation.program, QuantumProgram)
-    initial_number_of_steps = algorithm_implementation.program.steps
-
-    if optimization is None:
-        if hardware_model == SCModel:
-            optimization = "Space"
-        elif hardware_model == IONTrapModel:
-            optimization = "Time"
-        else:
-            raise ValueError(
-                f"Hardware model {hardware_model} has no default optimization. "
-                "Please specify one manually."
-            )
-
-    graph_size = estimate_full_graph_size(algorithm_implementation, False)
-    reduced_graph_size = estimate_full_graph_size(algorithm_implementation, True)
-
-    # Changing number of steps impacts estimated graph size for extrapolation
-    algorithm_implementation.program.steps = max(DEFAULT_STEPS_TO_EXTRAPOLATE_FROM)
-
-    extrapolaed_graph_size = estimate_full_graph_size(algorithm_implementation, False)
-    small_extrapolated_graph_size = estimate_full_graph_size(
-        algorithm_implementation, True
-    )
-
-    algorithm_implementation.program.steps = initial_number_of_steps
-
-    if graph_size < 1e7:
-        pipeline = get_precise_graph_estimate
-        print("Using precise graph estimator")
-    elif extrapolaed_graph_size < 1e7:
-        pipeline = partial(
-            get_precise_stitched_estimate,
-        )
-        print("Using precise extrapolation graph estimator")
-    elif reduced_graph_size < 1e7:
-        pipeline = get_fast_graph_estimate
-        print("Using fast graph estimator")
-    elif small_extrapolated_graph_size < 1e7:
-        pipeline = partial(
-            get_fast_stitched_estimate,
-        )
-        print("Using fast extrapolation graph estimator")
-    else:
-        pipeline = get_footprint_estimate
-        print("Using footprint analysis estimator")
-
-    return pipeline(
-        algorithm_implementation,
-        hardware_model,
-        optimization,
         decoder_model=decoder_model,
     )
 
