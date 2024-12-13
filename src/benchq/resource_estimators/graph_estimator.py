@@ -152,7 +152,7 @@ class GraphResourceEstimator:
 
         # Compute runtime to execute a single circuit
         time_per_circuit_in_seconds = (
-            log_arch_info.qec_cycle_allocation.total
+            log_arch_info.qec_cycle_allocation.total  # type: ignore
             * hw_model.surface_code_cycle_time_in_seconds
         )
 
@@ -171,25 +171,25 @@ class GraphResourceEstimator:
         # Populate remaining logical failure rates
 
         # Rotations
-        log_arch_info.logical_failure_rate_info.per_rotation_failure_rate = (
+        log_arch_info.logical_failure_rate_info.per_rotation_failure_rate = (  # type: ignore
             per_rotation_failure_tolerance
         )
-        log_arch_info.logical_failure_rate_info.total_rotation_failure_rate = (
+        log_arch_info.logical_failure_rate_info.total_rotation_failure_rate = (  # type: ignore
             per_rotation_failure_tolerance
             * compiled_implementation.program.n_rotation_gates
         )
 
         # Distillation
         if magic_state_factory is None:
-            log_arch_info.logical_failure_rate_info.per_t_gate_failure_rate = 0.0
-            log_arch_info.logical_failure_rate_info.total_distillation_failure_rate = (
+            log_arch_info.logical_failure_rate_info.per_t_gate_failure_rate = 0.0  # type: ignore
+            log_arch_info.logical_failure_rate_info.total_distillation_failure_rate = (  # type: ignore
                 0.0
             )
         else:
-            log_arch_info.logical_failure_rate_info.per_t_gate_failure_rate = (
+            log_arch_info.logical_failure_rate_info.per_t_gate_failure_rate = (  # type: ignore
                 magic_state_factory.distilled_magic_state_error_rate
             )
-            log_arch_info.logical_failure_rate_info.total_distillation_failure_rate = (
+            log_arch_info.logical_failure_rate_info.total_distillation_failure_rate = (  # type: ignore
                 magic_state_factory.distilled_magic_state_error_rate * n_t_states
             )
 
@@ -204,7 +204,11 @@ class GraphResourceEstimator:
 
         # Extract nested attribute into a local variable
         logical_failure_info = log_arch_info.logical_failure_rate_info
-        total_circuit_failure_rate = logical_failure_info.total_circuit_failure_rate
+        total_circuit_failure_rate = (
+            logical_failure_info.total_circuit_failure_rate
+            if logical_failure_info is not None
+            else None
+        )
         resource_info = ResourceInfo(
             n_physical_qubits=n_physical_qubits,
             total_time_in_seconds=total_time_in_seconds,
