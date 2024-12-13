@@ -11,6 +11,9 @@ from benchq.compilation.graph_states.implementation_compiler import (
     get_implementation_compiler,
 )
 from benchq.decoder_modeling import DecoderModel
+from benchq.logical_architecture_modeling.graph_based_logical_architectures import (
+    TwoRowBusArchitectureModel,
+)
 from benchq.problem_ingestion.solid_state_hamiltonians.ising import (
     generate_ising_hamiltonian_on_cubic_lattice,
     generate_ising_hamiltonian_on_kitaev_lattice,
@@ -22,9 +25,6 @@ from benchq.quantum_hardware_modeling import (
 )
 from benchq.resource_estimators.graph_estimator import GraphResourceEstimator
 from benchq.resource_estimators.openfermion_estimator import openfermion_estimator
-from benchq.logical_architecture_modeling.graph_based_logical_architectures import (
-    TwoRowBusArchitectureModel,
-)
 
 
 def get_resources(lattice_type: str, size: int, decoder_data_file: str):

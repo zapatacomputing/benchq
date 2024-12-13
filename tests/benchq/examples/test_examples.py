@@ -19,13 +19,12 @@ from benchq.compilation.graph_states.substrate_scheduler.python_substrate_schedu
     python_substrate_scheduler,
 )
 from benchq.conversions import import_circuit
-from benchq.quantum_hardware_modeling import BASIC_SC_ARCHITECTURE_MODEL
-from benchq.resource_estimators.default_estimators import get_precise_graph_estimate
-from benchq.resource_estimators.graph_estimator import GraphResourceEstimator
 from benchq.logical_architecture_modeling.graph_based_logical_architectures import (
     TwoRowBusArchitectureModel,
 )
-
+from benchq.quantum_hardware_modeling import BASIC_SC_ARCHITECTURE_MODEL
+from benchq.resource_estimators.default_estimators import get_precise_graph_estimate
+from benchq.resource_estimators.graph_estimator import GraphResourceEstimator
 
 MAIN_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.dirname(MAIN_DIR))

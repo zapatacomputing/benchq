@@ -6,9 +6,9 @@ from dataclasses import dataclass
 from typing import Optional, Protocol, runtime_checkable
 
 from ..resource_estimators.resource_info import (
-    LogicalArchitectureResourceInfo,
     DetailedIonTrapArchitectureResourceInfo,
     ELUResourceInfo,
+    LogicalArchitectureResourceInfo,
     MagicStateFactoryInfo,
     ResourceInfo,
 )

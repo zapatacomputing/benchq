@@ -1,5 +1,4 @@
 import pytest
-
 from orquestra.quantum.circuits import Circuit
 
 from benchq.compilation.graph_states.compiled_data_structures import (
@@ -7,12 +6,11 @@ from benchq.compilation.graph_states.compiled_data_structures import (
     GSCInfo,
 )
 from benchq.logical_architecture_modeling.graph_based_logical_architectures import (
+    AllToAllArchitectureModel,
     GraphBasedLogicalArchitectureModel,
     TwoRowBusArchitectureModel,
-    AllToAllArchitectureModel,
     consume_t_measurements,
 )
-
 from benchq.problem_embeddings.quantum_program import QuantumProgram
 from benchq.resource_estimators.resource_info import (
     LogicalArchitectureResourceInfo,

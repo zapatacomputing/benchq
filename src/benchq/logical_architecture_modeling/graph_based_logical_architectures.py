@@ -1,28 +1,22 @@
 import warnings
 from decimal import Decimal
 from math import ceil
-
-from typing import List, Union, Optional
+from typing import List, Optional, Union
 
 from benchq.decoder_modeling.decoder_resource_estimator import get_decoder_info
 
-from ..compilation.graph_states.compiled_data_structures import (
-    CompiledQuantumProgram,
-)
-from ..quantum_hardware_modeling import (
-    BasicArchitectureModel,
-)
+from ..compilation.graph_states.compiled_data_structures import CompiledQuantumProgram
+from ..quantum_hardware_modeling import BasicArchitectureModel
 from ..quantum_hardware_modeling.devitt_surface_code import (
     get_total_logical_failure_rate,
     physical_qubits_per_logical_qubit,
 )
-from ..visualization_tools.resource_allocation import QECCycleAllocation
 from ..resource_estimators.resource_info import (
     LogicalArchitectureResourceInfo,
-    MagicStateFactoryInfo,
     LogicalFailureRateInfo,
+    MagicStateFactoryInfo,
 )
-
+from ..visualization_tools.resource_allocation import QECCycleAllocation
 from .basic_logical_architectures import LogicalArchitectureModel
 
 

@@ -10,7 +10,7 @@ import pytest
 import stim
 from numba import njit
 from orquestra.integrations.qiskit.conversions import import_from_qiskit
-from orquestra.quantum.circuits import CNOT, CZ, Circuit, H, S, T, X, Dagger
+from orquestra.quantum.circuits import CNOT, CZ, Circuit, Dagger, H, S, T, X
 from qiskit import QuantumCircuit
 
 from benchq.compilation.circuits import (

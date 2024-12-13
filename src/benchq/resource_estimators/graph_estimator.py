@@ -1,8 +1,7 @@
-from pathlib import Path
-
 import warnings
 from decimal import Decimal, getcontext
 from math import ceil
+from pathlib import Path
 from typing import Iterable, Optional, Tuple
 
 from benchq.decoder_modeling.decoder_resource_estimator import get_decoder_info
@@ -13,13 +12,11 @@ from ..compilation.graph_states.compiled_data_structures import (
     CompiledAlgorithmImplementation,
     CompiledQuantumProgram,
 )
-
+from ..decoder_modeling import DecoderModel
 from ..logical_architecture_modeling.graph_based_logical_architectures import (
     GraphBasedLogicalArchitectureModel,
 )
-
-from ..decoder_modeling import DecoderModel
-from ..magic_state_distillation import iter_litinski_factories, find_optimal_factory
+from ..magic_state_distillation import find_optimal_factory, iter_litinski_factories
 from ..quantum_hardware_modeling import (
     BasicArchitectureModel,
     DetailedArchitectureModel,
@@ -34,8 +31,8 @@ from .resource_info import (
     AbstractLogicalResourceInfo,
     GraphExtra,
     GraphResourceInfo,
-    ResourceInfo,
     MagicStateFactoryInfo,
+    ResourceInfo,
 )
 
 

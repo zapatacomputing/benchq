@@ -14,10 +14,10 @@ from benchq.compilation.graph_states.compiled_data_structures import (
     CompiledQuantumProgram,
     GSCInfo,
 )
+from benchq.decoder_modeling import DecoderModel
 from benchq.logical_architecture_modeling.graph_based_logical_architectures import (
     TwoRowBusArchitectureModel,
 )
-from benchq.decoder_modeling import DecoderModel
 from benchq.problem_embeddings.quantum_program import QuantumProgram
 from benchq.quantum_hardware_modeling import (
     BASIC_ION_TRAP_ARCHITECTURE_MODEL,

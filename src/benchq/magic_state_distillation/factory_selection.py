@@ -1,6 +1,7 @@
-from typing import Iterable, Union
-from ..resource_estimators.resource_info import MagicStateFactoryInfo
 from decimal import Decimal
+from typing import Iterable, Union
+
+from ..resource_estimators.resource_info import MagicStateFactoryInfo
 
 
 def find_optimal_factory(

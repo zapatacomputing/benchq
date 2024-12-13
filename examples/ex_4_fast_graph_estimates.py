@@ -16,15 +16,15 @@ from pprint import pprint
 
 from benchq.algorithms.time_evolution import qsp_time_evolution_algorithm
 from benchq.decoder_modeling import DecoderModel
+from benchq.logical_architecture_modeling.graph_based_logical_architectures import (
+    TwoRowBusArchitectureModel,
+)
 from benchq.problem_ingestion.solid_state_hamiltonians.ising import (
     generate_ising_hamiltonian_on_triangular_lattice,
 )
 from benchq.quantum_hardware_modeling import DETAILED_ION_TRAP_ARCHITECTURE_MODEL
 from benchq.resource_estimators.default_estimators import get_fast_graph_estimate
 from benchq.timing import measure_time
-from benchq.logical_architecture_modeling.graph_based_logical_architectures import (
-    TwoRowBusArchitectureModel,
-)
 
 
 def main() -> None:

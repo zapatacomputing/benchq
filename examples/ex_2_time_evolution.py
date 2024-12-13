@@ -26,16 +26,16 @@ from benchq.compilation.graph_states import get_ruby_slippers_circuit_compiler
 from benchq.compilation.graph_states.implementation_compiler import (
     get_implementation_compiler,
 )
+from benchq.logical_architecture_modeling.graph_based_logical_architectures import (
+    AllToAllArchitectureModel,
+    TwoRowBusArchitectureModel,
+)
 from benchq.problem_ingestion import get_vlasov_hamiltonian
 from benchq.problem_ingestion.solid_state_hamiltonians.heisenberg import (
     generate_1d_heisenberg_hamiltonian,
 )
 from benchq.quantum_hardware_modeling import BASIC_SC_ARCHITECTURE_MODEL
 from benchq.resource_estimators.graph_estimator import GraphResourceEstimator
-from benchq.logical_architecture_modeling.graph_based_logical_architectures import (
-    TwoRowBusArchitectureModel,
-    AllToAllArchitectureModel,
-)
 from benchq.timing import measure_time
 
 

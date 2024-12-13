@@ -4,9 +4,9 @@ import pytest
 
 from benchq.quantum_hardware_modeling import DetailedIonTrapModel
 from benchq.resource_estimators.resource_info import (
-    LogicalArchitectureResourceInfo,
     DetailedIonTrapArchitectureResourceInfo,
     ELUResourceInfo,
+    LogicalArchitectureResourceInfo,
     MagicStateFactoryInfo,
     ResourceInfo,
 )

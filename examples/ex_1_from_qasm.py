@@ -16,12 +16,12 @@ from benchq.compilation.graph_states import get_ruby_slippers_circuit_compiler
 from benchq.compilation.graph_states.implementation_compiler import (
     get_implementation_compiler,
 )
+from benchq.logical_architecture_modeling.graph_based_logical_architectures import (
+    AllToAllArchitectureModel,
+    TwoRowBusArchitectureModel,
+)
 from benchq.quantum_hardware_modeling import BASIC_SC_ARCHITECTURE_MODEL
 from benchq.resource_estimators.graph_estimator import GraphResourceEstimator
-from benchq.logical_architecture_modeling.graph_based_logical_architectures import (
-    TwoRowBusArchitectureModel,
-    AllToAllArchitectureModel,
-)
 
 
 def main(file_name):

@@ -4,9 +4,8 @@
 """Data structures describing estimated resources and related info."""
 
 from dataclasses import dataclass, field
-from typing import Generic, Optional, Tuple, TypeVar, Union
 from decimal import Decimal
-
+from typing import Generic, Optional, Tuple, TypeVar, Union
 
 from benchq.compilation.graph_states.compiled_data_structures import (
     CompiledAlgorithmImplementation,

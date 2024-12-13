@@ -8,13 +8,13 @@ from ..algorithms.data_structures import AlgorithmImplementation
 from ..compilation.circuits.pyliqtr_transpilation import SYNTHESIS_SCALING
 from ..compilation.graph_states import get_implementation_compiler
 from ..decoder_modeling import DecoderModel
-from ..problem_embeddings.quantum_program import QuantumProgram
 from ..logical_architecture_modeling.basic_logical_architectures import (
     LogicalArchitectureModel,
 )
 from ..logical_architecture_modeling.graph_based_logical_architectures import (
     GraphBasedLogicalArchitectureModel,
 )
+from ..problem_embeddings.quantum_program import QuantumProgram
 from ..quantum_hardware_modeling.hardware_architecture_models import (
     BasicArchitectureModel,
     IONTrapModel,
