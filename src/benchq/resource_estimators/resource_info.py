@@ -182,19 +182,6 @@ GraphResourceInfo = ResourceInfo[GraphExtra]
 
 
 @dataclass
-class AzureExtra:
-    """Extra info relating to resource estimation on Azure."""
-
-    depth: int
-    cycle_time: float
-    raw_data: dict
-
-
-# Alias for type of resource info returned by azure_estimator
-AzureResourceInfo = ResourceInfo[AzureExtra]
-
-
-@dataclass
 class OpenFermionExtra:
     """Extra info relating to resource estimation using OpenFermion."""
 
