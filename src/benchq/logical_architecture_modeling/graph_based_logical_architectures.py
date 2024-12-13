@@ -428,13 +428,14 @@ class AllToAllArchitectureModel(GraphBasedLogicalArchitectureModel):
         magic_state_factory: Optional[MagicStateFactoryInfo],
     ) -> LogicalArchitectureResourceInfo:
 
-        num_logical_data_qubits, num_magic_state_factories = (
-            self._generate_data_and_distillation_counts(
-                compiled_program,
-                optimization,
-                data_and_bus_code_distance,
-                magic_state_factory,
-            )
+        (
+            num_logical_data_qubits,
+            num_magic_state_factories,
+        ) = self._generate_data_and_distillation_counts(
+            compiled_program,
+            optimization,
+            data_and_bus_code_distance,
+            magic_state_factory,
         )
 
         # The all-to-all architecture uses no bus qubits
@@ -462,13 +463,14 @@ class TwoRowBusArchitectureModel(GraphBasedLogicalArchitectureModel):
         magic_state_factory: Union[MagicStateFactoryInfo, None],
     ) -> LogicalArchitectureResourceInfo:
 
-        num_logical_data_qubits, num_magic_state_factories = (
-            self._generate_data_and_distillation_counts(
-                compiled_program,
-                optimization,
-                data_and_bus_code_distance,
-                magic_state_factory,
-            )
+        (
+            num_logical_data_qubits,
+            num_magic_state_factories,
+        ) = self._generate_data_and_distillation_counts(
+            compiled_program,
+            optimization,
+            data_and_bus_code_distance,
+            magic_state_factory,
         )
 
         # Qubit resource breakdowns are given by the following layouts
