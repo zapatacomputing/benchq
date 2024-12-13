@@ -1,12 +1,13 @@
-from typing import Iterable
+from typing import Iterable, Union
 from ..resource_estimators.resource_info import MagicStateFactoryInfo
+from decimal import Decimal
 
 
 def find_optimal_factory(
-    per_t_gate_failure_tolerance: float,
+    per_t_gate_failure_tolerance: Union[float, Decimal],
     magic_state_factory_iterator: Iterable[MagicStateFactoryInfo],
     optimization: str = "Time",
-) -> MagicStateFactoryInfo:
+) -> Union[MagicStateFactoryInfo, None]:
     """Find the optimal factory from a given iterator of factories based on
         the optimization criteria.
     Args:

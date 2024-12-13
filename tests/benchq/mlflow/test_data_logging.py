@@ -70,7 +70,7 @@ def test__flatten_dict(input_dict, expected):
 @patch("benchq.mlflow.data_logging.mlflow", autospec=True)
 def test_log_input_objects_to_mlflow(mock_mlflow):
     # Given
-    test_algo_descrip = AlgorithmImplementation(None, None, 10)
+    test_algo_descrip = AlgorithmImplementation(None, None, 10)  # type: ignore
 
     test_hardware_model = IONTrapModel(0.001, 0.1)
 

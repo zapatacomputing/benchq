@@ -104,8 +104,8 @@ class GraphResourceEstimator:
             # If there are no T gates or rotation gates, then there is
             # no need for a magic state factory
             n_t_gates_per_rotation = 0
-            per_rotation_failure_tolerance = 0
-            per_t_gate_failure_tolerance = 0
+            per_rotation_failure_tolerance = Decimal(0)
+            per_t_gate_failure_tolerance = Decimal(0)
             magic_state_factory = None
             n_t_states = 0
         else:
@@ -113,7 +113,7 @@ class GraphResourceEstimator:
                 # If there are no rotation gates, then no T gates for
                 # rotations are needed
                 n_t_gates_per_rotation = 0
-                per_rotation_failure_tolerance = 0
+                per_rotation_failure_tolerance = Decimal(0)
                 n_t_states = compiled_implementation.program.n_t_gates
             else:
                 per_rotation_failure_tolerance = Decimal(
@@ -150,9 +150,13 @@ class GraphResourceEstimator:
 
         # Populate resource info
 
+        # Check that the qec_cycle_allocation was set
+        if log_arch_info.qec_cycle_allocation is None:
+            raise ValueError("log_arch_info.qec_cycle_allocation was not set.")
+
         # Compute runtime to execute a single circuit
         time_per_circuit_in_seconds = (
-            log_arch_info.qec_cycle_allocation.total  # type: ignore
+            log_arch_info.qec_cycle_allocation.total
             * hw_model.surface_code_cycle_time_in_seconds
         )
 
@@ -170,28 +174,36 @@ class GraphResourceEstimator:
 
         # Populate remaining logical failure rates
 
+        # Check that the logical failure rate info object was set
+        if log_arch_info.logical_failure_rate_info is None:
+            raise ValueError("log_arch_info.logical_failure_rate_info was not set.")
+
         # Rotations
-        log_arch_info.logical_failure_rate_info.per_rotation_failure_rate = (  # type: ignore
+        log_arch_info.logical_failure_rate_info.per_rotation_failure_rate = (
             per_rotation_failure_tolerance
         )
-        log_arch_info.logical_failure_rate_info.total_rotation_failure_rate = (  # type: ignore
+        log_arch_info.logical_failure_rate_info.total_rotation_failure_rate = (
             per_rotation_failure_tolerance
             * compiled_implementation.program.n_rotation_gates
         )
 
         # Distillation
         if magic_state_factory is None:
-            log_arch_info.logical_failure_rate_info.per_t_gate_failure_rate = 0.0  # type: ignore
-            log_arch_info.logical_failure_rate_info.total_distillation_failure_rate = (  # type: ignore
+            log_arch_info.logical_failure_rate_info.per_t_gate_failure_rate = 0.0
+            log_arch_info.logical_failure_rate_info.total_distillation_failure_rate = (
                 0.0
             )
         else:
-            log_arch_info.logical_failure_rate_info.per_t_gate_failure_rate = (  # type: ignore
+            log_arch_info.logical_failure_rate_info.per_t_gate_failure_rate = (
                 magic_state_factory.distilled_magic_state_error_rate
             )
-            log_arch_info.logical_failure_rate_info.total_distillation_failure_rate = (  # type: ignore
+            log_arch_info.logical_failure_rate_info.total_distillation_failure_rate = (
                 magic_state_factory.distilled_magic_state_error_rate * n_t_states
             )
+
+        # Check that the code distance was set
+        if log_arch_info.data_and_bus_code_distance is None:
+            raise ValueError("log_arch_info.data_and_bus_code_distance was not set.")
 
         # Populate decoder resource info
         decoder_info = get_decoder_info(

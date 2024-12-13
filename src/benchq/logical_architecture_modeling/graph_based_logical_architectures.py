@@ -121,6 +121,7 @@ class GraphBasedLogicalArchitectureModel(LogicalArchitectureModel):
             )
             logical_architecture_resource_info.data_and_bus_code_distance = None
             logical_architecture_resource_info.qec_cycle_allocation = None
+            logical_architecture_resource_info.logical_failure_rate_info = None
 
         return logical_architecture_resource_info
 
@@ -155,7 +156,7 @@ class GraphBasedLogicalArchitectureModel(LogicalArchitectureModel):
         else:
             if magic_state_factory is None:
                 raise ValueError(
-                    "magic_state_factory cannot be None when the program requires T gates"
+                    "magic_state_factory cannot be None when T gates are needed"
                 )
 
             if optimization == "Space":
@@ -243,7 +244,7 @@ class GraphBasedLogicalArchitectureModel(LogicalArchitectureModel):
 
                     if msf is None:
                         raise ValueError(
-                            "magic_state_factory cannot be None when the program requires T gates"
+                            "magic_state_factory cannot be None when T gates are needed"
                         )
 
                     distillation_time_in_cycles = msf.distillation_time_in_cycles

@@ -186,12 +186,14 @@ def test_get_resource_estimations_for_program_gives_correct_results(
         architecture_model,
     )
 
+    obtained_log_arch_info = resource_estimates.logical_architecture_resource_info
+
     assert (
-        resource_estimates.logical_architecture_resource_info.data_and_bus_code_distance
+        obtained_log_arch_info.data_and_bus_code_distance  # type: ignore
         == expected_results["code_distance"]
     )
     assert (
-        resource_estimates.logical_architecture_resource_info.num_logical_qubits
+        obtained_log_arch_info.num_logical_qubits  # type: ignore
         == expected_results["n_logical_qubits"]
     )
 
@@ -234,16 +236,16 @@ def test_better_hardware_architecture_does_not_require_more_resources(
     high_noise_re = high_noise_resource_estimates.logical_architecture_resource_info
 
     assert (
-        low_noise_resource_estimates.n_physical_qubits
-        <= high_noise_resource_estimates.n_physical_qubits
+        low_noise_resource_estimates.n_physical_qubits  # type: ignore
+        <= high_noise_resource_estimates.n_physical_qubits  # type: ignore
     )
     assert (
-        low_noise_re.data_and_bus_code_distance
-        <= high_noise_re.data_and_bus_code_distance
+        low_noise_re.data_and_bus_code_distance  # type: ignore
+        <= high_noise_re.data_and_bus_code_distance  # type: ignore
     )
     assert (
-        low_noise_resource_estimates.total_time_in_seconds
-        <= high_noise_resource_estimates.total_time_in_seconds
+        low_noise_resource_estimates.total_time_in_seconds  # type: ignore
+        <= high_noise_resource_estimates.total_time_in_seconds  # type: ignore
     )
 
 
@@ -298,12 +300,15 @@ def test_higher_error_budget_does_not_require_more_resources(
     low_re = low_error_resource_estimates.logical_architecture_resource_info
 
     assert (
-        high_error_resource_estimates.n_physical_qubits
+        high_error_resource_estimates.n_physical_qubits  # type: ignore
         <= low_error_resource_estimates.n_physical_qubits
     )
-    assert high_re.data_and_bus_code_distance <= low_re.data_and_bus_code_distance
+
+    high_err_distance = high_re.data_and_bus_code_distance  # type: ignore
+    low_err_distance = low_re.data_and_bus_code_distance  # type: ignore
+    assert high_err_distance <= low_err_distance  # type: ignore
     assert (
-        high_error_resource_estimates.total_time_in_seconds
+        high_error_resource_estimates.total_time_in_seconds  # type: ignore
         <= low_error_resource_estimates.total_time_in_seconds
     )
 

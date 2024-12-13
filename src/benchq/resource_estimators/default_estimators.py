@@ -29,7 +29,7 @@ DEFAULT_STEPS_TO_EXTRAPOLATE_FROM = [1, 2, 3]
 
 def get_precise_graph_estimate(
     algorithm_implementation: AlgorithmImplementation,
-    logical_architecture_model: LogicalArchitectureModel,
+    logical_architecture_model: GraphBasedLogicalArchitectureModel,
     hardware_model: BasicArchitectureModel,
     optimization: str,
     decoder_model: Optional[DecoderModel] = None,
@@ -71,7 +71,7 @@ def get_precise_graph_estimate(
 
 def get_fast_graph_estimate(
     algorithm_implementation: AlgorithmImplementation,
-    logical_architecture_model: LogicalArchitectureModel,
+    logical_architecture_model: GraphBasedLogicalArchitectureModel,
     hardware_model: BasicArchitectureModel,
     optimization: str,
     decoder_model: Optional[DecoderModel] = None,

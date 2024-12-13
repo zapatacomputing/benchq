@@ -4,7 +4,9 @@
 """Data structures describing estimated resources and related info."""
 
 from dataclasses import dataclass, field
-from typing import Generic, Optional, Tuple, TypeVar
+from typing import Generic, Optional, Tuple, TypeVar, Union
+from decimal import Decimal
+
 
 from benchq.compilation.graph_states.compiled_data_structures import (
     CompiledAlgorithmImplementation,
@@ -65,12 +67,12 @@ class DetailedIonTrapArchitectureResourceInfo:
 class LogicalFailureRateInfo:
     """Logical failure rates for various processes."""
 
-    total_rotation_failure_rate: Optional[float] = None
-    total_distillation_failure_rate: Optional[float] = None
-    total_qec_failure_rate: Optional[float] = None
-    per_rotation_failure_rate: Optional[float] = None
-    per_t_gate_failure_rate: Optional[float] = None
-    per_qec_failure_rate: Optional[float] = None
+    total_rotation_failure_rate: Union[None, float, Decimal] = None
+    total_distillation_failure_rate: Union[None, float, Decimal] = None
+    total_qec_failure_rate: Union[None, float, Decimal] = None
+    per_rotation_failure_rate: Union[None, float, Decimal] = None
+    per_t_gate_failure_rate: Union[None, float, Decimal] = None
+    per_qec_failure_rate: Union[None, float, Decimal] = None
 
     @property
     def total_circuit_failure_rate(self) -> float:

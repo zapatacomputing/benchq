@@ -107,10 +107,10 @@ def test_get_resource_estimations_for_program_accounts_for_spatial_resources(
 
     magic_state_factory = MagicStateFactoryInfo(
         "dummy_msf",
-        None,
-        None,
-        None,
-        None,
+        None,  # type: ignore
+        None,  # type: ignore
+        None,  # type: ignore
+        None,  # type: ignore
         1,
     )
     data_and_bus_code_distance = None
@@ -204,9 +204,9 @@ def test_get_qec_cycle_allocation(gsc_info, optimization, cycles_per_layer):
 
     magic_state_factory = MagicStateFactoryInfo(
         "dummy_msf",
-        None,
-        None,
-        None,
+        None,  # type: ignore
+        None,  # type: ignore
+        None,  # type: ignore
         distillation_time_in_cycles,
         t_gates_per_distillation,
     )
