@@ -2,7 +2,7 @@ import warnings
 from decimal import Decimal
 from math import ceil
 
-from typing import List, Union
+from typing import List, Union, Optional
 
 from benchq.decoder_modeling.decoder_resource_estimator import get_decoder_info
 
@@ -47,6 +47,9 @@ class GraphBasedLogicalArchitectureModel(LogicalArchitectureModel):
     ) -> LogicalArchitectureResourceInfo:
 
         lay_out_found = False
+
+        # Initialize logical_architecture_resource_info with a default value
+        logical_architecture_resource_info = LogicalArchitectureResourceInfo()
 
         for data_and_bus_code_distance in range(min_d, max_d, 2):
 
@@ -136,7 +139,7 @@ class GraphBasedLogicalArchitectureModel(LogicalArchitectureModel):
         compiled_program: CompiledQuantumProgram,
         optimization: str,
         data_and_bus_code_distance: int,
-        magic_state_factory: MagicStateFactoryInfo,
+        magic_state_factory: Optional[MagicStateFactoryInfo],
     ) -> tuple[int, int]:
 
         num_logical_data_qubits = (
@@ -145,10 +148,16 @@ class GraphBasedLogicalArchitectureModel(LogicalArchitectureModel):
 
         # The space optimal compilation uses just one factory, while the time optimal
         # compilation uses a number of factories determined by the maximum warranted
-        # parallelization of distillation.
+        # parallelization of distillation. Note that magic_state_factory is allowed to
+        # be None if the compiled program has no T gates or rotations.
         if compiled_program.n_t_gates == 0 and compiled_program.n_rotation_gates == 0:
             num_magic_state_factories = 0
         else:
+            if magic_state_factory is None:
+                raise ValueError(
+                    "magic_state_factory cannot be None when the program requires T gates"
+                )
+
             if optimization == "Space":
                 # For space optimal, a single factory is used
                 num_magic_state_factories = 1
@@ -183,6 +192,8 @@ class GraphBasedLogicalArchitectureModel(LogicalArchitectureModel):
         data_and_bus_code_distance = (
             logical_architecture_resource_info.data_and_bus_code_distance
         )
+        if data_and_bus_code_distance is None:
+            raise ValueError("data_and_bus_code_distance cannot be None")
 
         # Legend:
         # |Graph state->| = "Entanglement" process of graph state creation
@@ -212,7 +223,6 @@ class GraphBasedLogicalArchitectureModel(LogicalArchitectureModel):
             for layer_num, layer in enumerate(range(subroutine.num_layers)):
 
                 cycles_per_tock = data_and_bus_code_distance
-                msf = logical_architecture_resource_info.magic_state_factory
 
                 # Check if the number of T gates and number of rotations
                 # per layer is zero
@@ -228,6 +238,14 @@ class GraphBasedLogicalArchitectureModel(LogicalArchitectureModel):
                         "graph state prep",
                     )
                 else:
+
+                    msf = logical_architecture_resource_info.magic_state_factory
+
+                    if msf is None:
+                        raise ValueError(
+                            "magic_state_factory cannot be None when the program requires T gates"
+                        )
+
                     distillation_time_in_cycles = msf.distillation_time_in_cycles
                     t_gates_per_distillation = msf.t_gates_per_distillation
 
@@ -406,7 +424,7 @@ class AllToAllArchitectureModel(GraphBasedLogicalArchitectureModel):
         compiled_program: CompiledQuantumProgram,
         optimization: str,
         data_and_bus_code_distance: int,
-        magic_state_factory: Union[MagicStateFactoryInfo, None],
+        magic_state_factory: Optional[MagicStateFactoryInfo],
     ) -> LogicalArchitectureResourceInfo:
 
         num_logical_data_qubits, num_magic_state_factories = (
