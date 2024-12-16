@@ -354,7 +354,7 @@ def test_teleportation_produces_correct_node_parity_for_large_circuits(
     "circuit, rbs_iteration_time, expected_prop_range, logical_architecture_name",
     [
         (Circuit([H(0), CNOT(0, 1)]), 1.0, [0.9, 1.0], "two_row_bus"),
-        (Circuit([H(0), CNOT(0, 1)]), 1.0, [0.9, 1.0], "active_volume"),
+        (Circuit([H(0), CNOT(0, 1)]), 1.0, [0.9, 1.0], "all_to_all"),
         (
             Circuit(
                 [H(0), *[CNOT(j, i) for i in range(1, 300) for j in range(2, 300)]]
@@ -369,7 +369,7 @@ def test_teleportation_produces_correct_node_parity_for_large_circuits(
             ),
             0.1,
             [0.0, 0.5],
-            "active_volume",
+            "all_to_all",
         ),
     ],
 )
@@ -394,7 +394,7 @@ def test_rbs_gives_reasonable_prop(
     assert prop >= expected_prop_range[0] and prop <= expected_prop_range[1]
 
 
-def test_rbs_with_active_volume_gives_fewer_graph_creation_cycles_than_two_row():
+def test_rbs_with_all_to_all_gives_fewer_graph_creation_cycles_than_two_row():
 
     # given
     circuit = Circuit(
@@ -413,20 +413,20 @@ def test_rbs_with_active_volume_gives_fewer_graph_creation_cycles_than_two_row()
         optimization=optimization,
     )
 
-    compiled_data_active_volume, _ = jl.run_ruby_slippers(
+    compiled_data_all_to_all, _ = jl.run_ruby_slippers(
         circuit,
         verbose=False,
-        logical_architecture_name="active_volume",
+        logical_architecture_name="all_to_all",
         optimization=optimization,
     )
 
     # then
-    assert sum(compiled_data_active_volume["graph_creation_tocks_per_layer"]) < sum(
+    assert sum(compiled_data_all_to_all["graph_creation_tocks_per_layer"]) < sum(
         compiled_data_two_row["graph_creation_tocks_per_layer"]
     )
 
 
-def test_active_volume_has_fewer_tocks_than_two_row():
+def test_all_to_all_has_fewer_tocks_than_two_row():
 
     # given
     toffoli_circuit = Circuit(
@@ -459,15 +459,15 @@ def test_active_volume_has_fewer_tocks_than_two_row():
         optimization=optimization,
     )
 
-    compiled_data_active_volume, _ = jl.run_ruby_slippers(
+    compiled_data_all_to_all, _ = jl.run_ruby_slippers(
         toffoli_circuit,
         verbose=False,
-        logical_architecture_name="active_volume",
+        logical_architecture_name="all_to_all",
         optimization=optimization,
     )
 
     # then
-    assert sum(compiled_data_active_volume["graph_creation_tocks_per_layer"]) < sum(
+    assert sum(compiled_data_all_to_all["graph_creation_tocks_per_layer"]) < sum(
         compiled_data_two_row["graph_creation_tocks_per_layer"]
     )
 
@@ -506,13 +506,13 @@ def test_number_of_t_measurements_equals_number_of_t_gates():
         optimization=optimization,
     )
 
-    compiled_data_active_volume, _ = jl.run_ruby_slippers(
+    compiled_data_all_to_all, _ = jl.run_ruby_slippers(
         toffoli_circuit,
         verbose=False,
-        logical_architecture_name="active_volume",
+        logical_architecture_name="all_to_all",
         optimization=optimization,
     )
-    assert sum(compiled_data_active_volume["t_states_per_layer"]) == number_of_t_gates
+    assert sum(compiled_data_all_to_all["t_states_per_layer"]) == number_of_t_gates
     assert sum(compiled_data_two_row["t_states_per_layer"]) == number_of_t_gates
 
 
