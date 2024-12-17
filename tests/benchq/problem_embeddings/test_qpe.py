@@ -267,7 +267,12 @@ def test_calc_of_algorithm_failure_prob(n_toffoli, n_T):
     )
 
     np.testing.assert_almost_equal(
-        (best_toffoli.logical_error_rate - 2 * best_T.logical_error_rate), 0, decimal=5
+        (
+            best_toffoli.total_circuit_failure_rate
+            - 2 * best_T.total_circuit_failure_rate
+        ),
+        0,
+        decimal=5,
     )
 
 
@@ -296,9 +301,9 @@ def test_algorithm_failure_prob_calculation():
         architecture_model=BAM,
         hardware_failure_tolerance=1e-1,
     )
-    np.testing.assert_almost_equal(
-        best_cost_toffoli.logical_error_rate, best_cost_t.logical_error_rate
-    )
+    exp_error_rate = best_cost_toffoli.total_circuit_failure_rate
+    obt_error_rate = best_cost_t.total_circuit_failure_rate
+    np.testing.assert_almost_equal(exp_error_rate, obt_error_rate)  # type: ignore
 
 
 def test_default_values():
