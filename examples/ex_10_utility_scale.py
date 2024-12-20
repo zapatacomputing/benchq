@@ -11,6 +11,9 @@ from benchq.compilation.graph_states.implementation_compiler import (
     get_implementation_compiler,
 )
 from benchq.decoder_modeling import DecoderModel
+from benchq.logical_architecture_modeling.graph_based_logical_architectures import (
+    TwoRowBusArchitectureModel,
+)
 from benchq.problem_ingestion.solid_state_hamiltonians.ising import (
     generate_ising_hamiltonian_on_cubic_lattice,
     generate_ising_hamiltonian_on_kitaev_lattice,
@@ -35,7 +38,8 @@ def get_resources(lattice_type: str, size: int, decoder_data_file: str):
     else:
         raise ValueError(f"Lattice type {lattice_type} not supported")
 
-    architecture_model = BASIC_SC_ARCHITECTURE_MODEL
+    hardware_architecture_model = BASIC_SC_ARCHITECTURE_MODEL
+    logical_architecture_model = TwoRowBusArchitectureModel()
 
     print("Getting algorithm implementation...")
     evolution_time = 1
@@ -58,7 +62,8 @@ def get_resources(lattice_type: str, size: int, decoder_data_file: str):
     gsc_resources = estimator.compile_and_estimate(
         algorithm_implementation,
         implementation_compiler,
-        architecture_model,
+        logical_architecture_model,
+        hardware_architecture_model,
         decoder_model,
     )
 
@@ -68,7 +73,7 @@ def get_resources(lattice_type: str, size: int, decoder_data_file: str):
     footprint_resources = openfermion_estimator(
         algorithm_implementation.program.num_data_qubits,
         num_t=total_t_gates,
-        architecture_model=architecture_model,
+        architecture_model=hardware_architecture_model,
         hardware_failure_tolerance=hw_tolerance,
         decoder_model=decoder_model,
     )

@@ -29,7 +29,7 @@ class AlgorithmImplementation:
 
     @property
     def n_t_gates_after_transpilation(self):
-        return self.program.get_n_t_gates_after_transpilation(
+        return self.program.get_n_t_gates_after_synthesis(
             self.error_budget.transpilation_failure_tolerance
         )
 

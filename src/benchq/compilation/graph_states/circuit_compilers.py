@@ -21,11 +21,15 @@ def get_nx_graph_from_rbs_adj_list(adj: list) -> nx.Graph:
 
 def default_ruby_slippers_circuit_compiler(
     circuit: Circuit,
+    logical_architecture_name: str,
     optimization: str,
     verbose: bool,
 ) -> GSCInfo:
     compiled_graph_data, _ = jl.run_ruby_slippers(
-        circuit, verbose=verbose, optimization=optimization
+        circuit,
+        verbose=verbose,
+        logical_architecture_name=logical_architecture_name,
+        optimization=optimization,
     )
     return GSCInfo.from_dict(compiled_graph_data)
 
@@ -45,6 +49,7 @@ def get_ruby_slippers_circuit_compiler(
 ):
     def rbs_circuit_compiler(
         circuit: Circuit,
+        logical_architecture_name: str,
         optimization: str,
         verbose: bool,
     ) -> GSCInfo:
@@ -53,6 +58,7 @@ def get_ruby_slippers_circuit_compiler(
             verbose=verbose,
             takes_graph_input=takes_graph_input,
             gives_graph_output=gives_graph_output,
+            logical_architecture_name=logical_architecture_name,
             optimization=optimization,
             max_num_qubits=max_num_qubits,
             optimal_dag_density=optimal_dag_density,
@@ -75,12 +81,19 @@ def get_jabalizer_circuit_compiler(
 ):
     def jabalizer_circuit_compiler(
         circuit: Circuit,
-        optimization: str,
-        verbose: bool,
+        logical_architecture_name: str = "two_row_bus",
+        optimization: str = "Space",
+        verbose: bool = False,
     ) -> GSCInfo:
-
+        if logical_architecture_name == "Time":
+            print("deepest")
+            breakpoint()
         compiled_graph_data = jl.run_jabalizer(
-            circuit, optimization, verbose, space_optimal_timeout
+            circuit,
+            logical_architecture_name,
+            optimization,
+            verbose,
+            space_optimal_timeout,
         )
 
         return GSCInfo.from_dict(compiled_graph_data)

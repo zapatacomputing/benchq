@@ -10,7 +10,7 @@ import pytest
 import stim
 from numba import njit
 from orquestra.integrations.qiskit.conversions import import_from_qiskit
-from orquestra.quantum.circuits import CNOT, CZ, Circuit, H, S, T, X
+from orquestra.quantum.circuits import CNOT, CZ, Circuit, Dagger, H, S, T, X
 from qiskit import QuantumCircuit
 
 from benchq.compilation.circuits import (
@@ -349,26 +349,40 @@ def test_teleportation_produces_correct_node_parity_for_large_circuits(
         assert (n_nodes - n_t_gates - clifford_t.n_qubits) % 2 == 0
 
 
-@pytest.mark.skip(reason="This test requires hyperparameter tuning.")
+# @pytest.mark.skip(reason="This test requires hyperparameter tuning.")
 @pytest.mark.parametrize(
-    "circuit, rbs_iteration_time, expected_prop_range",
+    "circuit, rbs_iteration_time, expected_prop_range, logical_architecture_name",
     [
-        (Circuit([H(0), CNOT(0, 1)]), 1.0, [0.9, 1.0]),
+        (Circuit([H(0), CNOT(0, 1)]), 1.0, [0.9, 1.0], "two_row_bus"),
+        (Circuit([H(0), CNOT(0, 1)]), 1.0, [0.9, 1.0], "all_to_all"),
         (
             Circuit(
                 [H(0), *[CNOT(j, i) for i in range(1, 300) for j in range(2, 300)]]
             ),
             0.1,
             [0.0, 0.5],
+            "two_row_bus",
+        ),
+        (
+            Circuit(
+                [H(0), *[CNOT(j, i) for i in range(1, 300) for j in range(2, 300)]]
+            ),
+            0.1,
+            [0.0, 0.5],
+            "all_to_all",
         ),
     ],
 )
-def test_rbs_gives_reasonable_prop(circuit, rbs_iteration_time, expected_prop_range):
+def test_rbs_gives_reasonable_prop(
+    circuit, rbs_iteration_time, expected_prop_range, logical_architecture_name
+):
     # when
-    _, _, prop = jl.run_ruby_slippers(
+    _, prop = jl.run_ruby_slippers(
         circuit,
         takes_graph_input=False,
         gives_graph_output=False,
+        logical_architecture_name=logical_architecture_name,
+        optimization="Time",
         verbose=True,
         max_graph_size=9999,
         teleportation_threshold=40,
@@ -378,6 +392,128 @@ def test_rbs_gives_reasonable_prop(circuit, rbs_iteration_time, expected_prop_ra
 
     # then
     assert prop >= expected_prop_range[0] and prop <= expected_prop_range[1]
+
+
+def test_rbs_with_all_to_all_gives_fewer_graph_creation_cycles_than_two_row():
+
+    # given
+    circuit = Circuit(
+        [
+            H(0),
+            T(0),
+            *[CNOT(j, i) for i in range(1, 300) for j in range(2, 300)],
+        ]
+    )
+    optimization = "Time"
+
+    compiled_data_two_row, _ = jl.run_ruby_slippers(
+        circuit,
+        verbose=False,
+        logical_architecture_name="two_row_bus",
+        optimization=optimization,
+    )
+
+    compiled_data_all_to_all, _ = jl.run_ruby_slippers(
+        circuit,
+        verbose=False,
+        logical_architecture_name="all_to_all",
+        optimization=optimization,
+    )
+
+    # then
+    assert sum(compiled_data_all_to_all["graph_creation_tocks_per_layer"]) < sum(
+        compiled_data_two_row["graph_creation_tocks_per_layer"]
+    )
+
+
+def test_all_to_all_has_fewer_tocks_than_two_row():
+
+    # given
+    toffoli_circuit = Circuit(
+        [
+            T(0),
+            T(1),
+            H(2),
+            CNOT(0, 1),
+            T(2),
+            CNOT(1, 2),
+            T.dagger(1),
+            T(2),
+            CNOT(0, 1),
+            CNOT(1, 2),
+            CNOT(0, 1),
+            T.dagger(2),
+            CNOT(1, 2),
+            CNOT(0, 1),
+            T.dagger(2),
+            CNOT(1, 2),
+            H(2),
+        ]
+    )
+    optimization = "Time"
+
+    compiled_data_two_row, _ = jl.run_ruby_slippers(
+        toffoli_circuit,
+        verbose=True,
+        logical_architecture_name="two_row_bus",
+        optimization=optimization,
+    )
+
+    compiled_data_all_to_all, _ = jl.run_ruby_slippers(
+        toffoli_circuit,
+        verbose=False,
+        logical_architecture_name="all_to_all",
+        optimization=optimization,
+    )
+
+    # then
+    assert sum(compiled_data_all_to_all["graph_creation_tocks_per_layer"]) < sum(
+        compiled_data_two_row["graph_creation_tocks_per_layer"]
+    )
+
+
+def test_number_of_t_measurements_equals_number_of_t_gates():
+    toffoli_circuit = Circuit(
+        [
+            T(0),
+            T(1),
+            H(2),
+            CNOT(0, 1),
+            T(2),
+            CNOT(1, 2),
+            T.dagger(1),
+            T(2),
+            CNOT(0, 1),
+            CNOT(1, 2),
+            CNOT(0, 1),
+            T.dagger(2),
+            CNOT(1, 2),
+            CNOT(0, 1),
+            T.dagger(2),
+            CNOT(1, 2),
+            H(2),
+        ]
+    )
+    optimization = "Time"
+    number_of_t_gates = sum(
+        [1 for op in toffoli_circuit.operations if op.gate.name in ["T", "T_Dagger"]]
+    )
+
+    compiled_data_two_row, _ = jl.run_ruby_slippers(
+        toffoli_circuit,
+        verbose=True,
+        logical_architecture_name="two_row_bus",
+        optimization=optimization,
+    )
+
+    compiled_data_all_to_all, _ = jl.run_ruby_slippers(
+        toffoli_circuit,
+        verbose=False,
+        logical_architecture_name="all_to_all",
+        optimization=optimization,
+    )
+    assert sum(compiled_data_all_to_all["t_states_per_layer"]) == number_of_t_gates
+    assert sum(compiled_data_two_row["t_states_per_layer"]) == number_of_t_gates
 
 
 ########################################################################################

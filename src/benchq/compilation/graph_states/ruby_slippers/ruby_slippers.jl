@@ -67,6 +67,7 @@ function run_ruby_slippers(
     verbose::Bool=true,
     takes_graph_input::Bool=true,
     gives_graph_output::Bool=true,
+    logical_architecture_name::String="two_row_bus",
     optimization::String="Space",
     max_num_qubits::Int64=1,
     optimal_dag_density::Int=1,
@@ -78,8 +79,7 @@ function run_ruby_slippers(
     decomposition_strategy::Int64=0,
     max_time::Float64=1e8,
     max_graph_size=nothing,
-)
-    if decomposition_strategy == 1
+)    if decomposition_strategy == 1
         error("Decomposition strategy 1 is not yet supported")
     end
     # params which can be optimized to speed up computation
@@ -135,8 +135,15 @@ function run_ruby_slippers(
     if proportion == 1.0
         num_logical_qubits = get_num_logical_qubits(pauli_tracker.layering, asg, optimization, verbose)
         num_layers = length(pauli_tracker.layering)
-        (graph_creation_tocks_per_layer, t_states_per_layer, rotations_per_layer) =
-            two_row_scheduler(asg, pauli_tracker, num_logical_qubits, optimization, verbose)
+        if logical_architecture_name == "two_row_bus"
+            (graph_creation_tocks_per_layer, t_states_per_layer, rotations_per_layer) =
+                two_row_scheduler(asg, pauli_tracker, num_logical_qubits, optimization, verbose)
+        elseif logical_architecture_name == "all_to_all"
+                (graph_creation_tocks_per_layer, t_states_per_layer, rotations_per_layer) =
+                all_to_all_scheduler(asg, pauli_tracker, num_logical_qubits, optimization, verbose)
+        else
+            throw(ArgumentError("Logical architecture must be either two_row_bus or all_to_all."))
+        end
         python_compiled_data = Dict(
             "num_logical_qubits" => num_logical_qubits,
             "num_layers" => num_layers,

@@ -16,6 +16,9 @@ from pprint import pprint
 
 from benchq.algorithms.time_evolution import qsp_time_evolution_algorithm
 from benchq.decoder_modeling import DecoderModel
+from benchq.logical_architecture_modeling.graph_based_logical_architectures import (
+    TwoRowBusArchitectureModel,
+)
 from benchq.problem_ingestion.solid_state_hamiltonians.ising import (
     generate_ising_hamiltonian_on_triangular_lattice,
 )
@@ -25,7 +28,8 @@ from benchq.timing import measure_time
 
 
 def main() -> None:
-    architecture_model = DETAILED_ION_TRAP_ARCHITECTURE_MODEL
+    hardware_architecture_model = DETAILED_ION_TRAP_ARCHITECTURE_MODEL
+    logical_architecture_model = TwoRowBusArchitectureModel()
 
     with measure_time() as t_info:
         lattice_size = 3
@@ -46,7 +50,10 @@ def main() -> None:
 
     with measure_time() as t_info:
         fast_gsc_resources = get_fast_graph_estimate(
-            algorithm, architecture_model, optimization="Time"
+            algorithm,
+            logical_architecture_model,
+            hardware_architecture_model,
+            optimization="Time",
         )
 
     print("Resource estimation time with GSC:", t_info.total)

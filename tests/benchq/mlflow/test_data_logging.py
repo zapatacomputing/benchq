@@ -70,7 +70,7 @@ def test__flatten_dict(input_dict, expected):
 @patch("benchq.mlflow.data_logging.mlflow", autospec=True)
 def test_log_input_objects_to_mlflow(mock_mlflow):
     # Given
-    test_algo_descrip = AlgorithmImplementation(None, None, 10)
+    test_algo_descrip = AlgorithmImplementation(None, None, 10)  # type: ignore
 
     test_hardware_model = IONTrapModel(0.001, 0.1)
 
@@ -107,14 +107,12 @@ def test_log_input_objects_to_mlflow(mock_mlflow):
 def test_log_resource_info_to_mlflow(mock_mlflow):
     # Given
     test_resource_info = ResourceInfo(
-        code_distance=1,
-        logical_error_rate=0.1,
-        n_logical_qubits=1,
+        n_abstract_logical_qubits=1,
         n_physical_qubits=1,
+        n_t_gates=1,
         total_time_in_seconds=0.01,
         decoder_info=None,
         optimization="gamma",
-        magic_state_factory_name="tau",
         extra=None,
     )
 
@@ -127,11 +125,10 @@ def test_log_resource_info_to_mlflow(mock_mlflow):
     mock_mlflow.log_param.assert_called()
     mock_mlflow.log_params.assert_not_called()
 
-    mock_mlflow.log_metric.assert_any_call("code_distance", 1)
-    mock_mlflow.log_metric.assert_any_call("logical_error_rate", 0.1)
+    mock_mlflow.log_metric.assert_any_call("n_abstract_logical_qubits", 1)
+    mock_mlflow.log_metric.assert_any_call("n_t_gates", 1)
 
     mock_mlflow.log_param.assert_any_call("decoder_info", "None")
-    mock_mlflow.log_param.assert_any_call("magic_state_factory_name", "tau")
 
 
 @patch("mlflow.MlflowClient", autospec=True)

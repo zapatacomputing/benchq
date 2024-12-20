@@ -4,28 +4,12 @@ import pytest
 
 from benchq.quantum_hardware_modeling import DetailedIonTrapModel
 from benchq.resource_estimators.resource_info import (
-    BusArchitectureResourceInfo,
     DetailedIonTrapArchitectureResourceInfo,
     ELUResourceInfo,
+    LogicalArchitectureResourceInfo,
     MagicStateFactoryInfo,
     ResourceInfo,
 )
-
-
-@pytest.fixture(scope="function")
-def dummy_resource_info():
-    resource_info = ResourceInfo(
-        code_distance=17,
-        logical_error_rate=1,
-        n_logical_qubits=30,
-        n_physical_qubits=None,
-        total_time_in_seconds=5,
-        optimization="",
-        decoder_info=None,
-        magic_state_factory_name="",
-        extra=None,
-    )
-    yield resource_info
 
 
 class TestDetailedIonTrapModel:
@@ -67,7 +51,6 @@ class TestDetailedIonTrapModel:
         )
         def test_hardware_resource_estimates(
             self,
-            dummy_resource_info,
             code_distance,
             n_logical_qubits,
         ):
@@ -78,7 +61,7 @@ class TestDetailedIonTrapModel:
 
             n_bus_qubits = 9 * n_logical_qubits
             n_magic_state_factories = n_bus_qubits
-            bus_architecture_resource_info = BusArchitectureResourceInfo(
+            bus_architecture_resource_info = LogicalArchitectureResourceInfo(
                 n_logical_qubits,
                 n_bus_qubits,
                 code_distance,

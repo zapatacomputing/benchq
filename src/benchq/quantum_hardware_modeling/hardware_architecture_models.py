@@ -6,9 +6,9 @@ from dataclasses import dataclass
 from typing import Optional, Protocol, runtime_checkable
 
 from ..resource_estimators.resource_info import (
-    BusArchitectureResourceInfo,
     DetailedIonTrapArchitectureResourceInfo,
     ELUResourceInfo,
+    LogicalArchitectureResourceInfo,
     MagicStateFactoryInfo,
     ResourceInfo,
 )
@@ -45,7 +45,7 @@ class DetailedArchitectureModel(BasicArchitectureModel, Protocol):
     calculate detailed hardware estimates."""
 
     def get_hardware_resource_estimates(
-        self, bus_architecture_resource_info: BusArchitectureResourceInfo
+        self, bus_architecture_resource_info: LogicalArchitectureResourceInfo
     ):
         pass
 
@@ -80,19 +80,23 @@ class DetailedIonTrapModel:
         self.surface_code_cycle_time_in_seconds = surface_code_cycle_time_in_seconds
 
     def get_hardware_resource_estimates(
-        self, bus_architecture_resource_info: BusArchitectureResourceInfo
+        self, bus_architecture_resource_info: LogicalArchitectureResourceInfo
     ):
         code_distance = bus_architecture_resource_info.data_and_bus_code_distance
 
         # Check that the resource_info.logical_architecture_resource_info
-        # is BusArchitectureResourceInfo
+        # is LogicalArchitectureResourceInfo
         if not isinstance(
             bus_architecture_resource_info,
-            BusArchitectureResourceInfo,
+            LogicalArchitectureResourceInfo,
         ):
             raise ValueError(
-                "bus_architecture_resource_info should be BusArchitectureResourceInfo"
+                "Set bus_architecture_resource_info to LogicalArchitectureResourceInfo"
             )
+
+        # Check that code_distance is an int
+        if not isinstance(code_distance, int):
+            raise ValueError("code_distance must be an integer")
 
         n_logical_data_qubits = bus_architecture_resource_info.num_logical_data_qubits
         n_logical_bus_qubits = bus_architecture_resource_info.num_logical_bus_qubits
