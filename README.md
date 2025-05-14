@@ -1,3 +1,6 @@
+> [!WARNING]
+> This repository is archived. Please consider using [isi-usc-edu/benchq](https://github.com/isi-usc-edu/benchq) instead.
+
 # Bench-Q
 Bench-Q provides tools for estimating the hardware resources required for fault-tolerant quantum computation. It includes a graph-state compiler, distillation factory models, decoder performance models, an ion-trap architecture model, implementations of selected quantum algorithms, and more.
 
